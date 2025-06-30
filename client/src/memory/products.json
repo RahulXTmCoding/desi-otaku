@@ -1,0 +1,6 @@
+[
+  { "id": "1", "name": "Good Vibes", "price": 499, "image": "/assets/good-vibes.jpg" },
+  { "id": "2", "name": "Stay Weird", "price": 499, "image": "/assets/stay-weird.jpg" },
+  { "id": "3", "name": "Radiate", "price": 499, "image": "/assets/radiate.jpg" },
+  { "id": "4", "name": "Love", "price": 499, "image": "/assets/love.jpg" }
+]
