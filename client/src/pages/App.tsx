@@ -4,9 +4,9 @@ import Shop from '../pages/Shop';
 import Contact from '../pages/Contact';
 import Customize from './Customize';
 import Cart from '../core/Cart';
-import Checkout from './Checkout';
-import EnhancedCheckout from './EnhancedCheckout';
+import CheckoutFixed from './CheckoutFixed';
 import OrderConfirmation from './OrderConfirmation';
+import OrderConfirmationEnhanced from './OrderConfirmationEnhanced';
 import ProductDetail from './ProductDetail';
 import Wishlist from './Wishlist';
 import Header from '../components/Header';
@@ -46,9 +46,9 @@ export default function App() {
           <Route path="/customize" element={<Customize />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/wishlist" element={<Wishlist />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/enhanced-checkout" element={<EnhancedCheckout />} />
+          <Route path="/checkout" element={<CheckoutFixed />} />
           <Route path="/order-confirmation" element={<OrderConfirmation />} />
+          <Route path="/order-confirmation-enhanced" element={<OrderConfirmationEnhanced />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/signin" element={<Signin />} />
           <Route path="/user/dashboard" element={

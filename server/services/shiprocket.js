@@ -44,7 +44,11 @@ class ShiprocketService {
   // Get shipping rates
   async getShippingRates(orderDetails) {
     if (TEST_MODE) {
-      console.log('🧪 Test Mode: Simulating shipping rates for pincode:', orderDetails.pincode);
+      // Only log once per session
+      if (!this._ratesLogged) {
+        console.log('🧪 Test Mode: Simulating shipping rates');
+        this._ratesLogged = true;
+      }
       
       // Validate pincode
       const isValidPincode = /^[1-9][0-9]{5}$/.test(orderDetails.pincode);
@@ -315,7 +319,11 @@ class ShiprocketService {
   // Check pincode serviceability
   async checkServiceability(pincode, weight = '0.3', cod = '1') {
     if (TEST_MODE) {
-      console.log('🧪 Test Mode: Simulating serviceability check for pincode:', pincode);
+      // Only log once per session
+      if (!this._serviceabilityLogged) {
+        console.log('🧪 Test Mode: Simulating serviceability check');
+        this._serviceabilityLogged = true;
+      }
       
       // Accept any valid 6-digit Indian pincode in test mode
       const isValidPincode = /^[1-9][0-9]{5}$/.test(pincode);

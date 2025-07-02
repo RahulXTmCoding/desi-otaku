@@ -21,21 +21,31 @@ import AnalyticsDashboard from "./admin/AnalyticsDashboard";
 import ManageCoupons from "./admin/ManageCoupons";
 import ProductVariantsPage from "./admin/ProductVariantsPage";
 import Cart from "./core/Cart";
+import CheckoutFixed from "./pages/CheckoutFixed";
+import CheckoutSimple from "./pages/CheckoutSimple";
+import OrderConfirmation from "./pages/OrderConfirmation";
+import OrderConfirmationEnhanced from "./pages/OrderConfirmationEnhanced";
 import Customize from "./pages/Customize";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Wishlist from "./pages/Wishlist";
+import ShopOptimized from "./pages/ShopOptimized";
 
 const AppRoutes = () => {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/shop" element={<ShopOptimized />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/cart" element={<Cart />} />
+                <Route path="/checkout" element={<CheckoutFixed />} />
+                <Route path="/checkout-test" element={<CheckoutSimple />} />
+        <Route path="/order-confirmation" element={<OrderConfirmation />} />
+        <Route path="/order-confirmation-enhanced" element={<OrderConfirmationEnhanced />} />
         <Route path="/customize" element={<Customize />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route

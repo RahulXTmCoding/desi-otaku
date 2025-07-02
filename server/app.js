@@ -20,6 +20,8 @@ const reviewRoutes = require("./routes/review");
 const settingsRoutes = require("./routes/settings");
 const couponRoutes = require("./routes/coupon");
 const analyticsRoutes = require("./routes/analytics");
+const razorpayRoutes = require("./routes/razorpay");
+const guestOrderRoutes = require("./routes/guestOrder");
 const { initializeSettings } = require("./controllers/settings");
 
 const app = express();
@@ -57,6 +59,8 @@ app.use("/api", reviewRoutes);
 app.use("/api", settingsRoutes);
 app.use("/api", couponRoutes);
 app.use("/api", analyticsRoutes);
+app.use("/api/razorpay", razorpayRoutes);
+app.use("/api/guest/order", guestOrderRoutes);
 
 //Port
 const port = process.env.PORT || 8000;

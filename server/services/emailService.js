@@ -545,6 +545,222 @@ class EmailService {
     return await this.sendEmail(admin.email, subject, html);
   }
 
+  // Auto-account creation email for guest users
+  async sendAutoAccountCreationEmail(user, order) {
+    const subject = 'Account Created - Set Your Password 🎉';
+    const passwordSetupUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/forgot-password`;
+    
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #1F2937; color: #ffffff; }
+          .header { background-color: #FCD34D; color: #1F2937; padding: 30px; text-align: center; }
+          .content { padding: 30px; }
+          .info-box { background-color: #374151; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .button { display: inline-block; background-color: #FCD34D; color: #1F2937; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+          .footer { background-color: #111827; padding: 20px; text-align: center; font-size: 12px; color: #9CA3AF; }
+          h1 { margin: 0; font-size: 28px; }
+          h2 { color: #FCD34D; }
+          .highlight { color: #FCD34D; font-weight: bold; }
+          .benefits { background-color: #10B981; background-opacity: 0.1; padding: 15px; border-radius: 8px; margin: 20px 0; border: 1px solid #10B981; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Welcome to Anime T-Shirt Shop! 🎌</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Your account has been created</p>
+          </div>
+          <div class="content">
+            <p>Hi ${user.name || 'Anime Fan'},</p>
+            <p>Great news! We've automatically created an account for you after your recent purchase. This makes it easier to track your order and shop faster next time!</p>
+            
+            <div class="info-box">
+              <h3 style="margin-top: 0; color: #FCD34D;">Your Account Details:</h3>
+              <p><strong>Email:</strong> ${user.email}</p>
+              <p><strong>Order Number:</strong> #${order._id}</p>
+              <p><strong>Status:</strong> Account Active ✅</p>
+            </div>
+            
+            <h2>🔐 Set Your Password</h2>
+            <p>To access your account and track your order, you'll need to set a password. It's quick and easy!</p>
+            
+            <center>
+              <a href="${passwordSetupUrl}" class="button">Set My Password</a>
+            </center>
+            
+            <p>Simply enter your email (${user.email}) and follow the password reset process.</p>
+            
+            <div class="benefits">
+              <h3 style="margin-top: 0; color: #10B981;">✨ Your Account Benefits:</h3>
+              <ul style="margin: 10px 0;">
+                <li>Track your order in real-time</li>
+                <li>View order history and reorder easily</li>
+                <li>Save multiple shipping addresses</li>
+                <li>Faster checkout on future orders</li>
+                <li>Exclusive member discounts and early access</li>
+                <li>Wishlist to save your favorite designs</li>
+              </ul>
+            </div>
+            
+            <h3 class="highlight">What's Next?</h3>
+            <ol>
+              <li>Click the button above to set your password</li>
+              <li>Sign in to your account</li>
+              <li>Track your current order (#${order._id})</li>
+              <li>Explore more awesome anime designs!</li>
+            </ol>
+            
+            <p>If you have any questions or need help accessing your account, just reply to this email and we'll assist you right away!</p>
+            
+            <p>Welcome to the Anime T-Shirt family! 🎉<br>The Anime T-Shirt Team</p>
+          </div>
+          <div class="footer">
+            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>This account was created for ${user.email} after order #${order._id}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await this.sendEmail(user.email, subject, html);
+  }
+
+  // Combined order confirmation + account creation email
+  async sendOrderConfirmationWithAccount(order, user, accountCreated = false) {
+    const subject = `Order Confirmed! #${order._id} ${accountCreated ? '+ Account Created 🎉' : '🛍️'}`;
+    const orderItemsHtml = order.products.map(item => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #374151;">
+          ${item.name} ${item.size ? `(${item.size})` : ''}
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #374151; text-align: center;">
+          ${item.count}
+        </td>
+        <td style="padding: 10px; border-bottom: 1px solid #374151; text-align: right;">
+          ₹${item.price * item.count}
+        </td>
+      </tr>
+    `).join('');
+
+    const passwordSetupUrl = `${process.env.CLIENT_URL || 'http://localhost:5173'}/forgot-password`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #1F2937; color: #ffffff; }
+          .header { background-color: #FCD34D; color: #1F2937; padding: 30px; text-align: center; }
+          .content { padding: 30px; }
+          .order-box { background-color: #374151; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .account-box { background-color: #3B82F6; background-opacity: 0.2; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #3B82F6; }
+          .button { display: inline-block; background-color: #FCD34D; color: #1F2937; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+          .button-secondary { display: inline-block; background-color: #3B82F6; color: #ffffff; padding: 10px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 10px; }
+          .footer { background-color: #111827; padding: 20px; text-align: center; font-size: 12px; color: #9CA3AF; }
+          table { width: 100%; border-collapse: collapse; }
+          .highlight { color: #FCD34D; }
+          h1 { margin: 0; font-size: 28px; }
+          h2 { color: #FCD34D; }
+          .status { display: inline-block; background-color: #10B981; color: white; padding: 4px 12px; border-radius: 4px; font-size: 14px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Order Confirmed!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Thank you for your order</p>
+          </div>
+          <div class="content">
+            <p>Hi ${user.name || 'Valued Customer'},</p>
+            <p>Great news! We've received your order and it's being processed. 🎉</p>
+            
+            ${accountCreated ? `
+            <div class="account-box">
+              <h3 style="margin-top: 0; color: #60A5FA;">🎊 Account Created Automatically!</h3>
+              <p>We've created an account for you to make tracking your order easier.</p>
+              <p><strong>Your login email:</strong> ${user.email}</p>
+              <p>To access your account, simply set a password:</p>
+              <center>
+                <a href="${passwordSetupUrl}" class="button-secondary">Set Password</a>
+              </center>
+            </div>
+            ` : ''}
+            
+            <div class="order-box">
+              <h3 style="margin-top: 0;">Order Details</h3>
+              <p><strong>Order ID:</strong> #${order._id}</p>
+              <p><strong>Order Date:</strong> ${new Date(order.createdAt).toLocaleDateString('en-IN')}</p>
+              <p><strong>Status:</strong> <span class="status">${order.status}</span></p>
+              ${order.shipping?.trackingId ? `<p><strong>Tracking ID:</strong> ${order.shipping.trackingId}</p>` : ''}
+            </div>
+            
+            <h3 class="highlight">Order Items:</h3>
+            <table>
+              <thead>
+                <tr style="background-color: #374151;">
+                  <th style="padding: 10px; text-align: left;">Item</th>
+                  <th style="padding: 10px; text-align: center;">Quantity</th>
+                  <th style="padding: 10px; text-align: right;">Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${orderItemsHtml}
+                ${order.shipping?.shippingCost ? `
+                <tr>
+                  <td colspan="2" style="padding: 10px; text-align: right;">Shipping:</td>
+                  <td style="padding: 10px; text-align: right;">₹${order.shipping.shippingCost}</td>
+                </tr>
+                ` : ''}
+                <tr>
+                  <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold; font-size: 18px;">Total:</td>
+                  <td style="padding: 10px; text-align: right; font-weight: bold; font-size: 18px; color: #FCD34D;">₹${order.amount}</td>
+                </tr>
+              </tbody>
+            </table>
+            
+            <div class="order-box">
+              <h3 style="margin-top: 0;">Shipping Address</h3>
+              <p>${order.address}</p>
+              ${order.shipping?.courier ? `<p><strong>Shipping Method:</strong> ${order.shipping.courier}</p>` : ''}
+              ${order.shipping?.estimatedDelivery ? `<p><strong>Estimated Delivery:</strong> ${new Date(order.shipping.estimatedDelivery).toLocaleDateString('en-IN')}</p>` : ''}
+            </div>
+            
+            <center>
+              ${accountCreated ? `
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/forgot-password" class="button">Track Order & Set Password</a>
+              ` : `
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/user/dashboard" class="button">Track Your Order</a>
+              `}
+            </center>
+            
+            <h3 class="highlight">What's Next?</h3>
+            <ul>
+              <li>We'll prepare your order for shipping</li>
+              <li>You'll receive a shipping confirmation once dispatched</li>
+              ${accountCreated ? '<li>Set your password to access order tracking anytime</li>' : '<li>Track your order anytime from your dashboard</li>'}
+            </ul>
+            
+            <p>If you have any questions, feel free to contact us.</p>
+            <p>Thank you for shopping with us!<br>The Anime T-Shirt Team</p>
+          </div>
+          <div class="footer">
+            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>Order #${order._id} | ${user.email}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await this.sendEmail(user.email, subject, html);
+  }
+
   // Test email functionality
   async sendTestEmail(to) {
     const subject = 'Test Email from Anime T-Shirt Shop';

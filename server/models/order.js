@@ -91,7 +91,16 @@ const OrderSchema = new Schema(
     user: {
       type: ObjectId,
       ref: "User",
+      required: false  // Make user optional for guest orders
     },
+    
+    // Guest information for orders without user account
+    guestInfo: {
+      id: String,      // Unique guest ID
+      name: String,
+      email: String,
+      phone: String
+    }
   },
   { timestamps: true }
 );
