@@ -1,10 +1,13 @@
 import { API } from "../../backend";
 
 interface OrderItem {
-  product: string;
+  product?: string; // Made optional for custom designs
   name: string;
   price: number;
   count: number;
+  size?: string;
+  isCustom?: boolean;
+  customDesign?: string;
 }
 
 interface Order {
@@ -40,11 +43,16 @@ export const createOrder = (userId: string, token: string, orderData: Order) => 
     body: JSON.stringify({ order: orderData })
   })
     .then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.err || data.error || "Failed to create order");
+        });
+      }
       return response.json();
     })
     .catch(err => {
-      console.log(err);
-      return { error: "Failed to create order" };
+      console.error("Order creation error:", err);
+      return { error: err.message || "Failed to create order" };
     });
 };
 

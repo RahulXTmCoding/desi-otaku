@@ -213,17 +213,25 @@ exports.userPurchaseList = (req, res) => {
 
 exports.pushOrderInPurchaseList = (req, res, next) => {
   let purchases = [];
+  
+  // Check if order exists in request body
+  if (!req.body.order || !req.body.order.products) {
+    console.log("No order data found in request");
+    return next(); // Skip if no order data
+  }
+  
   req.body.order.products.forEach((product) => {
     purchases.push({
-      _id: product._id,
+      _id: product.product || product._id, // Handle both formats
       name: product.name,
-      description: product.description,
-      category: product.category,
-      quantity: product.quantity,
-      amount: product.body.order.amount,
-      transaction_id: product.body.order.transaction_id,
+      description: product.description || '',
+      category: product.category || 'general',
+      quantity: product.count || product.quantity || 1,
+      amount: req.body.order.amount,
+      transaction_id: req.body.order.transaction_id,
     });
   });
+  
   //store this in DB
   User.findOneAndUpdate(
     { _id: req.profile._id },
@@ -231,11 +239,189 @@ exports.pushOrderInPurchaseList = (req, res, next) => {
     { new: true },
     (err, purchases) => {
       if (err) {
-        return res.status(400).json({
-          err: "Unable to save purchase List",
-        });
+        console.error("Error saving purchase list:", err);
+        // Don't fail the order if purchase list fails
+        return next();
       }
       next();
     }
   );
+};
+
+// Get all saved addresses for a user
+exports.getUserAddresses = async (req, res) => {
+  try {
+    const user = await User.findById(req.profile._id).select('addresses');
+    
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+    
+    res.json(user.addresses || []);
+  } catch (err) {
+    return res.status(400).json({
+      error: "Failed to fetch addresses",
+      details: err.message
+    });
+  }
+};
+
+// Add a new address for a user
+exports.addUserAddress = async (req, res) => {
+  try {
+    const {
+      fullName,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      country,
+      pinCode,
+      isDefault
+    } = req.body;
+    
+    // Validate required fields
+    if (!fullName || !phone || !address || !city || !state || !pinCode) {
+      return res.status(400).json({
+        error: "Please provide all required address fields"
+      });
+    }
+    
+    const user = await User.findById(req.profile._id);
+    
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+    
+    // If this is set as default, unset other default addresses
+    if (isDefault) {
+      user.addresses.forEach(addr => {
+        addr.isDefault = false;
+      });
+    }
+    
+    // Add the new address
+    user.addresses.push({
+      fullName,
+      email: email || user.email,
+      phone,
+      address,
+      city,
+      state,
+      country: country || 'India',
+      pinCode,
+      isDefault: isDefault || user.addresses.length === 0 // First address is default
+    });
+    
+    await user.save();
+    
+    res.json({
+      message: "Address added successfully",
+      addresses: user.addresses
+    });
+  } catch (err) {
+    return res.status(400).json({
+      error: "Failed to add address",
+      details: err.message
+    });
+  }
+};
+
+// Update a saved address
+exports.updateUserAddress = async (req, res) => {
+  try {
+    const { addressId } = req.params;
+    const updates = req.body;
+    
+    const user = await User.findById(req.profile._id);
+    
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+    
+    const addressIndex = user.addresses.findIndex(
+      addr => addr._id.toString() === addressId
+    );
+    
+    if (addressIndex === -1) {
+      return res.status(404).json({
+        error: "Address not found"
+      });
+    }
+    
+    // If setting as default, unset other defaults
+    if (updates.isDefault) {
+      user.addresses.forEach(addr => {
+        addr.isDefault = false;
+      });
+    }
+    
+    // Update the address
+    Object.assign(user.addresses[addressIndex], updates);
+    
+    await user.save();
+    
+    res.json({
+      message: "Address updated successfully",
+      addresses: user.addresses
+    });
+  } catch (err) {
+    return res.status(400).json({
+      error: "Failed to update address",
+      details: err.message
+    });
+  }
+};
+
+// Delete a saved address
+exports.deleteUserAddress = async (req, res) => {
+  try {
+    const { addressId } = req.params;
+    
+    const user = await User.findById(req.profile._id);
+    
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+    
+    const addressIndex = user.addresses.findIndex(
+      addr => addr._id.toString() === addressId
+    );
+    
+    if (addressIndex === -1) {
+      return res.status(404).json({
+        error: "Address not found"
+      });
+    }
+    
+    // Remove the address
+    user.addresses.splice(addressIndex, 1);
+    
+    // If the deleted address was default and there are other addresses,
+    // make the first one default
+    if (user.addresses.length > 0 && !user.addresses.some(addr => addr.isDefault)) {
+      user.addresses[0].isDefault = true;
+    }
+    
+    await user.save();
+    
+    res.json({
+      message: "Address deleted successfully",
+      addresses: user.addresses
+    });
+  } catch (err) {
+    return res.status(400).json({
+      error: "Failed to delete address",
+      details: err.message
+    });
+  }
 };

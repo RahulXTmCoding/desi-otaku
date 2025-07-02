@@ -21,6 +21,10 @@ const {
   updateProductImage,
   getProductImages,
 } = require("../controllers/product");
+const { 
+  getProductVariants, 
+  saveProductVariants 
+} = require("../controllers/productVariant");
 const { isSignedIn, isAuthenticated, isAdmin } = require("../controllers/auth");
 const { getUserById } = require("../controllers/user");
 
@@ -111,6 +115,16 @@ router.delete(
   isAuthenticated,
   isAdmin,
   removeProductImage
+);
+
+// Variant routes
+router.get("/product/:productId/variants", getProductVariants);
+router.post(
+  "/product/:productId/variants/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  saveProductVariants
 );
 
 module.exports = router;

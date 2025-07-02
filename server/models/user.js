@@ -84,6 +84,47 @@ var userSchema = new Schema(
       trim: true,
     },
     
+    // Saved addresses array
+    addresses: [{
+      fullName: {
+        type: String,
+        required: true,
+      },
+      email: String,
+      phone: {
+        type: String,
+        required: true,
+      },
+      address: {
+        type: String,
+        required: true,
+      },
+      city: {
+        type: String,
+        required: true,
+      },
+      state: {
+        type: String,
+        required: true,
+      },
+      country: {
+        type: String,
+        default: 'India',
+      },
+      pinCode: {
+        type: String,
+        required: true,
+      },
+      isDefault: {
+        type: Boolean,
+        default: false,
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now,
+      }
+    }],
+    
     // Account status
     isActive: {
       type: Boolean,

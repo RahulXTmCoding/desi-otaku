@@ -6,16 +6,20 @@ import Signin from "./user/Signin";
 import AdminRoute from "./auth/helper/AdminRoutes";
 import PrivateRoute from "./auth/helper/PrivateRoutes";
 import UserDashBoard from "./user/UserDashBoard";
-import AdminDashBoard from "./user/AdminDashBoard";
+import AdminDashBoard from "./pages/AdminDashBoard";
 import UserProfile from "./user/UserProfile";
 import AddCategory from "./admin/AddCategory";
 import ManageCategories from "./admin/ManageCategories";
 import AddProduct from "./admin/AddProduct";
 import ManageProducts from "./admin/ManageProducts";
 import UpdateProduct from "./admin/UpdateProduct";
+import AddDesign from "./admin/AddDesign";
+import ManageDesigns from "./admin/ManageDesigns";
+import UpdateDesign from "./admin/UpdateDesign";
 import ReviewSettings from "./admin/ReviewSettings";
 import AnalyticsDashboard from "./admin/AnalyticsDashboard";
 import ManageCoupons from "./admin/ManageCoupons";
+import ProductVariantsPage from "./admin/ProductVariantsPage";
 import Cart from "./core/Cart";
 import Customize from "./pages/Customize";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -119,6 +123,38 @@ const AppRoutes = () => {
           element={
             <AdminRoute>
               <ManageCoupons />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/product/variants/:productId"
+          element={
+            <AdminRoute>
+              <ProductVariantsPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/create/design"
+          element={
+            <AdminRoute>
+              <AddDesign />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/designs"
+          element={
+            <AdminRoute>
+              <ManageDesigns />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/update/design/:designId"
+          element={
+            <AdminRoute>
+              <UpdateDesign />
             </AdminRoute>
           }
         />

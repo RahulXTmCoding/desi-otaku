@@ -8,12 +8,14 @@ import {
   Search,
   Plus,
   AlertCircle,
-  Filter
+  Filter,
+  Palette
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
 import { getProducts, deleteProduct, mockDeleteProduct } from "./helper/adminapicall";
 import { useDevMode } from "../context/DevModeContext";
-import { mockProducts } from "../data/mockData";
+import { mockProducts, getMockProductImage } from "../data/mockData";
+import { API } from "../backend";
 
 interface Product {
   _id: string;
@@ -35,6 +37,10 @@ const ManageProducts = () => {
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [priceFilter, setPriceFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
+  const [stockFilter, setStockFilter] = useState<'all' | 'in-stock' | 'low-stock' | 'out-of-stock'>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const auth = isAutheticated();
@@ -68,12 +74,54 @@ const ManageProducts = () => {
   }, [isTestMode]);
 
   useEffect(() => {
-    const filtered = products.filter(product =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    let filtered = products;
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(product =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply price filter
+    if (priceFilter.min || priceFilter.max) {
+      filtered = filtered.filter(product => {
+        const min = priceFilter.min ? parseInt(priceFilter.min) : 0;
+        const max = priceFilter.max ? parseInt(priceFilter.max) : Infinity;
+        return product.price >= min && product.price <= max;
+      });
+    }
+
+    // Apply stock filter
+    if (stockFilter !== 'all') {
+      filtered = filtered.filter(product => {
+        switch (stockFilter) {
+          case 'in-stock':
+            return product.stock > 10;
+          case 'low-stock':
+            return product.stock > 0 && product.stock <= 10;
+          case 'out-of-stock':
+            return product.stock === 0;
+          default:
+            return true;
+        }
+      });
+    }
+
+    // Apply category filter
+    if (categoryFilter !== 'all') {
+      filtered = filtered.filter(product => 
+        product.category?._id === categoryFilter
+      );
+    }
+
     setFilteredProducts(filtered);
-  }, [searchTerm, products]);
+  }, [searchTerm, products, priceFilter, stockFilter, categoryFilter]);
+
+  // Get unique categories
+  const categories = Array.from(new Set(products.map(p => p.category?.name).filter(Boolean)));
 
   const deleteThisProduct = (productId: string) => {
     if (isTestMode) {
@@ -91,6 +139,16 @@ const ManageProducts = () => {
         }
       });
     }
+  };
+
+  const getProductImage = (product: Product) => {
+    if (isTestMode) {
+      return getMockProductImage(product._id);
+    }
+    if (product._id) {
+      return `${API}/product/photo/${product._id}`;
+    }
+    return '/api/placeholder/50/50';
   };
 
   return (
@@ -137,11 +195,114 @@ const ManageProducts = () => {
                 className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-gray-400"
               />
             </div>
-            <button className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors flex items-center gap-2">
+            <button 
+              onClick={() => setShowFilters(!showFilters)}
+              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg font-medium transition-colors flex items-center gap-2"
+            >
               <Filter className="w-5 h-5" />
-              Filters
+              Filters {showFilters ? '−' : '+'}
             </button>
           </div>
+          
+          {/* Filter Panel */}
+          {showFilters && (
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Price Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Price Range</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={priceFilter.min}
+                    onChange={(e) => setPriceFilter({ ...priceFilter, min: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                  />
+                  <span className="text-gray-400 self-center">-</span>
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={priceFilter.max}
+                    onChange={(e) => setPriceFilter({ ...priceFilter, max: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400"
+                  />
+                </div>
+              </div>
+
+              {/* Stock Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Stock Status</label>
+                <select
+                  value={stockFilter}
+                  onChange={(e) => setStockFilter(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="all">All Products</option>
+                  <option value="in-stock">In Stock (10+)</option>
+                  <option value="low-stock">Low Stock (1-10)</option>
+                  <option value="out-of-stock">Out of Stock</option>
+                </select>
+              </div>
+
+              {/* Category Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Category</label>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map((cat, index) => (
+                    <option key={index} value={products.find(p => p.category?.name === cat)?.category._id || ''}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          )}
+          
+          {/* Active Filters Display */}
+          {(searchTerm || stockFilter !== 'all' || categoryFilter !== 'all' || priceFilter.min || priceFilter.max) && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {searchTerm && (
+                <span className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm flex items-center gap-2">
+                  Search: {searchTerm}
+                  <button onClick={() => setSearchTerm('')} className="hover:text-yellow-300">×</button>
+                </span>
+              )}
+              {stockFilter !== 'all' && (
+                <span className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm flex items-center gap-2">
+                  Stock: {stockFilter}
+                  <button onClick={() => setStockFilter('all')} className="hover:text-yellow-300">×</button>
+                </span>
+              )}
+              {categoryFilter !== 'all' && (
+                <span className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm flex items-center gap-2">
+                  Category: {categories.find(cat => products.find(p => p.category?.name === cat)?.category._id === categoryFilter) || categoryFilter}
+                  <button onClick={() => setCategoryFilter('all')} className="hover:text-yellow-300">×</button>
+                </span>
+              )}
+              {(priceFilter.min || priceFilter.max) && (
+                <span className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm flex items-center gap-2">
+                  Price: ₹{priceFilter.min || '0'} - ₹{priceFilter.max || '∞'}
+                  <button onClick={() => setPriceFilter({ min: '', max: '' })} className="hover:text-yellow-300">×</button>
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setStockFilter('all');
+                  setCategoryFilter('all');
+                  setPriceFilter({ min: '', max: '' });
+                }}
+                className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm hover:bg-gray-600"
+              >
+                Clear All
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Error Message */}
@@ -196,8 +357,21 @@ const ManageProducts = () => {
                     <tr key={product._id} className="border-b border-gray-700 hover:bg-gray-750 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gray-700 rounded-lg flex items-center justify-center">
-                            <Package className="w-6 h-6 text-gray-400" />
+                          <div className="w-12 h-12 bg-gray-700 rounded-lg overflow-hidden">
+                            <img 
+                              src={getProductImage(product)}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const fallback = target.parentElement?.querySelector('.fallback-icon');
+                                if (fallback) fallback.classList.remove('hidden');
+                              }}
+                            />
+                            <div className="fallback-icon hidden w-full h-full flex items-center justify-center">
+                              <Package className="w-6 h-6 text-gray-400" />
+                            </div>
                           </div>
                           <div>
                             <p className="font-medium">{product.name}</p>
@@ -222,6 +396,13 @@ const ManageProducts = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to={`/admin/product/variants/${product._id}`}
+                            className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group"
+                            title="Manage Variants"
+                          >
+                            <Palette className="w-4 h-4 group-hover:text-yellow-400" />
+                          </Link>
                           <Link
                             to={`/admin/product/update/${product._id}`}
                             className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group"

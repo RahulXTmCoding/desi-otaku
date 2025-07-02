@@ -28,8 +28,10 @@ interface Product {
     _id: string;
     name: string;
   };
+  productType?: string;
   stock: number;
   sold: number;
+  tags?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -49,6 +51,7 @@ const Shop: React.FC = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedProductType, setSelectedProductType] = useState('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState('all');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('featured');
@@ -108,16 +111,17 @@ const Shop: React.FC = () => {
 
   useEffect(() => {
     filterAndSortProducts();
-  }, [searchQuery, selectedCategory, selectedPriceRange, selectedTags, sortBy, products]);
+  }, [searchQuery, selectedCategory, selectedProductType, selectedPriceRange, selectedTags, sortBy, products]);
 
   const filterAndSortProducts = () => {
     let filtered = [...products];
 
-    // Search filter
+    // Search filter - now includes tags
     if (searchQuery) {
       filtered = filtered.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase())
+        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        product.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
       );
     }
 
@@ -126,11 +130,25 @@ const Shop: React.FC = () => {
       filtered = filtered.filter(product => product.category?._id === selectedCategory);
     }
 
+    // Product type filter
+    if (selectedProductType !== 'all') {
+      filtered = filtered.filter(product => 
+        (product.productType || 't-shirt') === selectedProductType
+      );
+    }
+
     // Price range filter
     if (selectedPriceRange !== 'all') {
       const [min, max] = selectedPriceRange.split('-').map(Number);
       filtered = filtered.filter(product => 
         product.price >= min && (max ? product.price <= max : true)
+      );
+    }
+
+    // Tag filter
+    if (selectedTags.length > 0) {
+      filtered = filtered.filter(product => 
+        product.tags?.some(tag => selectedTags.includes(tag))
       );
     }
 
@@ -167,10 +185,24 @@ const Shop: React.FC = () => {
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
+    setSelectedProductType('all');
     setSelectedPriceRange('all');
     setSelectedTags([]);
     setSortBy('featured');
   };
+
+  const productTypes = [
+    { id: 'all', name: 'All Types', icon: '📦' },
+    { id: 't-shirt', name: 'T-Shirt', icon: '👔' },
+    { id: 'vest', name: 'Vest', icon: '🦺' },
+    { id: 'hoodie', name: 'Hoodie', icon: '🧥' },
+    { id: 'oversized-tee', name: 'Oversized Tee', icon: '👕' },
+    { id: 'acid-wash', name: 'Acid Wash', icon: '🎨' },
+    { id: 'tank-top', name: 'Tank Top', icon: '🎽' },
+    { id: 'long-sleeve', name: 'Long Sleeve', icon: '🥼' },
+    { id: 'crop-top', name: 'Crop Top', icon: '👚' },
+    { id: 'other', name: 'Other', icon: '📦' }
+  ];
 
   const categoryOptions = [
     { id: 'all', name: 'All Products', count: products.length },
@@ -189,7 +221,25 @@ const Shop: React.FC = () => {
     { id: '1000-', name: 'Above ₹1000' },
   ];
 
-  const popularTags = ['anime', 'brand', 'new', 'bestseller', 'limited', 'premium'];
+  // Extract all unique tags from products
+  const allTags = Array.from(new Set(
+    products.flatMap(product => product.tags || [])
+  )).filter(tag => tag && tag.length > 0);
+  
+  // Get popular tags (most used) - limit to top 10
+  const tagCounts = products.reduce((acc, product) => {
+    (product.tags || []).forEach(tag => {
+      if (tag) {
+        acc[tag] = (acc[tag] || 0) + 1;
+      }
+    });
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const popularTags = Object.entries(tagCounts)
+    .sort(([, a], [, b]) => b - a)
+    .slice(0, 10)
+    .map(([tag]) => tag);
 
   const getProductImage = (product: Product) => {
     if (isTestMode) {
@@ -259,6 +309,27 @@ const Shop: React.FC = () => {
                     >
                       <span>{category.name}</span>
                       <span className="text-sm">({category.count})</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Product Types */}
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3">Product Type</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {productTypes.map(type => (
+                    <button
+                      key={type.id}
+                      onClick={() => setSelectedProductType(type.id)}
+                      className={`px-3 py-2 rounded-lg transition-colors flex flex-col items-center gap-1 text-sm ${
+                        selectedProductType === type.id
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'bg-gray-700 hover:bg-gray-600'
+                      }`}
+                    >
+                      <span className="text-lg">{type.icon}</span>
+                      <span className="text-xs">{type.name}</span>
                     </button>
                   ))}
                 </div>
@@ -358,12 +429,20 @@ const Shop: React.FC = () => {
             </div>
 
             {/* Active Filters */}
-            {(selectedTags.length > 0 || selectedCategory !== 'all' || selectedPriceRange !== 'all') && (
+            {(selectedTags.length > 0 || selectedCategory !== 'all' || selectedProductType !== 'all' || selectedPriceRange !== 'all') && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {selectedCategory !== 'all' && (
                   <span className="bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
                     Category: {categoryOptions.find(c => c.id === selectedCategory)?.name}
                     <button onClick={() => setSelectedCategory('all')}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedProductType !== 'all' && (
+                  <span className="bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    Type: {productTypes.find(t => t.id === selectedProductType)?.name}
+                    <button onClick={() => setSelectedProductType('all')}>
                       <X className="w-3 h-3" />
                     </button>
                   </span>

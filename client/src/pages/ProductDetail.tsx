@@ -37,6 +37,17 @@ interface Product {
   sold: number;
   createdAt?: string;
   updatedAt?: string;
+  // Additional fields from admin
+  originalPrice?: number;
+  rating?: number;
+  features?: string[];
+  careInstructions?: string[];
+  material?: string;
+  badges?: {
+    bestseller?: boolean;
+    newArrival?: boolean;
+    limitedEdition?: boolean;
+  };
 }
 
 const ProductDetail: React.FC = () => {
@@ -50,6 +61,7 @@ const ProductDetail: React.FC = () => {
   const [quantity, setQuantity] = useState(1);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [productImages, setProductImages] = useState<any[]>([]);
+  const [productVariants, setProductVariants] = useState<any[]>([]);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
   const [loading, setLoading] = useState(true);
@@ -62,16 +74,16 @@ const ProductDetail: React.FC = () => {
   const token = auth ? auth.token : null;
 
   // Default colors and sizes for t-shirts
-  const colors = [
+  const defaultColors = [
     { name: 'Black', value: '#000000' },
     { name: 'White', value: '#FFFFFF' },
     { name: 'Navy Blue', value: '#1E3A8A' },
     { name: 'Red', value: '#DC2626' }
   ];
   
-  const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+  const defaultSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
-  const features = [
+  const defaultFeatures = [
     "100% Premium Cotton",
     "High-quality digital print",
     "Pre-shrunk fabric",
@@ -79,7 +91,7 @@ const ProductDetail: React.FC = () => {
     "Comfortable regular fit"
   ];
 
-  const care = [
+  const defaultCareInstructions = [
     "Machine wash cold with similar colors",
     "Do not bleach",
     "Tumble dry low",
@@ -87,14 +99,25 @@ const ProductDetail: React.FC = () => {
     "Do not dry clean"
   ];
 
+  const defaultMaterial = "100% Cotton (180 GSM)";
+
   useEffect(() => {
     loadProduct();
     loadRelatedProducts();
-    if (userId && token && id) {
-      checkWishlistStatus();
-      loadProductImages();
+    if (id) {
+      if (userId && token) {
+        checkWishlistStatus();
+        loadProductImages();
+      }
     }
   }, [id, isTestMode]);
+
+  // Load variants after product is loaded
+  useEffect(() => {
+    if (product && id) {
+      loadProductVariants();
+    }
+  }, [product, id]);
 
   const checkWishlistStatus = async () => {
     if (!userId || !token || !id) return;
@@ -134,7 +157,7 @@ const ProductDetail: React.FC = () => {
       const mockProduct = mockProducts.find(p => p._id === id);
       if (mockProduct) {
         setProduct(mockProduct);
-        setSelectedColor(colors[0]);
+        setSelectedColor(defaultColors[0]);
       } else {
         setError('Product not found');
       }
@@ -148,7 +171,7 @@ const ProductDetail: React.FC = () => {
               setError(data.error);
             } else {
               setProduct(data);
-              setSelectedColor(colors[0]);
+              setSelectedColor(defaultColors[0]);
             }
             setLoading(false);
           })
@@ -202,6 +225,56 @@ const ProductDetail: React.FC = () => {
       }
     } catch (err) {
       console.error('Failed to load product images:', err);
+    }
+  };
+
+  const loadProductVariants = async () => {
+    if (!id) return;
+    
+    try {
+      const response = await fetch(`${API}/product/${id}/variants`);
+      const data = await response.json();
+      
+      if (response.ok && data.variants) {
+        // Filter only enabled variants
+        const enabledVariants = data.variants.filter((v: any) => v.enabled);
+        setProductVariants(enabledVariants);
+        
+        // Build comprehensive image array with main image + variant images
+        const allImages = [];
+        
+        // Always include the main product image first
+        allImages.push({
+          url: getProductImage(product!),
+          caption: 'Main Image',
+          isMain: true
+        });
+        
+        // Add variant images
+        enabledVariants.forEach((variant: any) => {
+          if (variant.image) {
+            allImages.push({
+              url: variant.image,
+              caption: `${variant.color} Variant`,
+              color: variant.color,
+              colorValue: variant.colorValue
+            });
+          }
+        });
+        
+        setProductImages(allImages);
+        
+        // If variants exist, set the first available color as selected
+        if (enabledVariants.length > 0) {
+          setSelectedColor({
+            name: enabledVariants[0].color,
+            value: enabledVariants[0].colorValue
+          });
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load product variants:', err);
+      // Fallback to default colors if variants loading fails
     }
   };
 
@@ -397,16 +470,39 @@ const ProductDetail: React.FC = () => {
                   <Star
                     key={i}
                     className={`w-5 h-5 ${
-                      i < 4
+                      i < (product.rating || 4)
                         ? 'fill-yellow-400 text-yellow-400'
                         : 'text-gray-600'
                     }`}
                   />
                 ))}
-                <span className="ml-2 font-semibold">4.5</span>
+                <span className="ml-2 font-semibold">{product.rating || 4.5}</span>
               </div>
-              <span className="text-gray-400">({product.sold} sold)</span>
-              <button className="flex items-center gap-2 text-gray-400 hover:text-yellow-400">
+              {product.sold > 5 && (
+                <span className="text-gray-400">({product.sold} sold)</span>
+              )}
+              <button 
+                onClick={() => {
+                  const shareData = {
+                    title: product.name,
+                    text: `Check out this awesome ${product.name}!`,
+                    url: window.location.href
+                  };
+                  
+                  if (navigator.share) {
+                    navigator.share(shareData).catch(() => {
+                      // Fallback to copying link
+                      navigator.clipboard.writeText(window.location.href);
+                      alert('Link copied to clipboard!');
+                    });
+                  } else {
+                    // Fallback for browsers that don't support Web Share API
+                    navigator.clipboard.writeText(window.location.href);
+                    alert('Link copied to clipboard!');
+                  }
+                }}
+                className="flex items-center gap-2 text-gray-400 hover:text-yellow-400"
+              >
                 <Share2 className="w-4 h-4" />
                 Share
               </button>
@@ -435,23 +531,57 @@ const ProductDetail: React.FC = () => {
             <div className="mb-6">
               <h3 className="font-semibold mb-3">Color: {selectedColor?.name}</h3>
               <div className="flex gap-3">
-                {colors.map((color) => (
-                  <button
-                    key={color.value}
-                    onClick={() => setSelectedColor(color)}
-                    className={`relative w-12 h-12 rounded-full border-2 transition-all ${
-                      selectedColor?.value === color.value
-                        ? 'border-yellow-400 scale-110'
-                        : 'border-gray-600'
-                    }`}
-                    style={{ backgroundColor: color.value }}
-                    title={color.name}
-                  >
-                    {selectedColor?.value === color.value && (
-                      <Check className="absolute inset-0 m-auto w-6 h-6 text-white" />
-                    )}
-                  </button>
-                ))}
+                {productVariants.length > 0 ? (
+                  // Show variant colors if available
+                  productVariants.map((variant) => (
+                    <button
+                      key={variant.colorValue}
+                      onClick={() => {
+                        setSelectedColor({
+                          name: variant.color,
+                          value: variant.colorValue
+                        });
+                        // Find and show the variant's image if it exists
+                        const variantImageIndex = productImages.findIndex(
+                          img => img.colorValue === variant.colorValue
+                        );
+                        if (variantImageIndex !== -1) {
+                          setCurrentImageIndex(variantImageIndex);
+                        }
+                      }}
+                      className={`relative w-12 h-12 rounded-full border-2 transition-all ${
+                        selectedColor?.value === variant.colorValue
+                          ? 'border-yellow-400 scale-110'
+                          : 'border-gray-600'
+                      }`}
+                      style={{ backgroundColor: variant.colorValue }}
+                      title={variant.color}
+                    >
+                      {selectedColor?.value === variant.colorValue && (
+                        <Check className="absolute inset-0 m-auto w-6 h-6 text-white" />
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  // Fallback to default colors
+                  defaultColors.map((color) => (
+                    <button
+                      key={color.value}
+                      onClick={() => setSelectedColor(color)}
+                      className={`relative w-12 h-12 rounded-full border-2 transition-all ${
+                        selectedColor?.value === color.value
+                          ? 'border-yellow-400 scale-110'
+                          : 'border-gray-600'
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                    >
+                      {selectedColor?.value === color.value && (
+                        <Check className="absolute inset-0 m-auto w-6 h-6 text-white" />
+                      )}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
@@ -462,22 +592,35 @@ const ProductDetail: React.FC = () => {
                 <SizeChart productType="tshirt" />
               </div>
               <div className="grid grid-cols-5 gap-3">
-                {sizes.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    disabled={product.stock === 0}
-                    className={`py-3 rounded-lg border-2 font-medium transition-all ${
-                      selectedSize === size
-                        ? 'bg-yellow-400 text-gray-900 border-yellow-400'
-                        : product.stock === 0
-                        ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed'
-                        : 'bg-gray-800 border-gray-700 hover:border-gray-600'
-                    }`}
-                  >
-                    {size}
-                  </button>
-                ))}
+                {defaultSizes.map((size) => {
+                  // Check stock availability for this size in selected variant
+                  const selectedVariant = productVariants.find(v => v.colorValue === selectedColor?.value);
+                  const sizeStock = selectedVariant?.stock?.[size];
+                  const isAvailable = sizeStock === 'infinity' || (typeof sizeStock === 'number' && sizeStock > 0);
+                  const isOutOfStock = sizeStock === 0;
+                  
+                  return (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      disabled={!isAvailable || product.stock === 0}
+                      className={`py-3 rounded-lg border-2 font-medium transition-all relative ${
+                        selectedSize === size
+                          ? 'bg-yellow-400 text-gray-900 border-yellow-400'
+                          : !isAvailable || product.stock === 0
+                          ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                      }`}
+                    >
+                      {size}
+                      {isOutOfStock && (
+                        <span className="absolute -top-1 -right-1 text-xs bg-red-500 text-white px-1 rounded">
+                          Out
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -599,7 +742,7 @@ const ProductDetail: React.FC = () => {
 
             {activeTab === 'features' && (
               <ul className="space-y-3">
-                {features.map((feature, index) => (
+                {(product.features || defaultFeatures).map((feature, index) => (
                   <li key={index} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-yellow-400 mt-0.5" />
                     <span className="text-gray-300">{feature}</span>
@@ -610,7 +753,7 @@ const ProductDetail: React.FC = () => {
 
             {activeTab === 'care' && (
               <ul className="space-y-3">
-                {care.map((instruction, index) => (
+                {(product.careInstructions || defaultCareInstructions).map((instruction, index) => (
                   <li key={index} className="flex items-start gap-3">
                     <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2" />
                     <span className="text-gray-300">{instruction}</span>

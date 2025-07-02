@@ -57,6 +57,16 @@ exports.createProduct = (req, res) => {
       } catch (e) {
         console.error("Error parsing inventory:", e);
       }
+    } else if (stock) {
+      // If only total stock is provided, distribute evenly across sizes
+      const totalStock = parseInt(stock) || 0;
+      const stockPerSize = Math.floor(totalStock / 5); // 5 sizes
+      const remainder = totalStock % 5;
+      
+      ['S', 'M', 'L', 'XL', 'XXL'].forEach((size, index) => {
+        // Add remainder to first few sizes
+        product.inventory[size].stock = stockPerSize + (index < remainder ? 1 : 0);
+      });
     }
 
     // If photoUrl is provided, store it
@@ -135,7 +145,7 @@ exports.updateProduct = (req, res) => {
     let product = req.product;
     product = _.extend(product, fields);
 
-    // Handle inventory update if provided
+    // Handle inventory update
     if (fields.inventory && typeof fields.inventory === 'string') {
       try {
         const inventoryData = JSON.parse(fields.inventory);
@@ -148,6 +158,16 @@ exports.updateProduct = (req, res) => {
       } catch (e) {
         console.error("Error parsing inventory:", e);
       }
+    } else if (fields.stock) {
+      // If only total stock is provided, distribute evenly across sizes
+      const totalStock = parseInt(fields.stock) || 0;
+      const stockPerSize = Math.floor(totalStock / 5); // 5 sizes
+      const remainder = totalStock % 5;
+      
+      ['S', 'M', 'L', 'XL', 'XXL'].forEach((size, index) => {
+        // Add remainder to first few sizes
+        product.inventory[size].stock = stockPerSize + (index < remainder ? 1 : 0);
+      });
     }
 
     // Update photoUrl if provided
@@ -208,31 +228,50 @@ exports.updateStock = async (req, res, next) => {
     
     // Process each item
     for (const item of orderItems) {
-      const product = await Product.findById(item.product || item._id);
+      // Skip custom designs - they don't have product IDs in database
+      if (item.name && item.name.includes('Custom Design')) {
+        console.log(`Skipping stock update for custom design: ${item.name}`);
+        continue;
+      }
       
-      if (product) {
-        const size = item.size || 'M'; // Default to M if no size specified
-        const quantity = item.count;
+      const productId = item.product || item._id;
+      
+      // Skip if no valid product ID
+      if (!productId || productId === 'custom') {
+        console.log('Skipping item without valid product ID');
+        continue;
+      }
+      
+      try {
+        const product = await Product.findById(productId);
         
-        // Use the new inventory methods
-        if (product.confirmSale(size, quantity)) {
-          await product.save();
+        if (product) {
+          const size = item.size || 'M'; // Default to M if no size specified
+          const quantity = item.count || item.quantity || 1;
           
-          // Check for low stock alerts
-          checkAndSendInventoryAlerts(product);
+          // Use the new inventory methods
+          if (product.confirmSale(size, quantity)) {
+            await product.save();
+            
+            // Check for low stock alerts
+            checkAndSendInventoryAlerts(product);
+          } else {
+            console.error(`Failed to update stock for product ${product._id}, size ${size}`);
+          }
         } else {
-          console.error(`Failed to update stock for product ${product._id}, size ${size}`);
+          console.log(`Product not found for ID: ${productId}`);
         }
+      } catch (productError) {
+        console.error(`Error processing product ${productId}:`, productError);
+        // Continue with other products
       }
     }
     
     next();
   } catch (err) {
     console.error("Stock update error:", err);
-    return res.status(400).json({
-      err: "Bulk operation failed",
-      details: err.message
-    });
+    // Don't fail the entire order if stock update fails
+    next();
   }
 };
 

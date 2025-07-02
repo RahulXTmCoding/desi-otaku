@@ -1,8 +1,14 @@
-import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { signin, authenticate, isAutheticated } from "../auth/helper";
+import { AlertCircle } from "lucide-react";
 
 export default function Signin() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || null;
+  const message = location.state?.message || null;
+
   const [values, setValues] = useState({
     email: "",
     password: "",
@@ -15,13 +21,13 @@ export default function Signin() {
   const auth = isAutheticated();
   const user = auth && auth.user;
 
-  const handleChange = (name) => (event) => {
-    setValues({ ...values, error: false, [name]: event.target.value });
+  const handleChange = (name: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
+    setValues({ ...values, error: "", [name]: event.target.value });
   };
 
-  const onSubmit = (event) => {
+  const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    setValues({ ...values, error: false, loading: true });
+    setValues({ ...values, error: "", loading: true });
     signin({ email, password })
       .then((data) => {
         if (data.error) {
@@ -38,19 +44,34 @@ export default function Signin() {
       .catch(err => console.log("signin request failed", err));
   };
 
-  const navigate = useNavigate();
   const performRedirect = () => {
     if (didRedirect) {
-      if (user && user.role === 1) {
+      // If we have a return URL from checkout, go there
+      if (from) {
+        navigate(from);
+      } else if (user && user.role === 1) {
         navigate("/admin/dashboard");
       } else {
         navigate("/user/dashboard");
       }
     }
-    if (isAutheticated()) {
-      navigate("/");
-    }
   };
+
+  // Check if already authenticated and redirect
+  useEffect(() => {
+    if (isAutheticated()) {
+      if (from) {
+        navigate(from);
+      } else {
+        navigate("/");
+      }
+    }
+  }, []);
+
+  // Call performRedirect when didRedirect changes
+  useEffect(() => {
+    performRedirect();
+  }, [didRedirect]);
 
   const loadingMessage = () => {
     return (
@@ -127,10 +148,17 @@ export default function Signin() {
 
   return (
     <div className="min-h-screen bg-black text-white font-sans py-20">
+      {message && (
+        <div className="max-w-md mx-auto mb-4">
+          <div className="bg-yellow-400/10 border border-yellow-400/50 text-yellow-400 p-4 rounded-lg flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            <p>{message}</p>
+          </div>
+        </div>
+      )}
       {loadingMessage()}
       {errorMessage()}
       {signInForm()}
-      {performRedirect()}
     </div>
   );
 };

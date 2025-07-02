@@ -1,5 +1,7 @@
 const axios = require('axios');
 
+const TEST_MODE = process.env.SHIPROCKET_TEST_MODE === 'true';
+
 class ShiprocketService {
   constructor() {
     this.baseURL = 'https://apiv2.shiprocket.in/v1/external';
@@ -11,6 +13,12 @@ class ShiprocketService {
 
   // Get authentication token
   async authenticate() {
+    if (TEST_MODE) {
+      console.log('🧪 Shiprocket Test Mode: Simulating authentication');
+      this.token = 'TEST_TOKEN_' + Date.now();
+      return this.token;
+    }
+
     try {
       // Check if token is still valid
       if (this.token && this.tokenExpiry && new Date() < this.tokenExpiry) {
@@ -35,6 +43,40 @@ class ShiprocketService {
 
   // Get shipping rates
   async getShippingRates(orderDetails) {
+    if (TEST_MODE) {
+      console.log('🧪 Test Mode: Simulating shipping rates for pincode:', orderDetails.pincode);
+      
+      // Validate pincode
+      const isValidPincode = /^[1-9][0-9]{5}$/.test(orderDetails.pincode);
+      if (!isValidPincode) {
+        throw new Error('Invalid pincode');
+      }
+      
+      // Simulate different rates based on pincode
+      const baseRate = 50;
+      const extraRate = parseInt(orderDetails.pincode.substring(0, 2)) % 30; // 0-29 extra based on first 2 digits
+      const weightRate = (orderDetails.weight || 0.3) * 20; // ₹20 per kg
+      
+      return [
+        {
+          courier_id: 1,
+          courier_name: "Delhivery Surface",
+          rate: Math.round(baseRate + extraRate + weightRate),
+          cod_charges: orderDetails.cod ? 40 : 0,
+          estimated_delivery: "3-5 days",
+          etd: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString()
+        },
+        {
+          courier_id: 2,
+          courier_name: "BlueDart Express",
+          rate: Math.round((baseRate + extraRate + weightRate) * 1.8),
+          cod_charges: orderDetails.cod ? 50 : 0,
+          estimated_delivery: "1-2 days",
+          etd: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString()
+        }
+      ];
+    }
+
     try {
       const token = await this.authenticate();
       
@@ -271,7 +313,38 @@ class ShiprocketService {
   }
 
   // Check pincode serviceability
-  async checkServiceability(pincode) {
+  async checkServiceability(pincode, weight = '0.3', cod = '1') {
+    if (TEST_MODE) {
+      console.log('🧪 Test Mode: Simulating serviceability check for pincode:', pincode);
+      
+      // Accept any valid 6-digit Indian pincode in test mode
+      const isValidPincode = /^[1-9][0-9]{5}$/.test(pincode);
+      const isServiceable = isValidPincode;
+      
+      // Simulate different rates based on pincode for variety
+      const baseRate = 50;
+      const extraRate = parseInt(pincode.substring(0, 2)) % 30; // 0-29 extra based on first 2 digits
+      
+      return {
+        serviceable: isServiceable,
+        available: isServiceable,
+        available_couriers: isServiceable ? [
+          { 
+            courier_company_id: 1, 
+            courier_name: 'Test Express', 
+            rate: baseRate + extraRate,
+            estimated_delivery: '3-5 days'
+          },
+          { 
+            courier_company_id: 2, 
+            courier_name: 'Test Priority', 
+            rate: (baseRate + extraRate) * 2,
+            estimated_delivery: '1-2 days'
+          }
+        ] : []
+      };
+    }
+
     try {
       const token = await this.authenticate();
       
@@ -284,8 +357,8 @@ class ShiprocketService {
           params: {
             pickup_postcode: process.env.PICKUP_PINCODE || '110001',
             delivery_postcode: pincode,
-            weight: 0.3,
-            cod: 1
+            weight: weight,
+            cod: cod
           }
         }
       );

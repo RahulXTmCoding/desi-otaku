@@ -6,11 +6,21 @@ const ProductCartSchema = new Schema({
   product: {
     type: ObjectId,
     ref: "Product",
+    required: false  // Make product reference optional for custom designs
   },
   name: String,
   count: Number,
   price: Number,
   size: String,
+  // Additional fields for custom designs
+  isCustom: {
+    type: Boolean,
+    default: false
+  },
+  customDesign: {
+    type: String,  // Store custom design details
+    required: false
+  }
 });
 
 const ProductCart = mongoose.model("ProductCart", ProductCartSchema);

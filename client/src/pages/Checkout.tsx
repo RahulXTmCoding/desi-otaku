@@ -12,13 +12,20 @@ import {
   Phone,
   Home,
   Truck,
-  Loader
+  Loader,
+  Shield,
+  Zap,
+  Lock,
+  Globe,
+  Smartphone
 } from 'lucide-react';
 import { loadCart, cartEmpty } from '../core/helper/cartHelper';
 import { isAutheticated } from '../auth/helper';
 import { createOrder, mockCreateOrder } from '../core/helper/orderHelper';
 import { useDevMode } from '../context/DevModeContext';
 import { API } from '../backend';
+import { getLocationFromPincode, guessStateFromPincode } from '../data/pincodeData';
+import RealTShirtPreview from '../components/RealTShirtPreview';
 
 interface CartItem {
   _id: string;
@@ -29,6 +36,11 @@ interface CartItem {
   color?: string;
   colorValue?: string;
   image?: string;
+  customDesign?: any;
+  productImage?: string;
+  category?: string | { _id: string; name: string };
+  design?: string;
+  designPrice?: number;
 }
 
 const Checkout: React.FC = () => {
@@ -63,7 +75,11 @@ const Checkout: React.FC = () => {
     // Redirect to cart if empty
     if (!items || items.length === 0) {
       navigate('/cart');
+      return;
     }
+
+    // Load saved checkout state (if returning from signin)
+    loadCheckoutState();
 
     // Pre-fill user info if logged in
     if (auth && auth.user) {
@@ -72,6 +88,9 @@ const Checkout: React.FC = () => {
         fullName: auth.user.name || '',
         email: auth.user.email || ''
       }));
+      
+      // Load saved addresses for returning users
+      loadSavedAddresses();
     }
   }, []);
 
@@ -82,8 +101,26 @@ const Checkout: React.FC = () => {
   const handleInputChange = (field: string, value: string) => {
     setShippingInfo(prev => ({ ...prev, [field]: value }));
     
-    // Check pincode serviceability when pincode is entered
+    // Check pincode serviceability and auto-fill city/state when pincode is entered
     if (field === 'pinCode' && value.length === 6) {
+      // Try to get location from pincode
+      const location = getLocationFromPincode(value);
+      if (location) {
+        setShippingInfo(prev => ({
+          ...prev,
+          city: location.city,
+          state: location.state
+        }));
+      } else {
+        // Try to guess state from pincode pattern
+        const guessedState = guessStateFromPincode(value);
+        if (guessedState) {
+          setShippingInfo(prev => ({
+            ...prev,
+            state: guessedState
+          }));
+        }
+      }
       checkPincodeServiceability(value);
     }
   };
@@ -167,6 +204,80 @@ const Checkout: React.FC = () => {
     return required.every(field => shippingInfo[field as keyof typeof shippingInfo]);
   };
 
+  // Save checkout state to sessionStorage
+  const saveCheckoutState = () => {
+    const checkoutState = {
+      shippingInfo,
+      paymentMethod,
+      activeStep,
+      selectedShipping,
+      shippingRates,
+      pincodeServiceable
+    };
+    sessionStorage.setItem('checkoutState', JSON.stringify(checkoutState));
+  };
+
+  // Load saved checkout state
+  const loadCheckoutState = () => {
+    const savedState = sessionStorage.getItem('checkoutState');
+    if (savedState) {
+      try {
+        const state = JSON.parse(savedState);
+        setShippingInfo(state.shippingInfo || shippingInfo);
+        setPaymentMethod(state.paymentMethod || 'card');
+        setActiveStep(state.activeStep || 1);
+        setSelectedShipping(state.selectedShipping || null);
+        setShippingRates(state.shippingRates || []);
+        setPincodeServiceable(state.pincodeServiceable || null);
+        
+        // Clear the saved state after loading
+        sessionStorage.removeItem('checkoutState');
+      } catch (error) {
+        console.error('Error loading checkout state:', error);
+      }
+    }
+  };
+
+  // Load saved addresses for logged in users
+  const loadSavedAddresses = async () => {
+    if (auth && auth.user && auth.token) {
+      try {
+        const response = await fetch(`${API}/user/${auth.user._id}/addresses`, {
+          headers: {
+            Authorization: `Bearer ${auth.token}`
+          }
+        });
+        
+        if (response.ok) {
+          const addresses = await response.json();
+          if (addresses && addresses.length > 0) {
+            // Use the default address or the first one
+            const defaultAddress = addresses.find((addr: any) => addr.isDefault) || addresses[0];
+            if (defaultAddress) {
+              setShippingInfo({
+                fullName: defaultAddress.fullName || auth.user.name || '',
+                email: auth.user.email || '',
+                phone: defaultAddress.phone || '',
+                address: defaultAddress.address || '',
+                city: defaultAddress.city || '',
+                state: defaultAddress.state || '',
+                pinCode: defaultAddress.pinCode || '',
+                country: defaultAddress.country || 'India'
+              });
+              
+              // Check pincode serviceability if we have one
+              if (defaultAddress.pinCode) {
+                checkPincodeServiceability(defaultAddress.pinCode);
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved addresses:', error);
+      }
+    }
+  };
+
   const handlePlaceOrder = async () => {
     if (!validateShipping()) {
       alert('Please fill all shipping details');
@@ -178,9 +289,44 @@ const Checkout: React.FC = () => {
       return;
     }
 
+    // Check if user is logged in
+    if (!auth || !auth.user || !auth.token) {
+      // Save current state before redirecting
+      saveCheckoutState();
+      
+      // Redirect to signin with return URL
+      navigate('/signin', { 
+        state: { 
+          from: '/checkout',
+          message: 'Please sign in to complete your order' 
+        } 
+      });
+      return;
+    }
+
     setLoading(true);
     
     try {
+      // Save address for future use if user is logged in
+      if (auth && auth.user && auth.token) {
+        try {
+          await fetch(`${API}/user/${auth.user._id}/address`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${auth.token}`
+            },
+            body: JSON.stringify({
+              ...shippingInfo,
+              isDefault: true // Mark as default address
+            })
+          });
+        } catch (error) {
+          console.error('Error saving address:', error);
+          // Don't block order if address save fails
+        }
+      }
+
       // Prepare order data with shipping details
       const orderData = {
         products: cartItems.map(item => ({
@@ -207,20 +353,62 @@ const Checkout: React.FC = () => {
         }
       };
 
+      console.log('Order placement debug:', {
+        isTestMode,
+        hasAuth: !!auth,
+        hasUser: !!(auth && auth.user),
+        hasToken: !!(auth && auth.token),
+        orderData
+      });
+
       let result;
+      
       if (isTestMode) {
+        console.log('Using mock order creation (test mode)...');
         // Use mock order creation
         result = await mockCreateOrder(orderData);
+        console.log('Mock order result:', result);
       } else if (auth && auth.user && auth.token) {
+        console.log('Using real backend...');
+        // Process order data to handle custom designs properly
+        const processedOrderData = {
+          ...orderData,
+          products: orderData.products.map(item => {
+            // Check if it's a custom design
+            const isCustomDesign = item.product === 'custom' || !item.product || 
+                                 (typeof item.product === 'string' && item.product.includes('custom'));
+            
+            if (isCustomDesign) {
+              // For custom designs, omit the product field and add custom flag
+              const { product, ...itemWithoutProduct } = item;
+              return {
+                ...itemWithoutProduct,
+                isCustom: true,
+                customDesign: item.name || 'Custom T-Shirt Design'
+              };
+            } else {
+              // For regular products, keep the product ID
+              return {
+                ...item,
+                isCustom: false
+              };
+            }
+          })
+        };
+        
+        console.log('Processed order data:', processedOrderData);
+        
         // Use real backend
-        result = await createOrder(auth.user._id, auth.token, orderData);
+        result = await createOrder(auth.user._id, auth.token, processedOrderData);
+        console.log('Real order result:', result);
       } else {
-        alert('Please login to place order');
-        navigate('/signin');
+        // This shouldn't happen as we check auth earlier
+        alert('Authentication error. Please try again.');
         return;
       }
 
       if (result.error) {
+        console.error('Order creation failed:', result);
         alert('Failed to create order: ' + result.error);
       } else {
         // Clear cart after successful order
@@ -311,26 +499,123 @@ const Checkout: React.FC = () => {
                   <MapPin className="w-5 h-5 text-yellow-400" />
                   Shipping Information
                 </h2>
-                <div className="grid md:grid-cols-2 gap-4">
+                <div className="space-y-6">
+                  {/* Pincode First (Auto-fills City/State) */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Full Name
+                      PIN Code <span className="text-yellow-400">*</span>
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="text"
-                        value={shippingInfo.fullName}
-                        onChange={(e) => handleInputChange('fullName', e.target.value)}
+                        value={shippingInfo.pinCode}
+                        onChange={(e) => handleInputChange('pinCode', e.target.value)}
                         className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-                        placeholder="John Doe"
+                        placeholder="Enter 6-digit PIN code"
                         required
+                        maxLength={6}
                       />
                     </div>
+                    {shippingInfo.pinCode.length === 6 && (
+                      <>
+                        {checkingRates && (
+                          <p className="text-sm text-gray-400 mt-2 flex items-center gap-1">
+                            <Loader className="w-3 h-3 animate-spin" />
+                            Checking delivery availability...
+                          </p>
+                        )}
+                        {pincodeServiceable === false && (
+                          <p className="text-sm text-red-400 mt-2">
+                            Sorry, we don't deliver to this pincode yet
+                          </p>
+                        )}
+                        {pincodeServiceable === true && (
+                          <p className="text-sm text-green-400 mt-2">
+                            ✓ Delivery available
+                          </p>
+                        )}
+                      </>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">Enter pincode to auto-fill city and state</p>
                   </div>
+
+                  {/* City and State (Auto-filled) */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        City
+                      </label>
+                      <div className="relative">
+                        <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="text"
+                          value={shippingInfo.city}
+                          onChange={(e) => handleInputChange('city', e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
+                          placeholder="Auto-filled from PIN code"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        State
+                      </label>
+                      <div className="relative">
+                        <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="text"
+                          value={shippingInfo.state}
+                          onChange={(e) => handleInputChange('state', e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
+                          placeholder="Auto-filled from PIN code"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Personal Information */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Full Name
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="text"
+                          value={shippingInfo.fullName}
+                          onChange={(e) => handleInputChange('fullName', e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
+                          placeholder="John Doe"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Phone Number
+                      </label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                        <input
+                          type="tel"
+                          value={shippingInfo.phone}
+                          onChange={(e) => handleInputChange('phone', e.target.value)}
+                          className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
+                          placeholder="+91 98765 43210"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Email */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Email
+                      Email Address
                     </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -344,38 +629,9 @@ const Checkout: React.FC = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Address */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Phone Number
-                    </label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="tel"
-                        value={shippingInfo.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-                        placeholder="+91 98765 43210"
-                        required
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Country
-                    </label>
-                    <select
-                      value={shippingInfo.country}
-                      onChange={(e) => handleInputChange('country', e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-                    >
-                      <option value="India">India</option>
-                      <option value="USA">USA</option>
-                      <option value="UK">UK</option>
-                      <option value="Canada">Canada</option>
-                    </select>
-                  </div>
-                  <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-gray-300 mb-2">
                       Street Address
                     </label>
@@ -391,61 +647,21 @@ const Checkout: React.FC = () => {
                       />
                     </div>
                   </div>
+
+                  {/* Country */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">
-                      City
+                      Country
                     </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.city}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
+                    <select
+                      value={shippingInfo.country}
+                      onChange={(e) => handleInputChange('country', e.target.value)}
                       className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-                      placeholder="Mumbai"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.state}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-                      placeholder="Maharashtra"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      PIN Code
-                    </label>
-                    <input
-                      type="text"
-                      value={shippingInfo.pinCode}
-                      onChange={(e) => handleInputChange('pinCode', e.target.value)}
-                      className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-                      placeholder="400001"
-                      required
-                      maxLength={6}
-                    />
-                    {checkingRates && (
-                      <p className="text-sm text-gray-400 mt-1 flex items-center gap-1">
-                        <Loader className="w-3 h-3 animate-spin" />
-                        Checking delivery availability...
-                      </p>
-                    )}
-                    {pincodeServiceable === false && (
-                      <p className="text-sm text-red-400 mt-1">
-                        Sorry, we don't deliver to this pincode yet
-                      </p>
-                    )}
-                    {pincodeServiceable === true && (
-                      <p className="text-sm text-green-400 mt-1">
-                        ✓ Delivery available
-                      </p>
-                    )}
+                      disabled
+                    >
+                      <option value="India">India</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Currently shipping only within India</p>
                   </div>
                 </div>
 
@@ -515,48 +731,145 @@ const Checkout: React.FC = () => {
               <div className="bg-gray-800 rounded-2xl p-6">
                 <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-yellow-400" />
-                  Payment Method
+                  Select Payment Method
                 </h2>
+                
+                {/* Payment Options */}
                 <div className="space-y-4">
-                  <label className="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+                  {/* Credit/Debit Card */}
+                  <label className={`relative overflow-hidden cursor-pointer transition-all ${
+                    paymentMethod === 'card' 
+                      ? 'ring-2 ring-yellow-400 bg-gray-700' 
+                      : 'bg-gray-700 hover:bg-gray-600'
+                  }`} style={{ borderRadius: '12px' }}>
                     <input
                       type="radio"
                       name="payment"
                       value="card"
                       checked={paymentMethod === 'card'}
                       onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="text-yellow-400 focus:ring-yellow-400"
+                      className="sr-only"
                     />
-                    <span className="ml-3">Credit/Debit Card</span>
+                    <div className="flex items-start p-5">
+                      <div className="flex-shrink-0">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          paymentMethod === 'card' ? 'bg-yellow-400' : 'bg-gray-600'
+                        }`}>
+                          <CreditCard className={`w-6 h-6 ${
+                            paymentMethod === 'card' ? 'text-gray-900' : 'text-gray-300'
+                          }`} />
+                        </div>
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold text-white">Credit/Debit Card</h3>
+                          {paymentMethod === 'card' && (
+                            <Check className="w-5 h-5 text-yellow-400" />
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Pay securely with your credit or debit card
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-gray-500">Accepted:</span>
+                          <span className="text-xs bg-gray-600 px-2 py-1 rounded">Visa</span>
+                          <span className="text-xs bg-gray-600 px-2 py-1 rounded">Mastercard</span>
+                          <span className="text-xs bg-gray-600 px-2 py-1 rounded">RuPay</span>
+                        </div>
+                      </div>
+                    </div>
                   </label>
-                  <label className="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
+
+                  {/* UPI */}
+                  <label className={`relative overflow-hidden cursor-pointer transition-all ${
+                    paymentMethod === 'upi' 
+                      ? 'ring-2 ring-yellow-400 bg-gray-700' 
+                      : 'bg-gray-700 hover:bg-gray-600'
+                  }`} style={{ borderRadius: '12px' }}>
                     <input
                       type="radio"
                       name="payment"
                       value="upi"
                       checked={paymentMethod === 'upi'}
                       onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="text-yellow-400 focus:ring-yellow-400"
+                      className="sr-only"
                     />
-                    <span className="ml-3">UPI</span>
+                    <div className="flex items-start p-5">
+                      <div className="flex-shrink-0">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
+                          paymentMethod === 'upi' ? 'bg-yellow-400' : 'bg-gray-600'
+                        }`}>
+                          <Smartphone className={`w-6 h-6 ${
+                            paymentMethod === 'upi' ? 'text-gray-900' : 'text-gray-300'
+                          }`} />
+                        </div>
+                      </div>
+                      <div className="ml-4 flex-1">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-lg font-semibold text-white">UPI Payment</h3>
+                          {paymentMethod === 'upi' && (
+                            <Check className="w-5 h-5 text-yellow-400" />
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Quick and easy payment via UPI
+                        </p>
+                        <div className="flex items-center gap-2 mt-2">
+                          <span className="text-xs text-gray-500">Supported:</span>
+                          <span className="text-xs bg-gray-600 px-2 py-1 rounded">GPay</span>
+                          <span className="text-xs bg-gray-600 px-2 py-1 rounded">PhonePe</span>
+                          <span className="text-xs bg-gray-600 px-2 py-1 rounded">Paytm</span>
+                        </div>
+                      </div>
+                    </div>
                   </label>
-                  <label className="flex items-center p-4 bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-600 transition-colors">
-                    <input
-                      type="radio"
-                      name="payment"
-                      value="cod"
-                      checked={paymentMethod === 'cod'}
-                      onChange={(e) => setPaymentMethod(e.target.value)}
-                      className="text-yellow-400 focus:ring-yellow-400"
-                    />
-                    <span className="ml-3">Cash on Delivery</span>
-                  </label>
+
+                  {/* Cash on Delivery - Disabled */}
+                  <div className="relative overflow-hidden opacity-50 cursor-not-allowed" style={{ borderRadius: '12px' }}>
+                    <div className="bg-gray-700 p-5">
+                      <div className="flex items-start">
+                        <div className="flex-shrink-0">
+                          <div className="w-12 h-12 rounded-full bg-gray-600 flex items-center justify-center">
+                            <Package className="w-6 h-6 text-gray-400" />
+                          </div>
+                        </div>
+                        <div className="ml-4 flex-1">
+                          <h3 className="text-lg font-semibold text-gray-400">Cash on Delivery</h3>
+                          <p className="text-sm text-gray-500 mt-1">
+                            Currently unavailable
+                          </p>
+                          <p className="text-xs text-gray-600 mt-2">
+                            COD will be available soon as we expand our services
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Features */}
+                <div className="mt-6 p-4 bg-gray-700 rounded-lg">
+                  <div className="flex items-center justify-center gap-6">
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <Shield className="w-4 h-4 text-green-400" />
+                      <span>Secure Payment</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <Lock className="w-4 h-4 text-green-400" />
+                      <span>SSL Encrypted</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-gray-300">
+                      <Zap className="w-4 h-4 text-green-400" />
+                      <span>Fast Processing</span>
+                    </div>
+                  </div>
                 </div>
                 
                 {/* Note for test mode */}
                 {isTestMode && (
                   <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/50 rounded-lg">
-                    <p className="text-sm text-blue-400">
+                    <p className="text-sm text-blue-400 flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4" />
                       Test Mode: Payment will be simulated. No actual payment will be processed.
                     </p>
                   </div>
@@ -582,79 +895,263 @@ const Checkout: React.FC = () => {
             {/* Order Review */}
             {activeStep === 3 && (
               <div className="bg-gray-800 rounded-2xl p-6">
-                <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                <h2 className="text-xl font-bold mb-8 flex items-center gap-2">
                   <Package className="w-5 h-5 text-yellow-400" />
                   Review Your Order
                 </h2>
                 
-                {/* Shipping Details */}
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3">Shipping Details</h3>
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <p className="font-medium">{shippingInfo.fullName}</p>
-                    <p className="text-sm text-gray-300">{shippingInfo.email}</p>
-                    <p className="text-sm text-gray-300">{shippingInfo.phone}</p>
-                    <p className="text-sm text-gray-300 mt-2">
-                      {shippingInfo.address}<br />
-                      {shippingInfo.city}, {shippingInfo.state} - {shippingInfo.pinCode}<br />
-                      {shippingInfo.country}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Payment Method */}
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3">Payment Method</h3>
-                  <div className="bg-gray-700 rounded-lg p-4">
-                    <p className="capitalize">{paymentMethod === 'cod' ? 'Cash on Delivery' : paymentMethod === 'upi' ? 'UPI' : 'Credit/Debit Card'}</p>
-                  </div>
-                </div>
-
-                {/* Shipping Method */}
-                {selectedShipping && (
-                  <div className="mb-6">
-                    <h3 className="font-semibold mb-3">Shipping Method</h3>
-                    <div className="bg-gray-700 rounded-lg p-4">
-                      <p className="font-medium">{selectedShipping.courier_name}</p>
-                      <p className="text-sm text-gray-400">
-                        Delivery in {selectedShipping.estimated_delivery} • ₹{selectedShipping.rate}
-                      </p>
+                <div className="space-y-6">
+                  {/* Order Items - Enhanced */}
+                  <div className="bg-gray-700/50 rounded-xl p-6 border border-gray-600">
+                    <h3 className="font-semibold mb-4 flex items-center gap-2">
+                      <Package className="w-4 h-4 text-yellow-400" />
+                      Order Items ({cartItems.length})
+                    </h3>
+                    <div className="space-y-4">
+                      {cartItems.map((item, index) => (
+                        <div key={item._id} className="flex items-center gap-4 p-4 bg-gray-800 rounded-lg">
+                          {/* Product Image - Custom Preview or Real Image */}
+                          <div className="w-24 h-24 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                            {item.category === 'custom' && item.design ? (
+                              // Show T-shirt preview for custom designs
+                              <div className="w-full h-full relative">
+                                <div className="relative w-full h-full bg-gray-100 rounded overflow-hidden">
+                                  {/* T-shirt base */}
+                                  <img
+                                    src="/front.png"
+                                    alt="T-shirt"
+                                    className="w-full h-full object-contain"
+                                    style={{
+                                      filter: item.color === 'Black' ? 'brightness(0.2)' : 
+                                             item.color === 'Navy' ? 'brightness(0.4) sepia(1) hue-rotate(190deg) saturate(2)' :
+                                             item.color === 'Red' ? 'brightness(0.6) sepia(1) hue-rotate(-20deg) saturate(2.5)' :
+                                             item.color === 'Gray' ? 'brightness(0.6) grayscale(1)' :
+                                             'none'
+                                    }}
+                                  />
+                                  {/* Design overlay */}
+                                  {item.image && (
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <img
+                                        src={item.image}
+                                        alt={item.design || 'Custom design'}
+                                        className="w-1/3 h-1/3 object-contain"
+                                        style={{
+                                          filter: item.color === 'Black' ? 'brightness(1.2)' : 'none'
+                                        }}
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              // Show product image for regular items
+                              <img 
+                                src={item.image && item.image.startsWith('http') 
+                                  ? item.image 
+                                  : `${API}/product/photo/${item._id}`}
+                                alt={item.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  // If image fails to load, show placeholder
+                                  const target = e.target as HTMLImageElement;
+                                  target.onerror = null;
+                                  target.src = 'https://via.placeholder.com/200?text=Product';
+                                }}
+                              />
+                            )}
+                          </div>
+                          
+                          {/* Product Details */}
+                          <div className="flex-1">
+                            <h4 className="font-medium text-white">{item.name}</h4>
+                            <div className="flex flex-wrap gap-3 mt-2 text-sm">
+                              <span className="flex items-center gap-1 text-gray-400">
+                                <span className="text-xs">Size:</span>
+                                <span className="font-medium text-white">{item.size || 'M'}</span>
+                              </span>
+                              <span className="flex items-center gap-1 text-gray-400">
+                                <span className="text-xs">Color:</span>
+                                <span className="flex items-center gap-1">
+                                  <span 
+                                    className="w-4 h-4 rounded-full border border-gray-600" 
+                                    style={{ backgroundColor: item.colorValue || '#999' }}
+                                  />
+                                  <span className="font-medium text-white">{item.color || 'Black'}</span>
+                                </span>
+                              </span>
+                              <span className="flex items-center gap-1 text-gray-400">
+                                <span className="text-xs">Qty:</span>
+                                <span className="font-medium text-white">{item.quantity}</span>
+                              </span>
+                              {item.customDesign && (
+                                <span className="flex items-center gap-1 text-yellow-400">
+                                  <span className="text-xs">✨ Custom Design</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Price */}
+                          <div className="text-right">
+                            <p className="text-lg font-bold text-yellow-400">₹{item.price * item.quantity}</p>
+                            {item.quantity > 1 && (
+                              <p className="text-sm text-gray-400">₹{item.price} each</p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                )}
 
-                {/* Order Items */}
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3">Order Items</h3>
-                  <div className="bg-gray-700 rounded-lg p-4 space-y-3">
-                    {cartItems.map((item) => (
-                      <div key={item._id} className="flex justify-between items-center">
-                        <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-gray-400">
-                            Size: {item.size} | Color: {item.color} | Qty: {item.quantity}
+                  {/* Delivery Information Grid */}
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {/* Shipping Address */}
+                    <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2">
+                        <MapPin className="w-4 h-4 text-yellow-400" />
+                        Delivery Address
+                      </h3>
+                      <div className="space-y-2">
+                        <p className="font-medium text-white flex items-center gap-2">
+                          <User className="w-4 h-4 text-gray-400" />
+                          {shippingInfo.fullName}
+                        </p>
+                        <p className="text-sm text-gray-300 flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-gray-400" />
+                          {shippingInfo.email}
+                        </p>
+                        <p className="text-sm text-gray-300 flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-gray-400" />
+                          {shippingInfo.phone}
+                        </p>
+                        <div className="pt-2 border-t border-gray-600">
+                          <p className="text-sm text-gray-300 flex items-start gap-2">
+                            <Home className="w-4 h-4 text-gray-400 mt-0.5" />
+                            <span>
+                              {shippingInfo.address}<br />
+                              {shippingInfo.city}, {shippingInfo.state} - {shippingInfo.pinCode}<br />
+                              {shippingInfo.country}
+                            </span>
                           </p>
                         </div>
-                        <p className="font-semibold">₹{item.price * item.quantity}</p>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
 
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setActiveStep(2)}
-                    className="bg-gray-700 hover:bg-gray-600 text-white py-3 px-8 rounded-lg font-bold transition-colors"
-                  >
-                    Back
-                  </button>
-                  <button
-                    onClick={handlePlaceOrder}
-                    disabled={loading}
-                    className="flex-1 bg-yellow-400 hover:bg-yellow-300 disabled:bg-yellow-400/50 text-gray-900 py-3 px-8 rounded-lg font-bold transition-all transform hover:scale-105 disabled:scale-100"
-                  >
-                    {loading ? 'Processing...' : 'Place Order'}
-                  </button>
+                    {/* Shipping & Payment Info */}
+                    <div className="space-y-4">
+                      {/* Shipping Method */}
+                      <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                          <Truck className="w-4 h-4 text-yellow-400" />
+                          Shipping Method
+                        </h3>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium text-white">{selectedShipping?.courier_name}</p>
+                            <p className="text-sm text-gray-400 flex items-center gap-1 mt-1">
+                              <Zap className="w-3 h-3" />
+                              {selectedShipping?.estimated_delivery}
+                            </p>
+                          </div>
+                          <p className="text-lg font-bold text-yellow-400">₹{selectedShipping?.rate}</p>
+                        </div>
+                      </div>
+
+                      {/* Payment Method */}
+                      <div className="bg-gray-700/50 rounded-xl p-5 border border-gray-600">
+                        <h3 className="font-semibold mb-3 flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-yellow-400" />
+                          Payment Method
+                        </h3>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              paymentMethod === 'card' ? 'bg-blue-500' : 'bg-purple-500'
+                            }`}>
+                              {paymentMethod === 'card' ? (
+                                <CreditCard className="w-5 h-5 text-white" />
+                              ) : (
+                                <Smartphone className="w-5 h-5 text-white" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-medium text-white">
+                                {paymentMethod === 'card' ? 'Credit/Debit Card' : 'UPI Payment'}
+                              </p>
+                              <p className="text-xs text-gray-400">Secure payment</p>
+                            </div>
+                          </div>
+                          <Shield className="w-5 h-5 text-green-400" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Order Summary */}
+                  <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-xl p-6">
+                    <h3 className="font-semibold mb-4 text-yellow-400">Order Summary</h3>
+                    <div className="space-y-3">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">Subtotal ({cartItems.length} items)</span>
+                        <span className="font-medium">₹{getTotalAmount()}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">Shipping</span>
+                        <span className="font-medium">₹{selectedShipping?.rate || 0}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-300">Tax</span>
+                        <span className="font-medium">₹0</span>
+                      </div>
+                      <div className="pt-3 border-t border-yellow-400/30">
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-semibold">Total Amount</span>
+                          <span className="text-2xl font-bold text-yellow-400">
+                            ₹{getTotalAmount() + (selectedShipping?.rate || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Terms & Conditions */}
+                  <div className="bg-gray-700/30 rounded-lg p-4 text-center">
+                    <p className="text-xs text-gray-400">
+                      By placing this order, you agree to our{' '}
+                      <a href="#" className="text-yellow-400 hover:underline">Terms & Conditions</a>
+                      {' '}and{' '}
+                      <a href="#" className="text-yellow-400 hover:underline">Privacy Policy</a>
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => setActiveStep(2)}
+                      className="px-8 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-bold transition-colors"
+                    >
+                      <ChevronLeft className="inline w-4 h-4 mr-1" />
+                      Back
+                    </button>
+                    <button
+                      onClick={handlePlaceOrder}
+                      disabled={loading}
+                      className="flex-1 bg-gradient-to-r from-yellow-400 to-yellow-500 hover:from-yellow-300 hover:to-yellow-400 disabled:from-yellow-400/50 disabled:to-yellow-500/50 text-gray-900 py-3 px-8 rounded-lg font-bold transition-all transform hover:scale-105 disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader className="w-5 h-5 animate-spin" />
+                          Processing Order...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-5 h-5" />
+                          Place Order • ₹{getTotalAmount() + (selectedShipping?.rate || 0)}
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

@@ -1,114 +1,168 @@
 # Active Context
 
 ## Current Status
-Phase 2 of the development plan has been completed! We've successfully implemented:
+Phase 3 of the comprehensive development plan is now in progress! Building on our completed Phase 2 foundation, we're implementing the Custom Design System.
 
-## Phase 2: Core E-commerce ✅
-1. **Enhanced Shopping Cart UI** ✅
-   - Created slide-out CartDrawer component
-   - Smooth animations and transitions
-   - Real-time quantity updates
-   - Mobile responsive design
+## Recently Added: Comprehensive Project Plan ✅
+- Extensive detailed plan for the entire anime t-shirt brand platform
+- Complete design system with dark theme specifications
+- Detailed UI/UX guidelines and component specifications
+- Full technical architecture with TypeScript-first approach
+- Development phases with timeline estimates
+- Deployment and infrastructure planning
 
-2. **Multi-step Checkout Flow** ✅
-   - Created EnhancedCheckout component
-   - Step-by-step process with progress indicator
-   - Cart review, shipping info, and payment steps
-   - Form validation and error handling
+## Phase 3: Custom Design System (In Progress)
 
-3. **Payment Gateway Integration** ✅
-   - Stripe payment controller and routes
-   - Payment intent creation
-   - Webhook handling for payment confirmation
-   - Graceful handling of missing API keys
+### Completed in Current Phase:
+1. **T-Shirt Preview Components** ✅
+   - Created multiple preview implementations:
+     - `TShirtPreview.tsx` - Basic preview with color selection
+     - `SimpleTShirtPreview.tsx` - SVG-based realistic preview
+     - `PhotoRealisticPreview.tsx` - Canvas-based photo-realistic preview with mockups
+   - T-shirt mockup data structure with base64 SVG images
+   - Color filter system for different t-shirt colors
+   - Front/back view toggle functionality
 
-4. **CI/CD Pipeline** ✅
-   - GitHub Actions for automated deployment
-   - Frontend deployment to Vercel
-   - Backend deployment to Render
-   - Comprehensive deployment guide
+2. **Customize Page Enhancement** ✅
+   - Integrated with new preview components
+   - Design selection from product catalog
+   - Real-time preview updates
+   - Color and size selection
+   - Price calculation with design fees
+   - Mobile responsive layout
 
-## Recent Accomplishments
-
-### Enhanced Cart Experience
-- Slide-out drawer replaces full-page cart
-- Integrated with header cart icon
-- Quick add/remove functionality
-- Free shipping threshold display
-
-### Multi-step Checkout
-- Visual progress indicator
-- Form data persistence
-- Shipping method selection
-- Test mode for development
-
-### Payment Integration
-- Stripe setup with payment intents
-- Secure payment processing flow
-- Order status updates on payment
-- Multiple payment method support structure
-
-### Deployment Pipeline
-- Zero-cost deployment solution
-- Automated builds on push
-- Environment variable management
-- Production-ready configuration
+### In Progress:
+1. **Advanced Design Editor Features**
+   - Canvas-based design manipulation
+   - Design positioning and sizing
+   - Multiple design placement options
+   - Save/load functionality for custom designs
 
 ## Previously Completed Features
-1. **Wishlist Feature** ✅
-2. **Product Reviews & Ratings** ✅  
-3. **Multiple Product Images** ✅
-4. **Size-wise Inventory** ✅
-5. **Order Management** ✅
-6. **User Authentication** ✅
-7. **Admin Dashboard** ✅
 
-## Development Plan Progress
-- ✅ Phase 1: Foundation (Complete)
-- ✅ Phase 2: Core E-commerce (Complete)
-- 📋 Phase 3: Custom Design System (Next)
-- 📋 Phase 4: Advanced Features
-- 📋 Phase 5: Polish & Launch
+### Phase 1: Foundation ✅
+- Project setup with TypeScript
+- Dark theme design system implementation
+- User authentication system
+- Basic admin panel
+- Product catalog foundation
 
-## Next Development Phase
+### Phase 2: Core E-commerce ✅
+1. **Enhanced Shopping Cart UI**
+   - Slide-out CartDrawer component
+   - Real-time quantity updates
+   - Free shipping threshold
 
-### Phase 3: Custom Design System
-Based on the comprehensive plan, the next phase includes:
+2. **Multi-step Checkout Flow**
+   - EnhancedCheckout component
+   - Progress indicators
+   - Form validation
 
-1. **Canvas-based Design Editor**
-   - Interactive t-shirt mockup
-   - Design upload and placement
-   - Real-time preview
-   - Color selection for t-shirt base
+3. **Payment Integration**
+   - Stripe payment processing
+   - Payment webhook handling
+   - Order status management
 
-2. **Design Tools**
-   - Text addition with fonts
-   - Image manipulation (resize, rotate)
+4. **CI/CD Pipeline**
+   - GitHub Actions automation
+   - Vercel (frontend) + Render (backend) deployment
+   - Production-ready configuration
+
+## Design System Implementation
+
+### Dark Theme Palette (Active)
+```css
+Background Dark: #1F2937 (gray-800)
+Background Darker: #111827 (gray-900)
+Card Background: #374151 (gray-700)
+Primary Yellow: #FCD34D (yellow-400)
+Purple Gradient: #8B5CF6 to #6366F1
+```
+
+### Component Patterns
+- Rounded corners (8px, 12px, 16px)
+- Hover scale effects (1.05)
+- Smooth transitions (200-300ms)
+- Yellow accent for CTAs and highlights
+
+## Technical Implementation Details
+
+### Custom Design System Architecture
+```typescript
+// T-shirt mockup structure
+interface TShirtMockup {
+  front: string; // Base64 SVG or image URL
+  back: string;
+}
+
+// Design positioning
+interface DesignPosition {
+  x: number; // Percentage from left
+  y: number; // Percentage from top
+  width: number; // Percentage of t-shirt width
+  height: number; // Percentage of t-shirt height
+}
+
+// Preview component props
+interface PreviewProps {
+  selectedColor: string;
+  selectedDesign: Design | null;
+  designUrl: string;
+}
+```
+
+### Current Technical Stack
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS
+- **Backend**: Node.js + Express + MongoDB
+- **State Management**: React Context + Local Storage
+- **Image Processing**: Canvas API + Base64 encoding
+- **Deployment**: Vercel + Render + GitHub Actions
+
+## Next Steps (Phase 3 Continuation)
+
+1. **Design Upload System**
+   - File upload with validation
+   - Image format support (PNG, JPG, SVG)
+   - Size and resolution guidelines
+   - Preview before upload
+
+2. **Advanced Editing Tools**
+   - Resize handles for designs
+   - Rotation controls
    - Layer management
-   - Undo/redo functionality
+   - Text addition with fonts
 
-3. **Save & Share**
+3. **Save & Share Features**
    - User design library
    - Design templates
-   - Social sharing features
+   - Social sharing
    - Design approval workflow
 
-4. **Custom Order Integration**
-   - Pricing calculator
-   - Design validation
-   - Production-ready export
+4. **Production Integration**
+   - Print-ready file generation
+   - Design validation for printing
+   - Cost calculation based on complexity
    - Admin approval system
 
-## Technical Stack
-- Frontend: React + TypeScript + Vite
-- Backend: Node.js + Express + MongoDB
-- Styling: Tailwind CSS (Dark theme)
-- Payment: Stripe + Braintree
-- Deployment: Vercel + Render
-- CI/CD: GitHub Actions
+## Important Patterns & Preferences
 
-## Current Focus Areas
-1. All Phase 2 features are complete and working
-2. Deployment pipeline is ready for production
-3. Ready to begin Phase 3: Custom Design System
-4. Maintaining consistent dark theme and design system
+### Code Organization
+- TypeScript interfaces for all data models
+- Component-based architecture
+- Reusable UI components with consistent styling
+- Dark theme maintained throughout
+
+### User Experience
+- Mobile-first responsive design
+- Smooth animations and transitions
+- Real-time preview updates
+- Clear visual feedback
+
+### Development Workflow
+- Test mode for development without backend
+- Mock data for offline development
+- Gradual feature rollout
+- Continuous integration with automated deployment
+
+## Current Focus
+Implementing the custom design editor with real-time preview, building on the photo-realistic preview component foundation. The goal is to create an intuitive design experience that matches the anime aesthetic while maintaining technical robustness.

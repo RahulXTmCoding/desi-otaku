@@ -3,13 +3,15 @@ import { API } from "../backend";
 import Base from "./Base";
 import { loadCart, removeItemFromCart } from "./helper/cartHelper";
 import Paymentb from "./Paymentb";
+import CartTShirtPreview from "../components/CartTShirtPreview";
 import { 
   ShoppingCart, 
   Package, 
   Trash2, 
   Plus, 
   Minus,
-  X 
+  X,
+  ArrowRight
 } from 'lucide-react';
 
 interface CartItem {
@@ -22,7 +24,9 @@ interface CartItem {
   colorValue?: string;
   image?: string;
   type?: string;
+  category?: string;
   design?: string;
+  designPrice?: number;
 }
 
 const Cart = () => {
@@ -35,12 +39,17 @@ const Cart = () => {
   }, [reload]);
 
   const handleRemoveItem = (productId: string) => {
-    removeItemFromCart(productId);
-    setReload(!reload);
+    removeItemFromCart(productId, () => {
+      setReload(!reload);
+    });
   };
 
   const updateQuantity = (productId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
+    if (newQuantity > 10) {
+      alert('Maximum quantity per item is 10');
+      return;
+    }
     
     const cart = loadCart();
     const updatedCart = cart.map((item: CartItem) => 
@@ -63,15 +72,33 @@ const Cart = () => {
     return products.reduce((total, product) => total + (product.quantity || 1), 0);
   };
 
+  const getShippingCost = () => {
+    const subtotal = getTotalAmount();
+    return subtotal >= 1000 ? 0 : 99;
+  };
+
+  const getFinalTotal = () => {
+    return getTotalAmount() + getShippingCost();
+  };
+
   const CartItemCard = ({ product }: { product: CartItem }) => {
+    const isCustomDesign = product.type === 'custom' || product.category === 'custom';
+    
     return (
       <div className="bg-gray-700 rounded-lg p-4 flex gap-4">
         {/* Product Image */}
-        <div className="w-24 h-24 bg-gray-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          {product.image ? (
-            <img src={product.image} alt={product.name} className="w-full h-full object-cover rounded-lg" />
+        <div className="w-24 h-24 bg-gray-600 rounded-lg overflow-hidden flex-shrink-0">
+          {isCustomDesign && product.design ? (
+            <CartTShirtPreview
+              design={product.design}
+              color={product.color}
+              colorValue={product.colorValue}
+              image={product.image}
+            />
+          ) : product.image ? (
+            <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
           ) : (
-            <div className="text-3xl">👕</div>
+            <div className="w-full h-full flex items-center justify-center text-3xl">👕</div>
           )}
         </div>
 
@@ -171,16 +198,19 @@ const Cart = () => {
                     </div>
                     <div className="flex justify-between text-gray-300">
                       <span>Shipping</span>
-                      <span className="text-green-400">FREE</span>
+                      <span className={getShippingCost() === 0 ? 'text-green-400' : ''}>
+                        {getShippingCost() === 0 ? 'FREE' : `₹${getShippingCost()}`}
+                      </span>
                     </div>
-                    <div className="flex justify-between text-gray-300">
-                      <span>Tax</span>
-                      <span>₹0</span>
-                    </div>
+                    {getShippingCost() > 0 && (
+                      <p className="text-xs text-yellow-400">
+                        Add ₹{1000 - getTotalAmount()} more for free shipping!
+                      </p>
+                    )}
                     <hr className="border-gray-700" />
                     <div className="flex justify-between text-xl font-bold">
                       <span>Total</span>
-                      <span className="text-yellow-400">₹{getTotalAmount()}</span>
+                      <span className="text-yellow-400">₹{getFinalTotal()}</span>
                     </div>
                   </div>
 

@@ -28,6 +28,15 @@ const productSchema = new Schema(
       type: ObjectId,
       ref: "Category",
     },
+
+    // Product type (t-shirt, vest, hoodie, etc.)
+    productType: {
+      type: String,
+      required: true,
+      trim: true,
+      enum: ['t-shirt', 'vest', 'hoodie', 'oversized-tee', 'acid-wash', 'tank-top', 'long-sleeve', 'crop-top', 'other'],
+      default: 't-shirt'
+    },
     
     // Total stock across all sizes (for backward compatibility)
     stock: {
@@ -127,7 +136,47 @@ const productSchema = new Schema(
     totalReviews: {
       type: Number,
       default: 0
-    }
+    },
+
+    // Tags for search and filtering
+    tags: [{
+      type: String,
+      trim: true,
+      lowercase: true
+    }],
+
+    // Color variants
+    variants: [{
+      color: String,
+      colorValue: String,
+      image: String,
+      enabled: {
+        type: Boolean,
+        default: false
+      },
+      stock: {
+        S: {
+          type: mongoose.Schema.Types.Mixed,
+          default: 0
+        },
+        M: {
+          type: mongoose.Schema.Types.Mixed,
+          default: 0
+        },
+        L: {
+          type: mongoose.Schema.Types.Mixed,
+          default: 0
+        },
+        XL: {
+          type: mongoose.Schema.Types.Mixed,
+          default: 0
+        },
+        XXL: {
+          type: mongoose.Schema.Types.Mixed,
+          default: 0
+        }
+      }
+    }]
   },
   { timestamps: true }
 );

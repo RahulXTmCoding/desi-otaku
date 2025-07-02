@@ -5,25 +5,35 @@ import {
   Plus,
   Minus,
   Check,
-  Loader
+  Loader,
+  Image,
+  Upload
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { addItemToCart } from '../core/helper/cartHelper';
+import { getDesigns } from '../admin/helper/designapicall';
 import { getProducts } from '../core/helper/coreapicalls';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
 import { API } from '../backend';
+import PhotoRealisticPreview from '../components/PhotoRealisticPreview';
+import RealTShirtPreview from '../components/RealTShirtPreview';
 
 interface Design {
   _id: string;
   name: string;
-  image?: string;
-  price: number;
-  category: {
-    _id: string;
-    name: string;
-  };
   description?: string;
+  imageUrl?: string;
+  category: string;
+  tags: string[];
+  price: number;
+  popularity?: {
+    views: number;
+    likes: number;
+    used: number;
+  };
+  isActive: boolean;
+  isFeatured: boolean;
 }
 
 const Customize: React.FC = () => {
@@ -41,6 +51,8 @@ const Customize: React.FC = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
+  const [products, setProducts] = useState<any[]>([]);
+  const [basePrice, setBasePrice] = useState(499); // Default base price
 
   const tshirtColors = [
     { name: 'White', value: '#FFFFFF' },
@@ -60,10 +72,37 @@ const Customize: React.FC = () => {
     { id: 'slim', name: 'Slim Fit', available: false }
   ];
 
-  // Load designs from backend or mock data
+  // Load designs and products from backend
   useEffect(() => {
     loadDesigns();
+    loadProducts();
   }, [isTestMode]);
+
+  const loadProducts = async () => {
+    try {
+      if (isTestMode) {
+        // Use mock products for base price
+        const defaultProduct = mockProducts[0]; // Use first product as default
+        if (defaultProduct) {
+          setBasePrice(defaultProduct.price);
+        }
+      } else {
+        const data = await getProducts();
+        if (data && !data.error) {
+          // Find the cheapest t-shirt as base price
+          const tshirts = data.filter((p: any) => 
+            p.productType === 't-shirt' || !p.productType
+          );
+          if (tshirts.length > 0) {
+            const minPrice = Math.min(...tshirts.map((p: any) => p.price));
+            setBasePrice(minPrice);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error loading products:', err);
+    }
+  };
 
   const loadDesigns = async () => {
     setLoading(true);
@@ -71,23 +110,32 @@ const Customize: React.FC = () => {
 
     try {
       if (isTestMode) {
-        // Use mock data in test mode - treat products as designs
+        // Use mock data in test mode - convert products to designs
         setTimeout(() => {
-          setDesigns(mockProducts.map(p => ({
-            ...p,
-            image: getMockProductImage(p._id)
-          })));
+          const mockDesigns: Design[] = mockProducts.map(p => ({
+            _id: p._id,
+            name: p.name,
+            description: p.description,
+            imageUrl: getMockProductImage(p._id),
+            category: p.category?.name || 'other',
+            tags: [p.category?.name?.toLowerCase() || 'other', 'sample'],
+            price: 150,
+            isActive: true,
+            isFeatured: false
+          }));
+          setDesigns(mockDesigns);
           setLoading(false);
         }, 500);
       } else {
-        // Fetch from backend
-        const data = await getProducts();
-        if (data.error) {
+        // Fetch actual designs from backend
+        const data = await getDesigns();
+        if (data && data.error) {
           setError(data.error);
           setDesigns([]);
-        } else {
-          // Use products as designs
+        } else if (data && Array.isArray(data)) {
           setDesigns(data);
+        } else {
+          setDesigns([]);
         }
         setLoading(false);
       }
@@ -101,36 +149,42 @@ const Customize: React.FC = () => {
   // Extract unique tags from designs
   const allTags = Array.from(new Set(
     designs.flatMap(design => {
-      const tags = [];
-      if (design.category?.name) tags.push(design.category.name.toLowerCase());
-      if (design.name) {
-        // Extract tags from product name
-        const nameTags = design.name.toLowerCase().split(' ');
-        tags.push(...nameTags);
-      }
+      const tags = [...design.tags];
+      if (design.category) tags.push(design.category.toLowerCase());
       return tags;
     })
-  )).filter((tag): tag is string => typeof tag === 'string' && tag.length > 2); // Filter out short words
+  )).filter((tag): tag is string => typeof tag === 'string' && tag.length > 2);
 
   // Get unique categories
   const categories = Array.from(new Set(
-    designs.map(d => d.category?.name).filter(Boolean)
+    designs.map(d => d.category).filter(Boolean)
   ));
+
+  const categoryLabels: Record<string, string> = {
+    'anime': 'Anime',
+    'gaming': 'Gaming',
+    'funny': 'Funny',
+    'motivational': 'Motivational',
+    'custom': 'Custom',
+    'brand': 'Brand',
+    'abstract': 'Abstract',
+    'other': 'Other'
+  };
 
   const filteredDesigns = designs.filter(design => {
     const matchesSearch = design.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          design.description?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => 
+      design.tags.includes(tag) ||
       design.name.toLowerCase().includes(tag) || 
-      design.category?.name.toLowerCase() === tag
+      design.category.toLowerCase() === tag
     );
-    const matchesCategory = activeCategory === 'all' || design.category?.name === activeCategory;
+    const matchesCategory = activeCategory === 'all' || design.category === activeCategory;
     return matchesSearch && matchesTags && matchesCategory;
   });
 
   const calculatePrice = () => {
-    const basePrice = 499; // Base t-shirt price
-    const designPrice = selectedDesign ? 150 : 0; // Fixed design price
+    const designPrice = selectedDesign ? selectedDesign.price : 0;
     return (basePrice + designPrice) * quantity;
   };
 
@@ -151,8 +205,8 @@ const Customize: React.FC = () => {
       quantity: quantity,
       type: 'custom',
       design: selectedDesign.name,
-      designPrice: 150,
-      image: selectedDesign.image || `${API}/product/photo/${selectedDesign._id}`
+      designPrice: selectedDesign.price,
+      image: getImageUrl(selectedDesign)
     };
 
     addItemToCart(cartItem, () => {
@@ -169,10 +223,10 @@ const Customize: React.FC = () => {
   };
 
   const getImageUrl = (design: Design) => {
-    if (design.image?.startsWith('http')) {
-      return design.image;
+    if (design.imageUrl?.startsWith('http')) {
+      return design.imageUrl;
     }
-    return `${API}/product/photo/${design._id}`;
+    return `${API}/design/image/${design._id}`;
   };
 
   return (
@@ -300,7 +354,7 @@ const Customize: React.FC = () => {
                           />
                         </div>
                         <h4 className="font-medium text-sm mb-1 line-clamp-2">{design.name}</h4>
-                        <p className="text-yellow-400 text-sm font-semibold">+₹150</p>
+                        <p className="text-yellow-400 text-sm font-semibold">+₹{design.price}</p>
                         {selectedDesign?._id === design._id && (
                           <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-1">
                             <Check className="w-4 h-4 text-gray-900" />
@@ -316,30 +370,14 @@ const Customize: React.FC = () => {
             {/* Right Column - T-Shirt Preview & Options */}
             <div className="space-y-6">
               {/* T-Shirt Preview */}
-              <div className="bg-gray-800 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4">Preview</h3>
-                <div className="relative mx-auto w-full max-w-xs">
-                  {/* T-Shirt Shape */}
-                  <svg viewBox="0 0 200 200" className="w-full h-auto">
-                    <path
-                      d="M50 60 Q50 40 70 40 L80 40 Q85 35 100 35 Q115 35 120 40 L130 40 Q150 40 150 60 L150 80 L140 80 L140 160 Q140 170 130 170 L70 170 Q60 170 60 160 L60 80 L50 80 Z"
-                      fill={selectedColor}
-                      stroke="#374151"
-                      strokeWidth="2"
-                    />
-                  </svg>
-                  {/* Design on T-Shirt */}
-                  {selectedDesign && (
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-gray-600 rounded-lg overflow-hidden">
-                      <img 
-                        src={getImageUrl(selectedDesign)}
-                        alt={selectedDesign.name}
-                        className="w-full h-full object-cover opacity-80"
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
+              <RealTShirtPreview
+                selectedDesign={selectedDesign ? {
+                  ...selectedDesign,
+                  image: getImageUrl(selectedDesign)
+                } : null}
+                selectedColor={tshirtColors.find(c => c.value === selectedColor)?.name || 'White'}
+                selectedSize={selectedSize}
+              />
 
               {/* T-Shirt Options */}
               <div className="bg-gray-800 rounded-xl p-6 space-y-6">
@@ -437,12 +475,12 @@ const Customize: React.FC = () => {
                 <div className="bg-gray-900 p-4 rounded-lg">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-300">Base Price:</span>
-                    <span>₹499</span>
+                    <span>₹{basePrice}</span>
                   </div>
                   {selectedDesign && (
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-gray-300">Design:</span>
-                      <span>₹150</span>
+                      <span>₹{selectedDesign.price}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center mb-2">

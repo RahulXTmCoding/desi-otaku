@@ -5,6 +5,7 @@ import { loadCart, removeItemFromCart, updateCartItemQuantity } from '../core/he
 import { useDevMode } from '../context/DevModeContext';
 import { API } from '../backend';
 import { getMockProductImage } from '../data/mockData';
+import CartTShirtPreview from './CartTShirtPreview';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -66,7 +67,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
   const handleCheckout = () => {
     onClose();
-    navigate('/enhanced-checkout');
+    navigate('/checkout');
   };
 
   const handleContinueShopping = () => {
@@ -89,23 +90,24 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
       {/* Cart Drawer */}
       <div
-        className={`fixed right-0 top-0 h-full w-full md:w-96 bg-gray-900 shadow-2xl z-50 transform transition-transform duration-300 ${
+        className={`fixed right-0 top-0 h-screen w-full md:w-96 shadow-2xl z-50 transform transition-transform duration-300 overflow-hidden ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
+        style={{ backgroundColor: '#1F2937' }}
       >
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col h-full" style={{ backgroundColor: '#1F2937' }}>
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-800">
+          <div className="flex items-center justify-between p-6 border-b border-gray-600 bg-gray-800 flex-shrink-0">
             <div className="flex items-center gap-3">
               <ShoppingCart className="w-6 h-6 text-yellow-400" />
-              <h2 className="text-xl font-bold">Your Cart</h2>
+              <h2 className="text-xl font-bold text-white">Your Cart</h2>
               <span className="bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-sm font-semibold">
                 {cartItems.length}
               </span>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-800 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-white"
             >
               <X className="w-5 h-5" />
             </button>
@@ -115,8 +117,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           <div className="flex-1 overflow-y-auto p-6">
             {cartItems.length === 0 ? (
               <div className="text-center py-12">
-                <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-                <p className="text-gray-400 mb-6">Your cart is empty</p>
+                <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-500" />
+                <p className="text-gray-300 mb-6">Your cart is empty</p>
                 <button
                   onClick={handleContinueShopping}
                   className="bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
@@ -129,25 +131,37 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 {cartItems.map((item) => (
                   <div
                     key={item._id}
-                    className="bg-gray-800 rounded-lg p-4 hover:bg-gray-700 transition-colors"
+                    className="rounded-lg p-4 transition-colors"
+                    style={{ backgroundColor: '#374151' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4B5563'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#374151'}
                   >
                     <div className="flex gap-4">
                       {/* Product Image */}
                       <div className="w-20 h-20 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
-                        <img
-                          src={getProductImage(item)}
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/api/placeholder/80/80';
-                          }}
-                        />
+                        {item.category === 'custom' && item.design ? (
+                          <CartTShirtPreview
+                            design={item.design}
+                            color={item.color}
+                            colorValue={item.colorValue}
+                            image={item.image}
+                          />
+                        ) : (
+                          <img
+                            src={getProductImage(item)}
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/api/placeholder/80/80';
+                            }}
+                          />
+                        )}
                       </div>
 
                       {/* Product Details */}
                       <div className="flex-1">
-                        <h3 className="font-semibold mb-1">{item.name}</h3>
-                        <div className="text-sm text-gray-400 space-y-1">
+                        <h3 className="font-semibold mb-1 text-white">{item.name}</h3>
+                        <div className="text-sm text-gray-300 space-y-1">
                           <p>Size: {item.size}</p>
                           <p>Color: {item.color}</p>
                         </div>
@@ -169,7 +183,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         >
                           <Minus className="w-4 h-4" />
                         </button>
-                        <span className="w-8 text-center">{item.quantity}</span>
+                        <span className="w-8 text-center text-white">{item.quantity}</span>
                         <button
                           onClick={() => handleQuantityUpdate(item._id, item.quantity + 1)}
                           disabled={isUpdating === item._id}
@@ -193,26 +207,26 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
           {/* Footer */}
           {cartItems.length > 0 && (
-            <div className="border-t border-gray-800 p-6 space-y-4">
+            <div className="border-t border-gray-700 p-6 space-y-4" style={{ backgroundColor: '#111827' }}>
               {/* Price Summary */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Subtotal</span>
-                  <span>₹{cartTotal}</span>
+                  <span className="text-gray-300">Subtotal</span>
+                  <span className="text-white">₹{cartTotal}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Shipping</span>
-                  <span className={shipping === 0 ? 'text-green-400' : ''}>
+                  <span className="text-gray-300">Shipping</span>
+                  <span className={shipping === 0 ? 'text-green-400' : 'text-white'}>
                     {shipping === 0 ? 'FREE' : `₹${shipping}`}
                   </span>
                 </div>
                 {shipping > 0 && (
-                  <p className="text-xs text-gray-400">
+                  <p className="text-xs text-yellow-300">
                     Add ₹{1000 - cartTotal} more for free shipping
                   </p>
                 )}
-                <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-700">
-                  <span>Total</span>
+                <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-600">
+                  <span className="text-white">Total</span>
                   <span className="text-yellow-400">₹{finalTotal}</span>
                 </div>
               </div>

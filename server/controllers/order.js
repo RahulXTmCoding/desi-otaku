@@ -20,7 +20,11 @@ exports.getOrderById = (req, res, next, id) => {
 
 exports.createOrder = async (req, res) => {
   try {
-    req.body.order.user = req.profile;
+    console.log('Creating order with data:', JSON.stringify(req.body.order, null, 2));
+    
+    // Ensure user is set
+    req.body.order.user = req.profile._id || req.profile;
+    
     const order = new Order(req.body.order);
     
     // Save order first

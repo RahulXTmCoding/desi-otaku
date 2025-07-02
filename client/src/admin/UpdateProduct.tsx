@@ -12,7 +12,9 @@ import {
   Save,
   Link,
   Image,
-  Loader
+  Loader,
+  Hash,
+  Shirt
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
 import { getProduct, updateProduct, getCategories, mockUpdateProduct } from "./helper/adminapicall";
@@ -29,13 +31,30 @@ const UpdateProduct = () => {
   const user = authData && authData.user;
   const token = authData && authData.token;
 
-  const [values, setValues] = useState({
+  const [values, setValues] = useState<{
+    name: string;
+    description: string;
+    price: string;
+    stock: string;
+    photo: string | File;
+    photoUrl: string;
+    tags: string;
+    productType: string;
+    categories: any[];
+    category: string;
+    loading: boolean;
+    error: string;
+    createdProduct: string;
+    formData: FormData;
+  }>({
     name: "",
     description: "",
     price: "",
     stock: "",
     photo: "",
     photoUrl: "",
+    tags: "",
+    productType: "t-shirt",
     categories: [],
     category: "",
     loading: false,
@@ -55,6 +74,8 @@ const UpdateProduct = () => {
     price,
     stock,
     photoUrl,
+    tags,
+    productType,
     categories,
     category,
     loading,
@@ -62,6 +83,18 @@ const UpdateProduct = () => {
     createdProduct,
     formData,
   } = values;
+
+  const productTypes = [
+    { value: 't-shirt', label: 'T-Shirt', icon: '👔' },
+    { value: 'vest', label: 'Vest', icon: '🦺' },
+    { value: 'hoodie', label: 'Hoodie', icon: '🧥' },
+    { value: 'oversized-tee', label: 'Oversized Tee', icon: '👕' },
+    { value: 'acid-wash', label: 'Acid Wash', icon: '🎨' },
+    { value: 'tank-top', label: 'Tank Top', icon: '🎽' },
+    { value: 'long-sleeve', label: 'Long Sleeve', icon: '🥼' },
+    { value: 'crop-top', label: 'Crop Top', icon: '👚' },
+    { value: 'other', label: 'Other', icon: '📦' }
+  ];
 
   const preload = (productId: string) => {
     setIsLoadingProduct(true);
@@ -101,6 +134,8 @@ const UpdateProduct = () => {
             price: data.price,
             category: data.category._id,
             stock: data.stock,
+            tags: data.tags ? data.tags.join(", ") : "",
+            productType: data.productType || "t-shirt",
             formData: new FormData(),
           });
           // Set current image
@@ -142,6 +177,15 @@ const UpdateProduct = () => {
     if (!productId || !user || !token) return;
     
     setValues({ ...values, error: "", loading: true });
+
+    // Set all form data values
+    formData.set("name", name);
+    formData.set("description", description);
+    formData.set("price", price);
+    formData.set("stock", stock);
+    formData.set("category", category);
+    formData.set("tags", tags);
+    formData.set("productType", productType);
 
     // If using URL, add it to formData
     if (imageInputType === 'url' && photoUrl) {
@@ -385,6 +429,33 @@ const UpdateProduct = () => {
             />
           </div>
 
+          {/* Product Type */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              Product Type
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {productTypes.map((type) => (
+                <button
+                  key={type.value}
+                  type="button"
+                  onClick={() => {
+                    setValues({ ...values, productType: type.value });
+                    formData.set("productType", type.value);
+                  }}
+                  className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                    productType === type.value
+                      ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400'
+                      : 'bg-gray-700 border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  <span className="text-2xl">{type.icon}</span>
+                  <span className="text-sm font-medium">{type.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Price and Category Row */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
@@ -429,7 +500,7 @@ const UpdateProduct = () => {
           </div>
 
           {/* Stock */}
-          <div className="mb-8">
+          <div className="mb-6">
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Stock Quantity
             </label>
@@ -444,6 +515,24 @@ const UpdateProduct = () => {
                 required
               />
             </div>
+          </div>
+
+          {/* Tags */}
+          <div className="mb-8">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Tags (comma separated)
+            </label>
+            <div className="relative">
+              <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={tags}
+                onChange={handleChange("tags")}
+                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                placeholder="summer, trendy, cotton, anime"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Tags help customers find this product when searching</p>
           </div>
 
           {/* Form Actions */}
