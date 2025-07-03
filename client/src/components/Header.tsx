@@ -129,12 +129,6 @@ const Header: React.FC = () => {
                   <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </div>
               </Link>
-              {auth && auth.user && auth.user.role === 0 && (
-                <Link to="/user/dashboard" className="relative text-white/90 hover:text-white transition-all group">
-                  <span className="relative z-10">Dashboard</span>
-                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
-                </Link>
-              )}
               <Link to="/contact" className="relative text-white/90 hover:text-white transition-all group">
                 <span className="relative z-10">Contact</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
@@ -267,15 +261,6 @@ const Header: React.FC = () => {
             >
               Custom Design
             </Link>
-            {auth && auth.user && auth.user.role === 0 && (
-              <Link
-                to="/user/dashboard"
-                onClick={closeMobileMenu}
-                className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
-              >
-                Dashboard
-              </Link>
-            )}
             {auth && auth.user && auth.user.role === 1 && (
               <Link
                 to="/admin/dashboard"

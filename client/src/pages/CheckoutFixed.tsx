@@ -97,7 +97,7 @@ const CheckoutFixed: React.FC = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const auth = isAutheticated();
+  const auth = useMemo(() => isAutheticated(), []);
   const { isTestMode } = useDevMode();
   
   // Use ref to track if Razorpay script is loaded
@@ -111,6 +111,22 @@ const CheckoutFixed: React.FC = () => {
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   const [addressLoading, setAddressLoading] = useState(false);
   
+  const [shippingInfo, setShippingInfo] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    state: '',
+    pinCode: '',
+    country: 'India'
+  });
+
+  const shippingInfoRef = useRef(shippingInfo);
+  useEffect(() => {
+    shippingInfoRef.current = shippingInfo;
+  }, [shippingInfo]);
+
   // Debug and prevent stuck loading states
   useEffect(() => {
     if (addressLoading) {
@@ -123,17 +139,6 @@ const CheckoutFixed: React.FC = () => {
     }
   }, [addressLoading]);
   
-  const [shippingInfo, setShippingInfo] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    state: '',
-    pinCode: '',
-    country: 'India'
-  });
-
   const [paymentMethod, setPaymentMethod] = useState('razorpay');
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
   
@@ -360,7 +365,7 @@ const CheckoutFixed: React.FC = () => {
       // Create a temporary address for guest checkout
       const guestAddress: Address = {
         _id: `guest-${Date.now()}`,
-        ...shippingInfo,
+        ...shippingInfoRef.current,
         isDefault: true
       };
       
@@ -379,7 +384,7 @@ const CheckoutFixed: React.FC = () => {
     
     try {
       const addressData: Address = {
-        ...shippingInfo,
+        ...shippingInfoRef.current,
         isDefault: savedAddresses.length === 0
       };
 
@@ -416,7 +421,7 @@ const CheckoutFixed: React.FC = () => {
     }
     
     setAddressLoading(false);
-  }, [validateShipping, auth, shippingInfo, savedAddresses, editingAddressId, isTestMode, handleSelectAddress]);
+  }, [validateShipping, auth, savedAddresses, editingAddressId, isTestMode, handleSelectAddress]);
 
   const handleDeleteAddress = useCallback(async (addressId: string) => {
     if (!confirm('Are you sure you want to delete this address?')) return;
@@ -742,28 +747,18 @@ const CheckoutFixed: React.FC = () => {
               
               setLoading(false);
               
-              const finalOrderId = orderResult._id || orderResult.order?._id || 'TEST-ORDER-' + Date.now();
-              const confirmationData = {
-                orderId: finalOrderId,
-                orderDetails: orderData,
-                shippingInfo,
-                paymentMethod,
-                paymentDetails: verifyResponse.payment,
-                isGuest: true,
-                createdAt: new Date().toISOString()
-              };
-              
-              console.log('Order confirmation data:', confirmationData);
-              
-              // Store in sessionStorage for guest users
-              if (isGuest) {
-                sessionStorage.setItem('guestOrderConfirmation', JSON.stringify(confirmationData));
-              }
-              
               cartEmpty(() => {
                 // Navigate to enhanced confirmation page
                 navigate('/order-confirmation-enhanced', { 
-                  state: confirmationData
+                  state: { 
+                    orderId: orderResult._id,
+                    orderDetails: orderData,
+                    shippingInfo,
+                    paymentMethod,
+                    paymentDetails: verifyResponse.payment,
+                    isGuest,
+                    createdAt: new Date().toISOString()
+                  }
                 });
               });
               

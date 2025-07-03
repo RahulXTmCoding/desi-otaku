@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { 
   User, 
   Package, 
@@ -18,6 +18,7 @@ import {
 import { isAutheticated, signout } from "../auth/helper";
 import { getOrders, mockGetOrders } from "../core/helper/orderHelper";
 import { useDevMode } from "../context/DevModeContext";
+import OrderCard from "../components/OrderCard";
 
 interface Order {
   _id: string;
@@ -225,25 +226,11 @@ const UserDashBoard = () => {
                       </button>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {orders.slice(0, 3).map((order) => (
-                        <div
-                          key={order._id}
-                          className="bg-gray-700 rounded-lg p-4 flex items-center justify-between hover:bg-gray-600 transition-colors cursor-pointer"
-                        >
-                          <div>
-                            <p className="font-mono text-sm text-yellow-400">#{order._id.slice(-8).toUpperCase()}</p>
-                            <p className="text-sm text-gray-400">{getTotalItems(order)} items • ₹{order.amount}</p>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                              {order.status || 'Processing'}
-                            </span>
-                            <ChevronRight className="w-5 h-5 text-gray-400" />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="space-y-3">
+                    {orders.slice(0, 3).map((order) => (
+                      <OrderCard key={order._id} order={order} />
+                    ))}
+                  </div>
                   )}
                 </div>
               </div>
@@ -275,44 +262,7 @@ const UserDashBoard = () => {
                 ) : (
                   <div className="space-y-4">
                     {orders.map((order) => (
-                      <div
-                        key={order._id}
-                        className="bg-gray-700 rounded-lg p-6 hover:bg-gray-600 transition-colors"
-                      >
-                        <div className="flex flex-col md:flex-row justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-4 mb-2">
-                              <h3 className="font-mono text-yellow-400">Order #{order._id.slice(-8).toUpperCase()}</h3>
-                              <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
-                                {order.status || 'Processing'}
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-400 flex items-center gap-2 mb-2">
-                              <Clock className="w-4 h-4" />
-                              Ordered on {formatDate(order.createdAt)}
-                            </p>
-                            <div className="space-y-1">
-                              {order.products.map((item, index) => (
-                                <p key={index} className="text-sm text-gray-300">
-                                  {item.name} × {item.count} - ₹{item.price * item.count}
-                                </p>
-                              ))}
-                            </div>
-                            {order.address && (
-                              <p className="text-sm text-gray-400 mt-2">
-                                <MapPin className="w-4 h-4 inline mr-1" />
-                                {order.address}
-                              </p>
-                            )}
-                          </div>
-                          <div className="mt-4 md:mt-0 text-right">
-                            <p className="text-2xl font-bold text-yellow-400">₹{order.amount}</p>
-                            <p className="text-sm text-gray-400 mt-1">
-                              Transaction: {order.transaction_id.slice(0, 12)}...
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                      <OrderCard key={order._id} order={order} />
                     ))}
                   </div>
                 )}

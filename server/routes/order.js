@@ -9,6 +9,7 @@ const {
   getOrderById,
   createOrder,
   getAllOrders,
+  getOrder,
   getOrderStatus,
   updateStatus,
   calculateShipping,
@@ -42,6 +43,13 @@ router.get(
   isAuthenticated,
   isAdmin,
   getAllOrders
+);
+
+router.get(
+  "/order/:orderId/:userId",
+  isSignedIn,
+  isAuthenticated,
+  getOrder
 );
 
 //Order status

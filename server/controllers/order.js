@@ -4,7 +4,10 @@ const emailService = require("../services/emailService");
 
 exports.getOrderById = (req, res, next, id) => {
   Order.findById(id)
-    .populate("products.product", "name price")
+    .populate({
+      path: "products.product",
+      select: "name price photoUrl images category productType"  // Removed photo to avoid sending binary data
+    })
     .populate("user", "email name")
     .exec((err, order) => {
       if (err) {
@@ -77,6 +80,15 @@ exports.getAllOrders = (req, res) => {
       }
       res.json(order);
     });
+};
+
+exports.getOrder = (req, res) => {
+  if (req.order.user._id.toString() !== req.profile._id.toString()) {
+    return res.status(403).json({
+      error: "Access denied. You are not the owner of this order."
+    });
+  }
+  return res.json(req.order);
 };
 
 exports.getOrderStatus = (req, res) => {

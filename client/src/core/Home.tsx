@@ -7,6 +7,7 @@ import { getProducts, getCategories } from './helper/coreapicalls';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, mockCategories, getMockProductImage } from '../data/mockData';
+import ProductGridItem from '../components/ProductGridItem';
 
 interface Product {
   _id: string;
@@ -342,75 +343,10 @@ const Home: React.FC = () => {
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {tshirts.map((product) => (
-                  <div 
+                  <ProductGridItem 
                     key={product._id} 
-                    className="bg-gray-800 rounded-2xl overflow-hidden hover:bg-gray-750 transition-all transform hover:scale-105 border border-gray-700 hover:border-yellow-400/50 group cursor-pointer"
-                    onClick={() => navigate(`/product/${product._id}`)}
-                  >
-                    <div className="relative">
-                      <div className="aspect-square bg-gradient-to-br from-gray-700 to-gray-600">
-                        <img 
-                          src={getProductImage(product)}
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/api/placeholder/300/350';
-                            (e.target as HTMLImageElement).onerror = null;
-                          }}
-                        />
-                      </div>
-
-                      {product.sold > 30 && (
-                        <span className="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                          Bestseller
-                        </span>
-                      )}
-                      
-                      {product.stock <= 5 && product.stock > 0 && (
-                        <span className="absolute top-3 left-3 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-                          Low Stock
-                        </span>
-                      )}
-
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Add to wishlist
-                        }}
-                        className="absolute top-3 right-3 bg-gray-900/80 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                      >
-                        <Heart className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    <div className="p-4">
-                      <h3 className="font-semibold mb-2 truncate">{product.name}</h3>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xl font-bold text-yellow-400">₹{product.price}</span>
-                        <div className="flex items-center space-x-1">
-                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm text-gray-400">4.5</span>
-                        </div>
-                      </div>
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (product.stock > 0) {
-                            handleAddToCart(product);
-                          }
-                        }}
-                        disabled={product.stock === 0}
-                        className={`w-full py-2 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 ${
-                          product.stock > 0
-                            ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300'
-                            : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                        }`}
-                      >
-                        <ShoppingCart className="w-4 h-4" />
-                        {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
-                      </button>
-                    </div>
-                  </div>
+                    product={product}
+                  />
                 ))}
               </div>
             )}

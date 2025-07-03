@@ -1,130 +1,91 @@
 # Tech Context
 
-## Current Implementation vs Target Architecture
+## Current Implementation
 
-### Current Stack (Phase 3 - In Use)
+### Current Stack (Phase 3 - In Active Development)
 
 #### Frontend
 - **Framework**: React 18 with Vite
-- **Language**: TypeScript (gradually adopting)
+- **Language**: TypeScript (actively implementing)
 - **Styling**: Tailwind CSS with dark theme
 - **State Management**: 
+  - React Context API (DevModeContext)
   - Local state with useState/useReducer
-  - Context API for global state
   - LocalStorage for persistence
-- **Routing**: React Router v6
-- **HTTP Client**: Axios
+- **Routing**: React Router v6 (all routes in pages/App.tsx)
+- **HTTP Client**: Fetch API with helper functions
 - **Icons**: Lucide React
 - **Build Tool**: Vite
+- **Components**: Reusable component architecture (ProductGridItem)
 
 #### Backend
 - **Runtime**: Node.js with Express.js
-- **Language**: JavaScript (moving to TypeScript)
+- **Language**: JavaScript
 - **Database**: MongoDB with Mongoose
-- **Authentication**: JWT with jsonwebtoken
-- **File Storage**: Local filesystem
-- **Payment**: Stripe (integrated), Braintree (setup)
-- **Shipping**: Shiprocket (integrated)
-- **Email**: Nodemailer
+- **Authentication**: JWT with express-jwt
+- **File Storage**: MongoDB GridFS for product images
+- **Payment**: 
+  - Razorpay (integrated with guest checkout)
+  - Braintree (integrated)
+- **Shipping**: Shiprocket API (integrated)
+- **Email**: Custom email service with templates
 
 #### Deployment
 - **Frontend**: Vercel
 - **Backend**: Render
+- **Database**: MongoDB Atlas
 - **CI/CD**: GitHub Actions
 
-### Target Architecture (Per Comprehensive Plan)
+### Recent Implementations (January 7, 2025)
 
-#### Frontend Stack
-- **Framework**: React 18+ with Next.js 14+ (App Router) ⏳
-- **Language**: TypeScript (strict mode) 🚧
-- **Styling**: Tailwind CSS 3.x with custom design system ✅
-- **UI Components**: shadcn/ui (customized for dark theme) ⏳
-- **State Management**: 
-  - Redux Toolkit for global state ⏳
-  - React Query/TanStack Query for server state ⏳
-  - Zustand for lightweight local state ⏳
-- **Forms**: React Hook Form + Zod validation ⏳
-- **Design Editor**: Fabric.js with TypeScript bindings 🚧
-- **3D Graphics**: Three.js + react-three-fiber ⏳
-- **Animations**: Framer Motion ⏳
-- **Icons**: Lucide React ✅
-- **HTTP Client**: Axios with TypeScript interceptors 🚧
-- **Image Handling**: Next/Image + Cloudinary ⏳
-- **Dev Tools**: ESLint, Prettier, Husky ⏳
+#### Enhanced User Experience
+- **UserDashBoardEnhanced**: Modern UI with tabs, glassmorphism effects
+- **ProductGridItem**: Universal product display component
+- **Toast Notifications**: User feedback system
+- **Loading/Empty States**: Consistent across all components
+- **Responsive Design**: Mobile-first approach
 
-#### Backend Stack
-- **Runtime**: Node.js 20+ LTS ✅
-- **Framework**: Express.js with TypeScript or Nest.js ⏳
-- **Language**: TypeScript (strict mode) ⏳
-- **Database**: 
-  - PostgreSQL 15+ (primary) ⏳
-  - Redis 7+ (caching/sessions) ⏳
-- **ORM**: Prisma 5+ (type-safe queries) ⏳
-- **Authentication**: 
-  - JWT (jsonwebtoken) ✅
-  - Passport.js (social auth) ⏳
-  - bcrypt (password hashing) ✅
-- **Validation**: Zod (shared with frontend) ⏳
-- **Queue**: Bull.js with Redis ⏳
-- **File Storage**: AWS S3 or Cloudinary ⏳
-- **Email**: SendGrid or AWS SES ⏳
-- **SMS**: Twilio ⏳
-- **API Docs**: Swagger/OpenAPI ⏳
-- **Logging**: Winston ⏳
-- **Process Manager**: PM2 ⏳
+#### Performance Optimizations
+- **React.memo**: For expensive components
+- **useCallback/useMemo**: Preventing unnecessary re-renders
+- **Image Optimization**: Smart URL handling with fallbacks
+- **Component Splitting**: Smaller, focused components
 
-### Migration Path
-
-#### Phase 3 (Current) - Custom Design System
-- Implementing TypeScript gradually
-- Building design editor with Canvas API
-- Maintaining current MongoDB/Express setup
-
-#### Phase 4 - Advanced Features
-- Introduce Redux Toolkit for state management
-- Add React Query for API state
-- Implement performance optimizations
-
-#### Phase 5 - Polish & Launch
-- Migrate to Next.js for SSR/SEO
-- Move from MongoDB to PostgreSQL with Prisma
-- Add Redis for caching
-- Implement advanced monitoring
+#### Architecture Improvements
+- **Routing Clarity**: All routes in pages/App.tsx
+- **Component Reusability**: ProductGridItem used everywhere
+- **Helper Organization**: Domain-based helper functions
+- **TypeScript Adoption**: Interfaces for key components
 
 ## Current Development Setup
 
 ### Prerequisites
 ```bash
-# Currently required
-Node.js: 16.x or higher
-npm: 8.x or higher
+Node.js: 18.x or higher
+npm: 9.x or higher
 MongoDB: 5.x or higher
 Git: 2.x
 ```
 
 ### Local Development
 ```bash
-# Clone repository
-git clone <repo-url>
-cd custom-tshirt-shop
-
-# Frontend setup
+# Frontend (port 5173)
 cd client
 npm install
 npm run dev
 
-# Backend setup (new terminal)
+# Backend (port 8000)
 cd server
 npm install
 npm start
 ```
 
-### Current Environment Variables
+### Environment Variables
 
 #### Frontend (.env)
 ```env
 VITE_API_URL=http://localhost:8000/api
-VITE_STRIPE_PUBLIC_KEY=pk_test_xxx
+VITE_RAZORPAY_KEY_ID=rzp_test_xxx
 ```
 
 #### Backend (.env)
@@ -133,101 +94,196 @@ NODE_ENV=development
 PORT=8000
 DATABASE=mongodb://localhost:27017/tshirtstore
 SECRET=your-jwt-secret
-STRIPE_SECRET_KEY=sk_test_xxx
+RAZORPAY_KEY_ID=rzp_test_xxx
+RAZORPAY_KEY_SECRET=xxx
 BRAINTREE_MERCHANT_ID=xxx
 BRAINTREE_PUBLIC_KEY=xxx
 BRAINTREE_PRIVATE_KEY=xxx
+SHIPROCKET_EMAIL=xxx
+SHIPROCKET_PASSWORD=xxx
 ```
 
-## Current Dependencies
+## Key Dependencies
 
-### Frontend (package.json)
+### Frontend (Current)
 ```json
 {
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.20.0",
-    "axios": "^1.6.2",
-    "tailwindcss": "^3.3.6",
-    "lucide-react": "^0.294.0",
-    "@stripe/stripe-js": "^2.2.0",
-    "braintree-web": "^3.97.1"
+    "react-router-dom": "^6.x",
+    "tailwindcss": "^3.x",
+    "lucide-react": "^0.x",
+    "razorpay": "^2.x"
   },
   "devDependencies": {
-    "@types/react": "^18.2.43",
-    "@types/react-dom": "^18.2.17",
-    "@vitejs/plugin-react": "^4.2.1",
-    "typescript": "^5.2.2",
-    "vite": "^5.0.8"
+    "@types/react": "^18.x",
+    "@types/react-dom": "^18.x",
+    "@vitejs/plugin-react": "^4.x",
+    "typescript": "^5.x",
+    "vite": "^5.x"
   }
 }
 ```
 
-### Backend (package.json)
+### Backend (Current)
 ```json
 {
   "dependencies": {
-    "express": "^4.18.2",
-    "mongoose": "^8.0.3",
-    "jsonwebtoken": "^9.0.2",
-    "bcrypt": "^5.1.1",
-    "cors": "^2.8.5",
-    "body-parser": "^1.20.2",
-    "cookie-parser": "^1.4.6",
-    "express-validator": "^7.0.1",
-    "formidable": "^3.5.1",
-    "lodash": "^4.17.21",
-    "morgan": "^1.10.0",
-    "nodemailer": "^6.9.7",
-    "stripe": "^14.9.0",
-    "braintree": "^3.19.0",
-    "uuid": "^9.0.1"
+    "express": "^4.18.x",
+    "mongoose": "^8.x",
+    "jsonwebtoken": "^9.x",
+    "bcrypt": "^5.x",
+    "cors": "^2.x",
+    "express-validator": "^7.x",
+    "multer": "^1.x",
+    "razorpay": "^2.x",
+    "braintree": "^3.x",
+    "axios": "^1.x"
   }
 }
 ```
 
 ## Development Patterns
 
-### Current Patterns
-- **Component Structure**: Functional components with hooks
-- **State Management**: useState, useContext, localStorage
-- **API Calls**: Axios with try-catch in components
-- **Styling**: Tailwind utility classes
-- **File Organization**: Feature-based folders
+### Component Structure
+```typescript
+// ProductGridItem Example
+interface ProductGridItemProps {
+  product: Product;
+  showWishlistButton?: boolean;
+  showCartButton?: boolean;
+  showQuickView?: boolean;
+  showRemoveButton?: boolean;
+  onRemove?: (productId: string) => void;
+  isInWishlist?: boolean;
+  onWishlistToggle?: (productId: string) => void;
+  className?: string;
+}
+```
 
-### Target Patterns
-- **Component Structure**: TypeScript functional components
-- **State Management**: Redux Toolkit + React Query
-- **API Calls**: Typed API client with interceptors
-- **Styling**: Tailwind + CSS modules for complex components
-- **File Organization**: Domain-driven structure
+### State Management
+- **Global State**: Context API (DevModeContext)
+- **Local State**: useState for component state
+- **Persistent State**: LocalStorage for cart, auth
+- **Server State**: Direct API calls with loading states
 
-## Security Practices (Current)
-- JWT tokens in localStorage (to be moved to httpOnly cookies)
-- Password hashing with bcrypt
-- CORS enabled
-- Input validation with express-validator
-- Environment variables for secrets
+### API Pattern
+```javascript
+// Helper function pattern
+export const getOrders = (userId, token) => {
+  return fetch(`${API}/orders/user/${userId}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${token}`
+    }
+  })
+  .then(response => response.json())
+  .catch(err => console.log(err));
+};
+```
 
-## Performance Considerations
-- **Current**: Basic React optimization with useMemo/useCallback
-- **Planned**: 
-  - Code splitting with React.lazy
-  - Image lazy loading
-  - Service workers
-  - CDN integration
-  - Database indexing
+### Routing Structure
+```
+main.tsx
+└── pages/App.tsx (ALL ROUTES)
+    ├── Public Routes
+    │   ├── /
+    │   ├── /shop
+    │   ├── /product/:id
+    │   └── /signin
+    ├── Protected Routes
+    │   ├── /user/dashboard (UserDashBoardEnhanced)
+    │   ├── /order/:orderId
+    │   └── /checkout
+    └── Admin Routes
+        ├── /admin/dashboard
+        └── /admin/products
+```
 
-## Testing Strategy
-- **Current**: Manual testing
-- **Planned**: 
-  - Jest + React Testing Library
-  - API testing with Supertest
-  - E2E with Playwright
-  - 80% coverage target
+## UI/UX Implementation
 
-## Legend
-- ✅ Implemented
-- 🚧 In Progress
-- ⏳ Planned
+### Dark Theme Design System
+```css
+/* Color Palette */
+--background: #111827 (gray-900)
+--surface: #1F2937 (gray-800)
+--card: #374151 (gray-700)
+--primary: #FCD34D (yellow-400)
+--accent: #8B5CF6 (purple-600)
+--success: #10B981 (green-500)
+--error: #EF4444 (red-500)
+
+/* Component Patterns */
+- Glassmorphism: backdrop-blur bg-opacity
+- Gradients: from-yellow-400 to-yellow-500
+- Shadows: shadow-lg shadow-yellow-400/25
+- Animations: transition-all duration-200
+- Hover: scale-105 hover:bg-opacity
+```
+
+### Responsive Breakpoints
+- Mobile: < 640px
+- Tablet: 640px - 1024px
+- Desktop: > 1024px
+
+## Security Implementation
+- **Authentication**: JWT tokens in localStorage
+- **Authorization**: Role-based (user/admin)
+- **Protected Routes**: PrivateRoute/AdminRoute components
+- **Input Validation**: Server-side with express-validator
+- **CORS**: Configured for frontend domain
+
+## Performance Features
+- **Image Optimization**: 
+  - Smart URL handling in ProductGridItem
+  - Fallback to SVG placeholders
+  - Lazy loading with loading="lazy"
+- **React Optimizations**:
+  - React.memo for ProductGridItem
+  - useCallback for event handlers
+  - useMemo for expensive computations
+- **Code Organization**:
+  - Feature-based file structure
+  - Reusable components
+  - Helper function separation
+
+## Testing & Development Tools
+- **Dev Mode**: Toggle between test/production data
+- **Mock Data**: For offline development
+- **API Testing**: Test scripts in server directory
+- **Browser DevTools**: React Developer Tools
+
+## Recent Bug Fixes
+- Fixed wishlist image display (API path handling)
+- Fixed address count in dashboard overview
+- Fixed checkout performance issues
+- Fixed routing confusion (removed Routes.tsx)
+- Implemented guest checkout flow
+- Added proper error handling and timeouts
+
+## Next Technical Goals
+1. **Complete TypeScript Migration**
+   - Add interfaces for all components
+   - Type-safe API calls
+   - Strict mode configuration
+
+2. **State Management Enhancement**
+   - Consider Redux Toolkit for complex state
+   - React Query for server state
+
+3. **Testing Implementation**
+   - Unit tests with Jest
+   - Component tests with React Testing Library
+   - E2E tests with Playwright
+
+4. **Performance Optimization**
+   - Code splitting
+   - Bundle size optimization
+   - Image CDN integration
+
+5. **Security Enhancements**
+   - Move JWT to httpOnly cookies
+   - Implement refresh tokens
+   - Add rate limiting

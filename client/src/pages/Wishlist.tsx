@@ -5,6 +5,7 @@ import { isAutheticated } from '../auth/helper';
 import { getWishlist, removeFromWishlist, clearWishlist } from '../core/helper/wishlistHelper';
 import { addItemToCart } from '../core/helper/cartHelper';
 import Base from '../core/Base';
+import ProductGridItem from '../components/ProductGridItem';
 
 const Wishlist = () => {
   const [wishlist, setWishlist] = useState<any>(null);
@@ -175,103 +176,15 @@ const Wishlist = () => {
               const product = item.product;
               if (!product) return null;
 
-              const isOutOfStock = product.stock === 0;
-              const isRemoving = removingItem === product._id;
-              const isAddingToCart = addingToCart === product._id;
-
               return (
-                <div
+                <ProductGridItem
                   key={product._id}
-                  className="bg-gray-800 rounded-2xl overflow-hidden group hover:shadow-xl transition-all duration-300"
-                >
-                  {/* Image */}
-                  <div className="relative aspect-square overflow-hidden bg-gray-700">
-                    <Link to={`/product/${product._id}`}>
-                      <img
-                        src={getImageUrl(product)}
-                        alt={product.name}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                      />
-                    </Link>
-
-                    {/* Out of Stock Badge */}
-                    {isOutOfStock && (
-                      <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                        <span className="px-4 py-2 bg-red-500 text-white font-semibold rounded-full">
-                          Out of Stock
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Added Date */}
-                    <div className="absolute top-4 right-4">
-                      <span className="px-3 py-1 bg-gray-900/80 text-xs rounded-full">
-                        Added {new Date(item.addedAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Product Info */}
-                  <div className="p-4">
-                    <Link 
-                      to={`/product/${product._id}`}
-                      className="block hover:text-yellow-400 transition-colors"
-                    >
-                      <h3 className="font-semibold text-lg line-clamp-1">
-                        {product.name}
-                      </h3>
-                    </Link>
-                    
-                    <p className="text-gray-400 text-sm mt-1 line-clamp-2">
-                      {product.description}
-                    </p>
-
-                    {/* Price and Actions */}
-                    <div className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-2xl font-bold text-yellow-400">
-                          ${product.price}
-                        </span>
-                        {product.category && (
-                          <span className="text-sm text-gray-400">
-                            {product.category.name}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleAddToCart(product)}
-                          disabled={isOutOfStock || isAddingToCart}
-                          className={`flex-1 px-4 py-2 rounded-full transition-all flex items-center justify-center gap-2 ${
-                            isOutOfStock
-                              ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                              : isAddingToCart
-                              ? 'bg-green-500 text-white'
-                              : 'bg-yellow-400 text-gray-900 hover:bg-yellow-300'
-                          }`}
-                        >
-                          <ShoppingCart className="w-4 h-4" />
-                          {isAddingToCart ? 'Added!' : 'Add to Cart'}
-                        </button>
-                        
-                        <button
-                          onClick={() => handleRemoveItem(product._id)}
-                          disabled={isRemoving}
-                          className="p-2 bg-gray-700 hover:bg-red-600 rounded-full transition-colors group/remove"
-                          title="Remove from wishlist"
-                        >
-                          {isRemoving ? (
-                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          ) : (
-                            <Trash2 className="w-4 h-4 group-hover/remove:text-white" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                  product={product}
+                  showWishlistButton={false}
+                  showRemoveButton={true}
+                  onRemove={handleRemoveItem}
+                  isInWishlist={true}
+                />
               );
             })}
           </div>

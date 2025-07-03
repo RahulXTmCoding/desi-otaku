@@ -1,5 +1,5 @@
 const User = require("../models/user");
-const Order = require("../models/order");
+const { Order } = require("../models/order");
 const product = require("../models/product");
 
 exports.getUserById = (req, res, next, id) => {
@@ -200,6 +200,7 @@ exports.deleteAccount = async (req, res) => {
 exports.userPurchaseList = (req, res) => {
   Order.find({ user: req.profile._id })
     .populate("user", "_id name")
+    .populate("products.product", "name price photoUrl")
     .exec((err, order) => {
       if (err) {
         return res.status(400).json({

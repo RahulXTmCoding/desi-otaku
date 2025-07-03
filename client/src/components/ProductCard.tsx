@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { addItemToCart } from '../core/helper/cartHelper';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
+import { API } from '../backend';
 
 interface ProductCardProps {
   product: any;
@@ -67,7 +68,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
       const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
       return primaryImage.url;
     }
-    return `/api/product/photo/${product._id}`;
+    return `${API}/product/photo/${product._id}`;
   };
 
   const getAvailableSizes = () => {
@@ -90,6 +91,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
             src={getImageUrl()}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/placeholder.png';
+              (e.target as HTMLImageElement).onerror = null;
+            }}
           />
         </Link>
 
@@ -198,7 +203,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
         {/* Price and Actions */}
         <div className="flex items-center justify-between mt-4">
           <span className="text-2xl font-bold text-yellow-400">
-            ${product.price}
+            ₹{product.price}
           </span>
           
           {isInCart && (

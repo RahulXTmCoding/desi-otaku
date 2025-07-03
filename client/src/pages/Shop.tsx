@@ -17,7 +17,7 @@ import { getProducts, getCategories } from '../core/helper/coreapicalls';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, mockCategories, getMockProductImage } from '../data/mockData';
-import ProductCard from '../components/ProductCard';
+import ProductGridItem from '../components/ProductGridItem';
 
 interface Product {
   _id: string;
@@ -498,7 +498,7 @@ const Shop: React.FC = () => {
               }`}>
                 {viewMode === 'grid' ? (
                   filteredProducts.map(product => (
-                    <ProductCard key={product._id} product={product} />
+                    <ProductGridItem key={product._id} product={product} />
                   ))
                 ) : (
                   // List view

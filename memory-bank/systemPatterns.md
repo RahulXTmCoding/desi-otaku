@@ -1,204 +1,240 @@
 # System Patterns
 
-## Architecture
+## Current Architecture
 
-### Overall Architecture
-The application follows a modern full-stack architecture with clear separation of concerns:
-- **Frontend**: React with Next.js (TypeScript) for SSR/SSG capabilities
-- **Backend**: Node.js with Express.js or Nest.js (TypeScript-first)
-- **Database**: PostgreSQL (primary) + Redis (caching/sessions)
-- **File Storage**: AWS S3 or Cloudinary for images
-- **CDN**: CloudFront or Cloudflare for global content delivery
+### Actual Implementation
+The application currently follows a traditional full-stack architecture:
+- **Frontend**: React with Vite (TypeScript) - Single Page Application
+- **Backend**: Node.js with Express.js
+- **Database**: MongoDB (NoSQL)
+- **File Storage**: MongoDB GridFS for product images
+- **Deployment**: Vercel (frontend) + Render (backend)
 
-### Microservices-Ready Design
-While starting as a monolith for faster development, the architecture is designed to be split into microservices:
-- **User Service**: Authentication, profiles, preferences
-- **Product Service**: Catalog, designs, inventory
-- **Order Service**: Cart, checkout, order management
-- **Payment Service**: Payment processing, invoicing
-- **Design Service**: Custom design editor, mockup generation
-- **Notification Service**: Email, SMS, push notifications
+### Service Structure
+Currently implemented as a modular monolith with clear separation:
+- **Authentication**: JWT-based with user/admin roles
+- **Product Management**: CRUD operations with variants
+- **Order Processing**: Cart, checkout, order tracking
+- **Payment Integration**: Razorpay and Braintree
+- **Shipping Integration**: Shiprocket API
+- **Design System**: Custom t-shirt preview components
 
 ## Key Technical Decisions
 
 ### Frontend Architecture
-- **Framework**: Next.js 14+ with App Router for optimal performance
-- **State Management**: Redux Toolkit for global state, React Context for feature-specific state
-- **Styling**: Tailwind CSS with custom design system tokens
-- **UI Components**: shadcn/ui as base, customized for dark theme
-- **Design Editor**: Fabric.js for 2D canvas manipulation
-- **3D Preview**: Three.js with react-three-fiber for t-shirt mockups
-- **API Client**: Axios with TypeScript interfaces and interceptors
-- **Form Handling**: React Hook Form with Zod validation
+- **Build Tool**: Vite for fast development and optimized builds
+- **State Management**: React Context API + Local Storage
+- **Styling**: Tailwind CSS with dark theme design system
+- **Routing**: React Router v6 (all routes in pages/App.tsx)
+- **Form Handling**: Controlled components with validation
+- **API Client**: Fetch API with helper functions
+- **Image Handling**: Smart URL resolution with fallbacks
 
 ### Backend Architecture
-- **Framework**: Express.js with TypeScript or Nest.js (preferred for enterprise features)
-- **ORM**: Prisma for type-safe database queries
-- **Authentication**: JWT with refresh tokens, Passport.js for social auth
-- **Validation**: Zod for runtime validation matching frontend
-- **Queue System**: Bull.js for background jobs (email, image processing)
-- **API Documentation**: OpenAPI/Swagger auto-generated from TypeScript
-- **Error Handling**: Centralized error handling with custom error classes
-- **Logging**: Winston with structured logging
+- **Framework**: Express.js with modular routing
+- **Database**: Mongoose ODM for MongoDB
+- **Authentication**: JWT with express-jwt middleware
+- **Validation**: Express-validator for request validation
+- **File Upload**: Multer + MongoDB GridFS
+- **Error Handling**: Centralized error middleware
+- **CORS**: Configured for cross-origin requests
 
 ### Database Design Patterns
-- **Primary Database**: PostgreSQL for ACID compliance
-- **Caching Layer**: Redis for sessions, frequently accessed data
-- **Search**: Elasticsearch for product search (future phase)
-- **Schema Design**: Normalized with strategic denormalization for performance
-- **Migrations**: Prisma migrations with version control
+- **Primary Database**: MongoDB for flexibility
+- **Schema Design**: Mongoose schemas with relationships
+- **Data Models**: User, Product, Order, Design, Wishlist
+- **Relationships**: References between collections
+- **Indexes**: On frequently queried fields
 
 ## Component Relationships
 
-### Frontend Component Architecture
+### Frontend Component Architecture (Actual)
 ```
-App
-├── Layout
-│   ├── Header (with cart, user menu)
-│   ├── Navigation (glassmorphism effect)
-│   └── Footer
+App (pages/App.tsx - ALL ROUTES HERE)
+├── Layout Components
+│   ├── Header (with cart drawer)
+│   ├── Footer
+│   └── Base (layout wrapper)
 ├── Pages
 │   ├── Home
-│   │   ├── HeroSection
-│   │   ├── CategoryCards
-│   │   └── TrendingProducts
-│   ├── Shop
-│   │   ├── ProductGrid
-│   │   ├── Filters
-│   │   └── SearchBar
+│   ├── Shop (with ProductGridItem)
 │   ├── ProductDetail
-│   │   ├── ImageGallery
-│   │   ├── ProductInfo
-│   │   └── AddToCart
 │   ├── Customize
-│   │   ├── DesignCanvas
-│   │   ├── ToolPanel
-│   │   └── Preview3D
-│   └── Checkout
-│       ├── CartSummary
-│       ├── AddressForm
-│       └── PaymentForm
-└── Components
-    ├── UI (buttons, cards, modals)
-    ├── Product (cards, carousel)
-    └── Common (loaders, errors)
+│   ├── Cart
+│   ├── CheckoutFixed
+│   ├── Wishlist
+│   └── UserDashBoardEnhanced
+├── Reusable Components
+│   ├── ProductGridItem (universal product display)
+│   ├── OrderCard
+│   ├── CartDrawer
+│   └── Preview Components
+│       ├── TShirtPreview
+│       ├── SimpleTShirtPreview
+│       ├── PhotoRealisticPreview
+│       └── CartTShirtPreview
+└── UI Components
+    ├── Loading states
+    ├── Empty states
+    └── Toast notifications
 ```
 
-### Backend Service Architecture
+### Backend Service Architecture (Actual)
 ```
-Server
+Server (app.js)
+├── Routes
+│   ├── auth.js
+│   ├── user.js
+│   ├── product.js
+│   ├── design.js
+│   ├── order.js
+│   ├── razorpay.js
+│   ├── guestOrder.js
+│   └── wishlist.js
 ├── Controllers
-│   ├── AuthController
-│   ├── UserController
-│   ├── ProductController
-│   ├── DesignController
-│   ├── OrderController
-│   └── PaymentController
-├── Services
-│   ├── AuthService
-│   ├── EmailService
-│   ├── ImageService
-│   ├── PaymentService
-│   └── ShippingService
+│   ├── auth.js
+│   ├── user.js
+│   ├── product.js
+│   ├── design.js
+│   ├── order.js
+│   └── wishlist.js
+├── Models
+│   ├── user.js
+│   ├── product.js
+│   ├── design.js
+│   ├── order.js
+│   └── wishlist.js
 ├── Middleware
-│   ├── Authentication
-│   ├── Authorization
-│   ├── Validation
-│   └── ErrorHandler
-└── Models
-    ├── User
-    ├── Product
-    ├── Design
-    ├── Order
-    └── Payment
+│   ├── Authentication (isSignedIn, isAuthenticated)
+│   └── Authorization (isAdmin)
+└── Services
+    ├── emailService.js
+    └── shiprocket.js
 ```
 
 ## Design Patterns
 
-### Frontend Patterns
-1. **Container/Presenter Pattern**: Business logic separated from UI components
-2. **Custom Hooks**: Reusable logic for data fetching, form handling
-3. **Compound Components**: For complex UI like product cards
-4. **Render Props**: For flexible component composition
-5. **Higher-Order Components**: For authentication, error boundaries
+### Frontend Patterns (Implemented)
+1. **Component Composition**: ProductGridItem used across all product displays
+2. **Custom Hooks**: useDevMode for test mode switching
+3. **Context Pattern**: DevModeContext for global test mode state
+4. **Helper Functions**: Organized in core/helper directory
+5. **Responsive Design**: Mobile-first with Tailwind breakpoints
 
-### Backend Patterns
-1. **Repository Pattern**: Data access abstraction
-2. **Service Layer Pattern**: Business logic encapsulation
-3. **Factory Pattern**: For creating different payment providers
-4. **Strategy Pattern**: For shipping calculations
-5. **Observer Pattern**: For order status updates
-6. **Dependency Injection**: Using Nest.js or manual with Express
+### Backend Patterns (Implemented)
+1. **MVC Pattern**: Models, Views (React), Controllers
+2. **Middleware Chain**: Authentication → Authorization → Controller
+3. **Helper Methods**: Mongoose schema methods for business logic
+4. **Error Handling**: Try-catch with consistent error responses
+5. **Modular Routing**: Feature-based route files
 
-### API Design Patterns
-1. **RESTful Design**: Resource-based URLs with proper HTTP methods
-2. **Pagination**: Cursor-based for large datasets
-3. **Filtering**: Query parameter based with validation
-4. **Versioning**: URL-based (v1, v2) for backwards compatibility
-5. **Rate Limiting**: Token bucket algorithm
-6. **Caching**: ETags and Cache-Control headers
+### API Design Patterns (Implemented)
+1. **RESTful Routes**: Standard CRUD operations
+2. **JWT Authentication**: Bearer token in headers
+3. **Request Validation**: Middleware-based validation
+4. **Response Format**: Consistent JSON structure
+5. **File Upload**: Multipart form data for images
 
 ## Security Patterns
 
-### Authentication & Authorization
-- **JWT Strategy**: Access tokens (15min) + Refresh tokens (7 days)
-- **Role-Based Access Control (RBAC)**: User and Admin roles
-- **Permission-Based Access**: Granular permissions for admin features
-- **Session Management**: Redis-backed sessions for active users
-- **OAuth Integration**: Google, Facebook login
+### Authentication & Authorization (Implemented)
+- **JWT Strategy**: Tokens with user info and expiry
+- **Role-Based Access**: User and Admin roles
+- **Protected Routes**: Frontend (PrivateRoute, AdminRoute components)
+- **Session Management**: Token stored in localStorage
+- **Password Hashing**: Using bcrypt
 
-### Data Protection
-- **Input Validation**: Zod schemas on both frontend and backend
-- **SQL Injection Prevention**: Parameterized queries via Prisma
-- **XSS Prevention**: Content Security Policy, input sanitization
-- **CSRF Protection**: Double submit cookie pattern
-- **Rate Limiting**: Per-endpoint limits based on user role
+### Data Protection (Implemented)
+- **Input Validation**: Server-side validation
+- **MongoDB Injection Prevention**: Mongoose sanitization
+- **CORS Configuration**: Whitelisted origins
+- **Environment Variables**: Sensitive data in .env files
 
 ## Performance Patterns
 
-### Frontend Optimization
-1. **Code Splitting**: Route-based and component-based
-2. **Lazy Loading**: Images, components, and routes
-3. **Prefetching**: Next.js link prefetching
-4. **Image Optimization**: Next/Image with responsive sizes
-5. **Bundle Optimization**: Tree shaking, minification
-6. **Service Workers**: For offline capability
+### Frontend Optimization (Implemented)
+1. **Component Memoization**: React.memo for expensive components
+2. **Callback Optimization**: useCallback for event handlers
+3. **State Optimization**: useMemo for computed values
+4. **Image Optimization**: Lazy loading with fallbacks
+5. **Code Splitting**: Route-based with React.lazy
+6. **Dev Mode**: Mock data for offline development
 
-### Backend Optimization
-1. **Database Indexing**: Strategic indexes on frequently queried fields
-2. **Query Optimization**: N+1 query prevention, eager loading
-3. **Caching Strategy**: Multi-level (CDN, Redis, application)
-4. **Connection Pooling**: Database and Redis connections
-5. **Async Processing**: Queue-based for heavy operations
-6. **Response Compression**: Gzip/Brotli compression
+### Backend Optimization (Implemented)
+1. **Database Indexes**: On frequently queried fields
+2. **Populate Control**: Selective field population
+3. **Pagination**: Limit and skip for large datasets
+4. **Caching**: Pincode serviceability cache
+5. **Error Timeouts**: Prevent hanging requests
 
 ## Testing Patterns
 
-### Testing Strategy
-1. **Unit Tests**: Jest for isolated component/function testing
-2. **Integration Tests**: Testing API endpoints with Supertest
-3. **E2E Tests**: Playwright for critical user journeys
-4. **Performance Tests**: Lighthouse CI for frontend metrics
-5. **Load Tests**: K6 for API stress testing
-
-### Test Organization
-- **Frontend**: Component tests, hook tests, utility tests
-- **Backend**: Controller tests, service tests, middleware tests
-- **Shared**: Type tests, validation schema tests
+### Current Testing Approach
+1. **Manual Testing**: Developer testing during development
+2. **Test Mode**: Mock data for frontend testing
+3. **API Testing**: Using test scripts (testCheckout.js, etc.)
+4. **Error Scenarios**: Handled with proper error messages
 
 ## Deployment Patterns
 
-### Infrastructure
-1. **Frontend**: Vercel or AWS Amplify for Next.js
-2. **Backend**: AWS ECS or Google Cloud Run
-3. **Database**: AWS RDS or Google Cloud SQL
-4. **Cache**: AWS ElastiCache or Redis Cloud
-5. **CDN**: CloudFront or Cloudflare
-6. **Monitoring**: DataDog or New Relic
+### Current Infrastructure
+1. **Frontend**: Vercel with automatic deployments
+2. **Backend**: Render with environment variables
+3. **Database**: MongoDB Atlas cloud hosting
+4. **CI/CD**: GitHub Actions for automated deployment
+5. **Monitoring**: Basic error logging
 
-### CI/CD Pipeline
-1. **Source Control**: Git with GitFlow branching
-2. **CI**: GitHub Actions for automated testing
-3. **CD**: Automated deployment on main branch
-4. **Environments**: Development, Staging, Production
-5. **Feature Flags**: For gradual rollouts
+### Development Workflow
+1. **Version Control**: Git with feature branches
+2. **Environment**: Development and Production
+3. **Configuration**: Environment-specific variables
+4. **Hot Reload**: Vite for frontend, Nodemon for backend
+
+## UI/UX Patterns
+
+### Design System (Implemented)
+```css
+/* Dark Theme Palette */
+Background: #111827 (gray-900)
+Surface: #1F2937 (gray-800)
+Card: #374151 (gray-700)
+Primary: #FCD34D (yellow-400)
+Accent: #8B5CF6 (purple-600)
+
+/* Component Patterns */
+- Rounded corners: rounded-lg, rounded-xl, rounded-2xl
+- Shadows: shadow-lg with color variants
+- Transitions: 200-300ms for smooth interactions
+- Hover effects: scale-105, brightness adjustments
+- Glassmorphism: backdrop-blur with transparency
+```
+
+### Component Styling Patterns
+1. **Consistent Spacing**: p-4, p-6, p-8 for padding
+2. **Responsive Grid**: grid-cols with breakpoints
+3. **Flex Layouts**: Flexible alignment and spacing
+4. **Animation**: Smooth transitions and transforms
+5. **Loading States**: Skeleton screens and spinners
+
+## Recent Architectural Improvements
+
+### Component Reusability
+- Created ProductGridItem for consistent product display
+- Standardized loading and empty states
+- Reusable form components for addresses
+
+### Performance Improvements
+- Split large components into smaller, focused ones
+- Implemented proper memoization strategies
+- Optimized re-renders with dependency management
+
+### Code Organization
+- Clear file structure with feature-based organization
+- Helper functions separated by domain
+- Consistent naming conventions
+- TypeScript interfaces for type safety
+
+### Documentation
+- Created ROUTING_GUIDE.md for routing clarity
+- Comprehensive memory bank documentation
+- API documentation in implementation guides

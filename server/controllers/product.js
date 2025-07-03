@@ -105,11 +105,19 @@ exports.getProduct = (req, res) => {
 };
 
 exports.photo = (req, res, next) => {
-  if (req.product.photo.data) {
-    res.set("content-Type", req.product.photo.contentType);
+  // First check if product has binary photo data
+  if (req.product.photo && req.product.photo.data) {
+    res.set("Content-Type", req.product.photo.contentType);
     return res.send(req.product.photo.data);
   }
-  next();
+  
+  // If no binary data, check for photoUrl and redirect to it
+  if (req.product.photoUrl) {
+    return res.redirect(req.product.photoUrl);
+  }
+  
+  // If no photo at all, return a placeholder or 404
+  res.status(404).json({ error: "No photo available for this product" });
 };
 
 //delete controller

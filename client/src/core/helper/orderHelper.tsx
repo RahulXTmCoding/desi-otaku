@@ -57,7 +57,7 @@ export const createOrder = (userId: string, token: string, orderData: Order) => 
 };
 
 export const getOrders = (userId: string, token: string) => {
-  return fetch(`${API}/orders/${userId}`, {
+  return fetch(`${API}/orders/user/${userId}`, {
     method: "GET",
     headers: {
       Accept: "application/json",

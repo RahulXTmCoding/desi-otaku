@@ -13,7 +13,8 @@ import Header from '../components/Header';
 import Footer from '../components/Footer';
 import Signup from '../user/Signup';
 import Signin from '../user/Signin';
-import UserDashBoard from '../user/UserDashBoard';
+import UserDashBoardEnhanced from '../user/UserDashBoardEnhanced';
+import OrderDetail from '../user/OrderDetail';
 import AdminDashBoard from './AdminDashBoard';
 import AddCategory from '../admin/AddCategory';
 import ManageCategories from '../admin/ManageCategories';
@@ -53,7 +54,12 @@ export default function App() {
           <Route path="/signin" element={<Signin />} />
           <Route path="/user/dashboard" element={
             <PrivateRoute>
-              <UserDashBoard />
+              <UserDashBoardEnhanced />
+            </PrivateRoute>
+          } />
+          <Route path="/order/:orderId" element={
+            <PrivateRoute>
+              <OrderDetail />
             </PrivateRoute>
           } />
           <Route path="/admin/dashboard" element={
