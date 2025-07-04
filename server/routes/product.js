@@ -6,8 +6,11 @@ const {
   getProduct,
   photo,
   deleteProduct,
+  permanentlyDeleteProduct,
+  restoreProduct,
   updateProduct,
   getAllProducts,
+  getDeletedProducts,
   getFilteredProducts,
   getAllUniqueCategories,
   checkInventory,
@@ -47,7 +50,7 @@ router.post(
 router.get("/product/:productId", getProduct);
 router.get("/product/photo/:productId", photo);
 
-//delete route
+//delete routes - soft delete, permanent delete, and restore
 
 router.delete(
   "/product/:productId/:userId",
@@ -55,6 +58,22 @@ router.delete(
   isAuthenticated,
   isAdmin,
   deleteProduct
+);
+
+router.delete(
+  "/product/permanent/:productId/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  permanentlyDeleteProduct
+);
+
+router.put(
+  "/product/restore/:productId/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  restoreProduct
 );
 
 //update route
@@ -71,6 +90,15 @@ router.put(
 router.get("/products", getAllProducts);
 router.get("/products/filtered", getFilteredProducts);
 router.get("/products/categories", getAllUniqueCategories);
+
+// Get deleted products (admin only)
+router.get(
+  "/products/deleted/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  getDeletedProducts
+);
 
 // Search routes
 router.get("/products/search", searchProducts);

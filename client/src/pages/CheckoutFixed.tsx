@@ -41,6 +41,8 @@ interface CartItem {
   color?: string;
   colorValue?: string;
   image?: string;
+  designId?: string;
+  isCustom?: boolean;
 }
 
 // Step progress component
@@ -694,6 +696,13 @@ const CheckoutFixed: React.FC = () => {
                   price: item.price,
                   count: item.quantity,
                   size: item.size,
+                  // Include custom product data
+                  isCustom: item._id === 'custom' || item._id.startsWith('custom-'),
+                  color: item.color,
+                  colorValue: item.colorValue,
+                  customDesign: item.name,
+                  designId: item.designId,
+                  designImage: item.image
                 })),
                 transaction_id: paymentData.razorpay_payment_id,
                 amount: totalAmount,

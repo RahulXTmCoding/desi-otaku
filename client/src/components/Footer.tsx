@@ -10,10 +10,10 @@ const Footer: React.FC = () => {
             <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
               <span className="text-gray-900 font-bold text-lg">👕</span>
             </div>
-            <span className="text-xl font-bold text-white">AnimeShirt</span>
+            <span className="text-xl font-bold text-white">Otakool</span>
           </div>
           <p className="text-gray-400 text-sm">
-            Your one-stop shop for custom anime t-shirts and premium designs.
+            Your one-stop shop for custom otakool t-shirts and premium designs.
           </p>
         </div>
 
@@ -22,7 +22,7 @@ const Footer: React.FC = () => {
           <ul className="space-y-2 text-gray-400 text-sm">
             <li>
               <Link to="/shop?category=anime" className="hover:text-yellow-400 transition-colors">
-                Anime Collection
+                Otakool Collection
               </Link>
             </li>
             <li>
@@ -112,7 +112,7 @@ const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-        <p>&copy; 2024 AnimeShirt. All rights reserved. Made with ❤️ for anime fans.</p>
+        <p>&copy; 2024 Otakool. All rights reserved. Made with ❤️ for anime fans.</p>
       </div>
     </footer>
   );

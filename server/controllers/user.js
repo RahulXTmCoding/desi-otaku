@@ -201,6 +201,7 @@ exports.userPurchaseList = (req, res) => {
   Order.find({ user: req.profile._id })
     .populate("user", "_id name")
     .populate("products.product", "name price photoUrl")
+    .sort({ createdAt: -1 }) // Sort by latest first
     .exec((err, order) => {
       if (err) {
         return res.status(400).json({

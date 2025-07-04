@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { isAutheticated } from "../auth/helper";
 import { API } from "../backend";
 import { Loader, Package, Truck, CreditCard, MapPin, ChevronLeft, ExternalLink } from "lucide-react";
+import CartTShirtPreview from "../components/CartTShirtPreview";
 
 const OrderDetail = () => {
   const [order, setOrder] = useState(null);
@@ -154,34 +155,47 @@ const OrderDetail = () => {
                   order.products.map((product, index) => (
                     <div key={index} className="bg-gray-700/50 backdrop-blur p-6 rounded-xl border border-gray-600 hover:border-yellow-400/30 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/10">
                       <div className="flex items-start space-x-4">
-                        {product.product ? (
-                          <Link 
-                            to={`/product/${product.product._id || product.product}`}
-                            className="relative group flex-shrink-0"
-                          >
-                            <img 
-                              src={
-                                product.product.photoUrl || 
-                                (product.product._id ? `${API}/product/photo/${product.product._id}` : null) ||
-                                (typeof product.product === 'string' ? `${API}/product/photo/${product.product}` : null) ||
-                                '/placeholder.png'
-                              } 
-                              alt={product.name} 
-                              className="w-24 h-24 rounded-lg object-cover group-hover:scale-105 transition-transform duration-300"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/placeholder.png';
-                                (e.target as HTMLImageElement).onerror = null;
-                              }}
-                            />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
-                              <ExternalLink className="w-6 h-6 text-white" />
+                        {/* Product Image/Preview */}
+                        <div className="w-24 h-24 flex-shrink-0">
+                          {product.isCustom ? (
+                            // Show custom t-shirt preview for custom designs
+                            <div className="w-full h-full rounded-lg overflow-hidden bg-gray-600">
+                              <CartTShirtPreview
+                                design={product.customDesign || product.name}
+                                color={product.color || product.selectedColor || "White"}
+                                colorValue={product.colorValue || product.selectedColorValue || "#FFFFFF"}
+                                image={product.designImage || product.image || (product.designId ? `${API}/design/photo/${product.designId}` : undefined)}
+                              />
                             </div>
-                          </Link>
-                        ) : (
-                          <div className="w-24 h-24 bg-gray-600 rounded-lg flex items-center justify-center">
-                            <Package className="w-8 h-8 text-gray-400" />
-                          </div>
-                        )}
+                          ) : product.product ? (
+                            <Link 
+                              to={`/product/${product.product._id || product.product}`}
+                              className="relative group block w-full h-full"
+                            >
+                              <img 
+                                src={
+                                  product.product.photoUrl || 
+                                  (product.product._id ? `${API}/product/photo/${product.product._id}` : null) ||
+                                  (typeof product.product === 'string' ? `${API}/product/photo/${product.product}` : null) ||
+                                  '/placeholder.png'
+                                } 
+                                alt={product.name} 
+                                className="w-full h-full rounded-lg object-cover group-hover:scale-105 transition-transform duration-300"
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = '/placeholder.png';
+                                  (e.target as HTMLImageElement).onerror = null;
+                                }}
+                              />
+                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-lg flex items-center justify-center">
+                                <ExternalLink className="w-6 h-6 text-white" />
+                              </div>
+                            </Link>
+                          ) : (
+                            <div className="w-full h-full bg-gray-600 rounded-lg flex items-center justify-center">
+                              <Package className="w-8 h-8 text-gray-400" />
+                            </div>
+                          )}
+                        </div>
                         
                         <div className="flex-grow">
                           <div className="flex items-start justify-between">

@@ -28,6 +28,108 @@ exports.createOrder = async (req, res) => {
     // Ensure user is set
     req.body.order.user = req.profile._id || req.profile;
     
+    // Validate and recalculate prices server-side
+    const Product = require("../models/product");
+    const Design = require("../models/design");
+    let recalculatedTotal = 0;
+    const validatedProducts = [];
+    
+    for (const item of req.body.order.products) {
+      let validatedItem = {
+        name: item.name,
+        count: item.count || 1,
+        size: item.size || 'M'
+      };
+      
+      // Check if it's a custom product
+      if (item.product === 'custom' || item.isCustom) {
+        // Handle custom products
+        validatedItem.isCustom = true;
+        validatedItem.customDesign = item.customDesign || item.name;
+        
+        // Store color and design information
+        validatedItem.color = item.color || item.selectedColor || 'White';
+        validatedItem.colorValue = item.colorValue || item.selectedColorValue || '#FFFFFF';
+        validatedItem.designId = item.designId;
+        validatedItem.designImage = item.designImage || item.image;
+        
+        // Debug log custom product data
+        console.log('Custom product data:', {
+          color: validatedItem.color,
+          colorValue: validatedItem.colorValue,
+          designId: validatedItem.designId,
+          designImage: validatedItem.designImage,
+          customDesign: validatedItem.customDesign
+        });
+        
+        // Base price for custom t-shirt
+        const basePrice = 549; // Base price for custom t-shirt
+        
+        // If there's a design, add design price
+        let designPrice = 0;
+        if (item.designId) {
+          try {
+            const design = await Design.findById(item.designId);
+            if (design) {
+              designPrice = design.price || 110; // Default design price
+            }
+          } catch (err) {
+            console.log('Design not found, using default price');
+            designPrice = 110;
+          }
+        } else {
+          designPrice = 110; // Default custom design fee
+        }
+        
+        validatedItem.price = basePrice + designPrice;
+        // Don't set product field for custom items - it will remain undefined
+      } else {
+        // Handle regular products
+        const product = await Product.findById(item.product);
+        if (!product) {
+          return res.status(400).json({
+            error: `Product not found: ${item.product}`
+          });
+        }
+        
+        // Validate product is not soft deleted
+        if (product.isDeleted) {
+          return res.status(400).json({
+            error: `Product no longer available: ${product.name}`
+          });
+        }
+        
+        validatedItem.product = product._id;
+        validatedItem.price = product.price;
+        validatedItem.name = product.name;
+      }
+      
+      // Calculate item total
+      const itemTotal = validatedItem.price * validatedItem.count;
+      recalculatedTotal += itemTotal;
+      
+      validatedProducts.push(validatedItem);
+    }
+    
+    // Add shipping cost if applicable
+    let shippingCost = 0;
+    if (req.body.order.shipping && req.body.order.shipping.shippingCost) {
+      shippingCost = req.body.order.shipping.shippingCost;
+      // Validate shipping cost (basic check)
+      if (recalculatedTotal < 999 && shippingCost === 0) {
+        shippingCost = 99; // Enforce minimum shipping
+      }
+    }
+    
+    recalculatedTotal += shippingCost;
+    
+    // Update order with validated data
+    req.body.order.products = validatedProducts;
+    req.body.order.amount = recalculatedTotal;
+    
+    // Log price validation
+    console.log(`Price validation - Client sent: ₹${req.body.order.amount}, Server calculated: ₹${recalculatedTotal}`);
+    
     const order = new Order(req.body.order);
     
     // Save order first

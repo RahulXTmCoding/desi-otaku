@@ -205,8 +205,10 @@ const Customize: React.FC = () => {
       quantity: quantity,
       type: 'custom',
       design: selectedDesign.name,
+      designId: selectedDesign._id,  // Add design ID
       designPrice: selectedDesign.price,
-      image: getImageUrl(selectedDesign)
+      image: getImageUrl(selectedDesign),
+      isCustom: true  // Mark as custom product
     };
 
     addItemToCart(cartItem, () => {

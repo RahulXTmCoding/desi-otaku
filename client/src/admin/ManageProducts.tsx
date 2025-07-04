@@ -9,7 +9,10 @@ import {
   Plus,
   AlertCircle,
   Filter,
-  Palette
+  Palette,
+  Archive,
+  RotateCcw,
+  Trash
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
 import { getProducts, deleteProduct, mockDeleteProduct } from "./helper/adminapicall";
@@ -32,15 +35,18 @@ interface Product {
 
 const ManageProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
+  const [deletedProducts, setDeletedProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [permanentDeleteConfirm, setPermanentDeleteConfirm] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [priceFilter, setPriceFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
   const [stockFilter, setStockFilter] = useState<'all' | 'in-stock' | 'low-stock' | 'out-of-stock'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [viewMode, setViewMode] = useState<'active' | 'deleted'>('active');
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const auth = isAutheticated();
@@ -69,12 +75,43 @@ const ManageProducts = () => {
     }
   };
 
-  useEffect(() => {
-    preload();
-  }, [isTestMode]);
+  const loadDeletedProducts = () => {
+    if (!isTestMode && auth && auth.user && auth.token) {
+      setLoading(true);
+      // Fetch deleted products from API
+      fetch(`${API}/products/deleted/${auth.user._id}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${auth.token}`
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setDeletedProducts(data.products || []);
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        setError('Failed to load deleted products');
+        setLoading(false);
+      });
+    }
+  };
 
   useEffect(() => {
-    let filtered = products;
+    if (viewMode === 'active') {
+      preload();
+    } else {
+      loadDeletedProducts();
+    }
+  }, [isTestMode, viewMode]);
+
+  useEffect(() => {
+    let filtered = viewMode === 'active' ? products : deletedProducts;
 
     // Apply search filter
     if (searchTerm) {
@@ -141,6 +178,49 @@ const ManageProducts = () => {
     }
   };
 
+  const permanentlyDeleteProduct = (productId: string) => {
+    if (auth && auth.user && auth.token) {
+      fetch(`${API}/product/permanent/${productId}/${auth.user._id}`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${auth.token}`
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setDeletedProducts(deletedProducts.filter(p => p._id !== productId));
+          setPermanentDeleteConfirm(null);
+        }
+      })
+      .catch(err => setError('Failed to permanently delete product'));
+    }
+  };
+
+  const restoreProduct = (productId: string) => {
+    if (auth && auth.user && auth.token) {
+      fetch(`${API}/product/restore/${productId}/${auth.user._id}`, {
+        method: 'PUT',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${auth.token}`
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.error) {
+          setError(data.error);
+        } else {
+          loadDeletedProducts();
+        }
+      })
+      .catch(err => setError('Failed to restore product'));
+    }
+  };
+
   const getProductImage = (product: Product) => {
     if (isTestMode) {
       return getMockProductImage(product._id);
@@ -169,16 +249,46 @@ const ManageProducts = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2">Manage Products</h1>
               <p className="text-gray-400">
-                {loading ? 'Loading...' : `Total ${products.length} products in your store`}
+                {loading ? 'Loading...' : viewMode === 'active' 
+                  ? `Total ${products.length} active products in your store`
+                  : `${deletedProducts.length} deleted products`}
               </p>
             </div>
-            <Link
-              to="/admin/create/product"
-              className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Add New Product
-            </Link>
+            <div className="flex items-center gap-4">
+              {/* View Mode Toggle */}
+              <div className="flex bg-gray-800 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('active')}
+                  className={`px-4 py-2 rounded-md transition-colors ${
+                    viewMode === 'active'
+                      ? 'bg-yellow-400 text-gray-900 font-semibold'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Active Products
+                </button>
+                <button
+                  onClick={() => setViewMode('deleted')}
+                  className={`px-4 py-2 rounded-md transition-colors flex items-center gap-2 ${
+                    viewMode === 'deleted'
+                      ? 'bg-yellow-400 text-gray-900 font-semibold'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  <Archive className="w-4 h-4" />
+                  Deleted
+                </button>
+              </div>
+              {viewMode === 'active' && (
+                <Link
+                  to="/admin/create/product"
+                  className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center gap-2"
+                >
+                  <Plus className="w-5 h-5" />
+                  Add New Product
+                </Link>
+              )}
+            </div>
           </div>
         </div>
 
@@ -348,7 +458,7 @@ const ManageProducts = () => {
                     <th className="text-left px-6 py-4 text-gray-400 font-medium">Product</th>
                     <th className="text-left px-6 py-4 text-gray-400 font-medium">Category</th>
                     <th className="text-left px-6 py-4 text-gray-400 font-medium">Price</th>
-                    <th className="text-left px-6 py-4 text-gray-400 font-medium">Stock</th>
+                    {viewMode === 'active' && <th className="text-left px-6 py-4 text-gray-400 font-medium">Stock</th>}
                     <th className="text-right px-6 py-4 text-gray-400 font-medium">Actions</th>
                   </tr>
                 </thead>
@@ -389,50 +499,90 @@ const ManageProducts = () => {
                       <td className="px-6 py-4">
                         <span className="font-bold text-yellow-400">₹{product.price}</span>
                       </td>
-                      <td className="px-6 py-4">
-                        <span className={`${product.stock > 10 ? 'text-green-400' : product.stock > 0 ? 'text-orange-400' : 'text-red-400'}`}>
-                          {product.stock} units
-                        </span>
-                      </td>
+                      {viewMode === 'active' && (
+                        <td className="px-6 py-4">
+                          <span className={`${product.stock > 10 ? 'text-green-400' : product.stock > 0 ? 'text-orange-400' : 'text-red-400'}`}>
+                            {product.stock} units
+                          </span>
+                        </td>
+                      )}
                       <td className="px-6 py-4">
                         <div className="flex items-center justify-end gap-2">
-                          <Link
-                            to={`/admin/product/variants/${product._id}`}
-                            className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group"
-                            title="Manage Variants"
-                          >
-                            <Palette className="w-4 h-4 group-hover:text-yellow-400" />
-                          </Link>
-                          <Link
-                            to={`/admin/product/update/${product._id}`}
-                            className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group"
-                            title="Edit Product"
-                          >
-                            <Edit2 className="w-4 h-4 group-hover:text-yellow-400" />
-                          </Link>
-                          {deleteConfirm === product._id ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => deleteThisProduct(product._id)}
-                                className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm font-medium transition-colors"
+                          {viewMode === 'active' ? (
+                            <>
+                              <Link
+                                to={`/admin/product/variants/${product._id}`}
+                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group"
+                                title="Manage Variants"
                               >
-                                Confirm
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirm(null)}
-                                className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium transition-colors"
+                                <Palette className="w-4 h-4 group-hover:text-yellow-400" />
+                              </Link>
+                              <Link
+                                to={`/admin/product/update/${product._id}`}
+                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group"
+                                title="Edit Product"
                               >
-                                Cancel
-                              </button>
-                            </div>
+                                <Edit2 className="w-4 h-4 group-hover:text-yellow-400" />
+                              </Link>
+                              {deleteConfirm === product._id ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => deleteThisProduct(product._id)}
+                                    className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-sm font-medium transition-colors"
+                                  >
+                                    Archive
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirm(null)}
+                                    className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setDeleteConfirm(product._id)}
+                                  className="p-2 bg-gray-700 hover:bg-orange-500/20 rounded-lg transition-colors group"
+                                  title="Archive Product"
+                                >
+                                  <Archive className="w-4 h-4 group-hover:text-orange-400" />
+                                </button>
+                              )}
+                            </>
                           ) : (
-                            <button
-                              onClick={() => setDeleteConfirm(product._id)}
-                              className="p-2 bg-gray-700 hover:bg-red-500/20 rounded-lg transition-colors group"
-                              title="Delete Product"
-                            >
-                              <Trash2 className="w-4 h-4 group-hover:text-red-400" />
-                            </button>
+                            <>
+                              <button
+                                onClick={() => restoreProduct(product._id)}
+                                className="p-2 bg-gray-700 hover:bg-green-500/20 rounded-lg transition-colors group"
+                                title="Restore Product"
+                              >
+                                <RotateCcw className="w-4 h-4 group-hover:text-green-400" />
+                              </button>
+                              {permanentDeleteConfirm === product._id ? (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => permanentlyDeleteProduct(product._id)}
+                                    className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-sm font-medium transition-colors"
+                                  >
+                                    Delete Forever
+                                  </button>
+                                  <button
+                                    onClick={() => setPermanentDeleteConfirm(null)}
+                                    className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm font-medium transition-colors"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => setPermanentDeleteConfirm(product._id)}
+                                  className="p-2 bg-gray-700 hover:bg-red-500/20 rounded-lg transition-colors group"
+                                  title="Delete Permanently"
+                                >
+                                  <Trash className="w-4 h-4 group-hover:text-red-400" />
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -446,20 +596,41 @@ const ManageProducts = () => {
 
         {/* Help Section */}
         <div className="mt-8 bg-gray-800 rounded-2xl p-6 border border-gray-700">
-          <h3 className="font-semibold mb-3">Product Management Tips</h3>
+          <h3 className="font-semibold mb-3">
+            {viewMode === 'active' ? 'Product Management Tips' : 'About Deleted Products'}
+          </h3>
           <ul className="space-y-2 text-sm text-gray-400">
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
-              <span>Keep product information up to date for better customer experience</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
-              <span>Monitor stock levels to avoid out-of-stock situations</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
-              <span>Use high-quality images to showcase your products effectively</span>
-            </li>
+            {viewMode === 'active' ? (
+              <>
+                <li className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
+                  <span>Keep product information up to date for better customer experience</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
+                  <span>Monitor stock levels to avoid out-of-stock situations</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
+                  <span>Archived products remain in orders and analytics for historical data</span>
+                </li>
+              </>
+            ) : (
+              <>
+                <li className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
+                  <span>Deleted products are hidden from your shop but preserved for order history</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
+                  <span>Restore products to make them available in your shop again</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 bg-red-400 rounded-full mt-1.5"></div>
+                  <span>Permanent deletion removes all data - this action cannot be undone</span>
+                </li>
+              </>
+            )}
           </ul>
         </div>
 

@@ -20,6 +20,23 @@ const ProductCartSchema = new Schema({
   customDesign: {
     type: String,  // Store custom design details
     required: false
+  },
+  // Custom product fields
+  color: {
+    type: String,
+    required: false
+  },
+  colorValue: {
+    type: String,
+    required: false
+  },
+  designId: {
+    type: String,  // Not ObjectId since it could be from different sources
+    required: false
+  },
+  designImage: {
+    type: String,
+    required: false
   }
 });
 

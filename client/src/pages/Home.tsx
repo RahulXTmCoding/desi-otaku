@@ -52,7 +52,7 @@ export default function Home() {
             <div className="max-w-xl mb-8 md:mb-0">
               <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-white">
                 Design Your<br />
-                <span className="text-yellow-400">Own T-Shirt</span>
+                <span className="text-yellow-400">Own Otakool T-Shirt</span>
               </h1>
               <p className="text-gray-300 text-lg mb-8">
                 Create unique anime-inspired designs or choose from our collection

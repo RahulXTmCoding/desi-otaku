@@ -5,6 +5,7 @@ import { Order } from './types';
 import OrderStatusBadge from './OrderStatusBadge';
 import CartTShirtPreview from '../../../components/CartTShirtPreview';
 import { getProductImageUrl } from './utils/imageHelper';
+import { API } from '../../../backend';
 
 interface OrderListItemProps {
   order: Order;
@@ -148,11 +149,12 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                 <div key={index} className="flex items-center gap-4 pb-3 border-b border-gray-800 last:border-0">
                   {/* Product Image */}
                   <div className="w-16 h-16 flex-shrink-0">
-                    {item.isCustom || item.designId ? (
+                    {item.isCustom ? (
                       <CartTShirtPreview
-                        design={item.name}
+                        design={item.customDesign || item.name}
                         color={item.color || 'White'}
-                        image={getProductImageUrl(item)}
+                        colorValue={item.colorValue || '#FFFFFF'}
+                        image={item.designImage || item.image || (item.designId ? `${API}/design/photo/${item.designId}` : undefined)}
                       />
                     ) : (
                       <div className="w-full h-full bg-gray-700 rounded flex items-center justify-center">

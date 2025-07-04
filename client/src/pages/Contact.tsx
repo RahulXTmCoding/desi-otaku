@@ -130,8 +130,8 @@ const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
-                    <p className="text-gray-300">support@animeshirt.com</p>
-                    <p className="text-gray-300">orders@animeshirt.com</p>
+                    <p className="text-gray-300">support@otakool.com</p>
+                    <p className="text-gray-300">orders@otakool.com</p>
                   </div>
                 </div>
 

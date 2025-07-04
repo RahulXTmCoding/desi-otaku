@@ -6,6 +6,7 @@ import { useReactToPrint } from 'react-to-print';
 import { Order } from './types';
 import CartTShirtPreview from '../../../components/CartTShirtPreview';
 import { getProductImageUrl } from './utils/imageHelper';
+import { API } from '../../../backend';
 
 interface OrderDetailModalProps {
   order: Order;
@@ -82,11 +83,12 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
                 <div key={index} className="flex gap-4 p-4 bg-gray-800 rounded-lg">
                   {/* Product Image */}
                   <div className="w-24 h-24 flex-shrink-0">
-                    {item.isCustom || item.designId ? (
+                    {item.isCustom ? (
                       <CartTShirtPreview
-                        design={item.name}
+                        design={item.customDesign || item.name}
                         color={item.color || 'White'}
-                        image={getProductImageUrl(item)}
+                        colorValue={item.colorValue || '#FFFFFF'}
+                        image={item.designImage || item.image || (item.designId ? `${API}/design/photo/${item.designId}` : undefined)}
                       />
                     ) : (
                       <div className="w-full h-full bg-gray-700 rounded-lg flex items-center justify-center">

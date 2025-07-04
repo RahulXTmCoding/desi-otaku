@@ -1,6 +1,14 @@
 import { API } from '../../../../backend';
 
 export const getProductImageUrl = (item: any): string => {
+  // Handle custom products - they don't have a product reference
+  if (item.isCustom || !item.product) {
+    // If it's a custom product, check for custom image
+    if (item.image) return item.image;
+    // Return placeholder for custom products without images
+    return '/placeholder.png';
+  }
+  
   // Check if product is populated
   const product = item.product;
   

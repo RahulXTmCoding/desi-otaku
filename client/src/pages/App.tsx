@@ -3,7 +3,7 @@ import Home from '../core/Home';
 import ShopWithBackendFilters from '../pages/ShopWithBackendFilters';
 import Contact from '../pages/Contact';
 import Customize from './Customize';
-import Cart from '../core/Cart';
+import Cart from './Cart';
 import CheckoutFixed from './CheckoutFixed';
 import OrderConfirmation from './OrderConfirmation';
 import OrderConfirmationEnhanced from './OrderConfirmationEnhanced';

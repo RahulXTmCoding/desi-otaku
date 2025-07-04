@@ -121,21 +121,89 @@ exports.photo = (req, res, next) => {
   res.status(404).json({ error: "No photo available for this product" });
 };
 
-//delete controller
+//delete controller - soft delete
 
-exports.deleteProduct = (req, res) => {
-  let product = req.product;
-  product.remove((err, deletedProduct) => {
-    if (err) {
+exports.deleteProduct = async (req, res) => {
+  try {
+    let product = req.product;
+    
+    // Soft delete - mark as deleted but keep in database
+    product.isDeleted = true;
+    product.deletedAt = new Date();
+    product.deletedBy = req.auth._id; // Assuming auth middleware sets req.auth
+    product.isActive = false; // Also mark as inactive
+    
+    await product.save();
+    
+    res.json({
+      msg: "Product is soft deleted successfully",
+      deletedProduct: product,
+    });
+  } catch (err) {
+    return res.status(400).json({
+      err: "Failed to delete the product",
+      details: err.message
+    });
+  }
+};
+
+// Permanently delete controller (admin only)
+exports.permanentlyDeleteProduct = async (req, res) => {
+  try {
+    let product = req.product;
+    
+    // Only allow permanent deletion if product is already soft deleted
+    if (!product.isDeleted) {
       return res.status(400).json({
-        err: "Failed to delete the product",
+        err: "Product must be soft deleted first before permanent deletion"
       });
     }
+    
+    // Remove the product permanently
+    await product.remove();
+    
     res.json({
-      msg: "Product is deleted successfully",
-      deletedProduct,
+      msg: "Product is permanently deleted",
+      deletedProduct: product,
     });
-  });
+  } catch (err) {
+    return res.status(400).json({
+      err: "Failed to permanently delete the product",
+      details: err.message
+    });
+  }
+};
+
+// Restore soft deleted product
+exports.restoreProduct = async (req, res) => {
+  try {
+    let product = req.product;
+    
+    // Check if product is soft deleted
+    if (!product.isDeleted) {
+      return res.status(400).json({
+        err: "Product is not deleted"
+      });
+    }
+    
+    // Restore the product
+    product.isDeleted = false;
+    product.deletedAt = null;
+    product.deletedBy = null;
+    product.isActive = true;
+    
+    await product.save();
+    
+    res.json({
+      msg: "Product restored successfully",
+      restoredProduct: product,
+    });
+  } catch (err) {
+    return res.status(400).json({
+      err: "Failed to restore the product",
+      details: err.message
+    });
+  }
 };
 
 //update controller
@@ -215,7 +283,12 @@ exports.updateProduct = (req, res) => {
 exports.getAllProducts = (req, res) => {
   let limit = req.query.limit ? parseInt(req.query.limit) : 8;
   let sortBy = req.query.sortBy ? req.query.sortBy : "_id";
-  Product.find()
+  let includeDeleted = req.query.includeDeleted === 'true'; // Admin option to include deleted
+  
+  // Build filter - exclude soft deleted products by default
+  const filter = includeDeleted ? {} : { isDeleted: { $ne: true } };
+  
+  Product.find(filter)
     .select("-photo")
     .populate("category")
     .populate("productType")
@@ -229,6 +302,41 @@ exports.getAllProducts = (req, res) => {
       }
       res.json(products);
     });
+};
+
+// Get soft deleted products (admin only)
+exports.getDeletedProducts = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    const [products, totalCount] = await Promise.all([
+      Product.find({ isDeleted: true })
+        .select("-photo")
+        .populate("category")
+        .populate("productType")
+        .populate("deletedBy", "name email")
+        .sort({ deletedAt: -1 })
+        .limit(parseInt(limit))
+        .skip(skip),
+      Product.countDocuments({ isDeleted: true })
+    ]);
+    
+    res.json({
+      products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        totalProducts: totalCount,
+        hasMore: skip + products.length < totalCount
+      }
+    });
+  } catch (err) {
+    return res.status(400).json({
+      error: "Failed to get deleted products",
+      details: err.message
+    });
+  }
 };
 
 // Filtered products endpoint
@@ -247,8 +355,8 @@ exports.getFilteredProducts = async (req, res) => {
       limit = 12
     } = req.query;
 
-    // Build filter object
-    const filter = {};
+    // Build filter object - exclude soft deleted products by default
+    const filter = { isDeleted: { $ne: true } };
 
     // Search filter (name or description)
     if (search) {

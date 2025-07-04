@@ -5,7 +5,10 @@ export interface OrderProduct {
   count: number;
   size?: string;
   color?: string;
+  colorValue?: string;
   designId?: string;
+  designImage?: string;
+  customDesign?: string;
   customization?: any;
   image?: string;
   isCustom?: boolean;

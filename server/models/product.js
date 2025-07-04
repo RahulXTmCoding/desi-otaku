@@ -118,6 +118,21 @@ const productSchema = new Schema(
       default: true
     },
 
+    // Soft delete fields
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
+    deletedAt: {
+      type: Date,
+      default: null
+    },
+    deletedBy: {
+      type: ObjectId,
+      ref: "User",
+      default: null
+    },
+
     // Track if out of stock alerts have been sent
     alertsSent: {
       lowStock: { type: Boolean, default: false },
