@@ -6,14 +6,29 @@ interface RealTShirtPreviewProps {
   selectedDesign: any | null;
   selectedColor: string;
   selectedSize: string;
+  position?: string;
+  side?: 'front' | 'back';
+  frontDesign?: any | null;
+  backDesign?: any | null;
 }
 
 const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
   selectedDesign,
   selectedColor,
   selectedSize,
+  position = 'center',
+  side,
+  frontDesign,
+  backDesign,
 }) => {
-  const [view, setView] = useState<'front' | 'back'>('front');
+  const [view, setView] = useState<'front' | 'back'>(side || 'front');
+  
+  // Sync view with parent side prop
+  React.useEffect(() => {
+    if (side) {
+      setView(side);
+    }
+  }, [side]);
   
   // T-shirt images - using local images from public folder
   const tshirtImages = {
@@ -96,62 +111,7 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
         </div>
 
         {/* Design overlay */}
-        {selectedDesign && view === 'front' && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-1/3 h-1/3 flex items-center justify-center">
-              {(selectedDesign.image || selectedDesign.imageUrl || selectedDesign._id) ? (
-                <img
-                  src={selectedDesign.image || selectedDesign.imageUrl || `${API}/design/image/${selectedDesign._id}`}
-                  alt={selectedDesign.name}
-                  className="max-w-full max-h-full object-contain"
-                  style={{
-                    filter: selectedColor === 'Black' ? 'brightness(1.2)' : 'none',
-                  }}
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    console.log('Image failed to load:', target.src);
-                    console.log('Design object:', selectedDesign);
-                    // Try alternative sources
-                    if (!target.dataset.triedAlternatives) {
-                      target.dataset.triedAlternatives = 'true';
-                      
-                      // If we have an imageUrl that's different from current src, try it
-                      if (selectedDesign.imageUrl && !target.src.includes(selectedDesign.imageUrl)) {
-                        console.log('Trying imageUrl:', selectedDesign.imageUrl);
-                        target.src = selectedDesign.imageUrl;
-                        return;
-                      }
-                      
-                      // If current src doesn't have /api/design/image/, try that
-                      if (!target.src.includes('/design/image/')) {
-                        const apiUrl = `${API}/design/image/${selectedDesign._id}`;
-                        console.log('Trying API URL:', apiUrl);
-                        target.src = apiUrl;
-                        return;
-                      }
-                    }
-                    
-                    // If all attempts failed, show fallback
-                    const parent = target.parentElement;
-                    if (parent) {
-                      parent.innerHTML = `
-                        <div class="bg-gray-300 rounded-lg p-4 text-center">
-                          <p class="text-gray-600 text-sm">Design Preview</p>
-                          <p class="text-xs text-gray-500 mt-1">${selectedDesign.name}</p>
-                        </div>
-                      `;
-                    }
-                  }}
-                />
-              ) : (
-                <div className="bg-gray-300 rounded-lg p-8 text-center">
-                  <p className="text-gray-600">Design Preview</p>
-                  <p className="text-sm text-gray-500 mt-1">{selectedDesign.name}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        {renderDesign()}
       </div>
 
       {/* Color and Size Info */}
@@ -170,10 +130,20 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
           <span className="text-gray-400">Size:</span>
           <span className="text-white">{selectedSize}</span>
         </div>
-        {selectedDesign && (
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-400">Design:</span>
-            <span className="text-white truncate max-w-[150px]">{selectedDesign.name}</span>
+        {(frontDesign || backDesign) && (
+          <div className="space-y-1">
+            {frontDesign && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Front Design:</span>
+                <span className="text-white truncate max-w-[150px]">{frontDesign.name}</span>
+              </div>
+            )}
+            {backDesign && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Back Design:</span>
+                <span className="text-white truncate max-w-[150px]">{backDesign.name}</span>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -181,11 +151,144 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
       {/* Instructions */}
       <div className="mt-4 p-3 bg-gray-700/50 rounded-lg">
         <p className="text-xs text-gray-300">
-          💡 Tip: Click "View Back" to see the back of the t-shirt. Designs are placed on the front.
+          💡 Tip: Click "View Back" to see the back of the t-shirt. 
+          {frontDesign && backDesign && ' Both sides have designs!'}
+          {!frontDesign && !backDesign && selectedDesign && ` Design is placed on the ${view}.`}
         </p>
       </div>
     </div>
   );
+
+  function renderDesign() {
+    // For Customize page with multi-design support
+    if (frontDesign || backDesign) {
+      const currentDesign = view === 'front' ? frontDesign : backDesign;
+      if (!currentDesign) return null;
+      
+      // Get position from the design object itself
+      const currentPosition = currentDesign.position || 'center';
+      return renderDesignWithPosition(currentDesign, currentPosition);
+    }
+    
+    // For legacy single design (only show on the selected side)
+    if (selectedDesign && view === side) {
+      return renderDesignWithPosition(selectedDesign, position || 'center');
+    }
+    
+    return null;
+  }
+
+  function renderDesignWithPosition(design: any, designPosition: string) {
+
+    // Position styles based on design position
+    let positionStyles: React.CSSProperties = {};
+    let sizeClass = '';
+    
+    switch (designPosition) {
+      case 'center':
+        positionStyles = {
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '48%',
+          height: '48%'
+        };
+        break;
+      case 'left':
+        positionStyles = {
+          position: 'absolute',
+          top: '22%',
+          left: '28%',
+          width: '18%',
+          height: '18%'
+        };
+        break;
+      case 'right':
+        positionStyles = {
+          position: 'absolute',
+          top: '22%',
+          right: '28%',
+          width: '18%',
+          height: '18%'
+        };
+        break;
+      case 'center-bottom':
+        positionStyles = {
+          position: 'absolute',
+          bottom: '10%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '48%',
+          height: '48%'
+        };
+        break;
+      default:
+        positionStyles = {
+          position: 'absolute',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: '35%',
+          height: '35%'
+        };
+    }
+
+    return (
+      <div style={positionStyles} className="flex items-center justify-center">
+        {(design.image || design.imageUrl || design._id) ? (
+          <img
+            src={design.image || design.imageUrl || `${API}/design/image/${design._id}`}
+            alt={design.name}
+            className="w-full h-full object-contain"
+            style={{
+              filter: selectedColor === 'Black' ? 'brightness(1.2)' : 'none',
+            }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              console.log('Image failed to load:', target.src);
+              console.log('Design object:', design);
+              // Try alternative sources
+              if (!target.dataset.triedAlternatives) {
+                target.dataset.triedAlternatives = 'true';
+                
+                // If we have an imageUrl that's different from current src, try it
+                if (design.imageUrl && !target.src.includes(design.imageUrl)) {
+                  console.log('Trying imageUrl:', design.imageUrl);
+                  target.src = design.imageUrl;
+                  return;
+                }
+                
+                // If current src doesn't have /api/design/image/, try that
+                if (!target.src.includes('/design/image/')) {
+                  const apiUrl = `${API}/design/image/${design._id}`;
+                  console.log('Trying API URL:', apiUrl);
+                  target.src = apiUrl;
+                  return;
+                }
+              }
+              
+              // If all attempts failed, show fallback
+              const parent = target.parentElement;
+              if (parent) {
+                parent.innerHTML = `
+                  <div class="bg-gray-300 rounded-lg p-4 text-center">
+                    <p class="text-gray-600 text-sm">Design Preview</p>
+                    <p class="text-xs text-gray-500 mt-1">${design.name}</p>
+                  </div>
+                `;
+              }
+            }}
+          />
+        ) : (
+          <div className="bg-gray-300 rounded-lg p-8 text-center">
+            <p className="text-gray-600">Design Preview</p>
+            <p className="text-sm text-gray-500 mt-1">{design.name}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 };
 
 export default RealTShirtPreview;

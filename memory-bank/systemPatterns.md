@@ -64,6 +64,44 @@ const loadOrders = async () => {
 };
 ```
 
+### Custom Order Data Flow Pattern
+**Critical Pattern**: Ensure customization data flows properly from Cart → Checkout → Backend → Database
+
+```typescript
+// Frontend: Include all customization fields
+interface CartItem {
+  // ... other fields
+  customization?: {
+    frontDesign?: {
+      designId: string;
+      designImage: string;
+      position: string;
+      price: number;
+    };
+    backDesign?: {
+      designId: string;
+      designImage: string;
+      position: string;
+      price: number;
+    };
+  };
+}
+
+// Backend: Validate and clean customization data
+const processProducts = products.map(product => {
+  if (product.customization) {
+    const { frontDesign, backDesign } = product.customization;
+    const hasFrontDesign = frontDesign?.designId && frontDesign?.designImage;
+    const hasBackDesign = backDesign?.designId && backDesign?.designImage;
+    
+    if (!hasFrontDesign && !hasBackDesign) {
+      delete product.customization;
+    }
+  }
+  return product;
+});
+```
+
 ### State Management
 - **Local State**: For component-specific state (useState)
 - **Context**: For cross-component communication (React Context)
@@ -131,6 +169,7 @@ const [value, setValue] = useState('');
 - Client-side validation for immediate feedback
 - Server-side validation for security
 - Display errors inline with fields
+- Validate nested objects (e.g., customization data)
 
 ## Navigation Patterns
 
@@ -196,6 +235,29 @@ const memoizedCallback = useCallback(() => {}, [dependencies]);
 - Validate API responses
 - Escape HTML content
 - Prevent XSS attacks
+- Clean nested object structures before DB storage
+
+### Soft Delete Pattern
+```typescript
+// Never hard delete - preserve data for analytics
+interface Product {
+  // ... other fields
+  isDeleted: boolean;  // Default: false
+}
+
+// Filter deleted items from public views
+const getProducts = async (filters) => {
+  return Product.find({ 
+    ...filters, 
+    isDeleted: { $ne: true } 
+  });
+};
+
+// Admin can view/restore deleted items
+const getDeletedProducts = async () => {
+  return Product.find({ isDeleted: true });
+};
+```
 
 ## Development Workflow
 
@@ -271,3 +333,28 @@ const debounced = useMemo(
 8. Maintain clean code structure
 9. Document complex logic
 10. Test critical paths
+11. **Validate nested data structures at every layer**
+12. **Use soft delete for data preservation**
+13. **Ensure complete data flow from frontend to database**
+
+## Testing Utilities
+
+### Database Cleanup Scripts
+```typescript
+// clearOrders.js - Remove all orders for testing
+const clearOrders = async () => {
+  const result = await Order.deleteMany({});
+  console.log(`Deleted ${result.deletedCount} orders`);
+};
+```
+
+### Data Flow Testing
+```typescript
+// testCustomizationFlow.js - Verify data integrity
+const testCustomizationFlow = async () => {
+  // Test frontend data structure
+  // Test backend processing
+  // Verify database storage
+  // Fetch and validate stored data
+};
+```

@@ -1,119 +1,136 @@
 # Active Context
 
-## Current Work Focus
+## Recently Completed Tasks (January 2025)
+
+### 1. Soft Delete Feature for Products ✅
+### 2. Custom Design Data Flow Fix ✅
+
+## Current Status: All Tasks Complete
+No active development tasks. System is stable with all features working correctly.
 
 ### Recent Implementations
-1. **Soft Delete for Products** ✅
-   - Added `isDeleted`, `deletedAt`, `deletedBy` fields to Product model
-   - Admin can soft delete (archive) products
-   - Archived products remain in orders and analytics
-   - Admin can view, restore, or permanently delete archived products
-   - Customers don't see archived products in shop
 
-2. **Filter Persistence** ✅
-   - **Shop Page**: All filters (search, category, productType, price, tags, sort) persist in URL
-   - **Admin Order Management**: Filters persist (search, status, date, payment, sort, page)
-   - **Admin Product Management**: Filters persist (search, price, stock, category, view mode)
-   - **Admin Design Management**: Filters persist (search, category, sort)
-   - **User Dashboard**: Active tab persists in URL
-   - **Customize Page**: Search and category filters persist in URL
-   - All filters reload correctly from URL on page refresh
+1. **Soft Delete for Products**
+   - Products have `isDeleted` field (default: false)
+   - Admin can soft delete products (marking them as deleted)
+   - Soft deleted products remain in database for analytics and order history
+   - Admin can view and restore soft deleted products
+   - Option for permanent deletion from admin dashboard
+   - API endpoints updated to filter out deleted products from public views
 
-3. **Backend Filtering Implementation** ✅
-   - **All pages now use backend filtering** instead of client-side filtering
-   - **Design API** enhanced with:
-     - Full pagination support
-     - Search across name, description, and tags
-     - Category filtering (with populated category names)
-     - Proper handling of ObjectId vs string categories
-   - **Customize Page** updated to:
-     - Send filter parameters to backend
-     - Remove frontend filtering logic
-     - Handle paginated response format
-     - Fix category ObjectIds showing as tags
+2. **Front & Back Custom Design Support**
+   - Users can add designs to front, back, or both sides of t-shirts
+   - Position selection for each side:
+     - Front: center, left chest, right chest, center-bottom
+     - Back: center, center-bottom
+   - CartTShirtPreview component handles multi-side designs with rotation toggle
+   - Design positions render correctly across all components
+   - Order details show custom designs with F/B indicators
 
-4. **Search Enhancement** ✅
-   - Backend search now includes product tags
-   - Design search works across: name, description, and tags
-   - Removed search from header as requested
+### Key Components Updated
 
-5. **Custom Product Display** ✅
-   - Fixed Order model to store custom product data (color, colorValue, designId, designImage)
-   - Custom t-shirts display correctly with their color and design in:
-     - User order details
-     - Admin order management
-     - Order confirmation
+1. **Server Side**:
+   - `server/models/product.js` - Added isDeleted field
+   - `server/controllers/product.js` - Soft delete logic
+   - `server/routes/product.js` - Delete/restore endpoints
 
-6. **ProductType Filter Fix** ✅
-   - Fixed 400 error when filtering by productType
-   - Backend now properly handles ObjectId productTypes
+2. **Client Side**:
+   - `client/src/pages/Customize.tsx` - Front/back design selection
+   - `client/src/components/CartTShirtPreview.tsx` - Multi-side preview with rotation
+   - `client/src/components/RealTShirtPreview.tsx` - Full preview in customize page
+   - `client/src/pages/Cart.tsx` - Shows custom designs
+   - `client/src/components/CartDrawer.tsx` - Shows custom designs
+   - `client/src/user/OrderDetail.tsx` - Uses CartTShirtPreview for clean view
+   - `client/src/admin/components/orders/OrderDetailModal.tsx` - Uses CartTShirtPreview
+   - `client/src/admin/ManageProducts.tsx` - Soft delete management
 
-## Technical Decisions
+### Design Decisions
 
-### Soft Delete Pattern
-- Products are never actually deleted from database
-- Soft deleted products marked with `isDeleted: true`
-- All queries exclude soft deleted products by default
-- Admin can view deleted products with `includeDeleted=true` parameter
-- Preserves data integrity for historical orders and analytics
+1. **Preview Components**:
+   - RealTShirtPreview: Used in customize page for full-size preview
+   - CartTShirtPreview: Used in cart, order details for compact view with rotation
 
-### URL State Management
-- Using React Router's `useSearchParams` hook
-- Filters automatically sync to URL on change
-- Clean URLs - only non-default values appear in query string
-- Page state fully restorable from URL
+2. **Data Structure**:
+   ```javascript
+   customization: {
+     frontDesign: {
+       designId: string,
+       designImage: string,
+       position: string,
+       price: number
+     },
+     backDesign: {
+       designId: string,
+       designImage: string,
+       position: string,
+       price: number
+     }
+   }
+   ```
 
-### Search Implementation
-- Single search endpoint handles multiple fields
-- Case-insensitive regex search
-- Includes partial matches
-- No need for separate search in header - shop page search is comprehensive
+3. **Position Styles**:
+   - Consistent positioning across all preview components
+   - Positions properly scaled for different preview sizes
 
-## Next Steps
-1. Monitor soft delete functionality in production
-2. Consider adding bulk restore/delete operations
-3. Add audit trail for product modifications
-4. Consider adding filter presets for common searches
+### Current Status
+Both features are fully implemented and tested. The system now supports:
+- Soft deletion of products with analytics preservation
+- Multi-side custom t-shirt designs with position selection
+- Proper rendering across all order flow components
 
-## Important Patterns
+### Recent Bug Fix (Backend Order Creation)
 
-### Filter Persistence Pattern
-```typescript
-// Initialize from URL
-const [searchParams, setSearchParams] = useSearchParams();
-const [filter, setFilter] = useState(searchParams.get('filter') || 'default');
+**Issue**: Order details were showing all products as custom because backend was creating empty `customization` objects for every product.
 
-// Update URL on filter change
-useEffect(() => {
-  const params = new URLSearchParams();
-  if (filter !== 'default') params.set('filter', filter);
-  setSearchParams(params);
-}, [filter, setSearchParams]);
-```
+**Root Cause**: The order controller was adding customization structure even when there was no design data (designId/designImage missing).
 
-### Backend Filtering Pattern
-```javascript
-// Build filter parameters
-const filters = {};
-if (searchQuery) filters.search = searchQuery;
-if (activeCategory !== 'all') filters.category = activeCategory;
+**Fix Applied**:
+1. Backend now only creates customization objects when actual design data exists
+2. Checks for both `designId` AND `designImage` before creating front/back design objects
+3. Removes empty customization objects that don't contain any valid design data
+4. Regular products no longer get customization fields
 
-// Send to backend with pagination
-const data = await getDesigns(currentPage, limit, filters);
-```
+**Frontend Adjustments**:
+1. Updated CartTShirtPreview to check for actual design images (`customization?.frontDesign?.designImage`)
+2. Order detail pages check for design data existence before showing multi-side indicators
+3. Both user and admin order views now properly distinguish custom vs normal products
 
-### Soft Delete Query Pattern
-```javascript
-// Exclude soft deleted by default
-const filter = { isDeleted: { $ne: true } };
+**Result**: Orders now correctly display:
+- Normal products show regular product images with links
+- Custom products show t-shirt preview with proper design rendering
+- Multi-side designs only show rotation controls when actual designs exist
 
-// Include soft deleted for admin
-const filter = includeDeleted ? {} : { isDeleted: { $ne: true } };
-```
+### Complete Data Flow Fix (Frontend to Backend)
 
-## Current State
-- All requested features implemented and working
-- Filter persistence across all admin and user pages
-- Soft delete system preserving data integrity
-- Enhanced search functionality
-- Clean, maintainable code patterns
+**Issue**: Custom t-shirts with front/back designs were losing customization data during order creation.
+
+**Root Cause Analysis**:
+1. Cart items in Customize.tsx correctly included customization structure
+2. CheckoutFixed.tsx wasn't passing customization field to backend
+3. Backend was creating empty customization objects for all products
+
+**Complete Fix Applied**:
+1. **Frontend (CheckoutFixed.tsx)**:
+   - Added customization to CartItem interface
+   - Include customization field when mapping cart items to order products
+
+2. **Backend (order.js & guestOrder.js)**:
+   - Process products before saving to validate customization data
+   - Only keep customization if has actual design data (designId AND designImage)
+   - Remove empty customization objects
+   - Prevent regular products from having customization fields
+
+3. **Order Helper**:
+   - Updated OrderItem interface to include full customization structure
+   - Support for both legacy fields and new multi-design structure
+
+**Data Flow Now**:
+1. Customize → Cart: Full customization data preserved
+2. Cart → Checkout: Customization passed through
+3. Checkout → Backend: Complete product data sent
+4. Backend → Database: Validated and cleaned data saved
+5. Database → UI: Proper rendering with design details
+
+**Test Files Created**:
+- `testNewOrderCreation.js`: Tests order controller validation
+- `testCustomizationFlow.js`: Tests complete data flow

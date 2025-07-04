@@ -30,13 +30,55 @@ const ProductCartSchema = new Schema({
     type: String,
     required: false
   },
+  // Legacy single design fields (kept for backward compatibility)
   designId: {
-    type: String,  // Not ObjectId since it could be from different sources
+    type: String,
     required: false
   },
   designImage: {
     type: String,
     required: false
+  },
+  // New multi-design structure
+  customization: {
+    frontDesign: {
+      designId: {
+        type: String,
+        required: false
+      },
+      designImage: {
+        type: String,
+        required: false
+      },
+      position: {
+        type: String,
+        enum: ['center', 'left', 'right', 'center-bottom'],
+        default: 'center'
+      },
+      price: {
+        type: Number,
+        default: 0
+      }
+    },
+    backDesign: {
+      designId: {
+        type: String,
+        required: false
+      },
+      designImage: {
+        type: String,
+        required: false
+      },
+      position: {
+        type: String,
+        enum: ['center', 'center-bottom'],
+        default: 'center'
+      },
+      price: {
+        type: Number,
+        default: 0
+      }
+    }
   }
 });
 

@@ -50,38 +50,104 @@ exports.createOrder = async (req, res) => {
         // Store color and design information
         validatedItem.color = item.color || item.selectedColor || 'White';
         validatedItem.colorValue = item.colorValue || item.selectedColorValue || '#FFFFFF';
-        validatedItem.designId = item.designId;
-        validatedItem.designImage = item.designImage || item.image;
-        
-        // Debug log custom product data
-        console.log('Custom product data:', {
-          color: validatedItem.color,
-          colorValue: validatedItem.colorValue,
-          designId: validatedItem.designId,
-          designImage: validatedItem.designImage,
-          customDesign: validatedItem.customDesign
-        });
         
         // Base price for custom t-shirt
         const basePrice = 549; // Base price for custom t-shirt
+        let totalDesignPrice = 0;
         
-        // If there's a design, add design price
-        let designPrice = 0;
-        if (item.designId) {
-          try {
-            const design = await Design.findById(item.designId);
-            if (design) {
-              designPrice = design.price || 110; // Default design price
+        // Check for new customization structure with front/back designs
+        if (item.customization && (item.customization.frontDesign || item.customization.backDesign)) {
+          // New multi-design structure - only create if there's actual design data
+          validatedItem.customization = {};
+          
+          // Process front design - only if it has actual design data
+          if (item.customization.frontDesign && item.customization.frontDesign.designId && item.customization.frontDesign.designImage) {
+            let frontPrice = item.customization.frontDesign.price || 150;
+            
+            // Validate front design price if designId is provided
+            try {
+              const design = await Design.findById(item.customization.frontDesign.designId);
+              if (design) {
+                frontPrice = design.price || 150;
+              }
+            } catch (err) {
+              console.log('Front design not found, using provided price');
             }
-          } catch (err) {
-            console.log('Design not found, using default price');
-            designPrice = 110;
+            
+            validatedItem.customization.frontDesign = {
+              designId: item.customization.frontDesign.designId,
+              designImage: item.customization.frontDesign.designImage,
+              position: item.customization.frontDesign.position || 'center',
+              price: frontPrice
+            };
+            
+            totalDesignPrice += frontPrice;
+          }
+          
+          // Process back design - only if it has actual design data
+          if (item.customization.backDesign && item.customization.backDesign.designId && item.customization.backDesign.designImage) {
+            let backPrice = item.customization.backDesign.price || 150;
+            
+            // Validate back design price if designId is provided
+            try {
+              const design = await Design.findById(item.customization.backDesign.designId);
+              if (design) {
+                backPrice = design.price || 150;
+              }
+            } catch (err) {
+              console.log('Back design not found, using provided price');
+            }
+            
+            validatedItem.customization.backDesign = {
+              designId: item.customization.backDesign.designId,
+              designImage: item.customization.backDesign.designImage,
+              position: item.customization.backDesign.position || 'center',
+              price: backPrice
+            };
+            
+            totalDesignPrice += backPrice;
+          }
+          
+          // Only keep customization if it has actual design data
+          if (!validatedItem.customization.frontDesign && !validatedItem.customization.backDesign) {
+            delete validatedItem.customization;
+          } else {
+            console.log('Multi-design custom product:', {
+              color: validatedItem.color,
+              frontDesign: validatedItem.customization.frontDesign,
+              backDesign: validatedItem.customization.backDesign
+            });
           }
         } else {
-          designPrice = 110; // Default custom design fee
+          // Legacy single design structure
+          validatedItem.designId = item.designId;
+          validatedItem.designImage = item.designImage || item.image;
+          
+          // If there's a design, add design price
+          if (item.designId) {
+            try {
+              const design = await Design.findById(item.designId);
+              if (design) {
+                totalDesignPrice = design.price || 110;
+              }
+            } catch (err) {
+              console.log('Design not found, using default price');
+              totalDesignPrice = 110;
+            }
+          } else {
+            totalDesignPrice = 110; // Default custom design fee
+          }
+          
+          console.log('Legacy custom product data:', {
+            color: validatedItem.color,
+            colorValue: validatedItem.colorValue,
+            designId: validatedItem.designId,
+            designImage: validatedItem.designImage,
+            customDesign: validatedItem.customDesign
+          });
         }
         
-        validatedItem.price = basePrice + designPrice;
+        validatedItem.price = basePrice + totalDesignPrice;
         // Don't set product field for custom items - it will remain undefined
       } else {
         // Handle regular products
@@ -102,6 +168,7 @@ exports.createOrder = async (req, res) => {
         validatedItem.product = product._id;
         validatedItem.price = product.price;
         validatedItem.name = product.name;
+        // Don't add customization field for regular products
       }
       
       // Calculate item total

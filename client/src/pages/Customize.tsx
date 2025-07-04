@@ -37,6 +37,11 @@ interface Design {
   isFeatured: boolean;
 }
 
+interface DesignPlacement {
+  design: Design | null;
+  position: string;
+}
+
 const Customize: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
@@ -59,6 +64,11 @@ const Customize: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [categories, setCategories] = useState<any[]>([]);
   const [allTags, setAllTags] = useState<string[]>([]);
+  
+  // New states for front/back design
+  const [currentSide, setCurrentSide] = useState<'front' | 'back'>('front');
+  const [frontDesign, setFrontDesign] = useState<DesignPlacement>({ design: null, position: 'center' });
+  const [backDesign, setBackDesign] = useState<DesignPlacement>({ design: null, position: 'center' });
 
   const tshirtColors = [
     { name: 'White', value: '#FFFFFF' },
@@ -76,6 +86,19 @@ const Customize: React.FC = () => {
     { id: 'normal', name: 'Regular Fit', available: true },
     { id: 'oversize', name: 'Oversize', available: false },
     { id: 'slim', name: 'Slim Fit', available: false }
+  ];
+
+  // Position options for front and back
+  const frontPositions = [
+    { value: 'center', label: 'Center', icon: '◼' },
+    { value: 'left', label: 'Left Chest', icon: '◀' },
+    { value: 'right', label: 'Right Chest', icon: '▶' },
+    { value: 'center-bottom', label: 'Center Bottom', icon: '▼' }
+  ];
+
+  const backPositions = [
+    { value: 'center', label: 'Center', icon: '◼' },
+    { value: 'center-bottom', label: 'Center Bottom', icon: '▼' }
   ];
 
   // Update URL params when filters change
@@ -236,19 +259,60 @@ const Customize: React.FC = () => {
   const filteredDesigns = designs;
 
   const calculatePrice = () => {
-    const designPrice = selectedDesign ? selectedDesign.price : 0;
+    let designPrice = 0;
+    if (frontDesign.design) designPrice += frontDesign.design.price;
+    if (backDesign.design) designPrice += backDesign.design.price;
     return (basePrice + designPrice) * quantity;
   };
 
+  const handleDesignSelect = (design: Design) => {
+    if (currentSide === 'front') {
+      setFrontDesign({ ...frontDesign, design });
+    } else {
+      setBackDesign({ ...backDesign, design });
+    }
+    setSelectedDesign(design); // Keep for backward compatibility
+  };
+
+  const handlePositionChange = (position: string) => {
+    if (currentSide === 'front') {
+      setFrontDesign({ ...frontDesign, position });
+    } else {
+      setBackDesign({ ...backDesign, position });
+    }
+  };
+
+  const removeDesign = (side: 'front' | 'back') => {
+    if (side === 'front') {
+      setFrontDesign({ design: null, position: 'center' });
+    } else {
+      setBackDesign({ design: null, position: 'center' });
+    }
+  };
+
+  const getCurrentDesign = () => {
+    return currentSide === 'front' ? frontDesign : backDesign;
+  };
+
+  const getPositionOptions = () => {
+    return currentSide === 'front' ? frontPositions : backPositions;
+  };
+
   const handleAddToCart = () => {
-    if (!selectedDesign) {
-      alert('Please select a design');
+    if (!frontDesign.design && !backDesign.design) {
+      alert('Please select at least one design');
       return;
     }
 
+    // Create a unique ID for this custom configuration
+    const uniqueId = `custom-${Date.now()}`;
+    const designNames = [];
+    if (frontDesign.design) designNames.push(`Front: ${frontDesign.design.name}`);
+    if (backDesign.design) designNames.push(`Back: ${backDesign.design.name}`);
+
     const cartItem = {
-      _id: `custom-${selectedDesign._id}-${selectedColor}-${selectedSize}-${Date.now()}`,
-      name: `Custom T-Shirt - ${selectedDesign.name}`,
+      _id: uniqueId,
+      name: `Custom T-Shirt - ${designNames.join(', ')}`,
       price: calculatePrice() / quantity, // Price per item
       category: 'custom',
       size: selectedSize,
@@ -256,12 +320,35 @@ const Customize: React.FC = () => {
       colorValue: selectedColor,
       quantity: quantity,
       type: 'custom',
-      design: selectedDesign.name,
-      designId: selectedDesign._id,  // Add design ID
-      designPrice: selectedDesign.price,
-      image: getImageUrl(selectedDesign),
+      // Legacy fields for backward compatibility
+      design: frontDesign.design?.name || backDesign.design?.name,
+      designId: frontDesign.design?._id || backDesign.design?._id,
+      designPrice: (frontDesign.design?.price || 0) + (backDesign.design?.price || 0),
+      image: getImageUrl(frontDesign.design || backDesign.design),
+      // New customization structure
+      customization: {
+        frontDesign: frontDesign.design ? {
+          designId: frontDesign.design._id,
+          designImage: getImageUrl(frontDesign.design),
+          position: frontDesign.position,
+          price: frontDesign.design.price
+        } : null,
+        backDesign: backDesign.design ? {
+          designId: backDesign.design._id,
+          designImage: getImageUrl(backDesign.design),
+          position: backDesign.position,
+          price: backDesign.design.price
+        } : null
+      },
       isCustom: true  // Mark as custom product
     };
+
+    // Debug log
+    console.log('Adding to cart:', {
+      frontDesign: cartItem.customization?.frontDesign,
+      backDesign: cartItem.customization?.backDesign,
+      fullItem: cartItem
+    });
 
     addItemToCart(cartItem, () => {
       setShowSuccessModal(true);
@@ -357,10 +444,73 @@ const Customize: React.FC = () => {
                 )}
               </div>
 
+              {/* Side Selector */}
+              <div className="bg-gray-800 rounded-xl p-4">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setCurrentSide('front')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                      currentSide === 'front'
+                        ? 'bg-yellow-400 text-gray-900'
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-lg">👕</span>
+                      <span>Front Side</span>
+                      {frontDesign.design && <Check className="w-4 h-4" />}
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setCurrentSide('back')}
+                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                      currentSide === 'back'
+                        ? 'bg-yellow-400 text-gray-900'
+                        : 'bg-gray-700 hover:bg-gray-600'
+                    }`}
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <span className="text-lg">👕</span>
+                      <span>Back Side</span>
+                      {backDesign.design && <Check className="w-4 h-4" />}
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Position Selector */}
+              {getCurrentDesign().design && (
+                <div className="bg-gray-800 rounded-xl p-4">
+                  <h4 className="font-medium mb-3">Design Position ({currentSide})</h4>
+                  <div className="grid grid-cols-2 gap-2">
+                    {getPositionOptions().map((pos) => (
+                      <button
+                        key={pos.value}
+                        onClick={() => handlePositionChange(pos.value)}
+                        className={`p-3 rounded-lg flex items-center justify-center gap-2 transition-all ${
+                          getCurrentDesign().position === pos.value
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                      >
+                        <span className="text-lg">{pos.icon}</span>
+                        <span className="text-sm">{pos.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => removeDesign(currentSide)}
+                    className="mt-3 w-full py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm transition-all"
+                  >
+                    Remove {currentSide} design
+                  </button>
+                </div>
+              )}
+
               {/* Design Grid */}
               <div className="bg-gray-800 rounded-xl p-6">
                 <h3 className="text-lg font-semibold mb-4">
-                  Select a Design 
+                  Select a Design for {currentSide.charAt(0).toUpperCase() + currentSide.slice(1)} Side
                   {!loading && <span className="text-gray-400 text-sm ml-2">({filteredDesigns.length} available)</span>}
                 </h3>
                 
@@ -384,16 +534,21 @@ const Customize: React.FC = () => {
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                    {filteredDesigns.map((design) => (
-                      <div
-                        key={design._id}
-                        onClick={() => setSelectedDesign(design)}
-                        className={`relative bg-gray-700 rounded-lg p-4 cursor-pointer transition-all transform hover:scale-105 ${
-                          selectedDesign?._id === design._id 
-                            ? 'ring-2 ring-yellow-400 scale-105' 
-                            : 'hover:bg-gray-600'
-                        }`}
-                      >
+                    {filteredDesigns.map((design) => {
+                      const isSelectedOnFront = frontDesign.design?._id === design._id;
+                      const isSelectedOnBack = backDesign.design?._id === design._id;
+                      const isCurrentSideSelected = getCurrentDesign().design?._id === design._id;
+                      
+                      return (
+                        <div
+                          key={design._id}
+                          onClick={() => handleDesignSelect(design)}
+                          className={`relative bg-gray-700 rounded-lg p-4 cursor-pointer transition-all transform hover:scale-105 ${
+                            isCurrentSideSelected
+                              ? 'ring-2 ring-yellow-400 scale-105' 
+                              : 'hover:bg-gray-600'
+                          }`}
+                        >
                         <div className="aspect-square bg-gray-600 rounded-lg mb-3 overflow-hidden">
                           <img 
                             src={getImageUrl(design)}
@@ -404,15 +559,21 @@ const Customize: React.FC = () => {
                             }}
                           />
                         </div>
-                        <h4 className="font-medium text-sm mb-1 line-clamp-2">{design.name}</h4>
-                        <p className="text-yellow-400 text-sm font-semibold">+₹{design.price}</p>
-                        {selectedDesign?._id === design._id && (
-                          <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-1">
-                            <Check className="w-4 h-4 text-gray-900" />
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                          <h4 className="font-medium text-sm mb-1 line-clamp-2">{design.name}</h4>
+                          <p className="text-yellow-400 text-sm font-semibold">+₹{design.price}</p>
+                          {isCurrentSideSelected && (
+                            <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-1">
+                              <Check className="w-4 h-4 text-gray-900" />
+                            </div>
+                          )}
+                          {(isSelectedOnFront || isSelectedOnBack) && !isCurrentSideSelected && (
+                            <div className="absolute top-2 left-2 text-xs bg-gray-600 px-2 py-1 rounded">
+                              {isSelectedOnFront && isSelectedOnBack ? 'F+B' : isSelectedOnFront ? 'F' : 'B'}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -422,12 +583,24 @@ const Customize: React.FC = () => {
             <div className="space-y-6">
               {/* T-Shirt Preview */}
               <RealTShirtPreview
-                selectedDesign={selectedDesign ? {
-                  ...selectedDesign,
-                  image: getImageUrl(selectedDesign)
+                selectedDesign={getCurrentDesign().design ? {
+                  ...getCurrentDesign().design,
+                  image: getImageUrl(getCurrentDesign().design)
                 } : null}
                 selectedColor={tshirtColors.find(c => c.value === selectedColor)?.name || 'White'}
                 selectedSize={selectedSize}
+                position={getCurrentDesign().position}
+                side={currentSide}
+                frontDesign={frontDesign.design ? {
+                  ...frontDesign.design,
+                  image: getImageUrl(frontDesign.design),
+                  position: frontDesign.position
+                } : null}
+                backDesign={backDesign.design ? {
+                  ...backDesign.design,
+                  image: getImageUrl(backDesign.design),
+                  position: backDesign.position
+                } : null}
               />
 
               {/* T-Shirt Options */}
@@ -528,10 +701,16 @@ const Customize: React.FC = () => {
                     <span className="text-gray-300">Base Price:</span>
                     <span>₹{basePrice}</span>
                   </div>
-                  {selectedDesign && (
+                  {frontDesign.design && (
                     <div className="flex justify-between items-center mb-2">
-                      <span className="text-gray-300">Design:</span>
-                      <span>₹{selectedDesign.price}</span>
+                      <span className="text-gray-300">Front Design:</span>
+                      <span>₹{frontDesign.design.price}</span>
+                    </div>
+                  )}
+                  {backDesign.design && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-gray-300">Back Design:</span>
+                      <span>₹{backDesign.design.price}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center mb-2">
@@ -580,11 +759,19 @@ const Customize: React.FC = () => {
                   Your custom t-shirt has been added to cart
                 </p>
                 <div className="bg-gray-900 p-4 rounded-lg mb-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span>Design:</span>
-                    <span className="font-medium">{selectedDesign?.name}</span>
-                  </div>
-                  <div className="flex justify-between items-center">
+                  {frontDesign.design && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span>Front Design:</span>
+                      <span className="font-medium">{frontDesign.design.name}</span>
+                    </div>
+                  )}
+                  {backDesign.design && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span>Back Design:</span>
+                      <span className="font-medium">{backDesign.design.name}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center mt-3 pt-3 border-t border-gray-700">
                     <span>Total Amount:</span>
                     <span className="text-yellow-400 font-bold">₹{calculatePrice()}</span>
                   </div>

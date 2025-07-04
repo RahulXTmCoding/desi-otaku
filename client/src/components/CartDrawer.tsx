@@ -139,12 +139,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     <div className="flex gap-4">
                       {/* Product Image */}
                       <div className="w-20 h-20 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
-                        {item.category === 'custom' && item.design ? (
+                        {(item.category === 'custom' || item.isCustom) && (item.design || item.customization) ? (
                           <CartTShirtPreview
                             design={item.design}
                             color={item.color}
                             colorValue={item.colorValue}
                             image={item.image}
+                            customization={item.customization}
                           />
                         ) : (
                           <img

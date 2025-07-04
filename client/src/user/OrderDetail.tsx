@@ -97,8 +97,7 @@ const OrderDetail = () => {
     );
   }
 
-  // Debug log to see the full order structure
-  console.log("Full order object:", JSON.stringify(order, null, 2));
+  // Remove debug logs
 
   return (
     <div className="min-h-screen bg-gray-900 text-white py-8">
@@ -157,14 +156,15 @@ const OrderDetail = () => {
                       <div className="flex items-start space-x-4">
                         {/* Product Image/Preview */}
                         <div className="w-24 h-24 flex-shrink-0">
-                          {product.isCustom ? (
-                            // Show custom t-shirt preview for custom designs
+                          {!product.product && (product.isCustom || product.customization || product.designId || product.customDesign) ? (
+                            // Show custom t-shirt preview for custom designs (no product field means it's custom)
                             <div className="w-full h-full rounded-lg overflow-hidden bg-gray-600">
                               <CartTShirtPreview
                                 design={product.customDesign || product.name}
                                 color={product.color || product.selectedColor || "White"}
                                 colorValue={product.colorValue || product.selectedColorValue || "#FFFFFF"}
                                 image={product.designImage || product.image || (product.designId ? `${API}/design/photo/${product.designId}` : undefined)}
+                                customization={product.customization}
                               />
                             </div>
                           ) : product.product ? (
@@ -221,10 +221,25 @@ const OrderDetail = () => {
                                   Qty: <span className="ml-1 text-white font-medium">{product.count || 1}</span>
                                 </span>
                               </div>
-                              {product.isCustom && (
-                                <span className="inline-flex items-center mt-2 px-3 py-1 bg-yellow-400/20 text-yellow-400 text-xs font-medium rounded-full">
-                                  Custom Design
-                                </span>
+                              {!product.product && (product.isCustom || product.customization || product.designId || product.customDesign) && (
+                                <div className="mt-2 space-y-1">
+                                  <span className="inline-flex items-center px-3 py-1 bg-yellow-400/20 text-yellow-400 text-xs font-medium rounded-full">
+                                    Custom Design
+                                  </span>
+                                  {product.customization && (product.customization.frontDesign?.designImage || product.customization.backDesign?.designImage) && (
+                                    <div className="text-xs text-gray-400 mt-1">
+                                      {product.customization.frontDesign?.designImage && product.customization.backDesign?.designImage && (
+                                        <span>Front & Back Design</span>
+                                      )}
+                                      {product.customization.frontDesign?.designImage && !product.customization.backDesign?.designImage && (
+                                        <span>Front Design Only</span>
+                                      )}
+                                      {!product.customization.frontDesign?.designImage && product.customization.backDesign?.designImage && (
+                                        <span>Back Design Only</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               )}
                             </div>
                             <div className="text-right">

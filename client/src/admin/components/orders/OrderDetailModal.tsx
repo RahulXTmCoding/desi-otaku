@@ -83,12 +83,13 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
                 <div key={index} className="flex gap-4 p-4 bg-gray-800 rounded-lg">
                   {/* Product Image */}
                   <div className="w-24 h-24 flex-shrink-0">
-                    {item.isCustom ? (
+                    {!item.product && (item.isCustom || item.customization || item.designId || item.customDesign) ? (
                       <CartTShirtPreview
                         design={item.customDesign || item.name}
                         color={item.color || 'White'}
                         colorValue={item.colorValue || '#FFFFFF'}
                         image={item.designImage || item.image || (item.designId ? `${API}/design/photo/${item.designId}` : undefined)}
+                        customization={item.customization}
                       />
                     ) : (
                       <div className="w-full h-full bg-gray-700 rounded-lg flex items-center justify-center">
@@ -113,8 +114,17 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
                       {item.color && `Color: ${item.color} • `}
                       Qty: {item.count}
                     </p>
-                    {item.isCustom && (
-                      <p className="text-xs text-yellow-400 mt-1">Custom Design</p>
+                    {!item.product && (item.isCustom || item.customization || item.designId || item.customDesign) && (
+                      <div className="mt-1">
+                        <p className="text-xs text-yellow-400">Custom Design</p>
+                        {item.customization && (item.customization.frontDesign?.designImage || item.customization.backDesign?.designImage) && (
+                          <p className="text-xs text-gray-500">
+                            {item.customization.frontDesign?.designImage && item.customization.backDesign?.designImage && 'Front & Back'}
+                            {item.customization.frontDesign?.designImage && !item.customization.backDesign?.designImage && 'Front Only'}
+                            {!item.customization.frontDesign?.designImage && item.customization.backDesign?.designImage && 'Back Only'}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                   

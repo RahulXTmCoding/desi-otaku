@@ -4,6 +4,8 @@ import { ShoppingBag, Trash2, Plus, Minus, ArrowRight } from 'lucide-react';
 import { loadCart, updateCartItemQuantity, removeItemFromCart } from '../core/helper/cartHelper';
 import { API } from '../backend';
 import CartTShirtPreview from '../components/CartTShirtPreview';
+// Temporary test import for debugging
+import '../utils/testCustomDesign';
 
 interface CartItem {
   _id: string;
@@ -17,6 +19,21 @@ interface CartItem {
   category?: string | { _id: string; name: string };
   design?: string;
   designPrice?: number;
+  isCustom?: boolean;
+  customization?: {
+    frontDesign?: {
+      designId: string;
+      designImage: string;
+      position: string;
+      price: number;
+    } | null;
+    backDesign?: {
+      designId: string;
+      designImage: string;
+      position: string;
+      price: number;
+    } | null;
+  };
 }
 
 const Cart: React.FC = () => {
@@ -123,12 +140,13 @@ const Cart: React.FC = () => {
                 <div className="flex flex-col sm:flex-row gap-4">
                   {/* Product Image */}
                   <div className="w-full sm:w-32 h-40 sm:h-32 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
-                    {item.category === 'custom' && item.design ? (
+                    {(item.category === 'custom' || item.isCustom) && (item.design || item.customization) ? (
                       <CartTShirtPreview
                         design={item.design}
                         color={item.color}
                         colorValue={item.colorValue}
                         image={item.image}
+                        customization={item.customization}
                       />
                     ) : (
                       <img
@@ -147,8 +165,24 @@ const Cart: React.FC = () => {
                     <div className="flex justify-between items-start">
                       <div>
                         <h3 className="font-semibold text-lg">{item.name}</h3>
-                        {item.category === 'custom' && item.design && (
-                          <p className="text-sm text-gray-400">Custom Design: {item.design}</p>
+                        {item.category === 'custom' && (
+                          <>
+                            {item.customization?.frontDesign && item.customization?.backDesign ? (
+                              <p className="text-sm text-gray-400">
+                                Custom Design: Front & Back
+                              </p>
+                            ) : item.customization?.frontDesign ? (
+                              <p className="text-sm text-gray-400">
+                                Custom Design: Front Only
+                              </p>
+                            ) : item.customization?.backDesign ? (
+                              <p className="text-sm text-gray-400">
+                                Custom Design: Back Only
+                              </p>
+                            ) : item.design ? (
+                              <p className="text-sm text-gray-400">Custom Design: {item.design}</p>
+                            ) : null}
+                          </>
                         )}
                         <div className="flex gap-4 mt-1 text-sm text-gray-400">
                           {item.size && <span>Size: {item.size}</span>}
@@ -177,9 +211,19 @@ const Cart: React.FC = () => {
                     <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                       <div className="text-xl font-bold text-yellow-400">
                         ₹{item.price}
-                        {item.designPrice && (
+                        {(item.designPrice || (item.customization && (item.customization.frontDesign || item.customization.backDesign))) && (
                           <span className="text-sm text-gray-400 ml-2">
-                            (incl. ₹{item.designPrice} design fee)
+                            {item.customization ? (
+                              <>
+                                (incl. 
+                                {item.customization.frontDesign && ` Front: ₹${item.customization.frontDesign.price}`}
+                                {item.customization.frontDesign && item.customization.backDesign && ' + '}
+                                {item.customization.backDesign && ` Back: ₹${item.customization.backDesign.price}`}
+                                )
+                              </>
+                            ) : (
+                              `(incl. ₹${item.designPrice} design fee)`
+                            )}
                           </span>
                         )}
                       </div>

@@ -44,8 +44,44 @@ exports.createGuestOrder = async (req, res) => {
     // Create guest order with a unique guest ID
     const guestId = `guest_${uuidv4()}`;
     
+    // Process products to ensure customization data is properly handled
+    const processedProducts = products.map(product => {
+      const processedProduct = { ...product };
+      
+      // Only keep customization if it has actual design data
+      if (processedProduct.customization) {
+        const { frontDesign, backDesign } = processedProduct.customization;
+        
+        // Check if front design has actual data
+        const hasFrontDesign = frontDesign && 
+          frontDesign.designId && 
+          frontDesign.designImage;
+          
+        // Check if back design has actual data  
+        const hasBackDesign = backDesign && 
+          backDesign.designId && 
+          backDesign.designImage;
+          
+        // Only keep customization if at least one side has design data
+        if (!hasFrontDesign && !hasBackDesign) {
+          delete processedProduct.customization;
+        } else {
+          // Clean up empty design objects
+          processedProduct.customization = {};
+          if (hasFrontDesign) {
+            processedProduct.customization.frontDesign = frontDesign;
+          }
+          if (hasBackDesign) {
+            processedProduct.customization.backDesign = backDesign;
+          }
+        }
+      }
+      
+      return processedProduct;
+    });
+    
     const order = new Order({
-      products,
+      products: processedProducts,
       transaction_id,
       amount,
       address,

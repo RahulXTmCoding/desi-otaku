@@ -8,6 +8,26 @@ interface OrderItem {
   size?: string;
   isCustom?: boolean;
   customDesign?: string;
+  // Legacy design fields
+  designId?: string;
+  designImage?: string;
+  color?: string;
+  colorValue?: string;
+  // New multi-design structure
+  customization?: {
+    frontDesign?: {
+      designId: string;
+      designImage: string;
+      position: string;
+      price: number;
+    };
+    backDesign?: {
+      designId: string;
+      designImage: string;
+      position: string;
+      price: number;
+    };
+  };
 }
 
 interface Order {
