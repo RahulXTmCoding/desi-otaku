@@ -63,7 +63,7 @@ router.get(
   getOrderStatus
 );
 router.put(
-  "/order/:orderId/:userId",
+  "/order/:orderId/status/:userId",
   isSignedIn,
   isAuthenticated,
   isAdmin,

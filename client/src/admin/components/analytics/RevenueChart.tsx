@@ -25,10 +25,10 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, loading }) => {
   const chartHeight = 256; // h-64 in pixels
 
   if (!hasData || maxValue === 0) {
-    return (
-      <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-xl font-semibold flex items-center gap-2">
+  return (
+    <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
+      <div className="flex items-center justify-between mb-6">
+        <h3 className="text-xl font-semibold flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-yellow-400" />
             Revenue Trend
           </h3>
@@ -58,24 +58,26 @@ const RevenueChart: React.FC<RevenueChartProps> = ({ data, loading }) => {
         </div>
         
         {/* Chart area */}
-        <div className="ml-12 h-full flex items-end justify-between gap-2">
-          {data.datasets[0].data.map((value, index) => {
-            const height = (value / maxValue) * chartHeight;
-            return (
-              <div key={index} className="flex-1 flex flex-col items-center">
-                <div 
-                  className="w-full bg-yellow-400 rounded-t hover:bg-yellow-300 transition-colors cursor-pointer relative group"
-                  style={{ height: `${height}px` }}
-                >
-                  {/* Tooltip */}
-                  <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    ₹{value.toLocaleString()}
+        <div className="ml-12 h-full overflow-x-auto">
+          <div className="h-full flex items-end gap-2" style={{ width: `${data.labels.length * 40}px` }}>
+            {data.datasets[0].data.map((value, index) => {
+              const height = (value / maxValue) * chartHeight;
+              return (
+                <div key={index} className="flex-1 flex flex-col items-center">
+                  <div 
+                    className="w-full bg-yellow-400 rounded-t hover:bg-yellow-300 transition-colors cursor-pointer relative group"
+                    style={{ height: `${height}px` }}
+                  >
+                    {/* Tooltip */}
+                    <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                      ₹{value.toLocaleString()}
+                    </div>
                   </div>
+                  <span className="text-xs text-gray-400 mt-2">{data.labels[index]}</span>
                 </div>
-                <span className="text-xs text-gray-400 mt-2">{data.labels[index]}</span>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

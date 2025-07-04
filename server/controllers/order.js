@@ -148,7 +148,7 @@ exports.createOrder = async (req, res) => {
         }
         
         validatedItem.price = basePrice + totalDesignPrice;
-        // Don't set product field for custom items - it will remain undefined
+        validatedItem.product = null; // Explicitly set product to null for custom items
       } else {
         // Handle regular products
         const product = await Product.findById(item.product);
@@ -454,11 +454,18 @@ exports.exportOrders = async (req, res) => {
 };
 
 exports.getOrder = (req, res) => {
+  // Allow admin to get any order
+  if (req.profile.role === 1) {
+    return res.json(req.order);
+  }
+  
+  // For regular users, ensure they are the owner
   if (req.order.user._id.toString() !== req.profile._id.toString()) {
     return res.status(403).json({
       error: "Access denied. You are not the owner of this order."
     });
   }
+  
   return res.json(req.order);
 };
 
@@ -469,7 +476,7 @@ exports.getOrderStatus = (req, res) => {
 exports.updateStatus = async (req, res) => {
   try {
     // Get current order to compare status
-    const oldOrder = await Order.findById(req.body.orderId);
+    const oldOrder = await Order.findById(req.params.orderId);
     if (!oldOrder) {
       return res.status(400).json({
         err: "Order not found",
@@ -479,21 +486,28 @@ exports.updateStatus = async (req, res) => {
 
     // Update status
     const order = await Order.findByIdAndUpdate(
-      req.body.orderId,
+      req.params.orderId,
       { $set: { status: req.body.status } },
       { new: true }
     ).populate('user', 'email name');
 
     // Send email notifications based on status change
-    if (order.user && order.user.email) {
+    const customer = order.user || order.guestInfo;
+    if (customer && customer.email) {
+      const isGuest = !order.user;
+      const customerInfo = {
+        name: customer.name,
+        email: customer.email,
+      };
+
       if (req.body.status === 'Shipped' && oldStatus !== 'Shipped') {
         // Send shipping notification
-        emailService.sendShippingUpdate(order, order.user).catch(err => {
+        emailService.sendShippingUpdate(order, customerInfo, isGuest).catch(err => {
           console.error("Failed to send shipping email:", err);
         });
       } else if (oldStatus !== req.body.status) {
         // Send general status update
-        emailService.sendOrderStatusUpdate(order, order.user, oldStatus).catch(err => {
+        emailService.sendOrderStatusUpdate(order, customerInfo, oldStatus, isGuest).catch(err => {
           console.error("Failed to send status update email:", err);
         });
       }

@@ -4,7 +4,8 @@
   "description": "",
   "main": "app.js",
   "scripts": {
-    "start": "nodemon app.js"
+    "start": "nodemon app.js",
+    "test": "jest"
   },
   "keywords": [],
   "author": "",
@@ -35,6 +36,7 @@
     "uuidv4": "^6.2.13"
   },
   "devDependencies": {
+    "jest": "^30.0.4",
     "ts-node": "^10.8.1",
     "typescript": "^4.7.4"
   }

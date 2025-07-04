@@ -7,6 +7,7 @@ exports.getWishlist = async (req, res) => {
     let wishlist = await Wishlist.findOne({ user: req.profile._id })
       .populate({
         path: 'products.product',
+        match: { isDeleted: { $ne: true } }, // Exclude soft-deleted products
         select: 'name price description stock category photoUrl',
         populate: {
           path: 'category',
@@ -19,11 +20,14 @@ exports.getWishlist = async (req, res) => {
       wishlist = await Wishlist.create({ user: req.profile._id, products: [] });
     }
 
+    // Filter out null products (if any were soft-deleted)
+    wishlist.products = wishlist.products.filter(item => item.product);
+
     // Add photo URLs for products
     const wishlistWithPhotos = {
       ...wishlist.toObject(),
       products: wishlist.products.map(item => ({
-        ...item,
+        ...item.toObject(),
         product: {
           ...item.product.toObject(),
           photoUrl: item.product.photoUrl || `/api/product/photo/${item.product._id}`

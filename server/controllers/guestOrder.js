@@ -47,6 +47,11 @@ exports.createGuestOrder = async (req, res) => {
     // Process products to ensure customization data is properly handled
     const processedProducts = products.map(product => {
       const processedProduct = { ...product };
+
+      // If it's a custom t-shirt, the product ID might be 'custom'
+      if (processedProduct.product === 'custom') {
+        processedProduct.product = null; // Set to null for custom items
+      }
       
       // Only keep customization if it has actual design data
       if (processedProduct.customization) {

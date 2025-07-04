@@ -53,16 +53,16 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
             <div className="grid md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <p className="text-sm text-gray-400">Name</p>
-                <p className="font-medium">{order.user.name}</p>
+                <p className="font-medium">{order.user ? order.user.name : order.guestInfo?.name || 'Guest'}</p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm text-gray-400">Email</p>
-                <p className="font-medium">{order.user.email}</p>
+                <p className="font-medium">{order.user ? order.user.email : order.guestInfo?.email || 'N/A'}</p>
               </div>
-              {order.user.phone && (
+              {(order.user?.phone || order.guestInfo?.phone) && (
                 <div className="space-y-2">
                   <p className="text-sm text-gray-400">Phone</p>
-                  <p className="font-medium">{order.user.phone}</p>
+                  <p className="font-medium">{order.user ? order.user.phone : order.guestInfo?.phone}</p>
                 </div>
               )}
               <div className="space-y-2">
@@ -226,8 +226,8 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
           <p>Date: {format(new Date(order.createdAt), 'PPP')}</p>
           <div className="mt-4">
             <h3 className="font-bold">Customer:</h3>
-            <p>{order.user.name}</p>
-            <p>{order.user.email}</p>
+            <p>{order.user ? order.user.name : order.guestInfo?.name || 'Guest'}</p>
+            <p>{order.user ? order.user.email : order.guestInfo?.email || 'N/A'}</p>
           </div>
           <div className="mt-4">
             <h3 className="font-bold">Items:</h3>

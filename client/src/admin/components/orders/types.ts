@@ -41,6 +41,13 @@ export interface ShippingAddress {
   phone: string;
 }
 
+export interface GuestInfo {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+}
+
 export interface Order {
   _id: string;
   user: {
@@ -48,7 +55,8 @@ export interface Order {
     name: string;
     email: string;
     phone?: string;
-  };
+  } | null;
+  guestInfo?: GuestInfo;
   products: OrderProduct[];
   transaction_id: string;
   amount: number;

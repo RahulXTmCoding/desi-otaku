@@ -267,7 +267,7 @@ const OrderManagement: React.FC = () => {
         toast.success('Order status updated successfully');
       } else {
         if (user && token) {
-          const response = await fetch(`${API}/order/${orderId}/status`, {
+          const response = await fetch(`${API}/order/${orderId}/status/${user._id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
@@ -319,8 +319,8 @@ const OrderManagement: React.FC = () => {
     const csvData = filteredOrders.map(order => ({
       'Order ID': order._id,
       'Date': format(new Date(order.createdAt), 'yyyy-MM-dd HH:mm'),
-      'Customer Name': order.user.name,
-      'Customer Email': order.user.email,
+      'Customer Name': order.user ? order.user.name : order.guestInfo?.name || 'Guest',
+      'Customer Email': order.user ? order.user.email : order.guestInfo?.email || 'N/A',
       'Products': order.products.map(p => `${p.name} x${p.count}`).join(', '),
       'Amount': order.amount,
       'Status': order.status || 'Pending',
