@@ -69,17 +69,219 @@ exports.createOrder = async (req, res) => {
   }
 };
 
-exports.getAllOrders = (req, res) => {
-  Order.find()
-    .populate("user", "_id name")
-    .exec((err, order) => {
-      if (err) {
-        return res.status(400).json({
-          err: "No order found in DB",
+exports.getAllOrders = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    
+    // Check if user is admin
+    if (!req.profile || req.profile.role !== 1) {
+      return res.status(403).json({
+        error: "Access denied. Admin only."
+      });
+    }
+    
+    // Extract query parameters
+    const {
+      page = 1,
+      limit = 20,
+      status,
+      search,
+      startDate,
+      endDate,
+      paymentMethod,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+    
+    // Build query
+    let query = {};
+    
+    // Status filter
+    if (status && status !== 'all') {
+      query.status = status;
+    }
+    
+    // Date range filter
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    
+    // Payment method filter
+    if (paymentMethod && paymentMethod !== 'all') {
+      query.paymentMethod = paymentMethod;
+    }
+    
+    // Search filter (order ID or user email)
+    if (search) {
+      query.$or = [
+        { _id: { $regex: search, $options: 'i' } },
+        { 'user.email': { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    // Pagination
+    const skip = (page - 1) * limit;
+    
+    // Execute query with population
+    const [orders, totalCount] = await Promise.all([
+      Order.find(query)
+        .populate('user', 'name email')
+        .populate('products.product', 'name price photoUrl images category productType')
+        .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      Order.countDocuments(query)
+    ]);
+    
+    // Calculate stats
+    const stats = await Order.aggregate([
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+    
+    // Format stats
+    const formattedStats = {
+      pending: 0,
+      processing: 0,
+      shipped: 0,
+      delivered: 0,
+      cancelled: 0
+    };
+    
+    stats.forEach(stat => {
+      const status = stat._id.toLowerCase();
+      if (formattedStats.hasOwnProperty(status)) {
+        formattedStats[status] = stat.count;
+      }
+    });
+    
+    res.json({
+      orders,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / limit),
+        totalOrders: totalCount,
+        hasMore: skip + orders.length < totalCount
+      },
+      stats: formattedStats
+    });
+    
+  } catch (err) {
+    console.error('Get all orders error:', err);
+    return res.status(400).json({
+      error: "Failed to fetch orders",
+      details: err.message
+    });
+  }
+};
+
+// Bulk update order status
+exports.bulkUpdateStatus = async (req, res) => {
+  try {
+    const { orderIds, status } = req.body;
+    
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({
+        error: "Invalid order IDs"
+      });
+    }
+    
+    if (!status) {
+      return res.status(400).json({
+        error: "Status is required"
+      });
+    }
+    
+    // Update all orders
+    const result = await Order.updateMany(
+      { _id: { $in: orderIds } },
+      { $set: { status } }
+    );
+    
+    // Send email notifications for each order
+    const orders = await Order.find({ _id: { $in: orderIds } }).populate('user', 'email name');
+    orders.forEach(order => {
+      if (order.user && order.user.email) {
+        emailService.sendOrderStatusUpdate(order, order.user, order.status).catch(err => {
+          console.error(`Failed to send status update email for order ${order._id}:`, err);
         });
       }
-      res.json(order);
     });
+    
+    res.json({
+      success: true,
+      updated: result.modifiedCount,
+      message: `Successfully updated ${result.modifiedCount} orders`
+    });
+    
+  } catch (err) {
+    console.error('Bulk update error:', err);
+    return res.status(400).json({
+      error: "Failed to update orders",
+      details: err.message
+    });
+  }
+};
+
+// Export orders to CSV
+exports.exportOrders = async (req, res) => {
+  try {
+    const { startDate, endDate, status } = req.query;
+    
+    let query = {};
+    if (status && status !== 'all') query.status = status;
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    
+    const orders = await Order.find(query)
+      .populate('user', 'name email')
+      .populate('products.product', 'name price')
+      .sort({ createdAt: -1 });
+    
+    // Create CSV content
+    const csvData = [
+      ['Order ID', 'Date', 'Customer', 'Email', 'Status', 'Payment Status', 'Items', 'Total', 'Shipping Address']
+    ];
+    
+    orders.forEach(order => {
+      const items = order.products.map(p => `${p.product?.name || 'Unknown'} (x${p.count})`).join('; ');
+      const address = order.address ? `${order.address.street}, ${order.address.city}, ${order.address.state} ${order.address.pincode}` : 'N/A';
+      
+      csvData.push([
+        order._id.toString(),
+        new Date(order.createdAt).toLocaleDateString(),
+        order.user?.name || 'Guest',
+        order.user?.email || 'N/A',
+        order.status,
+        order.paymentStatus,
+        items,
+        `₹${order.amount}`,
+        address
+      ]);
+    });
+    
+    const csvContent = csvData.map(row => row.join(',')).join('\n');
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=orders-${new Date().toISOString().split('T')[0]}.csv`);
+    res.send(csvContent);
+    
+  } catch (err) {
+    console.error('Export error:', err);
+    return res.status(400).json({
+      error: "Failed to export orders",
+      details: err.message
+    });
+  }
 };
 
 exports.getOrder = (req, res) => {

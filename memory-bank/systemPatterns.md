@@ -1,240 +1,273 @@
 # System Patterns
 
-## Current Architecture
+## Architecture Overview
+The custom t-shirt shop follows a modular React + TypeScript architecture with clear separation of concerns:
 
-### Actual Implementation
-The application currently follows a traditional full-stack architecture:
-- **Frontend**: React with Vite (TypeScript) - Single Page Application
-- **Backend**: Node.js with Express.js
-- **Database**: MongoDB (NoSQL)
-- **File Storage**: MongoDB GridFS for product images
-- **Deployment**: Vercel (frontend) + Render (backend)
-
-### Service Structure
-Currently implemented as a modular monolith with clear separation:
-- **Authentication**: JWT-based with user/admin roles
-- **Product Management**: CRUD operations with variants
-- **Order Processing**: Cart, checkout, order tracking
-- **Payment Integration**: Razorpay and Braintree
-- **Shipping Integration**: Shiprocket API
-- **Design System**: Custom t-shirt preview components
-
-## Key Technical Decisions
-
-### Frontend Architecture
-- **Build Tool**: Vite for fast development and optimized builds
-- **State Management**: React Context API + Local Storage
-- **Styling**: Tailwind CSS with dark theme design system
-- **Routing**: React Router v6 (all routes in pages/App.tsx)
-- **Form Handling**: Controlled components with validation
-- **API Client**: Fetch API with helper functions
-- **Image Handling**: Smart URL resolution with fallbacks
-
-### Backend Architecture
-- **Framework**: Express.js with modular routing
-- **Database**: Mongoose ODM for MongoDB
-- **Authentication**: JWT with express-jwt middleware
-- **Validation**: Express-validator for request validation
-- **File Upload**: Multer + MongoDB GridFS
-- **Error Handling**: Centralized error middleware
-- **CORS**: Configured for cross-origin requests
-
-### Database Design Patterns
-- **Primary Database**: MongoDB for flexibility
-- **Schema Design**: Mongoose schemas with relationships
-- **Data Models**: User, Product, Order, Design, Wishlist
-- **Relationships**: References between collections
-- **Indexes**: On frequently queried fields
-
-## Component Relationships
-
-### Frontend Component Architecture (Actual)
 ```
-App (pages/App.tsx - ALL ROUTES HERE)
-├── Layout Components
-│   ├── Header (with cart drawer)
-│   ├── Footer
-│   └── Base (layout wrapper)
-├── Pages
-│   ├── Home
-│   ├── Shop (with ProductGridItem)
-│   ├── ProductDetail
-│   ├── Customize
-│   ├── Cart
-│   ├── CheckoutFixed
-│   ├── Wishlist
-│   └── UserDashBoardEnhanced
-├── Reusable Components
-│   ├── ProductGridItem (universal product display)
-│   ├── OrderCard
-│   ├── CartDrawer
-│   └── Preview Components
-│       ├── TShirtPreview
-│       ├── SimpleTShirtPreview
-│       ├── PhotoRealisticPreview
-│       └── CartTShirtPreview
-└── UI Components
-    ├── Loading states
-    ├── Empty states
-    └── Toast notifications
+client/
+├── src/
+│   ├── admin/           # Admin dashboard modules
+│   │   ├── components/  # Reusable admin components
+│   │   │   └── orders/  # Order-specific components
+│   │   └── pages/       # Admin page components
+│   ├── components/      # Shared UI components
+│   ├── pages/          # Route pages
+│   ├── user/           # User dashboard modules
+│   ├── core/           # Core utilities
+│   └── types/          # TypeScript types
 ```
 
-### Backend Service Architecture (Actual)
+## Component Architecture Pattern
+
+### Modular Component Design
+**IMPORTANT PATTERN**: Always break large pages into small, reusable modules. This ensures:
+- Better maintainability
+- Easier testing
+- Improved reusability
+- Clear separation of concerns
+- Better performance through code splitting
+
+### Example Structure (Order Management)
 ```
-Server (app.js)
-├── Routes
-│   ├── auth.js
-│   ├── user.js
-│   ├── product.js
-│   ├── design.js
-│   ├── order.js
-│   ├── razorpay.js
-│   ├── guestOrder.js
-│   └── wishlist.js
-├── Controllers
-│   ├── auth.js
-│   ├── user.js
-│   ├── product.js
-│   ├── design.js
-│   ├── order.js
-│   └── wishlist.js
-├── Models
-│   ├── user.js
-│   ├── product.js
-│   ├── design.js
-│   ├── order.js
-│   └── wishlist.js
-├── Middleware
-│   ├── Authentication (isSignedIn, isAuthenticated)
-│   └── Authorization (isAdmin)
-└── Services
-    ├── emailService.js
-    └── shiprocket.js
+admin/
+├── OrderManagement.tsx              # Main container component
+├── components/
+│   └── orders/
+│       ├── types.ts                # Shared TypeScript interfaces
+│       ├── OrderStats.tsx          # Statistics display component
+│       ├── OrderFilters.tsx        # Filter controls component
+│       ├── OrderListItem.tsx       # Individual order row
+│       ├── OrderStatusBadge.tsx    # Status badge component
+│       ├── OrderDetailModal.tsx    # Detail view modal
+│       ├── BulkActions.tsx         # Bulk operations component
+│       └── Pagination.tsx          # Pagination controls
 ```
 
-## Design Patterns
+### Component Guidelines
+1. **Single Responsibility**: Each component should have one clear purpose
+2. **Props Interface**: Always define TypeScript interfaces for props
+3. **State Management**: Keep state as close to where it's needed as possible
+4. **Reusability**: Design components to be reusable across different contexts
+5. **Size Limit**: If a component exceeds 200 lines, consider breaking it down
 
-### Frontend Patterns (Implemented)
-1. **Component Composition**: ProductGridItem used across all product displays
-2. **Custom Hooks**: useDevMode for test mode switching
-3. **Context Pattern**: DevModeContext for global test mode state
-4. **Helper Functions**: Organized in core/helper directory
-5. **Responsive Design**: Mobile-first with Tailwind breakpoints
+## Data Flow Patterns
 
-### Backend Patterns (Implemented)
-1. **MVC Pattern**: Models, Views (React), Controllers
-2. **Middleware Chain**: Authentication → Authorization → Controller
-3. **Helper Methods**: Mongoose schema methods for business logic
-4. **Error Handling**: Try-catch with consistent error responses
-5. **Modular Routing**: Feature-based route files
+### API Integration
+```typescript
+// Centralized API calls
+const loadOrders = async () => {
+  if (isTestMode) {
+    return mockData;
+  }
+  const response = await fetch(`${API}/endpoint`);
+  return response.json();
+};
+```
 
-### API Design Patterns (Implemented)
-1. **RESTful Routes**: Standard CRUD operations
-2. **JWT Authentication**: Bearer token in headers
-3. **Request Validation**: Middleware-based validation
-4. **Response Format**: Consistent JSON structure
-5. **File Upload**: Multipart form data for images
-
-## Security Patterns
-
-### Authentication & Authorization (Implemented)
-- **JWT Strategy**: Tokens with user info and expiry
-- **Role-Based Access**: User and Admin roles
-- **Protected Routes**: Frontend (PrivateRoute, AdminRoute components)
-- **Session Management**: Token stored in localStorage
-- **Password Hashing**: Using bcrypt
-
-### Data Protection (Implemented)
-- **Input Validation**: Server-side validation
-- **MongoDB Injection Prevention**: Mongoose sanitization
-- **CORS Configuration**: Whitelisted origins
-- **Environment Variables**: Sensitive data in .env files
-
-## Performance Patterns
-
-### Frontend Optimization (Implemented)
-1. **Component Memoization**: React.memo for expensive components
-2. **Callback Optimization**: useCallback for event handlers
-3. **State Optimization**: useMemo for computed values
-4. **Image Optimization**: Lazy loading with fallbacks
-5. **Code Splitting**: Route-based with React.lazy
-6. **Dev Mode**: Mock data for offline development
-
-### Backend Optimization (Implemented)
-1. **Database Indexes**: On frequently queried fields
-2. **Populate Control**: Selective field population
-3. **Pagination**: Limit and skip for large datasets
-4. **Caching**: Pincode serviceability cache
-5. **Error Timeouts**: Prevent hanging requests
-
-## Testing Patterns
-
-### Current Testing Approach
-1. **Manual Testing**: Developer testing during development
-2. **Test Mode**: Mock data for frontend testing
-3. **API Testing**: Using test scripts (testCheckout.js, etc.)
-4. **Error Scenarios**: Handled with proper error messages
-
-## Deployment Patterns
-
-### Current Infrastructure
-1. **Frontend**: Vercel with automatic deployments
-2. **Backend**: Render with environment variables
-3. **Database**: MongoDB Atlas cloud hosting
-4. **CI/CD**: GitHub Actions for automated deployment
-5. **Monitoring**: Basic error logging
-
-### Development Workflow
-1. **Version Control**: Git with feature branches
-2. **Environment**: Development and Production
-3. **Configuration**: Environment-specific variables
-4. **Hot Reload**: Vite for frontend, Nodemon for backend
+### State Management
+- **Local State**: For component-specific state (useState)
+- **Context**: For cross-component communication (React Context)
+- **Session Storage**: For temporary data persistence
+- **Local Storage**: For user preferences
 
 ## UI/UX Patterns
 
-### Design System (Implemented)
-```css
-/* Dark Theme Palette */
-Background: #111827 (gray-900)
-Surface: #1F2937 (gray-800)
-Card: #374151 (gray-700)
-Primary: #FCD34D (yellow-400)
-Accent: #8B5CF6 (purple-600)
-
-/* Component Patterns */
-- Rounded corners: rounded-lg, rounded-xl, rounded-2xl
-- Shadows: shadow-lg with color variants
-- Transitions: 200-300ms for smooth interactions
-- Hover effects: scale-105, brightness adjustments
-- Glassmorphism: backdrop-blur with transparency
+### Dark Theme Implementation
+```typescript
+// Consistent color palette
+const colors = {
+  background: 'bg-gray-900',
+  card: 'bg-gray-800',
+  border: 'border-gray-700',
+  text: 'text-white',
+  muted: 'text-gray-400',
+  accent: 'text-yellow-400'
+};
 ```
 
-### Component Styling Patterns
-1. **Consistent Spacing**: p-4, p-6, p-8 for padding
-2. **Responsive Grid**: grid-cols with breakpoints
-3. **Flex Layouts**: Flexible alignment and spacing
-4. **Animation**: Smooth transitions and transforms
-5. **Loading States**: Skeleton screens and spinners
+### Loading States
+```typescript
+if (loading) {
+  return <Loader className="w-12 h-12 animate-spin text-yellow-400" />;
+}
+```
 
-## Recent Architectural Improvements
+### Empty States
+```typescript
+if (data.length === 0) {
+  return (
+    <div className="text-center py-8">
+      <Icon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+      <p className="text-gray-400">No data found</p>
+    </div>
+  );
+}
+```
 
-### Component Reusability
-- Created ProductGridItem for consistent product display
-- Standardized loading and empty states
-- Reusable form components for addresses
+### Error Handling
+```typescript
+try {
+  // API call
+} catch (error) {
+  toast.error('Operation failed');
+  console.error('Error details:', error);
+}
+```
 
-### Performance Improvements
-- Split large components into smaller, focused ones
-- Implemented proper memoization strategies
-- Optimized re-renders with dependency management
+## Form Patterns
 
-### Code Organization
-- Clear file structure with feature-based organization
-- Helper functions separated by domain
-- Consistent naming conventions
-- TypeScript interfaces for type safety
+### Controlled Components
+```typescript
+const [value, setValue] = useState('');
 
-### Documentation
-- Created ROUTING_GUIDE.md for routing clarity
-- Comprehensive memory bank documentation
-- API documentation in implementation guides
+<input
+  value={value}
+  onChange={(e) => setValue(e.target.value)}
+  className="standard-input-classes"
+/>
+```
+
+### Validation
+- Client-side validation for immediate feedback
+- Server-side validation for security
+- Display errors inline with fields
+
+## Navigation Patterns
+
+### Route Structure
+- All routes defined in `pages/App.tsx`
+- Protected routes check authentication
+- Consistent breadcrumb navigation
+- Clear URL patterns
+
+### Modal Navigation
+- Modals for detail views
+- Preserve background state
+- Clear close actions
+- Keyboard navigation support
+
+## Performance Patterns
+
+### Code Splitting
+```typescript
+// Lazy load heavy components
+const HeavyComponent = React.lazy(() => import('./HeavyComponent'));
+```
+
+### Memoization
+```typescript
+// Prevent unnecessary re-renders
+const MemoizedComponent = React.memo(Component);
+const memoizedValue = useMemo(() => computeExpensive(data), [data]);
+const memoizedCallback = useCallback(() => {}, [dependencies]);
+```
+
+### Image Optimization
+- Use appropriate image formats
+- Implement lazy loading
+- Provide multiple sizes
+- Use placeholders
+
+## Testing Patterns
+
+### Test Mode
+- Toggle between real and mock data
+- Consistent test data structure
+- No external dependencies in test mode
+
+### Component Testing
+```typescript
+// Test individual components in isolation
+// Mock dependencies
+// Test user interactions
+// Verify rendered output
+```
+
+## Security Patterns
+
+### Authentication
+- JWT token storage
+- Automatic token refresh
+- Protected route guards
+- Role-based access control
+
+### Data Sanitization
+- Sanitize user inputs
+- Validate API responses
+- Escape HTML content
+- Prevent XSS attacks
+
+## Development Workflow
+
+### File Organization
+```
+feature/
+├── FeatureComponent.tsx    # Main component
+├── components/             # Sub-components
+├── hooks/                  # Custom hooks
+├── utils/                  # Helper functions
+└── types.ts               # TypeScript types
+```
+
+### Naming Conventions
+- Components: PascalCase
+- Files: PascalCase for components
+- Functions: camelCase
+- Constants: UPPER_SNAKE_CASE
+- CSS classes: kebab-case
+
+### Git Workflow
+- Feature branches
+- Descriptive commit messages
+- PR reviews
+- Automated testing
+
+## Deployment Patterns
+
+### Environment Variables
+```typescript
+// Use import.meta.env for Vite
+const API_URL = import.meta.env.VITE_API_URL;
+```
+
+### Build Optimization
+- Tree shaking
+- Code minification
+- Asset optimization
+- CDN deployment
+
+## Common Utilities
+
+### Date Formatting
+```typescript
+format(new Date(date), 'PPpp'); // Pretty date format
+```
+
+### Currency Formatting
+```typescript
+new Intl.NumberFormat('en-IN', {
+  style: 'currency',
+  currency: 'INR'
+}).format(amount);
+```
+
+### Debouncing
+```typescript
+const debounced = useMemo(
+  () => debounce(handleSearch, 300),
+  []
+);
+```
+
+## Best Practices Summary
+
+1. **Always break large components into smaller modules**
+2. Use TypeScript for type safety
+3. Implement proper error handling
+4. Provide loading and empty states
+5. Follow consistent naming conventions
+6. Write reusable components
+7. Optimize for performance
+8. Maintain clean code structure
+9. Document complex logic
+10. Test critical paths

@@ -9,6 +9,7 @@ const emailService = require("../services/emailService");
 exports.getProductById = (req, res, next, id) => {
   Product.findById(id)
     .populate("category")
+    .populate("productType")
     .exec((err, product) => {
       if (err) {
         return res.status(400).json({
@@ -217,6 +218,7 @@ exports.getAllProducts = (req, res) => {
   Product.find()
     .select("-photo")
     .populate("category")
+    .populate("productType")
     .sort([[sortBy, "asc"]])
     .limit(limit)
     .exec((err, products) => {
@@ -227,6 +229,182 @@ exports.getAllProducts = (req, res) => {
       }
       res.json(products);
     });
+};
+
+// Filtered products endpoint
+exports.getFilteredProducts = async (req, res) => {
+  try {
+    const {
+      search,
+      category,
+      productType,
+      minPrice,
+      maxPrice,
+      tags,
+      sortBy,
+      sortOrder,
+      page = 1,
+      limit = 12
+    } = req.query;
+
+    // Build filter object
+    const filter = {};
+
+    // Search filter (name or description)
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Category filter
+    if (category && category !== 'all') {
+      filter.category = category;
+    }
+
+    // Product type filter - handle both old string values and new ObjectIds
+    if (productType && productType !== 'all') {
+      try {
+        // Import ProductType model
+        const ProductType = require("../models/productType");
+        const mongoose = require("mongoose");
+        
+        // Check if productType is a valid ObjectId
+        if (mongoose.Types.ObjectId.isValid(productType)) {
+          const typeDoc = await ProductType.findById(productType);
+          
+          if (typeDoc) {
+            // We need to match products that have either:
+            // 1. An ObjectId reference to this ProductType
+            // 2. A string value that matches this ProductType's variations
+            
+            // First, let's find all products with ObjectId references
+            const productsWithObjectId = await Product.find({ 
+              productType: { $type: 'objectId' } 
+            }).select('_id');
+            
+            const hasObjectIdProducts = productsWithObjectId.length > 0;
+            
+            // Create filter conditions
+            const orConditions = [];
+            
+            // Only add ObjectId condition if there are products with ObjectId productType
+            if (hasObjectIdProducts) {
+              orConditions.push({ 
+                $and: [
+                  { productType: { $type: 'objectId' } },
+                  { productType: mongoose.Types.ObjectId(productType) }
+                ]
+              });
+            }
+            
+            // Add string matching conditions
+            orConditions.push(
+              { productType: typeDoc.name }, // Match by name (e.g., 'tshirt')
+              { productType: typeDoc.displayName }, // Match exact display name
+              { productType: typeDoc.displayName.toLowerCase() }, // Match lowercase
+              { productType: typeDoc.displayName.toLowerCase().replace(/\s+/g, '-') }, // Match with hyphens
+              { productType: typeDoc.displayName.toLowerCase().replace(/\s+/g, '') } // Match without spaces
+            );
+            
+            // Special handling for T-Shirt variations
+            if (typeDoc.name === 'tshirt' || typeDoc.displayName === 'T-Shirt') {
+              orConditions.push(
+                { productType: 't-shirt' },
+                { productType: 'tshirt' },
+                { productType: 'Tshirt' },
+                { productType: 'TShirt' },
+                { productType: 'T-shirt' },
+                { productType: 'Classic T-Shirt' },
+                { productType: 't shirt' } // Add space variation
+              );
+            }
+            
+            // If we already have a $or condition from search, we need to combine them
+            if (filter.$or) {
+              filter.$and = [
+                { $or: filter.$or },
+                { $or: orConditions }
+              ];
+              delete filter.$or;
+            } else {
+              filter.$or = orConditions;
+            }
+          }
+        } else {
+          // If not a valid ObjectId, treat it as a string filter
+          filter.productType = productType;
+        }
+      } catch (typeErr) {
+        console.error('ProductType filter error:', typeErr);
+        // If error, don't add productType filter
+      }
+    }
+
+    // Price range filter
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = parseFloat(minPrice);
+      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+    }
+
+    // Tags filter
+    if (tags) {
+      const tagArray = Array.isArray(tags) ? tags : tags.split(',');
+      filter.tags = { $in: tagArray };
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build sort object
+    let sort = {};
+    switch (sortBy) {
+      case 'price':
+        sort.price = sortOrder === 'desc' ? -1 : 1;
+        break;
+      case 'newest':
+        sort.createdAt = -1;
+        break;
+      case 'bestselling':
+        sort.sold = -1;
+        break;
+      case 'name':
+        sort.name = sortOrder === 'desc' ? -1 : 1;
+        break;
+      default:
+        sort._id = -1; // Default sort by newest
+    }
+
+    // Execute query
+    const [products, totalCount] = await Promise.all([
+      Product.find(filter)
+        .select("-photo")
+        .populate("category")
+        .populate("productType")
+        .sort(sort)
+        .limit(parseInt(limit))
+        .skip(skip),
+      Product.countDocuments(filter)
+    ]);
+
+    res.json({
+      products,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        totalProducts: totalCount,
+        hasMore: skip + products.length < totalCount
+      }
+    });
+  } catch (err) {
+    console.error('Filter error:', err);
+    return res.status(400).json({
+      error: "Failed to filter products",
+      details: err.message
+    });
+  }
 };
 
 //updating the inventory - now handles size-wise stock

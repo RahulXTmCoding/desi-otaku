@@ -285,7 +285,7 @@ const Home: React.FC = () => {
           </div>
         </section>
 
-        {/* Categories Section */}
+        {/* Categories Section
         <section className="px-6 py-16 bg-gray-800/50">
           <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
@@ -316,7 +316,7 @@ const Home: React.FC = () => {
               })}
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* Trending Section */}
         <section className="px-6 py-16">

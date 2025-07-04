@@ -29,13 +29,11 @@ const productSchema = new Schema(
       ref: "Category",
     },
 
-    // Product type (t-shirt, vest, hoodie, etc.)
+    // Product type reference
     productType: {
-      type: String,
-      required: true,
-      trim: true,
-      enum: ['t-shirt', 'vest', 'hoodie', 'oversized-tee', 'acid-wash', 'tank-top', 'long-sleeve', 'crop-top', 'other'],
-      default: 't-shirt'
+      type: ObjectId,
+      ref: "ProductType",
+      required: true
     },
     
     // Total stock across all sizes (for backward compatibility)

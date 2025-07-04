@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom"
 import Home from '../core/Home';
-import Shop from '../pages/Shop';
+import ShopWithBackendFilters from '../pages/ShopWithBackendFilters';
 import Contact from '../pages/Contact';
 import Customize from './Customize';
 import Cart from '../core/Cart';
@@ -26,8 +26,11 @@ import ManageDesigns from '../admin/ManageDesigns';
 import UpdateDesign from '../admin/UpdateDesign';
 import ReviewSettings from '../admin/ReviewSettings';
 import AnalyticsDashboard from '../admin/AnalyticsDashboard';
+import Analytics from '../admin/Analytics';
 import ManageCoupons from '../admin/ManageCoupons';
 import ProductVariantsPage from '../admin/ProductVariantsPage';
+import OrderManagement from '../admin/OrderManagement';
+import ManageProductTypes from '../admin/ManageProductTypes';
 import PrivateRoute from "../auth/helper/PrivateRoutes";
 import AdminRoute from "../auth/helper/AdminRoutes";
 import DevModeToggle from '../components/DevModeToggle';
@@ -41,7 +44,7 @@ export default function App() {
       <main className="flex-grow">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/shop" element={<Shop />} />
+          <Route path="/shop" element={<ShopWithBackendFilters />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/customize" element={<Customize />} />
@@ -97,6 +100,11 @@ export default function App() {
               <ProductVariantsPage />
             </AdminRoute>
           } />
+          <Route path="/admin/product-types" element={
+            <AdminRoute>
+              <ManageProductTypes />
+            </AdminRoute>
+          } />
           <Route path="/admin/create/design" element={
             <AdminRoute>
               <AddDesign />
@@ -112,17 +120,19 @@ export default function App() {
               <UpdateDesign />
             </AdminRoute>
           } />
+          <Route path="/admin/order-management" element={
+            <AdminRoute>
+              <OrderManagement />
+            </AdminRoute>
+          } />
           <Route path="/admin/orders" element={
             <AdminRoute>
-              <div className="min-h-screen bg-gray-900 text-white p-8">
-                <h1 className="text-3xl font-bold">Orders Management</h1>
-                <p className="text-gray-400 mt-4">Orders feature coming soon...</p>
-              </div>
+              <OrderManagement />
             </AdminRoute>
           } />
           <Route path="/admin/analytics" element={
             <AdminRoute>
-              <AnalyticsDashboard />
+              <Analytics />
             </AdminRoute>
           } />
           <Route path="/admin/coupons" element={

@@ -8,6 +8,7 @@ const {
   deleteProduct,
   updateProduct,
   getAllProducts,
+  getFilteredProducts,
   getAllUniqueCategories,
   checkInventory,
   reserveInventory,
@@ -68,6 +69,7 @@ router.put(
 //listing route
 
 router.get("/products", getAllProducts);
+router.get("/products/filtered", getFilteredProducts);
 router.get("/products/categories", getAllUniqueCategories);
 
 // Search routes

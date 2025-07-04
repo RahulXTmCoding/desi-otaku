@@ -1,184 +1,94 @@
 # Active Context
 
-## Current Status
-Major user experience improvements completed! Enhanced user dashboard is now live with modern UI, reusable components, and comprehensive features.
+## Current Work Focus
+- Successfully implemented Admin Order Management & Analytics with full backend integration
+- Created ProductType management system with dynamic product types
+- Fixed Shop page filtering to use server-side filtering (best practice)
+- Resolved product type filtering issues for both migrated and non-migrated products
 
-## Recent Major Updates (January 7, 2025)
+## Recent Changes
 
-### 1. Enhanced User Dashboard ✅
-Created `UserDashBoardEnhanced.tsx` with:
-- **Modern UI Design**
-  - Gradient backgrounds with glassmorphism effects
-  - Smooth animations and hover effects
-  - Professional dark theme with yellow accents
-  - Sidebar navigation with icons
+### 1. Admin Order Management (/admin/orders)
+- Created comprehensive order management system with real-time filtering
+- Implemented bulk status updates for multiple orders
+- Added detailed order modal with complete information
+- Added CSV export functionality
+- Fixed transaction_id display bug
+- Fixed product image rendering issues
 
-- **Complete Feature Set**
-  - Overview tab with stats cards and recent orders
-  - Orders tab with full order history
-  - Wishlist tab with grid view
-  - Addresses tab with CRUD operations
-  - Settings tab for profile and password updates
+### 2. Analytics Dashboard (/admin/analytics)
+- Created full analytics dashboard with revenue metrics and visual charts
+- Implemented sales overview cards (revenue, orders, avg order value)
+- Added product performance tracking
+- Added category breakdown analysis
+- Implemented date range filtering (7d, 30d, 90d, custom)
+- Connected to real-time MongoDB data
 
-- **User Experience Improvements**
-  - Loading states for all data fetching
-  - Success/Error toast notifications
-  - Empty states with call-to-action buttons
-  - Responsive design for all devices
+### 3. Product Types Management System
+- Cleaned up ProductType model (removed unnecessary fields)
+- Created admin management page at /admin/product-types
+- Implemented full CRUD operations with drag-and-drop reordering
+- Added links to Header navigation and Admin Dashboard
+- Set up proper ProductType documents with name field
 
-### 2. Reusable Product Component ✅
-Created `ProductGridItem.tsx`:
-- **Smart Image Handling**
-  ```typescript
-  // Handles multiple URL formats
-  if (product.photoUrl.startsWith('http')) {
-    return product.photoUrl; // Full URLs
-  }
-  if (product.photoUrl.startsWith('/api/')) {
-    return `${API}${product.photoUrl.substring(4)}`; // API paths
-  }
-  return `${API}/product/photo/${product._id}`; // Default
-  ```
-- **Feature-rich Display**
-  - Wishlist toggle button
-  - Add to cart functionality
-  - Quick view option
-  - Remove button (for wishlist)
-  - Stock status badges
-  - Image fallback to SVG placeholder
+### 4. Dynamic Product Types Integration
+- Shop page now uses server-side filtering with backend endpoint
+- Created `/api/products/filtered` endpoint for proper server-side filtering
+- AddProduct/UpdateProduct pages use dynamic product types from backend
+- Backend filtering handles both migrated (ObjectId) and non-migrated (string) products
 
-### 3. Routing Simplification ✅
-- **Removed**: `client/src/Routes.tsx` (unused and confusing)
-- **Created**: `client/ROUTING_GUIDE.md` with clear documentation
-- **Updated**: All routes now in `client/src/pages/App.tsx`
-- **Key Point**: main.tsx → pages/App.tsx (contains ALL routes)
+### 5. Server-Side Filtering Implementation
+- Removed frontend filtering from Shop page (following best practices)
+- Created ShopWithBackendFilters component that fetches filtered data from backend
+- Implemented proper pagination with server-side data
+- Added proper error handling and loading states
 
-### 4. Component Standardization ✅
-Updated all pages to use ProductGridItem:
-- `client/src/pages/Shop.tsx`
-- `client/src/pages/Wishlist.tsx`
-- `client/src/core/Home.tsx`
-- `client/src/user/UserDashBoardEnhanced.tsx`
+## Next Steps
+- Monitor performance of the new server-side filtering
+- Consider implementing caching for frequently accessed product type data
+- Add more advanced analytics features if needed
+- Consider implementing real-time order status updates using WebSockets
 
-### 5. Bug Fixes ✅
-- **Image Display**: Fixed wishlist API returning `/api/product/photo/...` paths
-- **Address Count**: Fixed overview showing 0 addresses (now loads on overview tab)
-- **Component Consistency**: All product displays now use same component
+## Active Decisions and Considerations
+- Chose server-side filtering over frontend filtering for better performance and scalability
+- Maintained backward compatibility for products with string productType values
+- Used MongoDB's $or queries to handle multiple productType variations
+- Implemented proper pagination to handle large product catalogs
 
-## Phase 3: Custom Design System (In Progress)
+## Important Patterns and Preferences
+- Server-side filtering for all data-heavy operations
+- Proper error handling with user-friendly messages
+- Loading states for all async operations
+- Backward compatibility when migrating data structures
+- Component modularity with separate files for complex features
 
-### Completed in Current Phase:
-1. **T-Shirt Preview Components** ✅
-   - `TShirtPreview.tsx` - Basic preview
-   - `SimpleTShirtPreview.tsx` - SVG-based
-   - `PhotoRealisticPreview.tsx` - Canvas-based
-   - `CartTShirtPreview.tsx` - Cart-specific preview
-
-2. **User Dashboard Enhancement** ✅
-   - Complete redesign with modern UI
-   - Full feature implementation
-   - Responsive and accessible
-
-### In Progress:
-1. **Advanced Design Editor Features**
-   - Canvas-based design manipulation
-   - Design positioning and sizing
-   - Save/load functionality
+## Learnings and Project Insights
+- Server-side filtering is crucial for scalable e-commerce applications
+- MongoDB's flexibility allows handling both old and new data structures simultaneously
+- Proper TypeScript interfaces help catch potential issues early
+- Breaking down complex components into smaller modules improves maintainability
+- Analytics data should be computed on the backend for accuracy
 
 ## Technical Implementation Details
 
-### Dashboard Architecture
-```typescript
-// Tab structure
-const sidebarItems = [
-  { id: 'overview', label: 'Overview', icon: User },
-  { id: 'orders', label: 'My Orders', icon: Package },
-  { id: 'wishlist', label: 'Wishlist', icon: Heart },
-  { id: 'addresses', label: 'Addresses', icon: MapPin },
-  { id: 'settings', label: 'Settings', icon: Settings }
-];
+### ProductType Filtering Solution
+The main challenge was handling products that have:
+1. String values like "t-shirt", "tshirt", "Classic T-Shirt"
+2. ObjectId references to ProductType documents
 
-// Stats display
-const stats = [
-  { label: 'Total Orders', value: orders.length },
-  { label: 'Wishlist Items', value: wishlist.length },
-  { label: 'Saved Addresses', value: addresses.length }
-];
-```
+Solution implemented:
+- Created comprehensive OR conditions to match all variations
+- Special handling for T-Shirt variations (most common product type)
+- Used MongoDB's $type operator to differentiate between ObjectId and string fields
+- Maintained backward compatibility while supporting new structure
 
-### ProductGridItem Props
-```typescript
-interface ProductGridItemProps {
-  product: Product;
-  showWishlistButton?: boolean;
-  showCartButton?: boolean;
-  showQuickView?: boolean;
-  showRemoveButton?: boolean;
-  onRemove?: (productId: string) => void;
-  isInWishlist?: boolean;
-  onWishlistToggle?: (productId: string) => void;
-  className?: string;
-}
-```
+### Scripts Created for Migration
+1. `setupProductTypes.js` - Creates ProductType documents with proper fields
+2. `checkProductTypes.js` - Checks current productType values in products
+3. `migrateProductTypes.js` - Migrates products to use ObjectId references
+4. `testProductTypeFilter.js` - Tests the filtering logic
 
-## Important Patterns & Preferences
-
-### Component Organization
-- Reusable components for consistency (ProductGridItem)
-- Feature-based file organization
-- TypeScript interfaces for all props
-- Responsive design patterns
-
-### User Experience Patterns
-- Toast notifications for feedback
-- Loading states during async operations
-- Empty states with clear CTAs
-- Smooth animations (200-300ms transitions)
-- Hover effects for interactivity
-
-### Routing Best Practices
-- All routes in `pages/App.tsx`
-- Use React Router v6 patterns
-- Protected routes with auth guards
-- Clear navigation structure
-
-## Current Technical Stack
-- **Frontend**: React + TypeScript + Vite + Tailwind CSS
-- **Backend**: Node.js + Express + MongoDB
-- **State Management**: React Context + Local Storage
-- **UI/UX**: Dark theme with yellow accents
-- **Deployment**: Vercel + Render + GitHub Actions
-
-## Next Steps
-
-1. **Complete Design Editor**
-   - Implement design manipulation tools
-   - Add text overlay capabilities
-   - Create template system
-
-2. **Order Management Enhancement**
-   - Order tracking integration
-   - Invoice generation
-   - Return/refund flow
-
-3. **Performance Optimization**
-   - Image lazy loading
-   - Code splitting
-   - Cache optimization
-
-## Development Guidelines
-
-### Code Quality
-- TypeScript for type safety
-- Consistent naming conventions
-- Reusable component patterns
-- Proper error handling
-
-### Testing Approach
-- Component testing for UI
-- API testing for backend
-- E2E testing for critical flows
-- Performance monitoring
-
-## Current Focus
-The enhanced user dashboard is now complete and live. Focus is shifting back to the custom design editor implementation, building on the solid foundation of reusable components and improved user experience patterns established during the dashboard enhancement.
+### API Endpoints Created
+- `GET /api/products/filtered` - Server-side product filtering with pagination
+- Supports: search, category, productType, price range, tags, sorting
+- Returns paginated results with metadata

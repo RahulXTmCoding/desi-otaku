@@ -16,7 +16,9 @@ const {
   checkPincode,
   generateLabel,
   trackShipment,
-  createShipment
+  createShipment,
+  bulkUpdateStatus,
+  exportOrders
 } = require("../controllers/order");
 
 //params
@@ -98,6 +100,24 @@ router.post(
   isAuthenticated,
   isAdmin,
   createShipment
+);
+
+// Bulk operations
+router.put(
+  "/order/bulk/status/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  bulkUpdateStatus
+);
+
+// Export orders
+router.get(
+  "/order/export/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  exportOrders
 );
 
 module.exports = router;

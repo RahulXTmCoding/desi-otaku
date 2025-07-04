@@ -98,6 +98,10 @@ const Header: React.FC = () => {
                 <span className="relative z-10">Products</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
+              <Link to="/admin/product-types" className="relative text-white/90 hover:text-white transition-all group">
+                <span className="relative z-10">Types</span>
+                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
+              </Link>
               <Link to="/admin/categories" className="relative text-white/90 hover:text-white transition-all group">
                 <span className="relative z-10">Categories</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>

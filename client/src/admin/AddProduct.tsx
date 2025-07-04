@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
 import { createaProduct, getCategories, mockCreateProduct } from "./helper/adminapicall";
+import { getAllProductTypes } from "./helper/productTypeApiCalls";
 import { useDevMode } from "../context/DevModeContext";
 import { mockCategories } from "../data/mockData";
 
@@ -37,6 +38,7 @@ const AddProduct = () => {
     tags: string;
     productType: string;
     categories: any[];
+    productTypes: any[];
     category: string;
     loading: boolean;
     error: string;
@@ -51,8 +53,9 @@ const AddProduct = () => {
     photo: "",
     photoUrl: "",
     tags: "",
-    productType: "t-shirt",
+    productType: "",
     categories: [],
+    productTypes: [],
     category: "",
     loading: false,
     error: "",
@@ -73,6 +76,7 @@ const AddProduct = () => {
     tags,
     productType,
     categories,
+    productTypes,
     category,
     loading,
     error,
@@ -80,29 +84,30 @@ const AddProduct = () => {
     formData,
   } = values;
 
-  const productTypes = [
-    { value: 't-shirt', label: 'T-Shirt', icon: '👔' },
-    { value: 'vest', label: 'Vest', icon: '🦺' },
-    { value: 'hoodie', label: 'Hoodie', icon: '🧥' },
-    { value: 'oversized-tee', label: 'Oversized Tee', icon: '👕' },
-    { value: 'acid-wash', label: 'Acid Wash', icon: '🎨' },
-    { value: 'tank-top', label: 'Tank Top', icon: '🎽' },
-    { value: 'long-sleeve', label: 'Long Sleeve', icon: '🥼' },
-    { value: 'crop-top', label: 'Crop Top', icon: '👚' },
-    { value: 'other', label: 'Other', icon: '📦' }
-  ];
-
-  const preload = () => {
+  const preload = async () => {
     if (isTestMode) {
       setValues({ ...values, categories: mockCategories, formData: new FormData() });
     } else {
-      getCategories().then((data: any) => {
-        if (data.error) {
-          setValues({ ...values, error: data.error });
+      try {
+        // Load both categories and product types
+        const [categoriesData, typesData] = await Promise.all([
+          getCategories(),
+          getAllProductTypes(true) // Get only active product types
+        ]);
+        
+        if (categoriesData.error) {
+          setValues({ ...values, error: categoriesData.error });
         } else {
-          setValues({ ...values, categories: data, formData: new FormData() });
+          setValues({ 
+            ...values, 
+            categories: categoriesData, 
+            productTypes: Array.isArray(typesData) ? typesData : [],
+            formData: new FormData() 
+          });
         }
-      });
+      } catch (err) {
+        setValues({ ...values, error: "Failed to load data" });
+      }
     }
   };
 
@@ -384,24 +389,31 @@ const AddProduct = () => {
               Product Type
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {productTypes.map((type) => (
-                <button
-                  key={type.value}
-                  type="button"
-                  onClick={() => {
-                    setValues({ ...values, productType: type.value });
-                    formData.set("productType", type.value);
-                  }}
-                  className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
-                    productType === type.value
-                      ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400'
-                      : 'bg-gray-700 border-gray-600 hover:border-gray-500'
-                  }`}
-                >
-                  <span className="text-2xl">{type.icon}</span>
-                  <span className="text-sm font-medium">{type.label}</span>
-                </button>
-              ))}
+              {productTypes.length > 0 ? (
+                productTypes.map((type) => (
+                  <button
+                    key={type._id}
+                    type="button"
+                    onClick={() => {
+                      setValues({ ...values, productType: type._id });
+                      formData.set("productType", type._id);
+                    }}
+                    className={`p-4 rounded-lg border-2 transition-all flex flex-col items-center gap-2 ${
+                      productType === type._id
+                        ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400'
+                        : 'bg-gray-700 border-gray-600 hover:border-gray-500'
+                    }`}
+                  >
+                    <span className="text-2xl">{type.icon || '📦'}</span>
+                    <span className="text-sm font-medium">{type.displayName}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-8 text-gray-400">
+                  <Shirt className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>Loading product types...</p>
+                </div>
+              )}
             </div>
           </div>
 
