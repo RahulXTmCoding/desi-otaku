@@ -6,6 +6,7 @@ import { toast, Toaster } from 'react-hot-toast';
 import { CSVLink } from 'react-csv';
 import { format } from 'date-fns';
 import { API } from '../backend';
+import { useSearchParams } from 'react-router-dom';
 
 // Import modular components
 import OrderStats from './components/orders/OrderStats';
@@ -21,6 +22,7 @@ const OrderManagement: React.FC = () => {
   const user = authData && authData.user;
   const token = authData && authData.token;
   const { isTestMode } = useDevMode();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   // State management
   const [orders, setOrders] = useState<Order[]>([]);
@@ -29,15 +31,15 @@ const OrderManagement: React.FC = () => {
   const [error, setError] = useState('');
   const [selectedOrders, setSelectedOrders] = useState<string[]>([]);
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
   const [ordersPerPage] = useState(10);
   
-  // Filters
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [dateFilter, setDateFilter] = useState('all');
-  const [paymentFilter, setPaymentFilter] = useState('all');
-  const [sortBy, setSortBy] = useState('date-desc');
+  // Initialize filters from URL params
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
+  const [dateFilter, setDateFilter] = useState(searchParams.get('date') || 'all');
+  const [paymentFilter, setPaymentFilter] = useState(searchParams.get('payment') || 'all');
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'date-desc');
   
   // Modals
   const [showOrderDetail, setShowOrderDetail] = useState<Order | null>(null);
@@ -53,6 +55,20 @@ const OrderManagement: React.FC = () => {
     cancelled: 0,
     total: 0
   });
+
+  // Update URL params whenever filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (searchQuery) params.set('search', searchQuery);
+    if (statusFilter !== 'all') params.set('status', statusFilter);
+    if (dateFilter !== 'all') params.set('date', dateFilter);
+    if (paymentFilter !== 'all') params.set('payment', paymentFilter);
+    if (sortBy !== 'date-desc') params.set('sort', sortBy);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    
+    setSearchParams(params);
+  }, [searchQuery, statusFilter, dateFilter, paymentFilter, sortBy, currentPage, setSearchParams]);
 
   useEffect(() => {
     loadOrders();

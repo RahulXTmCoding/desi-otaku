@@ -16,13 +16,35 @@ export const createDesign = (userId: string, token: string, design: FormData) =>
     .catch((err) => console.log(err));
 };
 
-// Get all designs
-export const getDesigns = () => {
-  return fetch(`${API}/designs`, {
+// Get all designs (with pagination)
+export const getDesigns = (page = 1, limit = 20, filters = {}) => {
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    ...filters
+  });
+  
+  return fetch(`${API}/designs?${queryParams}`, {
     method: "GET",
   })
     .then((response) => {
       return response.json();
+    })
+    .then((data) => {
+      // Handle both old (array) and new (paginated) response formats
+      if (Array.isArray(data)) {
+        // Old format - convert to paginated format
+        return {
+          designs: data,
+          pagination: {
+            currentPage: 1,
+            totalPages: 1,
+            totalDesigns: data.length,
+            hasMore: false
+          }
+        };
+      }
+      return data;
     })
     .catch((err) => console.log(err));
 };

@@ -204,6 +204,7 @@ exports.deleteDesign = async (req, res) => {
 // Get all designs
 exports.getAllDesigns = async (req, res) => {
   try {
+    let page = req.query.page ? parseInt(req.query.page) : 1;
     let limit = req.query.limit ? parseInt(req.query.limit) : 20;
     let sortBy = req.query.sortBy ? req.query.sortBy : "_id";
     let order = req.query.order ? req.query.order : "desc";
@@ -216,7 +217,13 @@ exports.getAllDesigns = async (req, res) => {
     let query = {};
     
     if (category && category !== 'all') {
-      query.category = category;
+      // Convert string ID to ObjectId if it's a valid ObjectId string
+      if (category.match(/^[0-9a-fA-F]{24}$/)) {
+        query.category = category;
+      } else {
+        // If not a valid ObjectId, treat as category name (for backward compatibility)
+        query.category = category;
+      }
     }
     
     if (tag) {
@@ -235,13 +242,30 @@ exports.getAllDesigns = async (req, res) => {
       ];
     }
 
-    const designs = await Design.find(query)
-      .select("-image")
-      .sort({ [sortBy]: order === 'desc' ? -1 : 1 })
-      .limit(limit)
-      .exec();
+    // Calculate skip
+    const skip = (page - 1) * limit;
+
+    // Execute query with pagination
+    const [designs, totalCount] = await Promise.all([
+      Design.find(query)
+        .select("-image")
+        .populate("category", "name")  // Populate category name
+        .sort({ [sortBy]: order === 'desc' ? -1 : 1 })
+        .skip(skip)
+        .limit(limit)
+        .exec(),
+      Design.countDocuments(query)
+    ]);
       
-    res.json(designs);
+    res.json({
+      designs,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
+        totalDesigns: totalCount,
+        hasMore: skip + designs.length < totalCount
+      }
+    });
   } catch (err) {
     console.error("Error fetching designs:", err);
     return res.status(400).json({

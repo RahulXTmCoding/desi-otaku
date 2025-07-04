@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { 
   User, 
   Package, 
@@ -85,12 +85,13 @@ interface WishlistItem {
 
 const UserDashBoardEnhanced = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const authData = isAutheticated();
   const user = authData && authData.user;
   const token = authData && authData.token;
   const { isTestMode } = useDevMode();
   
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'overview');
   const [orders, setOrders] = useState<Order[]>([]);
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -123,6 +124,15 @@ const UserDashBoardEnhanced = () => {
     newPassword: '',
     confirmPassword: ''
   });
+
+  // Update URL when tab changes
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeTab !== 'overview') {
+      params.set('tab', activeTab);
+    }
+    setSearchParams(params);
+  }, [activeTab, setSearchParams]);
 
   useEffect(() => {
     loadData();

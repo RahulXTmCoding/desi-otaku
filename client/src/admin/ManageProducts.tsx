@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { 
-  ChevronLeft, 
+  ChevronLeft,
+  ChevronRight, 
   Package, 
   Edit2, 
   Trash2, 
@@ -15,7 +16,9 @@ import {
   Trash
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
-import { getProducts, deleteProduct, mockDeleteProduct } from "./helper/adminapicall";
+import { deleteProduct, mockDeleteProduct } from "./helper/adminapicall";
+import { getFilteredProducts } from "../core/helper/shopApiCalls";
+import { getCategories } from "../core/helper/coreapicalls";
 import { useDevMode } from "../context/DevModeContext";
 import { mockProducts, getMockProductImage } from "../data/mockData";
 import { API } from "../backend";
@@ -34,44 +37,184 @@ interface Product {
 }
 
 const ManageProducts = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // Initialize state from URL params
   const [products, setProducts] = useState<Product[]>([]);
   const [deletedProducts, setDeletedProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [permanentDeleteConfirm, setPermanentDeleteConfirm] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
-  const [priceFilter, setPriceFilter] = useState<{ min: string; max: string }>({ min: '', max: '' });
-  const [stockFilter, setStockFilter] = useState<'all' | 'in-stock' | 'low-stock' | 'out-of-stock'>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'active' | 'deleted'>('active');
+  const [showFilters, setShowFilters] = useState(searchParams.get('filters') === 'show');
+  const [priceFilter, setPriceFilter] = useState<{ min: string; max: string }>({ 
+    min: searchParams.get('priceMin') || '', 
+    max: searchParams.get('priceMax') || '' 
+  });
+  const [stockFilter, setStockFilter] = useState<'all' | 'in-stock' | 'low-stock' | 'out-of-stock'>(
+    (searchParams.get('stock') as any) || 'all'
+  );
+  const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || 'all');
+  const [viewMode, setViewMode] = useState<'active' | 'deleted'>((searchParams.get('view') as any) || 'active');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const itemsPerPage = 20;
+  
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const auth = isAutheticated();
 
-  const preload = () => {
+  // Load categories on mount
+  useEffect(() => {
+    getCategories()
+      .then((data: any) => {
+        if (data && !data.error) {
+          setCategories(data);
+        }
+      })
+      .catch((err: any) => console.log(err));
+  }, []);
+
+  // Update URL params whenever filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (searchTerm) params.set('search', searchTerm);
+    if (showFilters) params.set('filters', 'show');
+    if (priceFilter.min) params.set('priceMin', priceFilter.min);
+    if (priceFilter.max) params.set('priceMax', priceFilter.max);
+    if (stockFilter !== 'all') params.set('stock', stockFilter);
+    if (categoryFilter !== 'all') params.set('category', categoryFilter);
+    if (viewMode !== 'active') params.set('view', viewMode);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    
+    setSearchParams(params);
+  }, [searchTerm, showFilters, priceFilter, stockFilter, categoryFilter, viewMode, currentPage, setSearchParams]);
+
+  // Load products when filters change
+  useEffect(() => {
+    if (viewMode === 'active') {
+      loadActiveProducts();
+    } else {
+      loadDeletedProducts();
+    }
+  }, [searchTerm, priceFilter, stockFilter, categoryFilter, currentPage, viewMode, isTestMode]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, priceFilter, stockFilter, categoryFilter, viewMode]);
+
+  const loadActiveProducts = async () => {
     setLoading(true);
+    setError("");
     
     if (isTestMode) {
-      // Use mock data
+      // Use mock data with client-side filtering for test mode
       setTimeout(() => {
-        setProducts(mockProducts);
-        setFilteredProducts(mockProducts);
+        let filtered = [...mockProducts];
+        
+        // Apply filters
+        if (searchTerm) {
+          filtered = filtered.filter(p => 
+            p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            p.description.toLowerCase().includes(searchTerm.toLowerCase())
+          );
+        }
+        
+        if (categoryFilter !== 'all') {
+          filtered = filtered.filter(p => p.category._id === categoryFilter);
+        }
+        
+        // Apply stock filter
+        if (stockFilter !== 'all') {
+          filtered = filtered.filter(product => {
+            switch (stockFilter) {
+              case 'in-stock':
+                return product.stock > 10;
+              case 'low-stock':
+                return product.stock > 0 && product.stock <= 10;
+              case 'out-of-stock':
+                return product.stock === 0;
+              default:
+                return true;
+            }
+          });
+        }
+        
+        // Apply price filter
+        if (priceFilter.min || priceFilter.max) {
+          filtered = filtered.filter(product => {
+            const min = priceFilter.min ? parseInt(priceFilter.min) : 0;
+            const max = priceFilter.max ? parseInt(priceFilter.max) : Infinity;
+            return product.price >= min && product.price <= max;
+          });
+        }
+        
+        // Pagination
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedProducts = filtered.slice(startIndex, startIndex + itemsPerPage);
+        
+        setProducts(paginatedProducts);
+        setTotalProducts(filtered.length);
+        setTotalPages(Math.ceil(filtered.length / itemsPerPage));
         setLoading(false);
       }, 500);
-    } else {
-      // Use real backend
-      getProducts().then((data: any) => {
-        setLoading(false);
-        if (data.error) {
-          setError(data.error);
-        } else {
-          setProducts(data);
-          setFilteredProducts(data);
+      return;
+    }
+    
+    try {
+      // Build filters for backend
+      const filters: any = {
+        page: currentPage,
+        limit: itemsPerPage,
+      };
+      
+      if (searchTerm) filters.search = searchTerm;
+      if (categoryFilter !== 'all') filters.category = categoryFilter;
+      
+      // Parse price range
+      if (priceFilter.min) filters.minPrice = parseInt(priceFilter.min);
+      if (priceFilter.max) filters.maxPrice = parseInt(priceFilter.max);
+      
+      // Map stock filter to backend query
+      if (stockFilter !== 'all') {
+        switch (stockFilter) {
+          case 'out-of-stock':
+            filters.minStock = 0;
+            filters.maxStock = 0;
+            break;
+          case 'low-stock':
+            filters.minStock = 1;
+            filters.maxStock = 10;
+            break;
+          case 'in-stock':
+            filters.minStock = 11;
+            break;
         }
-      });
+      }
+      
+      const data = await getFilteredProducts(filters);
+      
+      if (data.error) {
+        setError(data.error);
+        setProducts([]);
+      } else {
+        setProducts(data.products || []);
+        setTotalProducts(data.totalProducts || 0);
+        setTotalPages(data.totalPages || 1);
+      }
+    } catch (err) {
+      console.error('Error loading products:', err);
+      setError('Failed to load products. Please try again.');
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -102,63 +245,6 @@ const ManageProducts = () => {
     }
   };
 
-  useEffect(() => {
-    if (viewMode === 'active') {
-      preload();
-    } else {
-      loadDeletedProducts();
-    }
-  }, [isTestMode, viewMode]);
-
-  useEffect(() => {
-    let filtered = viewMode === 'active' ? products : deletedProducts;
-
-    // Apply search filter
-    if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.category?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Apply price filter
-    if (priceFilter.min || priceFilter.max) {
-      filtered = filtered.filter(product => {
-        const min = priceFilter.min ? parseInt(priceFilter.min) : 0;
-        const max = priceFilter.max ? parseInt(priceFilter.max) : Infinity;
-        return product.price >= min && product.price <= max;
-      });
-    }
-
-    // Apply stock filter
-    if (stockFilter !== 'all') {
-      filtered = filtered.filter(product => {
-        switch (stockFilter) {
-          case 'in-stock':
-            return product.stock > 10;
-          case 'low-stock':
-            return product.stock > 0 && product.stock <= 10;
-          case 'out-of-stock':
-            return product.stock === 0;
-          default:
-            return true;
-        }
-      });
-    }
-
-    // Apply category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(product => 
-        product.category?._id === categoryFilter
-      );
-    }
-
-    setFilteredProducts(filtered);
-  }, [searchTerm, products, priceFilter, stockFilter, categoryFilter]);
-
-  // Get unique categories
-  const categories = Array.from(new Set(products.map(p => p.category?.name).filter(Boolean)));
 
   const deleteThisProduct = (productId: string) => {
     if (isTestMode) {
@@ -171,7 +257,7 @@ const ManageProducts = () => {
         if (data.error) {
           setError(data.error);
         } else {
-          preload();
+          loadActiveProducts();
           setDeleteConfirm(null);
         }
       });
@@ -250,7 +336,7 @@ const ManageProducts = () => {
               <h1 className="text-3xl font-bold mb-2">Manage Products</h1>
               <p className="text-gray-400">
                 {loading ? 'Loading...' : viewMode === 'active' 
-                  ? `Total ${products.length} active products in your store`
+                  ? `Total ${totalProducts} active products in your store`
                   : `${deletedProducts.length} deleted products`}
               </p>
             </div>
@@ -363,9 +449,9 @@ const ManageProducts = () => {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 >
                   <option value="all">All Categories</option>
-                  {categories.map((cat, index) => (
-                    <option key={index} value={products.find(p => p.category?.name === cat)?.category._id || ''}>
-                      {cat}
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.name}
                     </option>
                   ))}
                 </select>
@@ -390,7 +476,7 @@ const ManageProducts = () => {
               )}
               {categoryFilter !== 'all' && (
                 <span className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm flex items-center gap-2">
-                  Category: {categories.find(cat => products.find(p => p.category?.name === cat)?.category._id === categoryFilter) || categoryFilter}
+                  Category: {categories.find(cat => cat._id === categoryFilter)?.name || categoryFilter}
                   <button onClick={() => setCategoryFilter('all')} className="hover:text-yellow-300">×</button>
                 </span>
               )}
@@ -431,7 +517,7 @@ const ManageProducts = () => {
             </div>
             <p className="text-gray-400">Loading products...</p>
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : products.length === 0 ? (
           <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-700 rounded-full mb-4">
               <Package className="w-8 h-8 text-gray-400" />
@@ -450,9 +536,10 @@ const ManageProducts = () => {
             )}
           </div>
         ) : (
-          <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
+          <>
+            <div className="bg-gray-800 rounded-2xl border border-gray-700 overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-700">
                     <th className="text-left px-6 py-4 text-gray-400 font-medium">Product</th>
@@ -463,7 +550,7 @@ const ManageProducts = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredProducts.map((product, index) => (
+                  {products.map((product, index) => (
                     <tr key={product._id} className="border-b border-gray-700 hover:bg-gray-750 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
@@ -589,9 +676,68 @@ const ManageProducts = () => {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
-          </div>
+            
+            {/* Pagination */}
+            {viewMode === 'active' && totalPages > 1 && (
+              <div className="mt-8 flex justify-center items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-lg transition-colors ${
+                    currentPage === 1
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 hover:bg-gray-700 text-white'
+                  }`}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                
+                <div className="flex gap-1">
+                  {[...Array(Math.min(5, totalPages))].map((_, idx) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = idx + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = idx + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + idx;
+                    } else {
+                      pageNum = currentPage - 2 + idx;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-4 py-2 rounded-lg transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'bg-gray-800 hover:bg-gray-700 text-white'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-lg transition-colors ${
+                    currentPage === totalPages
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 hover:bg-gray-700 text-white'
+                  }`}
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Help Section */}

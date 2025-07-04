@@ -143,9 +143,6 @@ const Header: React.FC = () => {
 
         {/* Right Side Icons */}
         <div className="flex items-center space-x-2 md:space-x-3">
-          <button className="p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all hidden sm:block">
-            <Search className="w-5 h-5" />
-          </button>
           <Link to="/wishlist" className="relative p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all" title="Wishlist">
             <Heart className="w-5 h-5" />
           </Link>
@@ -281,18 +278,6 @@ const Header: React.FC = () => {
             >
               Contact
             </Link>
-
-            {/* Mobile Search */}
-            <div className="mt-4 px-6">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400"
-                />
-              </div>
-            </div>
 
             {/* Mobile User Section */}
             <div className="mt-6 px-6 pt-6 border-t border-gray-800">

@@ -358,11 +358,12 @@ exports.getFilteredProducts = async (req, res) => {
     // Build filter object - exclude soft deleted products by default
     const filter = { isDeleted: { $ne: true } };
 
-    // Search filter (name or description)
+    // Search filter (name, description, or tags)
     if (search) {
       filter.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { description: { $regex: search, $options: 'i' } },
+        { tags: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -374,74 +375,14 @@ exports.getFilteredProducts = async (req, res) => {
     // Product type filter - handle both old string values and new ObjectIds
     if (productType && productType !== 'all') {
       try {
-        // Import ProductType model
-        const ProductType = require("../models/productType");
         const mongoose = require("mongoose");
         
         // Check if productType is a valid ObjectId
         if (mongoose.Types.ObjectId.isValid(productType)) {
-          const typeDoc = await ProductType.findById(productType);
-          
-          if (typeDoc) {
-            // We need to match products that have either:
-            // 1. An ObjectId reference to this ProductType
-            // 2. A string value that matches this ProductType's variations
-            
-            // First, let's find all products with ObjectId references
-            const productsWithObjectId = await Product.find({ 
-              productType: { $type: 'objectId' } 
-            }).select('_id');
-            
-            const hasObjectIdProducts = productsWithObjectId.length > 0;
-            
-            // Create filter conditions
-            const orConditions = [];
-            
-            // Only add ObjectId condition if there are products with ObjectId productType
-            if (hasObjectIdProducts) {
-              orConditions.push({ 
-                $and: [
-                  { productType: { $type: 'objectId' } },
-                  { productType: mongoose.Types.ObjectId(productType) }
-                ]
-              });
-            }
-            
-            // Add string matching conditions
-            orConditions.push(
-              { productType: typeDoc.name }, // Match by name (e.g., 'tshirt')
-              { productType: typeDoc.displayName }, // Match exact display name
-              { productType: typeDoc.displayName.toLowerCase() }, // Match lowercase
-              { productType: typeDoc.displayName.toLowerCase().replace(/\s+/g, '-') }, // Match with hyphens
-              { productType: typeDoc.displayName.toLowerCase().replace(/\s+/g, '') } // Match without spaces
-            );
-            
-            // Special handling for T-Shirt variations
-            if (typeDoc.name === 'tshirt' || typeDoc.displayName === 'T-Shirt') {
-              orConditions.push(
-                { productType: 't-shirt' },
-                { productType: 'tshirt' },
-                { productType: 'Tshirt' },
-                { productType: 'TShirt' },
-                { productType: 'T-shirt' },
-                { productType: 'Classic T-Shirt' },
-                { productType: 't shirt' } // Add space variation
-              );
-            }
-            
-            // If we already have a $or condition from search, we need to combine them
-            if (filter.$or) {
-              filter.$and = [
-                { $or: filter.$or },
-                { $or: orConditions }
-              ];
-              delete filter.$or;
-            } else {
-              filter.$or = orConditions;
-            }
-          }
+          // For ObjectId productType, just filter by the ObjectId
+          filter.productType = mongoose.Types.ObjectId(productType);
         } else {
-          // If not a valid ObjectId, treat it as a string filter
+          // For string productType (legacy support)
           filter.productType = productType;
         }
       } catch (typeErr) {

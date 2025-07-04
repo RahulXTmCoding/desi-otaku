@@ -9,10 +9,11 @@ import {
   Image,
   Upload
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { addItemToCart } from '../core/helper/cartHelper';
-import { getDesigns } from '../admin/helper/designapicall';
+import { getDesigns, getAllDesignTags } from '../admin/helper/designapicall';
 import { getProducts } from '../core/helper/coreapicalls';
+import { getCategories } from '../admin/helper/adminapicall';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
 import { API } from '../backend';
@@ -24,7 +25,7 @@ interface Design {
   name: string;
   description?: string;
   imageUrl?: string;
-  category: string;
+  category: string | { _id?: string; name: string } | null;
   tags: string[];
   price: number;
   popularity?: {
@@ -39,6 +40,7 @@ interface Design {
 const Customize: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,12 +49,16 @@ const Customize: React.FC = () => {
   const [selectedSize, setSelectedSize] = useState('M');
   const [selectedType, setSelectedType] = useState('normal');
   const [quantity, setQuantity] = useState(1);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [selectedTag, setSelectedTag] = useState(searchParams.get('tag') || '');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || 'all');
   const [products, setProducts] = useState<any[]>([]);
   const [basePrice, setBasePrice] = useState(499); // Default base price
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   const tshirtColors = [
     { name: 'White', value: '#FFFFFF' },
@@ -72,9 +78,22 @@ const Customize: React.FC = () => {
     { id: 'slim', name: 'Slim Fit', available: false }
   ];
 
-  // Load designs and products from backend
+  // Update URL params when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (searchQuery) params.set('search', searchQuery);
+    if (activeCategory !== 'all') params.set('category', activeCategory);
+    if (selectedTag) params.set('tag', selectedTag);
+    setSearchParams(params);
+  }, [searchQuery, activeCategory, selectedTag, setSearchParams]);
+
+  // Load designs when filters change
   useEffect(() => {
     loadDesigns();
+  }, [searchQuery, activeCategory, selectedTag, currentPage, isTestMode]);
+
+  // Load products from backend
+  useEffect(() => {
     loadProducts();
   }, [isTestMode]);
 
@@ -110,9 +129,9 @@ const Customize: React.FC = () => {
 
     try {
       if (isTestMode) {
-        // Use mock data in test mode - convert products to designs
+        // Use mock data in test mode - apply filtering client-side for test mode
         setTimeout(() => {
-          const mockDesigns: Design[] = mockProducts.map(p => ({
+          let mockDesigns: Design[] = mockProducts.map(p => ({
             _id: p._id,
             name: p.name,
             description: p.description,
@@ -123,17 +142,42 @@ const Customize: React.FC = () => {
             isActive: true,
             isFeatured: false
           }));
+
+          // Apply filters for test mode
+          if (searchQuery) {
+            mockDesigns = mockDesigns.filter(d => 
+              d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              d.description?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+          }
+          if (activeCategory !== 'all') {
+            mockDesigns = mockDesigns.filter(d => d.category === activeCategory);
+          }
+
           setDesigns(mockDesigns);
+          setTotalPages(1);
           setLoading(false);
         }, 500);
       } else {
-        // Fetch actual designs from backend
-        const data = await getDesigns();
+        // Build filter parameters for backend
+        const filters: any = {};
+        if (searchQuery) filters.search = searchQuery;
+        if (activeCategory !== 'all') filters.category = activeCategory;
+        if (selectedTag) filters.tag = selectedTag;
+
+        // Fetch designs from backend with filters
+        const data = await getDesigns(currentPage, 50, filters);
         if (data && data.error) {
           setError(data.error);
           setDesigns([]);
+        } else if (data && data.designs) {
+          // New paginated format
+          setDesigns(data.designs);
+          setTotalPages(data.pagination?.totalPages || 1);
         } else if (data && Array.isArray(data)) {
+          // Old format (backward compatibility)
           setDesigns(data);
+          setTotalPages(1);
         } else {
           setDesigns([]);
         }
@@ -146,19 +190,36 @@ const Customize: React.FC = () => {
     }
   };
 
-  // Extract unique tags from designs
-  const allTags = Array.from(new Set(
-    designs.flatMap(design => {
-      const tags = [...design.tags];
-      if (design.category) tags.push(design.category.toLowerCase());
-      return tags;
-    })
-  )).filter((tag): tag is string => typeof tag === 'string' && tag.length > 2);
+  // Load categories and tags on component mount
+  useEffect(() => {
+    loadCategoriesAndTags();
+  }, [isTestMode]);
 
-  // Get unique categories
-  const categories = Array.from(new Set(
-    designs.map(d => d.category).filter(Boolean)
-  ));
+  const loadCategoriesAndTags = async () => {
+    if (!isTestMode) {
+      // Load categories from backend
+      try {
+        const categoryData = await getCategories();
+        if (categoryData && !categoryData.error) {
+          setCategories(categoryData);
+        }
+      } catch (err) {
+        console.error('Error loading categories:', err);
+      }
+
+      // Load tags from backend
+      try {
+        const tagsData = await getAllDesignTags();
+        if (tagsData && Array.isArray(tagsData)) {
+          setAllTags(tagsData.filter((tag: string) => 
+            tag && tag.length > 2 && !tag.match(/^[0-9a-fA-F]{24}$/)
+          ));
+        }
+      } catch (err) {
+        console.error('Error loading tags:', err);
+      }
+    }
+  };
 
   const categoryLabels: Record<string, string> = {
     'anime': 'Anime',
@@ -171,17 +232,8 @@ const Customize: React.FC = () => {
     'other': 'Other'
   };
 
-  const filteredDesigns = designs.filter(design => {
-    const matchesSearch = design.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         design.description?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesTags = selectedTags.length === 0 || selectedTags.some(tag => 
-      design.tags.includes(tag) ||
-      design.name.toLowerCase().includes(tag) || 
-      design.category.toLowerCase() === tag
-    );
-    const matchesCategory = activeCategory === 'all' || design.category === activeCategory;
-    return matchesSearch && matchesTags && matchesCategory;
-  });
+  // Backend filtering is applied, so we use designs directly
+  const filteredDesigns = designs;
 
   const calculatePrice = () => {
     const designPrice = selectedDesign ? selectedDesign.price : 0;
@@ -217,11 +269,8 @@ const Customize: React.FC = () => {
   };
 
   const toggleTag = (tag: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tag) 
-        ? prev.filter(t => t !== tag)
-        : [...prev, tag]
-    );
+    // Single tag selection (backend expects single tag)
+    setSelectedTag(selectedTag === tag ? '' : tag);
   };
 
   const getImageUrl = (design: Design) => {
@@ -274,15 +323,15 @@ const Customize: React.FC = () => {
                     </button>
                     {categories.map(cat => (
                       <button
-                        key={cat}
-                        onClick={() => setActiveCategory(cat)}
+                        key={cat._id}
+                        onClick={() => setActiveCategory(cat._id)}
                         className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                          activeCategory === cat 
+                          activeCategory === cat._id 
                             ? 'bg-yellow-400 text-gray-900' 
                             : 'bg-gray-700 hover:bg-gray-600'
                         }`}
                       >
-                        {cat}
+                        {cat.name}
                       </button>
                     ))}
                   </div>
@@ -296,7 +345,7 @@ const Customize: React.FC = () => {
                         key={tag}
                         onClick={() => toggleTag(tag)}
                         className={`px-3 py-1 rounded-full text-sm transition-all ${
-                          selectedTags.includes(tag)
+                          selectedTag === tag
                             ? 'bg-yellow-400 text-gray-900'
                             : 'bg-gray-700 hover:bg-gray-600'
                         }`}

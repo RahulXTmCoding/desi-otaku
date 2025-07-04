@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { 
   Plus, 
   Edit, 
@@ -11,6 +11,7 @@ import {
   TrendingUp,
   Tag,
   ChevronLeft,
+  ChevronRight,
   Palette,
   Star,
   Loader
@@ -42,25 +43,53 @@ interface Design {
 const ManageDesigns = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const authData = isAutheticated();
   const user = authData && authData.user;
   const token = authData && authData.token;
 
   const [designs, setDesigns] = useState<Design[]>([]);
-  const [filteredDesigns, setFilteredDesigns] = useState<Design[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || "all");
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || "newest");
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, designId: "", designName: "" });
   const [categories, setCategories] = useState<any[]>([]);
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalDesigns, setTotalDesigns] = useState(0);
+  const itemsPerPage = 20;
 
+  // Update URL params whenever filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (searchQuery) params.set('search', searchQuery);
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    
+    setSearchParams(params);
+  }, [searchQuery, selectedCategory, sortBy, currentPage, setSearchParams]);
+
+  // Load designs when filters change
   useEffect(() => {
     loadDesigns();
+  }, [searchQuery, selectedCategory, sortBy, currentPage, isTestMode]);
+
+  // Load categories on mount
+  useEffect(() => {
     loadCategories();
   }, [isTestMode]);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, sortBy]);
 
   const loadCategories = () => {
     getCategories()
@@ -72,21 +101,56 @@ const ManageDesigns = () => {
       .catch((err) => console.log("Error loading categories:", err));
   };
 
-  useEffect(() => {
-    filterAndSortDesigns();
-  }, [designs, searchQuery, selectedCategory, sortBy]);
-
   const loadDesigns = async () => {
     setLoading(true);
     setError("");
     
     try {
-      const data = await getDesigns();
+      // Build filters for backend
+      const filters: any = {};
+      if (searchQuery) filters.search = searchQuery;
+      if (selectedCategory !== 'all') filters.category = selectedCategory;
+      
+      // Sort mapping
+      let sortField = '_id';
+      let sortOrder = 'desc';
+      
+      switch (sortBy) {
+        case 'newest':
+          sortField = 'createdAt';
+          sortOrder = 'desc';
+          break;
+        case 'popular':
+          sortField = 'popularity.used';
+          sortOrder = 'desc';
+          break;
+        case 'name':
+          sortField = 'name';
+          sortOrder = 'asc';
+          break;
+        case 'price':
+          sortField = 'price';
+          sortOrder = 'desc';
+          break;
+      }
+      
+      filters.sortBy = sortField;
+      filters.order = sortOrder;
+      
+      const data = await getDesigns(currentPage, itemsPerPage, filters);
+      
       if (data && data.error) {
         setError(data.error);
         setDesigns([]);
+      } else if (data && data.designs) {
+        setDesigns(data.designs);
+        setTotalDesigns(data.pagination?.totalDesigns || 0);
+        setTotalPages(data.pagination?.totalPages || 1);
       } else if (data && Array.isArray(data)) {
+        // Old format - shouldn't happen with backend filtering
         setDesigns(data);
+        setTotalDesigns(data.length);
+        setTotalPages(1);
       } else {
         setDesigns([]);
       }
@@ -97,42 +161,6 @@ const ManageDesigns = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterAndSortDesigns = () => {
-    let filtered = [...designs];
-
-    // Filter by search query
-    if (searchQuery) {
-      filtered = filtered.filter(design =>
-        design.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        design.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        design.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
-
-    // Filter by category
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(design => design.category === selectedCategory);
-    }
-
-    // Sort
-    switch (sortBy) {
-      case "newest":
-        filtered.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-        break;
-      case "popular":
-        filtered.sort((a, b) => (b.popularity?.used || 0) - (a.popularity?.used || 0));
-        break;
-      case "name":
-        filtered.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "price":
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-    }
-
-    setFilteredDesigns(filtered);
   };
 
   const handleDeleteDesign = async (designId: string) => {
@@ -240,7 +268,7 @@ const ManageDesigns = () => {
             {/* Stats */}
             <div className="flex items-center justify-center bg-gray-700 rounded-lg px-4 py-3">
               <span className="text-sm text-gray-300">
-                {filteredDesigns.length} of {designs.length} designs
+                {designs.length} of {totalDesigns} designs
               </span>
             </div>
           </div>
@@ -258,7 +286,7 @@ const ManageDesigns = () => {
           <div className="flex justify-center items-center py-16">
             <Loader className="w-8 h-8 animate-spin text-yellow-400" />
           </div>
-        ) : filteredDesigns.length === 0 ? (
+        ) : designs.length === 0 ? (
           <div className="text-center py-16">
             <Palette className="w-16 h-16 text-gray-600 mx-auto mb-4" />
             <h3 className="text-xl font-semibold mb-2">No designs found</h3>
@@ -279,8 +307,9 @@ const ManageDesigns = () => {
           </div>
         ) : (
           /* Designs Grid */
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredDesigns.map((design) => (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {designs.map((design) => (
               <div
                 key={design._id}
                 className="bg-gray-800 rounded-2xl overflow-hidden border border-gray-700 hover:border-yellow-400 transition-all group"
@@ -379,8 +408,67 @@ const ManageDesigns = () => {
                   </div>
                 </div>
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex justify-center items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-lg transition-colors ${
+                    currentPage === 1
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 hover:bg-gray-700 text-white'
+                  }`}
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                
+                <div className="flex gap-1">
+                  {[...Array(Math.min(5, totalPages))].map((_, idx) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = idx + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = idx + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + idx;
+                    } else {
+                      pageNum = currentPage - 2 + idx;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-4 py-2 rounded-lg transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'bg-gray-800 hover:bg-gray-700 text-white'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-lg transition-colors ${
+                    currentPage === totalPages
+                      ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                      : 'bg-gray-800 hover:bg-gray-700 text-white'
+                  }`}
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </>
         )}
 
         {/* Delete Confirmation Modal */}

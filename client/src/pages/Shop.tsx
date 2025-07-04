@@ -9,11 +9,14 @@ import {
   Star,
   Heart,
   ShoppingCart,
-  ArrowUpDown
+  ArrowUpDown,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { addItemToCart } from '../core/helper/cartHelper';
-import { getProducts, getCategories } from '../core/helper/coreapicalls';
+import { getCategories } from '../core/helper/coreapicalls';
+import { getFilteredProducts } from '../core/helper/shopApiCalls';
 import { getAllProductTypes } from '../admin/helper/productTypeApiCalls';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
@@ -47,54 +50,156 @@ interface Category {
 const Shop: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // State
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [productTypes, setProductTypes] = useState<any[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedProductType, setSelectedProductType] = useState('all');
-  const [selectedPriceRange, setSelectedPriceRange] = useState('all');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('featured');
+  const [allTags, setAllTags] = useState<string[]>([]);
+  
+  // Filter states - initialize from URL
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
+  const [selectedProductType, setSelectedProductType] = useState(searchParams.get('productType') || 'all');
+  const [selectedPriceRange, setSelectedPriceRange] = useState(searchParams.get('priceRange') || 'all');
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    searchParams.get('tags')?.split(',').filter(Boolean) || []
+  );
+  const [sortBy, setSortBy] = useState(searchParams.get('sortBy') || 'featured');
+  
+  // UI states
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showFilters, setShowFilters] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(Number(searchParams.get('page')) || 1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const itemsPerPage = 12;
 
+  // Update URL when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (searchQuery) params.set('search', searchQuery);
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (selectedProductType !== 'all') params.set('productType', selectedProductType);
+    if (selectedPriceRange !== 'all') params.set('priceRange', selectedPriceRange);
+    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+    if (sortBy !== 'featured') params.set('sortBy', sortBy);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    
+    setSearchParams(params);
+  }, [searchQuery, selectedCategory, selectedProductType, selectedPriceRange, selectedTags, sortBy, currentPage, setSearchParams]);
+
+  // Load products whenever filters change
   useEffect(() => {
     loadProducts();
+  }, [searchQuery, selectedCategory, selectedProductType, selectedPriceRange, selectedTags, sortBy, currentPage, isTestMode]);
+
+  // Load initial data
+  useEffect(() => {
     loadCategories();
     loadProductTypes();
   }, [isTestMode]);
 
-  const loadProducts = () => {
+  const loadProducts = async () => {
     setLoading(true);
+    setError('');
     
     if (isTestMode) {
-      // Use mock data
+      // Use mock data with client-side filtering for test mode
       setTimeout(() => {
-        setProducts(mockProducts);
-        setFilteredProducts(mockProducts);
+        let filtered = [...mockProducts];
+        
+        // Apply filters
+        if (searchQuery) {
+          filtered = filtered.filter(p => 
+            p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            p.description.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+        }
+        
+        if (selectedCategory !== 'all') {
+          filtered = filtered.filter(p => p.category._id === selectedCategory);
+        }
+        
+        // Pagination
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        const paginatedProducts = filtered.slice(startIndex, startIndex + itemsPerPage);
+        
+        setProducts(paginatedProducts);
+        setTotalProducts(filtered.length);
+        setTotalPages(Math.ceil(filtered.length / itemsPerPage));
         setLoading(false);
-      }, 500); // Simulate loading delay
-    } else {
-      // Use real backend
-      getProducts()
-        .then((data: any) => {
-          if (data && data.error) {
-            setError(data.error);
-          } else {
-            setProducts(data || []);
-            setFilteredProducts(data || []);
-          }
-          setLoading(false);
-        })
-        .catch((err: any) => {
-          console.log(err);
-          setError('Failed to load products from backend. Make sure the server is running.');
-          setLoading(false);
-        });
+      }, 500);
+      return;
+    }
+    
+    try {
+      // Build filters for backend
+      const filters: any = {
+        page: currentPage,
+        limit: itemsPerPage,
+      };
+      
+      if (searchQuery) filters.search = searchQuery;
+      if (selectedCategory !== 'all') filters.category = selectedCategory;
+      if (selectedProductType !== 'all') filters.productType = selectedProductType;
+      
+      // Parse price range
+      if (selectedPriceRange !== 'all') {
+        const [min, max] = selectedPriceRange.split('-').map(Number);
+        filters.minPrice = min;
+        if (max) filters.maxPrice = max;
+      }
+      
+      if (selectedTags.length > 0) filters.tags = selectedTags;
+      
+      // Sort mapping
+      switch (sortBy) {
+        case 'price-low':
+          filters.sortBy = 'price';
+          filters.sortOrder = 'asc';
+          break;
+        case 'price-high':
+          filters.sortBy = 'price';
+          filters.sortOrder = 'desc';
+          break;
+        case 'newest':
+          filters.sortBy = 'createdAt';
+          filters.sortOrder = 'desc';
+          break;
+        case 'bestselling':
+          filters.sortBy = 'sold';
+          filters.sortOrder = 'desc';
+          break;
+      }
+      
+      const data = await getFilteredProducts(filters);
+      
+      if (data.error) {
+        setError(data.error);
+        setProducts([]);
+      } else {
+        setProducts(data.products || []);
+        setTotalProducts(data.totalProducts || 0);
+        setTotalPages(data.totalPages || 1);
+        
+        // Extract all unique tags from the full dataset if provided
+        if (data.allTags) {
+          setAllTags(data.allTags);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading products:', err);
+      setError('Failed to load products. Please try again.');
+      setProducts([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,94 +230,10 @@ const Shop: React.FC = () => {
     }
   };
 
+  // Reset to page 1 when filters change (except page itself)
   useEffect(() => {
-    filterAndSortProducts();
-  }, [searchQuery, selectedCategory, selectedProductType, selectedPriceRange, selectedTags, sortBy, products]);
-
-  const filterAndSortProducts = () => {
-    let filtered = [...products];
-
-    // Search filter - now includes tags
-    if (searchQuery) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
-    }
-
-    // Category filter
-    if (selectedCategory !== 'all') {
-      filtered = filtered.filter(product => product.category?._id === selectedCategory);
-    }
-
-    // Product type filter
-    if (selectedProductType !== 'all') {
-      // For now, let's use displayName matching until migration is complete
-      const selectedType = productTypes.find(pt => pt._id === selectedProductType);
-      if (!selectedType) {
-        filtered = [];
-      } else {
-        filtered = filtered.filter(product => {
-          if (!product.productType) return false;
-          
-          // If productType is an object (migrated), check _id
-          if (typeof product.productType === 'object' && product.productType._id) {
-            return product.productType._id === selectedProductType;
-          }
-          
-          // If productType is a string (not migrated), match by type name
-          const productTypeStr = (product.productType as string).toLowerCase();
-          
-          // Special handling for T-Shirt variations
-          if (selectedType.displayName === 'T-Shirt') {
-            return productTypeStr === 'tshirt' || 
-                   productTypeStr === 't-shirt' || 
-                   productTypeStr === 't shirt';
-          }
-          
-          // For other types, match the value
-          return productTypeStr === selectedType.value?.toLowerCase();
-        });
-      }
-    }
-
-    // Price range filter
-    if (selectedPriceRange !== 'all') {
-      const [min, max] = selectedPriceRange.split('-').map(Number);
-      filtered = filtered.filter(product => 
-        product.price >= min && (max ? product.price <= max : true)
-      );
-    }
-
-    // Tag filter
-    if (selectedTags.length > 0) {
-      filtered = filtered.filter(product => 
-        product.tags?.some(tag => selectedTags.includes(tag))
-      );
-    }
-
-    // Sorting
-    switch (sortBy) {
-      case 'price-low':
-        filtered.sort((a, b) => a.price - b.price);
-        break;
-      case 'price-high':
-        filtered.sort((a, b) => b.price - a.price);
-        break;
-      case 'newest':
-        filtered.sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime());
-        break;
-      case 'bestselling':
-        filtered.sort((a, b) => b.sold - a.sold);
-        break;
-      default:
-        // featured - keep original order
-        break;
-    }
-
-    setFilteredProducts(filtered);
-  };
+    setCurrentPage(1);
+  }, [searchQuery, selectedCategory, selectedProductType, selectedPriceRange, selectedTags, sortBy]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -229,6 +250,7 @@ const Shop: React.FC = () => {
     setSelectedPriceRange('all');
     setSelectedTags([]);
     setSortBy('featured');
+    setCurrentPage(1);
   };
 
   const productTypesOptions = [
@@ -241,11 +263,10 @@ const Shop: React.FC = () => {
   ];
 
   const categoryOptions = [
-    { id: 'all', name: 'All Products', count: products.length },
+    { id: 'all', name: 'All Products' },
     ...categories.map(cat => ({
       id: cat._id,
-      name: cat.name,
-      count: products.filter(p => p.category?._id === cat._id).length
+      name: cat.name
     }))
   ];
 
@@ -257,25 +278,8 @@ const Shop: React.FC = () => {
     { id: '1000-', name: 'Above ₹1000' },
   ];
 
-  // Extract all unique tags from products
-  const allTags = Array.from(new Set(
-    products.flatMap(product => product.tags || [])
-  )).filter(tag => tag && tag.length > 0);
-  
-  // Get popular tags (most used) - limit to top 10
-  const tagCounts = products.reduce((acc, product) => {
-    (product.tags || []).forEach(tag => {
-      if (tag) {
-        acc[tag] = (acc[tag] || 0) + 1;
-      }
-    });
-    return acc;
-  }, {} as Record<string, number>);
-  
-  const popularTags = Object.entries(tagCounts)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 10)
-    .map(([tag]) => tag);
+  // Use tags from backend or compute from current products
+  const popularTags = allTags.slice(0, 10);
 
   const getProductImage = (product: Product) => {
     if (isTestMode) {
@@ -344,7 +348,6 @@ const Shop: React.FC = () => {
                       }`}
                     >
                       <span>{category.name}</span>
-                      <span className="text-sm">({category.count})</span>
                     </button>
                   ))}
                 </div>
@@ -425,7 +428,7 @@ const Shop: React.FC = () => {
                   <Filter className="w-5 h-5" />
                 </button>
                 <p className="text-gray-300">
-                  {loading ? 'Loading...' : `Showing ${filteredProducts.length} of ${products.length} products`}
+                  {loading ? 'Loading...' : `Showing ${products.length} of ${totalProducts} products`}
                 </p>
               </div>
 
@@ -526,19 +529,20 @@ const Shop: React.FC = () => {
             )}
 
             {/* Products Grid/List */}
-            {!loading && !error && filteredProducts.length > 0 ? (
-              <div className={`grid gap-6 ${
-                viewMode === 'grid' 
-                  ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-                  : 'grid-cols-1'
-              }`}>
-                {viewMode === 'grid' ? (
-                  filteredProducts.map(product => (
-                    <ProductGridItem key={product._id} product={product} />
-                  ))
-                ) : (
-                  // List view
-                  filteredProducts.map(product => (
+            {!loading && !error && products.length > 0 ? (
+              <>
+                <div className={`grid gap-6 ${
+                  viewMode === 'grid' 
+                    ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
+                    : 'grid-cols-1'
+                }`}>
+                  {viewMode === 'grid' ? (
+                    products.map(product => (
+                      <ProductGridItem key={product._id} product={product} />
+                    ))
+                  ) : (
+                    // List view
+                    products.map(product => (
                     <div
                       key={product._id}
                       className="bg-gray-800 rounded-2xl overflow-hidden hover:bg-gray-750 transition-all border border-gray-700 hover:border-yellow-400/50 group cursor-pointer flex"
@@ -618,9 +622,68 @@ const Shop: React.FC = () => {
                         </div>
                       </div>
                     </div>
-                  ))
+                    ))
+                  )}
+                </div>
+                
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="mt-8 flex justify-center items-center gap-2">
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className={`p-2 rounded-lg transition-colors ${
+                        currentPage === 1
+                          ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-800 hover:bg-gray-700 text-white'
+                      }`}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    
+                    <div className="flex gap-1">
+                      {[...Array(Math.min(5, totalPages))].map((_, idx) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = idx + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = idx + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + idx;
+                        } else {
+                          pageNum = currentPage - 2 + idx;
+                        }
+                        
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setCurrentPage(pageNum)}
+                            className={`px-4 py-2 rounded-lg transition-colors ${
+                              currentPage === pageNum
+                                ? 'bg-yellow-400 text-gray-900'
+                                : 'bg-gray-800 hover:bg-gray-700 text-white'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    
+                    <button
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className={`p-2 rounded-lg transition-colors ${
+                        currentPage === totalPages
+                          ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                          : 'bg-gray-800 hover:bg-gray-700 text-white'
+                      }`}
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                  </div>
                 )}
-              </div>
+              </>
             ) : !loading && !error && (
               <div className="text-center py-12">
                 <p className="text-xl text-gray-400 mb-4">No products found matching your criteria</p>

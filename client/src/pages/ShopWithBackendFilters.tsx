@@ -10,7 +10,7 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { addItemToCart } from '../core/helper/cartHelper';
 import { getCategories } from '../core/helper/coreapicalls';
 import { getAllProductTypes } from '../admin/helper/productTypeApiCalls';
@@ -46,18 +46,19 @@ interface Category {
 
 const ShopWithBackendFilters: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { isTestMode } = useDevMode();
   
-  // Filter states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedProductType, setSelectedProductType] = useState('all');
-  const [selectedPriceRange, setSelectedPriceRange] = useState('all');
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [sortBy, setSortBy] = useState('newest');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [showFilters, setShowFilters] = useState(true);
+  // Initialize filter states from URL params
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
+  const [selectedProductType, setSelectedProductType] = useState(searchParams.get('type') || 'all');
+  const [selectedPriceRange, setSelectedPriceRange] = useState(searchParams.get('price') || 'all');
+  const [selectedTags, setSelectedTags] = useState<string[]>((searchParams.get('tags')?.split(',').filter(Boolean)) || []);
+  const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>((searchParams.get('view') as 'grid' | 'list') || 'grid');
+  const [showFilters, setShowFilters] = useState(searchParams.get('filters') !== 'hidden');
   
   // Data states
   const [products, setProducts] = useState<Product[]>([]);
@@ -70,6 +71,23 @@ const ShopWithBackendFilters: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const productsPerPage = 12;
+
+  // Update URL params whenever filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (searchQuery) params.set('search', searchQuery);
+    if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (selectedProductType !== 'all') params.set('type', selectedProductType);
+    if (selectedPriceRange !== 'all') params.set('price', selectedPriceRange);
+    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+    if (sortBy !== 'newest') params.set('sort', sortBy);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (viewMode !== 'grid') params.set('view', viewMode);
+    if (!showFilters) params.set('filters', 'hidden');
+    
+    setSearchParams(params);
+  }, [searchQuery, selectedCategory, selectedProductType, selectedPriceRange, selectedTags, sortBy, currentPage, viewMode, showFilters, setSearchParams]);
 
   // Load categories and product types on mount
   useEffect(() => {
@@ -206,6 +224,8 @@ const ShopWithBackendFilters: React.FC = () => {
     setSelectedTags([]);
     setSortBy('newest');
     setCurrentPage(1);
+    // Clear URL params
+    setSearchParams(new URLSearchParams());
   };
 
   const handleFilterChange = (filterType: string, value: any) => {

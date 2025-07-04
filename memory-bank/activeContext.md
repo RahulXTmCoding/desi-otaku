@@ -1,141 +1,119 @@
 # Active Context
 
 ## Current Work Focus
-- Implemented soft delete functionality for products
-- Products can now be archived (soft deleted) instead of permanently deleted
-- Added product restoration and permanent deletion features
-- Updated admin interface to manage deleted products
 
-## Recent Changes
+### Recent Implementations
+1. **Soft Delete for Products** ✅
+   - Added `isDeleted`, `deletedAt`, `deletedBy` fields to Product model
+   - Admin can soft delete (archive) products
+   - Archived products remain in orders and analytics
+   - Admin can view, restore, or permanently delete archived products
+   - Customers don't see archived products in shop
 
-### 1. Soft Delete Implementation
-- Added soft delete fields to Product model:
-  - `isDeleted`: Boolean flag for soft deleted products
-  - `deletedAt`: Timestamp of deletion
-  - `deletedBy`: Reference to admin who deleted
-- Modified delete product to use soft delete by default
-- Created new controllers:
-  - `permanentlyDeleteProduct`: For permanent deletion (requires product to be soft deleted first)
-  - `restoreProduct`: To restore soft deleted products
-  - `getDeletedProducts`: To fetch deleted products with pagination
-- Updated product listing endpoints to exclude soft deleted products by default
-- Added `includeDeleted` query parameter for admin to optionally include deleted products
+2. **Filter Persistence** ✅
+   - **Shop Page**: All filters (search, category, productType, price, tags, sort) persist in URL
+   - **Admin Order Management**: Filters persist (search, status, date, payment, sort, page)
+   - **Admin Product Management**: Filters persist (search, price, stock, category, view mode)
+   - **Admin Design Management**: Filters persist (search, category, sort)
+   - **User Dashboard**: Active tab persists in URL
+   - **Customize Page**: Search and category filters persist in URL
+   - All filters reload correctly from URL on page refresh
 
-### 2. Admin Interface Updates
-- Updated ManageProducts component with toggle between Active/Deleted views
-- Active view shows archive button instead of delete
-- Deleted view shows restore and permanent delete options
-- Added visual indicators and confirmation dialogs
-- Updated help text to explain soft delete behavior
+3. **Backend Filtering Implementation** ✅
+   - **All pages now use backend filtering** instead of client-side filtering
+   - **Design API** enhanced with:
+     - Full pagination support
+     - Search across name, description, and tags
+     - Category filtering (with populated category names)
+     - Proper handling of ObjectId vs string categories
+   - **Customize Page** updated to:
+     - Send filter parameters to backend
+     - Remove frontend filtering logic
+     - Handle paginated response format
+     - Fix category ObjectIds showing as tags
 
-### 3. Routes Added
-- `DELETE /api/product/permanent/:productId/:userId` - Permanent deletion
-- `PUT /api/product/restore/:productId/:userId` - Restore product
-- `GET /api/products/deleted/:userId` - Get deleted products
+4. **Search Enhancement** ✅
+   - Backend search now includes product tags
+   - Design search works across: name, description, and tags
+   - Removed search from header as requested
 
-### 4. Benefits of Soft Delete
-- Preserves order history and analytics data
-- Allows recovery of accidentally deleted products
-- Maintains referential integrity in the database
-- Better audit trail with deletion tracking
+5. **Custom Product Display** ✅
+   - Fixed Order model to store custom product data (color, colorValue, designId, designImage)
+   - Custom t-shirts display correctly with their color and design in:
+     - User order details
+     - Admin order management
+     - Order confirmation
 
-### 5. Admin Order Management (/admin/orders)
-- Created comprehensive order management system with real-time filtering
-- Implemented bulk status updates for multiple orders
-- Added detailed order modal with complete information
-- Added CSV export functionality
-- Fixed transaction_id display bug
-- Fixed product image rendering issues
+6. **ProductType Filter Fix** ✅
+   - Fixed 400 error when filtering by productType
+   - Backend now properly handles ObjectId productTypes
 
-### 6. Analytics Dashboard (/admin/analytics)
-- Created full analytics dashboard with revenue metrics and visual charts
-- Implemented sales overview cards (revenue, orders, avg order value)
-- Added product performance tracking
-- Added category breakdown analysis
-- Implemented date range filtering (7d, 30d, 90d, custom)
-- Connected to real-time MongoDB data
+## Technical Decisions
 
-### 7. Product Types Management System
-- Cleaned up ProductType model (removed unnecessary fields)
-- Created admin management page at /admin/product-types
-- Implemented full CRUD operations with drag-and-drop reordering
-- Added links to Header navigation and Admin Dashboard
-- Set up proper ProductType documents with name field
+### Soft Delete Pattern
+- Products are never actually deleted from database
+- Soft deleted products marked with `isDeleted: true`
+- All queries exclude soft deleted products by default
+- Admin can view deleted products with `includeDeleted=true` parameter
+- Preserves data integrity for historical orders and analytics
 
-### 8. Dynamic Product Types Integration
-- Shop page now uses server-side filtering with backend endpoint
-- Created `/api/products/filtered` endpoint for proper server-side filtering
-- AddProduct/UpdateProduct pages use dynamic product types from backend
-- Backend filtering handles both migrated (ObjectId) and non-migrated (string) products
+### URL State Management
+- Using React Router's `useSearchParams` hook
+- Filters automatically sync to URL on change
+- Clean URLs - only non-default values appear in query string
+- Page state fully restorable from URL
 
-### 9. Server-Side Filtering Implementation
-- Removed frontend filtering from Shop page (following best practices)
-- Created ShopWithBackendFilters component that fetches filtered data from backend
-- Implemented proper pagination with server-side data
-- Added proper error handling and loading states
+### Search Implementation
+- Single search endpoint handles multiple fields
+- Case-insensitive regex search
+- Includes partial matches
+- No need for separate search in header - shop page search is comprehensive
 
 ## Next Steps
-- Monitor performance of the new server-side filtering
-- Consider implementing caching for frequently accessed product type data
-- Add more advanced analytics features if needed
-- Consider implementing real-time order status updates using WebSockets
-- Add admin notifications when products are soft deleted/restored
+1. Monitor soft delete functionality in production
+2. Consider adding bulk restore/delete operations
+3. Add audit trail for product modifications
+4. Consider adding filter presets for common searches
 
-## Active Decisions and Considerations
-- Chose server-side filtering over frontend filtering for better performance and scalability
-- Maintained backward compatibility for products with string productType values
-- Used MongoDB's $or queries to handle multiple productType variations
-- Implemented proper pagination to handle large product catalogs
-- Soft delete preserves data integrity while allowing product removal from shop
+## Important Patterns
 
-## Important Patterns and Preferences
-- Server-side filtering for all data-heavy operations
-- Proper error handling with user-friendly messages
-- Loading states for all async operations
-- Backward compatibility when migrating data structures
-- Component modularity with separate files for complex features
-- Audit trails for critical operations (like product deletion)
+### Filter Persistence Pattern
+```typescript
+// Initialize from URL
+const [searchParams, setSearchParams] = useSearchParams();
+const [filter, setFilter] = useState(searchParams.get('filter') || 'default');
 
-## Learnings and Project Insights
-- Server-side filtering is crucial for scalable e-commerce applications
-- MongoDB's flexibility allows handling both old and new data structures simultaneously
-- Proper TypeScript interfaces help catch potential issues early
-- Breaking down complex components into smaller modules improves maintainability
-- Analytics data should be computed on the backend for accuracy
-- Soft delete pattern is essential for maintaining data integrity in e-commerce
+// Update URL on filter change
+useEffect(() => {
+  const params = new URLSearchParams();
+  if (filter !== 'default') params.set('filter', filter);
+  setSearchParams(params);
+}, [filter, setSearchParams]);
+```
 
-## Technical Implementation Details
+### Backend Filtering Pattern
+```javascript
+// Build filter parameters
+const filters = {};
+if (searchQuery) filters.search = searchQuery;
+if (activeCategory !== 'all') filters.category = activeCategory;
 
-### Soft Delete Implementation
-The soft delete pattern ensures:
-1. Products remain in the database for historical reference
-2. Order history and analytics remain intact
-3. Products can be recovered if needed
-4. Audit trail shows who deleted and when
+// Send to backend with pagination
+const data = await getDesigns(currentPage, limit, filters);
+```
 
-### ProductType Filtering Solution
-The main challenge was handling products that have:
-1. String values like "t-shirt", "tshirt", "Classic T-Shirt"
-2. ObjectId references to ProductType documents
+### Soft Delete Query Pattern
+```javascript
+// Exclude soft deleted by default
+const filter = { isDeleted: { $ne: true } };
 
-Solution implemented:
-- Created comprehensive OR conditions to match all variations
-- Special handling for T-Shirt variations (most common product type)
-- Used MongoDB's $type operator to differentiate between ObjectId and string fields
-- Maintained backward compatibility while supporting new structure
+// Include soft deleted for admin
+const filter = includeDeleted ? {} : { isDeleted: { $ne: true } };
+```
 
-### Scripts Created for Migration
-1. `setupProductTypes.js` - Creates ProductType documents with proper fields
-2. `checkProductTypes.js` - Checks current productType values in products
-3. `migrateProductTypes.js` - Migrates products to use ObjectId references
-4. `testProductTypeFilter.js` - Tests the filtering logic
-5. `testSoftDelete.js` - Tests soft delete functionality
-
-### API Endpoints Created
-- `GET /api/products/filtered` - Server-side product filtering with pagination
-- `DELETE /api/product/:productId/:userId` - Soft delete product
-- `DELETE /api/product/permanent/:productId/:userId` - Permanent delete
-- `PUT /api/product/restore/:productId/:userId` - Restore product
-- `GET /api/products/deleted/:userId` - Get deleted products
-- Supports: search, category, productType, price range, tags, sorting
-- Returns paginated results with metadata
+## Current State
+- All requested features implemented and working
+- Filter persistence across all admin and user pages
+- Soft delete system preserving data integrity
+- Enhanced search functionality
+- Clean, maintainable code patterns
