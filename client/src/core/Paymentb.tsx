@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { loadCart, cartEmpty } from "./helper/cartHelper";
 import { Link } from "react-router-dom";
 import { getmeToken, processPayment } from "./helper/paymentbhelper";
 import { createOrder } from "./helper/orderHelper";
 import { isAutheticated } from "../auth/helper";
+import { useCart } from "../context/CartContext";
 
 // import DropIn from "braintree-web-drop-in-react";
 const DropIn = ({ options, onInstance }: any) => <div>Payment functionality temporarily disabled</div>;
 
-const Paymentb = ({ products, setReload = (f) => f, reload = undefined }) => {
-  const [info, setInfo] = useState({
+const Paymentb = ({ products, setReload = (f: any) => f, reload = undefined }: any) => {
+  const { clearCart } = useCart();
+  const [info, setInfo] = useState<{
+    loading: boolean;
+    success: boolean;
+    clientToken: any;
+    error: string;
+    instance: any;
+  }>({
     loading: false,
     success: false,
     clientToken: null,
@@ -17,8 +24,9 @@ const Paymentb = ({ products, setReload = (f) => f, reload = undefined }) => {
     instance: {},
   });
 
-  const userId = isAutheticated() && isAutheticated().user._id;
-  const token = isAutheticated() && isAutheticated().token;
+  const auth = isAutheticated();
+  const userId = auth && typeof auth !== 'boolean' && auth.user ? auth.user._id : null;
+  const token = auth && typeof auth !== 'boolean' ? auth.token : null;
 
   const getToken = (userId, token) => {
     getmeToken(userId, token).then((info) => {
@@ -27,7 +35,7 @@ const Paymentb = ({ products, setReload = (f) => f, reload = undefined }) => {
         setInfo({ ...info, error: info.error });
       } else {
         const clientToken = info.clientToken;
-        setInfo({ clientToken });
+        setInfo(prev => ({ ...prev, clientToken }));
       }
     });
   };
@@ -60,7 +68,7 @@ const Paymentb = ({ products, setReload = (f) => f, reload = undefined }) => {
   }, []);
 
   const onPurchase = () => {
-    setInfo({ loading: true });
+    setInfo(prev => ({ ...prev, loading: true }));
     let nonce;
     let getNonce = info.instance.requestPaymentMethod().then((data) => {
       nonce = data.nonce;
@@ -78,14 +86,13 @@ const Paymentb = ({ products, setReload = (f) => f, reload = undefined }) => {
             amount: response.transaction.amount,
           };
           createOrder(userId, token, orderData);
-          cartEmpty(() => {
-            console.log("Did we got a crash?");
+          clearCart().then(() => {
+            console.log("Cart cleared after payment");
+            setReload(!reload);
           });
-
-          setReload(!reload);
         })
         .catch((error) => {
-          setInfo({ loading: false, success: false });
+          setInfo(prev => ({ ...prev, loading: false, success: false }));
           console.log("PAYMENT FAILED");
         });
     });
@@ -93,7 +100,7 @@ const Paymentb = ({ products, setReload = (f) => f, reload = undefined }) => {
 
   const getAmount = () => {
     let amount = 0;
-    products.map((p) => {
+    products.map((p: any) => {
       amount = amount + p.price;
     });
     return amount;

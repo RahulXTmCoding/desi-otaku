@@ -48,8 +48,9 @@ exports.createGuestOrder = async (req, res) => {
     const processedProducts = products.map(product => {
       const processedProduct = { ...product };
 
-      // If it's a custom t-shirt, the product ID might be 'custom'
-      if (processedProduct.product === 'custom') {
+      // If it's a custom t-shirt, the product ID might be 'custom' or a temporary ID
+      if (processedProduct.product === 'custom' || 
+          (typeof processedProduct.product === 'string' && processedProduct.product.startsWith('temp_'))) {
         processedProduct.product = null; // Set to null for custom items
       }
       
@@ -92,6 +93,7 @@ exports.createGuestOrder = async (req, res) => {
       address,
       status,
       shipping,
+      paymentStatus: transaction_id ? 'Paid' : 'Pending', // Set to Paid if payment was processed
       user: userId, // Link to existing user if found
       guestInfo: {
         id: guestId,

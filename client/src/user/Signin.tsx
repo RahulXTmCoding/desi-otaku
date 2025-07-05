@@ -3,9 +3,11 @@ import { Navigate, Link } from "react-router-dom";
 import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { signin, authenticate, isAutheticated, mockSignin } from "../auth/helper";
 import { useDevMode } from "../context/DevModeContext";
+import { useCart } from "../context/CartContext";
 
 const Signin = () => {
   const { isTestMode } = useDevMode();
+  const { syncCart } = useCart();
   const [values, setValues] = useState({
     email: "",
     password: "",
@@ -31,7 +33,9 @@ const Signin = () => {
       if (mockData.error) {
         setValues({ ...values, error: mockData.error, loading: false });
       } else {
-        authenticate(mockData, () => {
+        authenticate(mockData, async () => {
+          // Sync cart after successful authentication
+          await syncCart();
           setValues({
             ...values,
             didRedirect: true,
@@ -45,7 +49,9 @@ const Signin = () => {
           if (data.error) {
             setValues({ ...values, error: data.error, loading: false });
           } else {
-            authenticate(data, () => {
+            authenticate(data, async () => {
+              // Sync cart after successful authentication
+              await syncCart();
               setValues({
                 ...values,
                 didRedirect: true,

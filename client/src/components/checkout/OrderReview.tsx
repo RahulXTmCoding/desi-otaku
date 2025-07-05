@@ -1,8 +1,11 @@
 import React, { memo } from 'react';
 import { Package, MapPin, Truck, Clock, Home, CreditCard, Shield } from 'lucide-react';
+import CartTShirtPreview from '../CartTShirtPreview';
+import { API } from '../../backend';
 
 interface CartItem {
   _id: string;
+  product?: string | { _id: string; photoUrl?: string; [key: string]: any } | null;  // Product ID or populated product object
   name: string;
   price: number;
   quantity: number;
@@ -10,6 +13,13 @@ interface CartItem {
   color?: string;
   colorValue?: string;
   image?: string;
+  photoUrl?: string;  // URL-based product images
+  type?: string;
+  category?: string;
+  design?: string;
+  designPrice?: number;
+  isCustom?: boolean;
+  customization?: any;
 }
 
 interface OrderReviewProps {
@@ -68,25 +78,112 @@ const OrderReview: React.FC<OrderReviewProps> = memo(({
 
 // Separate component for order items
 const OrderItemCard = memo(({ item }: { item: CartItem }) => {
+  const isCustomDesign = item.type === 'custom' || item.category === 'custom' || item.isCustom;
+  
+  // Function to get product image URL
+  const getProductImageUrl = () => {
+    // For custom designs, we don't show a product image
+    if (isCustomDesign) {
+      return '';
+    }
+    
+    // Check if product has photoUrl (URL-based images)
+    if (item.photoUrl) {
+      if (item.photoUrl.startsWith('http') || item.photoUrl.startsWith('data:')) {
+        return item.photoUrl;
+      }
+      return item.photoUrl;
+    }
+    
+    // If we have a product ID in the product field, use it
+    if (item.product) {
+      // Check if product is an object with photoUrl
+      if (typeof item.product === 'object' && item.product !== null && 'photoUrl' in item.product && item.product.photoUrl) {
+        return item.product.photoUrl;
+      }
+      // Check if product is an object (populated) or string (ID)
+      const productId = typeof item.product === 'object' && item.product !== null && '_id' in item.product
+        ? item.product._id 
+        : item.product;
+      return `${API}/product/photo/${productId}`;
+    }
+    
+    // Fallback to _id if product field is not available
+    if (item._id && !item._id.startsWith('temp_')) {
+      return `${API}/product/photo/${item._id}`;
+    }
+    
+    // Check if we have a direct image URL
+    if (item.image) {
+      // If it's already a full URL, use it
+      if (item.image.startsWith('http') || item.image.startsWith('data:')) {
+        return item.image;
+      }
+      // If it starts with /api, it's already formatted
+      if (item.image.startsWith('/api')) {
+        return item.image;
+      }
+      // Otherwise, assume it's a product ID and format it
+      return `${API}/product/photo/${item.image}`;
+    }
+    
+    // Fallback to _id if it's not a custom item
+    if (item._id && !item._id.startsWith('temp_') && !item._id.startsWith('custom')) {
+      return `${API}/product/photo/${item._id}`;
+    }
+    
+    return '';
+  };
+  
   return (
     <div className="flex items-center gap-4 p-4 bg-gray-700/50 rounded-lg border border-gray-600">
       {/* Product Image */}
-      {item.image && (
-        <div className="w-20 h-20 bg-gray-600 rounded-lg overflow-hidden flex-shrink-0">
+      <div className="w-20 h-20 bg-gray-600 rounded-lg overflow-hidden flex-shrink-0">
+        {isCustomDesign ? (
+          <CartTShirtPreview
+            design={item.design}
+            color={item.color}
+            colorValue={item.colorValue}
+            image={item.image}
+            customization={item.customization}
+          />
+        ) : getProductImageUrl() ? (
           <img 
-            src={item.image} 
+            src={getProductImageUrl()} 
             alt={item.name}
             className="w-full h-full object-cover"
+            onError={(e: any) => {
+              e.target.onerror = null;
+              e.target.src = '/placeholder.png';
+            }}
           />
-        </div>
-      )}
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-2xl">👕</div>
+        )}
+      </div>
       
       <div className="flex-1">
         <p className="font-medium text-white">{item.name}</p>
+        {isCustomDesign && item.design && (
+          <p className="text-sm text-yellow-400">Custom Design: {item.design}</p>
+        )}
         <div className="flex items-center gap-3 mt-1">
-          <span className="text-sm text-gray-400">Size: {item.size}</span>
-          <span className="text-gray-500">•</span>
-          <span className="text-sm text-gray-400">Color: {item.color}</span>
+          <span className="text-sm text-gray-400">Size: {item.size || 'M'}</span>
+          {item.color && (
+            <>
+              <span className="text-gray-500">•</span>
+              <span className="text-sm text-gray-400 flex items-center gap-1">
+                Color: 
+                {item.colorValue && (
+                  <span 
+                    className="w-3 h-3 rounded-full border border-gray-500 inline-block"
+                    style={{ backgroundColor: item.colorValue }}
+                  />
+                )}
+                {item.color}
+              </span>
+            </>
+          )}
           <span className="text-gray-500">•</span>
           <span className="text-sm text-gray-400">Qty: {item.quantity}</span>
         </div>
@@ -141,9 +238,9 @@ const DeliveryMethodCard = memo(({ selectedShipping }: { selectedShipping: any }
           <Clock className="w-5 h-5 text-gray-400 mt-1" />
           <div className="flex-1">
             <p className="font-medium text-white">{selectedShipping?.courier_name}</p>
-            <p className="text-sm text-gray-400 mt-1">
+            {/* <p className="text-sm text-gray-400 mt-1">
               Estimated delivery: {selectedShipping?.estimated_delivery}
-            </p>
+            </p> */}
             <div className="mt-3 pt-3 border-t border-gray-600">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-400">Shipping Cost</span>

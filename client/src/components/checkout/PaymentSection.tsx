@@ -37,13 +37,6 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
       description: 'Visa, Mastercard, Amex (via Braintree)',
       icon: <CreditCard className="w-5 h-5" />,
       recommended: false
-    },
-    {
-      id: 'upi',
-      name: 'Direct UPI Transfer',
-      description: 'Pay later via UPI ID',
-      icon: <Smartphone className="w-5 h-5" />,
-      recommended: false
     }
   ], []);
 

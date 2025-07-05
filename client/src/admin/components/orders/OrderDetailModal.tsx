@@ -88,7 +88,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
                         design={item.customDesign || item.name}
                         color={item.color || 'White'}
                         colorValue={item.colorValue || '#FFFFFF'}
-                        image={item.designImage || item.image || (item.designId ? `${API}/design/photo/${item.designId}` : undefined)}
                         customization={item.customization}
                       />
                     ) : (

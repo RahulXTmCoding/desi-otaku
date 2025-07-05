@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, ShoppingCart, Eye, Trash2, Star } from 'lucide-react';
 import { API } from '../backend';
-import { addItemToCart } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 
@@ -47,6 +47,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
   const [imageError, setImageError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [wishlistState, setWishlistState] = useState(isInWishlist);
+  const { addToCart } = useCart();
 
   const authData = isAutheticated();
   const user = authData && authData.user;
@@ -84,21 +85,19 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
     e.preventDefault();
     e.stopPropagation();
     
-    const cartItem = {
-      _id: product._id,
-      name: product.name,
-      price: product.price,
-      size: 'M',
-      color: 'Default',
-      colorValue: '#000000',
-      quantity: 1,
-      type: 'product',
-      image: getImageUrl()
-    };
-    
-    addItemToCart(cartItem, () => {
-      // Optional: Show success message
-    });
+    try {
+      await addToCart({
+        product: product._id,
+        name: product.name,
+        price: product.price,
+        size: 'M',
+        color: 'Black',
+        quantity: 1,
+        isCustom: false
+      });
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+    }
   };
 
   const handleWishlistToggle = async (e: React.MouseEvent) => {
@@ -147,16 +146,6 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
           
           {/* Overlay Actions */}
           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-            {showCartButton && product.stock !== 0 && (
-              <button
-                onClick={handleAddToCart}
-                className="p-3 bg-yellow-400 hover:bg-yellow-500 text-gray-900 rounded-full transition-colors"
-                title="Add to Cart"
-              >
-                <ShoppingCart className="w-5 h-5" />
-              </button>
-            )}
-            
             {showQuickView && (
               <Link
                 to={`/product/${product._id}`}

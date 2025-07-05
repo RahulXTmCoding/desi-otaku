@@ -2,14 +2,10 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { API } from "../backend";
 import { Package } from "lucide-react";
+import CartTShirtPreview from "./CartTShirtPreview";
 
 const OrderCard = ({ order }) => {
   const getProductImage = (item: any) => {
-    // Handle custom products
-    if (item.isCustom || !item.product) {
-      return null;
-    }
-    
     // Handle regular products
     if (item.product?.photoUrl) {
       return item.product.photoUrl;
@@ -20,6 +16,10 @@ const OrderCard = ({ order }) => {
     }
     
     return null;
+  };
+
+  const isCustomProduct = (item: any) => {
+    return item.isCustom || item.customization || (!item.product && (item.designId || item.customDesign));
   };
 
   return (
@@ -36,11 +36,21 @@ const OrderCard = ({ order }) => {
           <p className="font-bold text-sm text-gray-300 mb-2">Products:</p>
           <div className="flex space-x-4 mt-2 overflow-x-auto">
             {order.products.map((item: any, index: number) => {
-              const imageUrl = getProductImage(item);
+              const isCustom = isCustomProduct(item);
+              const imageUrl = isCustom ? null : getProductImage(item);
               
               return (
                 <div key={index} className="flex flex-col items-center min-w-[60px]">
-                  {imageUrl ? (
+                  {isCustom ? (
+                    <div className="w-16 h-16 bg-gray-700 rounded-md overflow-hidden">
+                      <CartTShirtPreview
+                        design={item.customDesign || item.name}
+                        color={item.color || item.selectedColor || "White"}
+                        colorValue={item.colorValue || item.selectedColorValue || "#FFFFFF"}
+                        customization={item.customization}
+                      />
+                    </div>
+                  ) : imageUrl ? (
                     <img
                       src={imageUrl}
                       alt={item.name}
@@ -53,13 +63,13 @@ const OrderCard = ({ order }) => {
                       }}
                     />
                   ) : null}
-                  <div className={`w-16 h-16 bg-gray-700 rounded-md flex items-center justify-center ${imageUrl ? 'hidden' : ''}`}>
+                  <div className={`w-16 h-16 bg-gray-700 rounded-md flex items-center justify-center ${imageUrl || isCustom ? 'hidden' : ''}`}>
                     <Package className="w-8 h-8 text-gray-500" />
                   </div>
                   <p className="text-xs mt-1 text-center line-clamp-2 w-16">
                     {item.name} x {item.count || 1}
                   </p>
-                  {item.isCustom && (
+                  {isCustom && (
                     <span className="text-xs text-yellow-400 mt-1">Custom</span>
                   )}
                 </div>

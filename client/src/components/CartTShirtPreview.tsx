@@ -182,7 +182,12 @@ const CartTShirtPreview: React.FC<CartTShirtPreviewProps> = ({
             }}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
+              console.error('Failed to load design image:', currentDesign.designImage);
+              // Try to use a placeholder
               target.src = 'https://via.placeholder.com/100?text=Design';
+            }}
+            onLoad={() => {
+              console.log('Successfully loaded design image:', currentDesign.designImage);
             }}
           />
         </div>

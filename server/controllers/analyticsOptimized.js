@@ -374,21 +374,30 @@ async function getTopProductsAggregation(startDate, endDate) {
       $project: {
         productId: {
           $cond: [
-            { $or: ['$products.isCustom', { $ne: ['$products.customization', null] }] },
+            { $or: [
+              { $eq: ['$products.isCustom', true] },
+              { $eq: ['$products.product', null] }
+            ]},
             'custom-design',
             '$products.product'
           ]
         },
         name: {
           $cond: [
-            { $or: ['$products.isCustom', { $ne: ['$products.customization', null] }] },
+            { $or: [
+              { $eq: ['$products.isCustom', true] },
+              { $eq: ['$products.product', null] }
+            ]},
             'Custom Design T-Shirts',
             '$products.name'
           ]
         },
         count: { $ifNull: ['$products.count', 1] },
         price: '$products.price',
-        isCustom: { $or: ['$products.isCustom', { $ne: ['$products.customization', null] }] }
+        isCustom: { $or: [
+          { $eq: ['$products.isCustom', true] },
+          { $eq: ['$products.product', null] }
+        ]}
       }
     },
     {
@@ -444,7 +453,10 @@ async function getCategoryBreakdownAggregation(startDate, endDate) {
     { $unwind: '$products' },
     {
       $project: {
-        isCustom: { $or: ['$products.isCustom', { $ne: ['$products.customization', null] }] },
+        isCustom: { $or: [
+          { $eq: ['$products.isCustom', true] },
+          { $eq: ['$products.product', null] }
+        ]},
         product: '$products.product',
         price: '$products.price',
         count: { $ifNull: ['$products.count', 1] }
@@ -532,7 +544,10 @@ async function getProductTypeBreakdownAggregation(startDate, endDate) {
     { $unwind: '$products' },
     {
       $project: {
-        isCustom: { $or: ['$products.isCustom', { $ne: ['$products.customization', null] }] },
+        isCustom: { $or: [
+          { $eq: ['$products.isCustom', true] },
+          { $eq: ['$products.product', null] }
+        ]},
         product: '$products.product',
         price: '$products.price',
         count: { $ifNull: ['$products.count', 1] }

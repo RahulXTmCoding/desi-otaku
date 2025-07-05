@@ -48,7 +48,7 @@ const Analytics: React.FC = () => {
     loadAnalyticsData();
   }, [isTestMode, dateRange]);
 
-  const loadAnalyticsData = async () => {
+  const loadAnalyticsData = async (clearCache = false) => {
     setLoading(true);
 
     try {
@@ -61,6 +61,20 @@ const Analytics: React.FC = () => {
       } else {
         // Real API call
         try {
+          // Clear cache if requested
+          if (clearCache) {
+            await fetch(`${API}/analytics/clear-cache`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`
+              }
+            });
+            toast.success('Analytics cache cleared. Loading fresh data...', {
+              icon: '🔄',
+              duration: 2000,
+            });
+          }
+
           const response = await fetch(`${API}/analytics/dashboard?period=${dateRange}`, {
             headers: {
               Authorization: `Bearer ${token}`
@@ -267,8 +281,9 @@ const Analytics: React.FC = () => {
                 onRangeChange={setDateRange}
               />
               <button
-                onClick={loadAnalyticsData}
+                onClick={() => loadAnalyticsData(true)}
                 className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
+                title="Clear cache and refresh data"
               >
                 <RefreshCw className="w-4 h-4" />
                 Refresh

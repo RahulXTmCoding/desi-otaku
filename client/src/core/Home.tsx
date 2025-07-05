@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Star, ChevronRight, Shuffle, ShoppingCart, Sparkles, Check } from 'lucide-react';
 import Base from './Base';
-import { addItemToCart } from './helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { getProducts, getCategories } from './helper/coreapicalls';
+import { getDesigns } from '../admin/helper/designapicall';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, mockCategories, getMockProductImage } from '../data/mockData';
 import ProductGridItem from '../components/ProductGridItem';
+import RealTShirtPreview from '../components/RealTShirtPreview';
 
 interface Product {
   _id: string;
@@ -34,6 +36,7 @@ interface Category {
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
+  const { addToCart } = useCart();
   const [tshirts, setTshirts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -43,6 +46,7 @@ const Home: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [selectedRandomColor, setSelectedRandomColor] = useState<any>(null);
   const [selectedRandomSize, setSelectedRandomSize] = useState<string>('');
+  const [addedToCart, setAddedToCart] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -106,74 +110,121 @@ const Home: React.FC = () => {
   const handleRandomDesign = async () => {
     setIsGenerating(true);
     setShowRandomModal(true);
+    setAddedToCart(false);
     
     // Simulate loading animation
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Get all available products
-    const availableProducts = isTestMode ? mockProducts : await getProducts();
-    const productList = Array.isArray(availableProducts) ? availableProducts : [];
-    
-    if (productList.length === 0) {
+    try {
+      // Get all available designs
+      let designList = [];
+      
+      if (isTestMode) {
+        // Use mock products as designs in test mode
+        designList = mockProducts.map(p => ({
+          _id: p._id,
+          name: p.name,
+          imageUrl: getMockProductImage(p._id),
+          price: 150,
+          category: p.category,
+          isActive: true
+        }));
+      } else {
+        // Fetch real designs
+        const designsData = await getDesigns(1, 100, {});
+        designList = designsData.designs || designsData || [];
+      }
+      
+      if (!Array.isArray(designList) || designList.length === 0) {
+        setIsGenerating(false);
+        return;
+      }
+      
+      // Random selections
+      const randomDesign = designList[Math.floor(Math.random() * designList.length)];
+      const colors = [
+        { name: 'White', value: '#FFFFFF' },
+        { name: 'Black', value: '#000000' },
+        { name: 'Navy', value: '#1E3A8A' },
+        { name: 'Red', value: '#DC2626' },
+        { name: 'Gray', value: '#6B7280' },
+        { name: 'Green', value: '#059669' },
+        { name: 'Yellow', value: '#F59E0B' },
+        { name: 'Purple', value: '#7C3AED' }
+      ];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+      const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
+      
+      // Randomly decide front or back (not both)
+      const positions = ['front', 'back'];
+      const randomPosition = positions[Math.floor(Math.random() * positions.length)];
+      
+      // Randomly decide center or center-bottom
+      const designPositions = ['center', 'center-bottom'];
+      const randomDesignPosition = designPositions[Math.floor(Math.random() * designPositions.length)];
+      
+      const selection = {
+        design: randomDesign,
+        color: randomColor,
+        size: randomSize,
+        position: randomPosition,
+        designPosition: randomDesignPosition,
+        price: 499 + 150 // Base + design price (single side only)
+      };
+      
+      setRandomSelection(selection);
+      setSelectedRandomColor(randomColor);
+      setSelectedRandomSize(randomSize);
       setIsGenerating(false);
-      return;
+    } catch (error) {
+      console.error('Error generating random design:', error);
+      setIsGenerating(false);
     }
-    
-    // Random selections
-    const randomProduct = productList[Math.floor(Math.random() * productList.length)];
-    const colors = [
-      { name: 'White', value: '#FFFFFF' },
-      { name: 'Black', value: '#000000' },
-      { name: 'Navy', value: '#1E3A8A' },
-      { name: 'Red', value: '#DC2626' },
-      { name: 'Gray', value: '#6B7280' },
-      { name: 'Green', value: '#059669' },
-      { name: 'Yellow', value: '#F59E0B' },
-      { name: 'Purple', value: '#7C3AED' }
-    ];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
-    const randomSize = sizes[Math.floor(Math.random() * sizes.length)];
-    
-    const selection = {
-      product: randomProduct,
-      color: randomColor,
-      size: randomSize,
-      price: 499 + 150 // Base + design price
-    };
-    
-    setRandomSelection(selection);
-    setSelectedRandomColor(randomColor);
-    setSelectedRandomSize(randomSize);
-    setIsGenerating(false);
   };
 
-  const handleAddRandomToCart = () => {
+  const handleAddRandomToCart = async () => {
     if (!randomSelection || !selectedRandomColor || !selectedRandomSize) return;
     
-    const cartItem = {
-      _id: `custom-${randomSelection.product._id}-${selectedRandomColor.value}-${selectedRandomSize}-${Date.now()}`,
-      name: `Custom T-Shirt - ${randomSelection.product.name}`,
-      price: randomSelection.price,
-      category: 'custom',
-      size: selectedRandomSize,
-      color: selectedRandomColor.name,
-      colorValue: selectedRandomColor.value,
-      quantity: 1,
-      type: 'custom',
-      design: randomSelection.product.name,
-      designPrice: 150,
-      image: getProductImage(randomSelection.product)
-    };
+    try {
+      const designName = `${randomSelection.position === 'front' ? 'Front' : 'Back'}: ${randomSelection.design.name}`;
+      
+      const cartItem = {
+        name: `Custom T-Shirt - ${designName}`,
+        price: randomSelection.price,
+        size: selectedRandomSize,
+        color: selectedRandomColor.name,
+        quantity: 1,
+        isCustom: true,
+        customization: {
+          frontDesign: randomSelection.position === 'front' ? {
+            designId: randomSelection.design._id,
+            designImage: getDesignImageUrl(randomSelection.design),
+            position: randomSelection.designPosition,
+            price: 150
+          } : undefined,
+          backDesign: randomSelection.position === 'back' ? {
+            designId: randomSelection.design._id,
+            designImage: getDesignImageUrl(randomSelection.design),
+            position: randomSelection.designPosition,
+            price: 150
+          } : undefined
+        }
+      };
 
-    addItemToCart(cartItem, () => {
+      await addToCart(cartItem);
+      setAddedToCart(true);
+      
       setTimeout(() => {
         setShowRandomModal(false);
         setRandomSelection(null);
         setSelectedRandomColor(null);
         setSelectedRandomSize('');
-      }, 1000);
-    });
+        setAddedToCart(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+    }
   };
 
   const tshirtColors = [
@@ -199,23 +250,11 @@ const Home: React.FC = () => {
     return '/api/placeholder/300/350';
   };
 
-  const handleAddToCart = (product: Product) => {
-    const cartItem = {
-      _id: product._id,
-      name: product.name,
-      price: product.price,
-      category: product.category?.name || '',
-      size: 'M', // Default size
-      color: 'Default',
-      colorValue: '#000000',
-      quantity: 1,
-      type: 'product',
-      image: getProductImage(product)
-    };
-
-    addItemToCart(cartItem, () => {
-      console.log('Product added to cart');
-    });
+  const getDesignImageUrl = (design: any) => {
+    if (design.imageUrl && (design.imageUrl.startsWith('http') || design.imageUrl.startsWith('data:'))) {
+      return design.imageUrl;
+    }
+    return `${API}/design/image/${design._id}`;
   };
 
   const getCategoryCount = (categoryName: string) => {
@@ -383,8 +422,8 @@ const Home: React.FC = () => {
 
       {/* Random Design Modal */}
       {showRandomModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-gray-800 rounded-3xl p-8 max-w-lg w-full border border-gray-700 transform transition-all duration-500 scale-100">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-gray-800 rounded-3xl p-4 sm:p-6 lg:p-8 max-w-lg w-full border border-gray-700 transform transition-all duration-500 scale-100 my-8 max-h-[90vh] overflow-y-auto">
             <div className="text-center">
               {isGenerating ? (
                 <>
@@ -400,36 +439,58 @@ const Home: React.FC = () => {
                   <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
                     <Check className="w-8 h-8 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold mb-6">Your Random Selection!</h3>
+                  <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Your Random Selection!</h3>
                   
-                  <div className="bg-gray-900 rounded-2xl p-6 mb-6">
+                  <div className="bg-gray-900 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
                     {/* Product Info */}
                     <div className="mb-4 text-center">
-                      <h4 className="font-semibold text-lg">{randomSelection.product.name}</h4>
+                      <h4 className="font-semibold text-lg">{randomSelection.design.name}</h4>
                       <p className="text-gray-400 text-sm mt-1">Design selected randomly for you!</p>
                     </div>
                     
                     {/* T-Shirt Preview with Design */}
-                    <div className="mb-6">
-                      <div className="relative mx-auto w-48">
-                        {/* T-Shirt SVG */}
-                        <svg viewBox="0 0 200 200" className="w-full h-auto">
-                          <path
-                            d="M50 60 Q50 40 70 40 L80 40 Q85 35 100 35 Q115 35 120 40 L130 40 Q150 40 150 60 L150 80 L140 80 L140 160 Q140 170 130 170 L70 170 Q60 170 60 160 L60 80 L50 80 Z"
-                            fill={selectedRandomColor?.value || '#FFFFFF'}
-                            stroke="#374151"
-                            strokeWidth="2"
-                          />
-                        </svg>
-                        {/* Design on T-Shirt */}
-                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-gray-600 rounded-lg overflow-hidden">
-                          <img 
-                            src={getProductImage(randomSelection.product)}
-                            alt={randomSelection.product.name}
-                            className="w-full h-full object-cover opacity-90"
-                          />
-                        </div>
+                    <div className="mb-4 sm:mb-6">
+                      <div className="h-48 sm:h-64 md:h-72 overflow-hidden">
+                        <RealTShirtPreview
+                          selectedDesign={randomSelection.design ? {
+                            ...randomSelection.design,
+                            image: getDesignImageUrl(randomSelection.design)
+                          } : null}
+                          selectedColor={selectedRandomColor?.name || 'White'}
+                          selectedSize={selectedRandomSize || 'M'}
+                          position={randomSelection.designPosition}
+                          side={randomSelection.position}
+                          frontDesign={
+                            randomSelection.position === 'front' && randomSelection.design
+                              ? {
+                                  ...randomSelection.design,
+                                  image: getDesignImageUrl(randomSelection.design),
+                                  position: randomSelection.designPosition
+                                }
+                              : null
+                          }
+                          backDesign={
+                            randomSelection.position === 'back' && randomSelection.design
+                              ? {
+                                  ...randomSelection.design,
+                                  image: getDesignImageUrl(randomSelection.design),
+                                  position: randomSelection.designPosition
+                                }
+                              : null
+                          }
+                        />
                       </div>
+                      <p className="text-center text-xs sm:text-sm text-gray-400 mt-2">
+                        {randomSelection.position === 'front' && `Front Design - ${randomSelection.designPosition === 'center-bottom' ? 'Bottom Position' : 'Center Position'}`}
+                        {randomSelection.position === 'back' && `Back Design - ${randomSelection.designPosition === 'center-bottom' ? 'Bottom Position' : 'Center Position'}`}
+                      </p>
+                    </div>
+                    {/* Design Info */}
+                    <div className="mb-4 text-center">
+                      <h4 className="font-semibold text-lg">{randomSelection.design.name}</h4>
+                      <p className="text-gray-400 text-sm mt-1">
+                        Design on {randomSelection.position} side ({randomSelection.designPosition === 'center-bottom' ? 'bottom' : 'center'})
+                      </p>
                     </div>
                     
                     {/* Customization Options */}
@@ -488,12 +549,14 @@ const Home: React.FC = () => {
                       <div className="bg-gray-800 rounded-lg p-3 text-center">
                         <p className="text-gray-400 text-sm">Total Price</p>
                         <p className="text-xl font-bold text-yellow-400">₹{randomSelection.price}</p>
-                        <p className="text-xs text-gray-500">Base ₹499 + Design ₹150</p>
+                        <p className="text-xs text-gray-500">
+                          Base ₹499 + Design ₹150
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                     <button
                       onClick={() => {
                         setRandomSelection(null);
@@ -501,17 +564,31 @@ const Home: React.FC = () => {
                         setSelectedRandomSize('');
                         handleRandomDesign();
                       }}
-                      className="flex-1 bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      className="flex-1 bg-purple-600 hover:bg-purple-500 py-2.5 sm:py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
                     >
-                      <Shuffle className="w-5 h-5" />
+                      <Shuffle className="w-4 h-4 sm:w-5 sm:h-5" />
                       Try Again
                     </button>
                     <button
                       onClick={handleAddRandomToCart}
-                      className="flex-1 bg-yellow-400 hover:bg-yellow-300 text-gray-900 py-3 rounded-xl font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                      disabled={addedToCart}
+                      className={`flex-1 py-2.5 sm:py-3 rounded-xl font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm sm:text-base ${
+                        addedToCart 
+                          ? 'bg-green-500 text-white' 
+                          : 'bg-yellow-400 hover:bg-yellow-300 text-gray-900'
+                      }`}
                     >
-                      <ShoppingCart className="w-5 h-5" />
-                      Add to Cart
+                      {addedToCart ? (
+                        <>
+                          <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                          Added!
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                          Add to Cart
+                        </>
+                      )}
                     </button>
                   </div>
                 </>

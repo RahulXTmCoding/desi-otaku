@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './pages/App'
 import { DevModeProvider } from './context/DevModeContext'
+import { CartProvider } from './context/CartContext'
 import { initializeAuth } from './utils/clearAuth'
 import './index.css'
 
@@ -13,7 +14,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <DevModeProvider>
       <BrowserRouter>
-        <App />
+        <CartProvider>
+          <App />
+        </CartProvider>
       </BrowserRouter>
     </DevModeProvider>
   </React.StrictMode>,

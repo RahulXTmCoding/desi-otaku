@@ -14,7 +14,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { addItemToCart } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { getCategories } from '../core/helper/coreapicalls';
 import { getFilteredProducts } from '../core/helper/shopApiCalls';
 import { getAllProductTypes } from '../admin/helper/productTypeApiCalls';
@@ -50,6 +50,7 @@ interface Category {
 const Shop: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
+  const { addToCart } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
   
   // State
@@ -589,24 +590,23 @@ const Shop: React.FC = () => {
                         
                         <div className="flex flex-col justify-center">
                           <button
-                            onClick={(e) => {
+                            onClick={async (e) => {
                               e.stopPropagation();
                               if (product.stock > 0) {
-                                const cartItem = {
-                                  _id: product._id,
-                                  name: product.name,
-                                  price: product.price,
-                                  category: product.category?.name || '',
-                                  size: 'M',
-                                  color: 'Default',
-                                  colorValue: '#000000',
-                                  quantity: 1,
-                                  type: 'product',
-                                  image: getProductImage(product)
-                                };
-                                addItemToCart(cartItem, () => {
+                                try {
+                                  await addToCart({
+                                    product: product._id,
+                                    name: product.name,
+                                    price: product.price,
+                                    size: 'M', // Default size
+                                    color: 'Black', // Default color
+                                    quantity: 1,
+                                    isCustom: false
+                                  });
                                   console.log('Product added to cart');
-                                });
+                                } catch (error) {
+                                  console.error('Failed to add to cart:', error);
+                                }
                               }
                             }}
                             disabled={product.stock === 0}

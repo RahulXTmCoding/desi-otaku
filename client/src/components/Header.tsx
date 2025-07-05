@@ -2,46 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, ShoppingCart, User, Heart, Menu, X, Sparkles, Palette } from 'lucide-react';
 import { signout, isAutheticated } from '../auth/helper';
-import { loadCart } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { getWishlistCount } from '../core/helper/wishlistHelper';
 import CartDrawer from './CartDrawer';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const auth = isAutheticated();
-  const [cartCount, setCartCount] = useState(0);
+  const { getItemCount, syncCart } = useCart();
   const [cartAnimation, setCartAnimation] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [prevCartCount, setPrevCartCount] = useState(0);
+
+  const cartCount = getItemCount();
 
   useEffect(() => {
-    updateCartCount();
-    // Listen for cart updates
-    const interval = setInterval(updateCartCount, 1000);
-    
-    // Listen for custom cart update event
-    window.addEventListener('cartUpdated', handleCartUpdate);
-    
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('cartUpdated', handleCartUpdate);
-    };
-  }, []);
+    // Trigger animation when cart count changes
+    if (cartCount !== prevCartCount && cartCount > prevCartCount) {
+      setCartAnimation(true);
+      setTimeout(() => setCartAnimation(false), 600);
+    }
+    setPrevCartCount(cartCount);
+  }, [cartCount, prevCartCount]);
 
-  const updateCartCount = () => {
-    const cart = loadCart();
-    const totalItems = cart.reduce((total: number, item: any) => total + (item.quantity || 1), 0);
-    setCartCount(totalItems);
-  };
-
-  const handleCartUpdate = () => {
-    updateCartCount();
-    // Trigger animation
-    setCartAnimation(true);
-    setTimeout(() => setCartAnimation(false), 600);
-  };
-
-  const handleSignout = () => {
+  const handleSignout = async () => {
+    // Clear cart context on logout
+    await syncCart();
     signout(() => {
       navigate("/");
     });
@@ -62,8 +49,8 @@ const Header: React.FC = () => {
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
 
-        {/* Logo */}
-        <Link to="/" className="flex items-center space-x-3 group">
+        {/* Logo - Link to dashboard for admin, home for others */}
+        <Link to={auth && auth.user && auth.user.role === 1 ? "/admin/dashboard" : "/"} className="flex items-center space-x-3 group">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
             <div className="relative w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform shadow-lg">
@@ -143,24 +130,29 @@ const Header: React.FC = () => {
 
         {/* Right Side Icons */}
         <div className="flex items-center space-x-2 md:space-x-3">
-          <Link to="/wishlist" className="relative p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all" title="Wishlist">
-            <Heart className="w-5 h-5" />
-          </Link>
-          <button 
-            onClick={() => setIsCartOpen(true)} 
-            className="relative p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all group"
-          >
-            <ShoppingCart 
-              className={`w-5 h-5 ${cartAnimation ? 'animate-bounce' : ''}`} 
-            />
-            {cartCount > 0 && (
-              <span className={`absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-yellow-500 text-gray-900 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform ${
-                cartAnimation ? 'animate-ping' : ''
-              }`}>
-                {cartCount}
-              </span>
-            )}
-          </button>
+          {/* Only show wishlist and cart for non-admin users */}
+          {(!auth || !auth.user || auth.user.role !== 1) && (
+            <>
+              <Link to="/wishlist" className="relative p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all" title="Wishlist">
+                <Heart className="w-5 h-5" />
+              </Link>
+              <button 
+                onClick={() => setIsCartOpen(true)} 
+                className="relative p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all group"
+              >
+                <ShoppingCart 
+                  className={`w-5 h-5 ${cartAnimation ? 'animate-bounce' : ''}`} 
+                />
+                {cartCount > 0 && (
+                  <span className={`absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-yellow-500 text-gray-900 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform ${
+                    cartAnimation ? 'animate-ping' : ''
+                  }`}>
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
           {!auth ? (
             <Link to="/signin" className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
               <User className="w-4 h-4" />
@@ -241,43 +233,92 @@ const Header: React.FC = () => {
 
           {/* Mobile Menu Links */}
           <div className="py-4">
-            <Link
-              to="/"
-              onClick={closeMobileMenu}
-              className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
-            >
-              Home
-            </Link>
-            <Link
-              to="/shop"
-              onClick={closeMobileMenu}
-              className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
-            >
-              Shop
-            </Link>
-            <Link
-              to="/customize"
-              onClick={closeMobileMenu}
-              className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
-            >
-              Custom Design
-            </Link>
-            {auth && auth.user && auth.user.role === 1 && (
-              <Link
-                to="/admin/dashboard"
-                onClick={closeMobileMenu}
-                className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
-              >
-                Admin Panel
-              </Link>
+            {auth && auth.user && auth.user.role === 1 ? (
+              // Admin Mobile Navigation
+              <>
+                <Link
+                  to="/admin/dashboard"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  to="/admin/designs"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Designs
+                </Link>
+                <Link
+                  to="/admin/products"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Products
+                </Link>
+                <Link
+                  to="/admin/product-types"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Product Types
+                </Link>
+                <Link
+                  to="/admin/categories"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Categories
+                </Link>
+                <Link
+                  to="/admin/orders"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Orders
+                </Link>
+                <Link
+                  to="/admin/analytics"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Analytics
+                </Link>
+              </>
+            ) : (
+              // Customer Mobile Navigation
+              <>
+                <Link
+                  to="/"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Home
+                </Link>
+                <Link
+                  to="/shop"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Shop
+                </Link>
+                <Link
+                  to="/customize"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Custom Design
+                </Link>
+                <Link
+                  to="/contact"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                >
+                  Contact
+                </Link>
+              </>
             )}
-            <Link
-              to="/contact"
-              onClick={closeMobileMenu}
-              className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
-            >
-              Contact
-            </Link>
 
             {/* Mobile User Section */}
             <div className="mt-6 px-6 pt-6 border-t border-gray-800">

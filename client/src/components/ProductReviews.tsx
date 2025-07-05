@@ -5,9 +5,10 @@ import { isAutheticated } from '../auth/helper';
 
 interface ProductReviewsProps {
   productId: string;
+  productImage: string;
 }
 
-const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
+const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage }) => {
   const [reviews, setReviews] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -282,9 +283,15 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId }) => {
       {/* Review Form */}
       {(showReviewForm || (userReview && showReviewForm)) && (
         <div className="bg-gray-800 rounded-xl p-6 mb-8">
-          <h3 className="text-xl font-semibold mb-4">
-            {userReview ? 'Edit Your Review' : 'Write a Review'}
-          </h3>
+          <div className="flex gap-4 mb-4">
+            <img src={productImage} alt="product" className="w-24 h-24 rounded-lg object-cover"/>
+            <div>
+              <h3 className="text-xl font-semibold">
+                {userReview ? 'Edit Your Review' : 'Write a Review'}
+              </h3>
+              <p className="text-gray-400">Your feedback helps other shoppers.</p>
+            </div>
+          </div>
           
           <form onSubmit={handleSubmitReview}>
             {renderRatingForm()}

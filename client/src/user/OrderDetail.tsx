@@ -163,7 +163,6 @@ const OrderDetail = () => {
                                 design={product.customDesign || product.name}
                                 color={product.color || product.selectedColor || "White"}
                                 colorValue={product.colorValue || product.selectedColorValue || "#FFFFFF"}
-                                image={product.designImage || product.image || (product.designId ? `${API}/design/photo/${product.designId}` : undefined)}
                                 customization={product.customization}
                               />
                             </div>
@@ -174,6 +173,7 @@ const OrderDetail = () => {
                             >
                               <img 
                                 src={
+                                  product.photoUrl ||
                                   product.product.photoUrl || 
                                   (product.product._id ? `${API}/product/photo/${product.product._id}` : null) ||
                                   (typeof product.product === 'string' ? `${API}/product/photo/${product.product}` : null) ||

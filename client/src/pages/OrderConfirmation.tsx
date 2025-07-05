@@ -9,16 +9,17 @@ import {
   Copy,
   Download
 } from 'lucide-react';
-import { cartEmpty } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 
 const OrderConfirmation: React.FC = () => {
   const navigate = useNavigate();
+  const { clearCart } = useCart();
   const [orderNumber] = useState(`ORD${Date.now().toString().slice(-8)}`);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     // Clear cart after successful order
-    cartEmpty(() => {
+    clearCart().then(() => {
       console.log('Cart cleared');
     });
 

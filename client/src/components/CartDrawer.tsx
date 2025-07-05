@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Loader2, Cloud, CloudOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { loadCart, removeItemFromCart, updateCartItemQuantity } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
+import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
 import { getMockProductImage } from '../data/mockData';
 import CartTShirtPreview from './CartTShirtPreview';
@@ -15,35 +16,62 @@ interface CartDrawerProps {
 const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
-  const [cartItems, setCartItems] = useState<any[]>([]);
-  const [cartTotal, setCartTotal] = useState(0);
+  const { cart, loading, error, updateQuantity, removeFromCart, clearCart, getTotal, getItemCount } = useCart();
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      loadCartItems();
-    }
-  }, [isOpen]);
-
-  const loadCartItems = () => {
-    const items = loadCart();
-    setCartItems(items);
-    calculateTotal(items);
-  };
-
-  const calculateTotal = (items: any[]) => {
-    const total = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    setCartTotal(total);
-  };
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
+  
+  const authData = isAutheticated();
+  const isLoggedIn = !!(authData && authData.user);
 
   const getProductImage = (item: any) => {
     if (isTestMode) {
-      return getMockProductImage(item._id.split('-')[0]);
+      return getMockProductImage(item._id?.split('-')[0] || '');
     }
+    
+    // For custom designs, we don't show a product image
+    if (item.isCustom || item.type === 'custom' || item.category === 'custom') {
+      return '';
+    }
+    
+    // Check if product has photoUrl (URL-based images)
+    if (item.photoUrl) {
+      if (item.photoUrl.startsWith('http') || item.photoUrl.startsWith('data:')) {
+        return item.photoUrl;
+      }
+      return item.photoUrl;
+    }
+    
+    // Check if we have a direct image URL
     if (item.image) {
-      return item.image;
+      if (item.image.startsWith('http') || item.image.startsWith('data:')) {
+        return item.image;
+      }
+      if (item.image.startsWith('/api')) {
+        return item.image;
+      }
+      return `${API}/product/photo/${item.image}`;
     }
-    return `${API}/product/photo/${item._id.split('-')[0]}`;
+    
+    // If we have a product ID in the product field, use it
+    if (item.product) {
+      // If product is an object with photoUrl
+      if (typeof item.product === 'object' && item.product.photoUrl) {
+        return item.product.photoUrl;
+      }
+      // If product is an object with _id
+      if (typeof item.product === 'object' && item.product._id) {
+        return `${API}/product/photo/${item.product._id}`;
+      }
+      // If product is a string ID
+      return `${API}/product/photo/${item.product}`;
+    }
+    
+    // Fallback to _id if not custom
+    if (item._id && !item._id.startsWith('temp_') && !item._id.startsWith('custom')) {
+      return `${API}/product/photo/${item._id}`;
+    }
+    
+    return '/api/placeholder/80/80';
   };
 
   const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
@@ -51,18 +79,33 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     
     setIsUpdating(itemId);
     try {
-      updateCartItemQuantity(itemId, newQuantity, () => {
-        loadCartItems();
-      });
+      await updateQuantity(itemId, newQuantity);
+    } catch (error) {
+      console.error('Failed to update quantity:', error);
     } finally {
       setIsUpdating(null);
     }
   };
 
-  const handleRemoveItem = (itemId: string) => {
-    removeItemFromCart(itemId, () => {
-      loadCartItems();
-    });
+  const handleRemoveItem = async (itemId: string) => {
+    setIsRemoving(itemId);
+    try {
+      await removeFromCart(itemId);
+    } catch (error) {
+      console.error('Failed to remove item:', error);
+    } finally {
+      setIsRemoving(null);
+    }
+  };
+
+  const handleClearCart = async () => {
+    if (window.confirm('Are you sure you want to clear your cart?')) {
+      try {
+        await clearCart();
+      } catch (error) {
+        console.error('Failed to clear cart:', error);
+      }
+    }
   };
 
   const handleCheckout = () => {
@@ -75,7 +118,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     navigate('/shop');
   };
 
-  const shipping = cartTotal > 0 && cartTotal < 1000 ? 99 : 0;
+  const cartTotal = getTotal();
+  const shipping = cartTotal > 0 && cartTotal < 999 ? 79 : 0;
   const finalTotal = cartTotal + shipping;
 
   return (
@@ -102,20 +146,47 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               <ShoppingCart className="w-6 h-6 text-yellow-400" />
               <h2 className="text-xl font-bold text-white">Your Cart</h2>
               <span className="bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-sm font-semibold">
-                {cartItems.length}
+                {getItemCount()}
               </span>
             </div>
-            <button
-              onClick={onClose}
-              className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-white"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Sync Status Indicator */}
+              <div className="flex items-center gap-1">
+                {loading ? (
+                  <Loader2 className="w-4 h-4 text-yellow-400 animate-spin" />
+                ) : isLoggedIn ? (
+                  <span title="Cart synced to account">
+                    <Cloud className="w-4 h-4 text-green-400" />
+                  </span>
+                ) : (
+                  <span title="Cart stored locally">
+                    <CloudOff className="w-4 h-4 text-gray-400" />
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={onClose}
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Cart Items */}
           <div className="flex-1 overflow-y-auto p-6">
-            {cartItems.length === 0 ? (
+            {loading && cart.length === 0 ? (
+              <div className="flex justify-center items-center h-full">
+                <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
+              </div>
+            ) : cart.length === 0 ? (
               <div className="text-center py-12">
                 <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-500" />
                 <p className="text-gray-300 mb-6">Your cart is empty</p>
@@ -128,24 +199,35 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               </div>
             ) : (
               <div className="space-y-4">
-                {cartItems.map((item) => (
+                {cart.map((item) => (
                   <div
                     key={item._id}
-                    className="rounded-lg p-4 transition-colors"
+                    className={`rounded-lg p-4 transition-all ${
+                      isRemoving === item._id ? 'opacity-50 scale-95' : ''
+                    }`}
                     style={{ backgroundColor: '#374151' }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#4B5563'}
+                    onMouseEnter={(e) => !isRemoving && (e.currentTarget.style.backgroundColor = '#4B5563')}
                     onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#374151'}
                   >
                     <div className="flex gap-4">
                       {/* Product Image */}
                       <div className="w-20 h-20 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
-                        {(item.category === 'custom' || item.isCustom) && (item.design || item.customization) ? (
+                        {item.isCustom && item.customization ? (
                           <CartTShirtPreview
-                            design={item.design}
+                            design={null}
                             color={item.color}
-                            colorValue={item.colorValue}
-                            image={item.image}
-                            customization={item.customization}
+                            colorValue="#000000"
+                            image={null}
+                            customization={{
+                              frontDesign: item.customization.frontDesign ? {
+                                designImage: item.customization.frontDesign.designImage,
+                                position: item.customization.frontDesign.position
+                              } : undefined,
+                              backDesign: item.customization.backDesign ? {
+                                designImage: item.customization.backDesign.designImage,
+                                position: item.customization.backDesign.position
+                              } : undefined
+                            }}
                           />
                         ) : (
                           <img
@@ -165,6 +247,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         <div className="text-sm text-gray-300 space-y-1">
                           <p>Size: {item.size}</p>
                           <p>Color: {item.color}</p>
+                          {item.isCustom && (
+                            <p className="text-yellow-400 text-xs">Custom Design</p>
+                          )}
                         </div>
                       </div>
 
@@ -178,26 +263,39 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     <div className="mt-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <button
-                          onClick={() => handleQuantityUpdate(item._id, item.quantity - 1)}
+                          onClick={() => handleQuantityUpdate(item._id!, item.quantity - 1)}
                           disabled={isUpdating === item._id || item.quantity <= 1}
                           className="p-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <Minus className="w-4 h-4" />
+                          {isUpdating === item._id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Minus className="w-4 h-4" />
+                          )}
                         </button>
                         <span className="w-8 text-center text-white">{item.quantity}</span>
                         <button
-                          onClick={() => handleQuantityUpdate(item._id, item.quantity + 1)}
+                          onClick={() => handleQuantityUpdate(item._id!, item.quantity + 1)}
                           disabled={isUpdating === item._id}
                           className="p-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors disabled:opacity-50"
                         >
-                          <Plus className="w-4 h-4" />
+                          {isUpdating === item._id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Plus className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                       <button
-                        onClick={() => handleRemoveItem(item._id)}
-                        className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                        onClick={() => handleRemoveItem(item._id!)}
+                        disabled={isRemoving === item._id}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        {isRemoving === item._id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
                       </button>
                     </div>
                   </div>
@@ -207,7 +305,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           </div>
 
           {/* Footer */}
-          {cartItems.length > 0 && (
+          {cart.length > 0 && (
             <div className="border-t border-gray-700 p-6 space-y-4" style={{ backgroundColor: '#111827' }}>
               {/* Price Summary */}
               <div className="space-y-2">
@@ -223,7 +321,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
                 {shipping > 0 && (
                   <p className="text-xs text-yellow-300">
-                    Add ₹{1000 - cartTotal} more for free shipping
+                    Add ₹{999 - cartTotal} more for free shipping
                   </p>
                 )}
                 <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-600">
@@ -232,22 +330,47 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
-              {/* Checkout Button */}
-              <button
-                onClick={handleCheckout}
-                className="w-full bg-yellow-400 text-gray-900 py-4 rounded-lg font-bold hover:bg-yellow-300 transition-all transform hover:scale-105 flex items-center justify-center gap-2"
-              >
-                Proceed to Checkout
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              {/* Action Buttons */}
+              <div className="space-y-2">
+                <button
+                  onClick={handleCheckout}
+                  className="w-full bg-yellow-400 text-gray-900 py-4 rounded-lg font-bold hover:bg-yellow-300 transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  Proceed to Checkout
+                  <ChevronRight className="w-5 h-5" />
+                </button>
 
-              {/* Continue Shopping */}
-              <button
-                onClick={handleContinueShopping}
-                className="w-full py-3 text-gray-400 hover:text-white transition-colors"
-              >
-                Continue Shopping
-              </button>
+                <button
+                  onClick={handleContinueShopping}
+                  className="w-full py-3 text-gray-400 hover:text-white transition-colors"
+                >
+                  Continue Shopping
+                </button>
+
+                {cart.length > 1 && (
+                  <button
+                    onClick={handleClearCart}
+                    className="w-full py-2 text-red-400 hover:text-red-300 transition-colors text-sm"
+                  >
+                    Clear Cart
+                  </button>
+                )}
+              </div>
+
+              {/* Sync Status Info */}
+              <div className="text-xs text-center text-gray-500 pt-2 border-t border-gray-700">
+                {isLoggedIn ? (
+                  <span className="flex items-center justify-center gap-1">
+                    <Cloud className="w-3 h-3" />
+                    Cart saved to your account
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-1">
+                    <CloudOff className="w-3 h-3" />
+                    Sign in to save your cart
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>

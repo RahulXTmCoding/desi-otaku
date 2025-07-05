@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, MapPin, CreditCard, Package, Check } from 'lucide-react';
-import { loadCart, cartEmpty } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { isAutheticated } from '../auth/helper';
 import { createOrder, mockCreateOrder } from '../core/helper/orderHelper';
 import { getBraintreeClientToken, processPayment, mockProcessPayment } from '../core/helper/paymentHelper';
@@ -31,33 +31,6 @@ import AddressSectionEnhanced from '../components/checkout/AddressSectionEnhance
 import ShippingMethodEnhanced from '../components/checkout/ShippingMethodEnhanced';
 import OrderReview from '../components/checkout/OrderReview';
 import PaymentSection from '../components/checkout/PaymentSection';
-
-interface CartItem {
-  _id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  size?: string;
-  color?: string;
-  colorValue?: string;
-  image?: string;
-  designId?: string;
-  isCustom?: boolean;
-  customization?: {
-    frontDesign?: {
-      designId: string;
-      designImage: string;
-      position: string;
-      price: number;
-    };
-    backDesign?: {
-      designId: string;
-      designImage: string;
-      position: string;
-      price: number;
-    };
-  };
-}
 
 // Step progress component
 const StepProgress = React.memo(({ activeStep }: { activeStep: number }) => {
@@ -110,8 +83,8 @@ StepProgress.displayName = 'StepProgress';
 
 const CheckoutFixed: React.FC = () => {
   const navigate = useNavigate();
+  const { cart, clearCart } = useCart();
   const [activeStep, setActiveStep] = useState(1);
-  const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
   const auth = useMemo(() => isAutheticated(), []);
   const { isTestMode } = useDevMode();
@@ -172,15 +145,12 @@ const CheckoutFixed: React.FC = () => {
     instance: {}
   });
 
-  // Load cart items on mount
+  // Check cart items on mount
   useEffect(() => {
-    const items = loadCart();
-    if (!items || items.length === 0) {
+    if (!cart || cart.length === 0) {
       navigate('/cart');
-    } else {
-      setCartItems(items);
     }
-  }, [navigate]);
+  }, [cart, navigate]);
 
   // Load Razorpay script with cleanup
   useEffect(() => {
@@ -311,8 +281,8 @@ const CheckoutFixed: React.FC = () => {
 
   // Memoized callbacks
   const getTotalAmount = useCallback(() => {
-    return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
-  }, [cartItems]);
+    return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+  }, [cart]);
 
   const validateShipping = useCallback(() => {
     const required = ['fullName', 'email', 'phone', 'address', 'city', 'state', 'pinCode'];
@@ -553,8 +523,8 @@ const CheckoutFixed: React.FC = () => {
           : await mockProcessPayment(totalAmount);
           
         const orderData = {
-          products: cartItems.map(item => ({
-            product: item._id.split('-')[0],
+          products: cart.map(item => ({
+            product: item.product || item._id?.split('-')[0] || '',
             name: item.name,
             price: item.price,
             count: item.quantity,
@@ -573,7 +543,7 @@ const CheckoutFixed: React.FC = () => {
             city: shippingInfo.city,
             state: shippingInfo.state,
             country: shippingInfo.country,
-            weight: 0.3 * cartItems.length,
+            weight: 0.3 * cart.length,
             shippingCost: selectedShipping?.rate || 0,
             courier: selectedShipping?.courier_name || ''
           }
@@ -585,15 +555,14 @@ const CheckoutFixed: React.FC = () => {
           throw new Error(orderResult.error);
         }
         
-        cartEmpty(() => {
-          navigate('/order-confirmation-enhanced', { 
-            state: { 
-              orderId: orderResult._id,
-              orderDetails: orderData,
-              shippingInfo,
-              paymentMethod
-            }
-          });
+        await clearCart();
+        navigate('/order-confirmation-enhanced', { 
+          state: { 
+            orderId: orderResult._id,
+            orderDetails: orderData,
+            shippingInfo,
+            paymentMethod
+          }
         });
       } else if (paymentMethod === 'razorpay') {
         // Razorpay implementation for both authenticated and guest users
@@ -609,17 +578,17 @@ const CheckoutFixed: React.FC = () => {
             },
             body: JSON.stringify({
               amount: totalAmount,
-              currency: 'INR',
-              receipt: `guest_${Date.now()}`,
-              customerInfo: {
-                name: shippingInfo.fullName,
-                email: shippingInfo.email,
-                phone: shippingInfo.phone
-              },
-              notes: {
-                items: cartItems.length,
-                shipping_method: selectedShipping?.courier_name || 'Standard'
-              }
+                currency: 'INR',
+                receipt: `guest_${Date.now()}`,
+                customerInfo: {
+                  name: shippingInfo.fullName,
+                  email: shippingInfo.email,
+                  phone: shippingInfo.phone
+                },
+                notes: {
+                  items: cart.length,
+                  shipping_method: selectedShipping?.courier_name || 'Standard'
+                }
             })
           });
           
@@ -704,22 +673,45 @@ const CheckoutFixed: React.FC = () => {
               }
               
               const orderData = {
-                products: cartItems.map(item => ({
-                  product: item._id.split('-')[0],
-                  name: item.name,
-                  price: item.price,
-                  count: item.quantity,
-                  size: item.size,
-                  // Include custom product data
-                  isCustom: item._id === 'custom' || item._id.startsWith('custom-'),
-                  color: item.color,
-                  colorValue: item.colorValue,
-                  customDesign: item.name,
-                  designId: item.designId,
-                  designImage: item.image,
-                  // Include multi-design customization
-                  customization: item.customization
-                })),
+                products: cart.map(item => {
+                  const baseProduct = {
+                    product: item.product || item._id?.split('-')[0] || '',
+                    name: item.name,
+                    price: item.price,
+                    count: item.quantity,
+                    size: item.size,
+                    // Include custom product data
+                    isCustom: item.isCustom,
+                    color: item.color
+                  };
+                  
+                  // Map customization to match backend expectation
+                  if (item.customization) {
+                    const mappedCustomization: any = {};
+                    
+                    if (item.customization.frontDesign) {
+                      mappedCustomization.frontDesign = {
+                        designId: item.customization.frontDesign.designId || 'custom-design',
+                        designImage: item.customization.frontDesign.designImage,
+                        position: item.customization.frontDesign.position || 'center',
+                        price: item.customization.frontDesign.price || 150
+                      };
+                    }
+                    
+                    if (item.customization.backDesign) {
+                      mappedCustomization.backDesign = {
+                        designId: item.customization.backDesign.designId || 'custom-design',
+                        designImage: item.customization.backDesign.designImage,
+                        position: item.customization.backDesign.position || 'center',
+                        price: item.customization.backDesign.price || 150
+                      };
+                    }
+                    
+                    return { ...baseProduct, customization: mappedCustomization };
+                  }
+                  
+                  return baseProduct;
+                }),
                 transaction_id: paymentData.razorpay_payment_id,
                 amount: totalAmount,
                 address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pinCode}, ${shippingInfo.country}`,
@@ -731,7 +723,7 @@ const CheckoutFixed: React.FC = () => {
                   city: shippingInfo.city,
                   state: shippingInfo.state,
                   country: shippingInfo.country,
-                  weight: 0.3 * cartItems.length,
+                  weight: 0.3 * cart.length,
                   shippingCost: selectedShipping?.rate || 0,
                   courier: selectedShipping?.courier_name || ''
                 }
@@ -772,19 +764,18 @@ const CheckoutFixed: React.FC = () => {
               
               setLoading(false);
               
-              cartEmpty(() => {
-                // Navigate to enhanced confirmation page
-                navigate('/order-confirmation-enhanced', { 
-                  state: { 
-                    orderId: orderResult._id,
-                    orderDetails: orderData,
-                    shippingInfo,
-                    paymentMethod,
-                    paymentDetails: verifyResponse.payment,
-                    isGuest,
-                    createdAt: new Date().toISOString()
-                  }
-                });
+              await clearCart();
+              // Navigate to enhanced confirmation page
+              navigate('/order-confirmation-enhanced', { 
+                state: { 
+                  orderId: orderResult._id,
+                  orderDetails: orderData,
+                  shippingInfo,
+                  paymentMethod,
+                  paymentDetails: verifyResponse.payment,
+                  isGuest,
+                  createdAt: new Date().toISOString()
+                }
               });
               
             } catch (error: any) {
@@ -806,7 +797,7 @@ const CheckoutFixed: React.FC = () => {
       alert(`Failed to place order: ${error.message}`);
       setLoading(false);
     }
-  }, [validateShipping, selectedShipping, isTestMode, paymentMethod, razorpayReady, auth, navigate, getTotalAmount, cartItems, shippingInfo]);
+  }, [validateShipping, selectedShipping, isTestMode, paymentMethod, razorpayReady, auth, navigate, getTotalAmount, cart, shippingInfo, clearCart]);
 
   // Render step content
   const renderStepContent = useMemo(() => {
@@ -858,7 +849,11 @@ const CheckoutFixed: React.FC = () => {
         return (
           <>
             <OrderReview
-              cartItems={cartItems}
+              cartItems={cart.map(item => ({
+                ...item,
+                _id: item._id || `item-${Date.now()}`,
+                product: item.product || (item._id ? item._id.split('-')[0] : '')
+              }))}
               shippingInfo={shippingInfo}
               selectedShipping={selectedShipping}
               getTotalAmount={getTotalAmount}
@@ -918,7 +913,7 @@ const CheckoutFixed: React.FC = () => {
     addressLoading,
     shippingInfo,
     selectedShipping,
-    cartItems,
+    cart,
     paymentMethod,
     isTestMode,
     razorpayReady,

@@ -14,32 +14,20 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
   shippingPincode = '',
   cartTotal = 0
 }) => {
-  // Check if free shipping applies (orders above ₹1000)
-  const isFreeShipping = cartTotal >= 1000;
+  // Check if free shipping applies (orders ₹999 and above)
+  const isFreeShipping = cartTotal >= 999;
+  const shippingCharge = isFreeShipping ? 0 : 79;
 
-  // Fixed shipping options
-  const baseShippingOptions = [
+  // Single shipping option to keep it simple
+  const shippingOptions = [
     {
       courier_company_id: "standard",
       courier_name: "Standard Delivery",
-      rate: 60,
+      rate: shippingCharge,
       etd: "5-7 business days",
-      cod: true
-    },
-    {
-      courier_company_id: "express", 
-      courier_name: "Express Delivery",
-      rate: 120,
-      etd: "2-3 business days",
       cod: true
     }
   ];
-
-  // Apply free shipping if applicable
-  const shippingOptions = baseShippingOptions.map(option => ({
-    ...option,
-    rate: isFreeShipping ? 0 : option.rate
-  }));
 
   // Auto-select first option on mount or when pincode is valid
   useEffect(() => {
@@ -79,7 +67,7 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
         <div className="mb-4 p-3 bg-blue-600/20 border border-blue-600 rounded-lg flex items-center gap-2">
           <Info className="w-5 h-5 text-blue-400" />
           <span className="text-blue-400 text-sm">
-            Add ₹{(1000 - cartTotal).toFixed(2)} more to qualify for FREE shipping!
+            Add ₹{(999 - cartTotal).toFixed(2)} more to qualify for FREE shipping!
           </span>
         </div>
       )}
@@ -129,9 +117,9 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
                       <Truck className="w-4 h-4 text-gray-400" />
                       <span className="font-medium text-white">{option.courier_name}</span>
                     </div>
-                    <p className="text-sm text-gray-400 mt-1">
+                    {/* <p className="text-sm text-gray-400 mt-1">
                       Estimated delivery: {option.etd}
-                    </p>
+                    </p> */}
                     {option.cod && (
                       <p className="text-xs text-gray-500 mt-1">Cash on Delivery available</p>
                     )}
@@ -141,11 +129,11 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
                 <div className="text-right">
                   {isFreeShipping ? (
                     <div>
-                      <p className="text-sm text-gray-400 line-through">₹{option.rate || 0}</p>
+                      <p className="text-sm text-gray-400 line-through">₹79</p>
                       <p className="font-bold text-green-400">FREE</p>
                     </div>
                   ) : (
-                    <p className="font-bold text-white">₹{option.rate || 0}</p>
+                    <p className="font-bold text-white">₹{option.rate}</p>
                   )}
                 </div>
               </div>
@@ -158,10 +146,11 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
       <div className="mt-6 p-4 bg-gray-700/50 rounded-lg">
         <h4 className="font-medium text-yellow-400 mb-2">Shipping Information</h4>
         <ul className="text-sm text-gray-300 space-y-1">
-          <li>• Free shipping on orders above ₹1000</li>
+          <li>• Free shipping on orders ₹999 and above</li>
+          <li>• Flat ₹79 shipping for orders below ₹999</li>
           <li>• Delivery times are estimates and may vary</li>
           <li>• Tracking information will be sent via email</li>
-          <li>• Cash on Delivery available for most locations</li>
+          {/* <li>• Cash on Delivery available for most locations</li> */}
         </ul>
       </div>
     </div>

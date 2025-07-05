@@ -41,6 +41,11 @@ exports.createOrder = async (req, res) => {
         size: item.size || 'M'
       };
       
+      // Preserve photoUrl if present
+      if (item.photoUrl) {
+        validatedItem.photoUrl = item.photoUrl;
+      }
+      
       // Check if it's a custom product
       if (item.product === 'custom' || item.isCustom) {
         // Handle custom products
@@ -178,14 +183,12 @@ exports.createOrder = async (req, res) => {
       validatedProducts.push(validatedItem);
     }
     
-    // Add shipping cost if applicable
+    // Add shipping cost based on order value
     let shippingCost = 0;
-    if (req.body.order.shipping && req.body.order.shipping.shippingCost) {
-      shippingCost = req.body.order.shipping.shippingCost;
-      // Validate shipping cost (basic check)
-      if (recalculatedTotal < 999 && shippingCost === 0) {
-        shippingCost = 99; // Enforce minimum shipping
-      }
+    if (recalculatedTotal < 999) {
+      shippingCost = 79; // Fixed shipping charge for orders under ₹999
+    } else {
+      shippingCost = 0; // Free shipping for orders ₹999 and above
     }
     
     recalculatedTotal += shippingCost;
@@ -193,6 +196,7 @@ exports.createOrder = async (req, res) => {
     // Update order with validated data
     req.body.order.products = validatedProducts;
     req.body.order.amount = recalculatedTotal;
+    req.body.order.paymentStatus = 'Paid';
     
     // Log price validation
     console.log(`Price validation - Client sent: ₹${req.body.order.amount}, Server calculated: ₹${recalculatedTotal}`);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShoppingCart, Eye, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { addItemToCart } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
@@ -35,11 +35,29 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
     }
   };
 
-  const handleAddToCart = () => {
-    addItemToCart(product, () => {
+  const { addToCart } = useCart();
+
+  const handleAddToCart = async () => {
+    try {
+      // Default to first available size or M
+      const availableSizes = getAvailableSizes();
+      const defaultSize = availableSizes.length > 0 ? availableSizes[0] : 'M';
+      
+      await addToCart({
+        product: product._id,
+        name: product.name,
+        size: defaultSize,
+        color: 'Black', // Default color
+        price: product.price,
+        quantity: 1,
+        isCustom: false
+      });
+      
       setIsInCart(true);
       setTimeout(() => setIsInCart(false), 2000);
-    });
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+    }
   };
 
   const handleWishlistToggle = async () => {
@@ -102,19 +120,6 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
         <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
           {showActions && (
             <>
-              <button
-                onClick={handleAddToCart}
-                disabled={isOutOfStock()}
-                className={`p-3 rounded-full transition-all ${
-                  isOutOfStock()
-                    ? 'bg-gray-600 cursor-not-allowed'
-                    : 'bg-yellow-400 hover:bg-yellow-300 text-gray-900'
-                }`}
-                title={isOutOfStock() ? 'Out of Stock' : 'Add to Cart'}
-              >
-                <ShoppingCart className="w-5 h-5" />
-              </button>
-              
               <Link
                 to={`/product/${product._id}`}
                 className="p-3 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors"

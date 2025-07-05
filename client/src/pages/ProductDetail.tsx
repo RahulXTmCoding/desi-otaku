@@ -14,7 +14,7 @@ import {
   Check,
   Share2
 } from 'lucide-react';
-import { addItemToCart } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { getProduct, getProducts } from '../core/helper/coreapicalls';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
@@ -54,6 +54,7 @@ const ProductDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
+  const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedColor, setSelectedColor] = useState<{ name: string; value: string } | null>(null);
@@ -278,39 +279,59 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const getProductImage = (productData: Product) => {
+  const getProductImage = (productData: Product & { photoUrl?: string }) => {
     if (isTestMode) {
       return getMockProductImage(productData._id);
     }
+    
+    // Check for photoUrl first (external URLs including data URLs)
+    if (productData.photoUrl) {
+      if (productData.photoUrl.startsWith('http') || productData.photoUrl.startsWith('data:')) {
+        return productData.photoUrl;
+      }
+      // If it's a relative path
+      if (productData.photoUrl.startsWith('/')) {
+        return productData.photoUrl;
+      }
+    }
+    
+    // Fallback to standard photo endpoint
     if (productData._id) {
       return `${API}/product/photo/${productData._id}`;
     }
     return '/api/placeholder/600/600';
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product || !selectedSize) {
       alert('Please select a size');
       return;
     }
 
-    const cartItem = {
-      _id: `${product._id}-${selectedColor?.value}-${selectedSize}`,
-      name: product.name,
-      price: product.price,
-      category: product.category?.name || '',
-      size: selectedSize,
-      color: selectedColor?.name || 'Default',
-      colorValue: selectedColor?.value,
-      quantity: quantity,
-      type: 'product',
-      image: getProductImage(product)
-    };
-
-    addItemToCart(cartItem, () => {
+    try {
+      const cartItem: any = {
+        product: product._id,
+        name: product.name,
+        price: product.price,
+        size: selectedSize,
+        color: selectedColor?.name || 'Black',
+        quantity: quantity,
+        isCustom: false
+      };
+      
+      // Include photoUrl if product has it
+      if ((product as any).photoUrl) {
+        cartItem.photoUrl = (product as any).photoUrl;
+      }
+      
+      await addToCart(cartItem);
+      
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);
-    });
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      alert('Failed to add to cart. Please try again.');
+    }
   };
 
   const nextImage = () => {
@@ -765,7 +786,12 @@ const ProductDetail: React.FC = () => {
         </div>
 
         {/* Reviews Section */}
-        {product && <ProductReviews productId={product._id} />}
+        {product && (
+          <ProductReviews 
+            productId={product._id} 
+            productImage={getProductImage(product)} 
+          />
+        )}
 
         {/* Related Products */}
         <div className="mt-16">
@@ -792,25 +818,24 @@ const ProductDetail: React.FC = () => {
                 <div className="flex justify-between items-center">
                   <p className="text-yellow-400 font-bold">₹{relatedProduct.price}</p>
                   <button
-                    onClick={(e) => {
+                    onClick={async (e) => {
                       e.stopPropagation();
                       if (relatedProduct.stock > 0) {
-                        const cartItem = {
-                          _id: `${relatedProduct._id}-black-M`,
-                          name: relatedProduct.name,
-                          price: relatedProduct.price,
-                          category: relatedProduct.category?.name || '',
-                          size: 'M',
-                          color: 'Black',
-                          colorValue: '#000000',
-                          quantity: 1,
-                          type: 'product',
-                          image: getProductImage(relatedProduct)
-                        };
-                        addItemToCart(cartItem, () => {
+                        try {
+                          await addToCart({
+                            product: relatedProduct._id,
+                            name: relatedProduct.name,
+                            price: relatedProduct.price,
+                            size: 'M',
+                            color: 'Black',
+                            quantity: 1,
+                            isCustom: false
+                          });
                           setShowSuccessMessage(true);
                           setTimeout(() => setShowSuccessMessage(false), 3000);
-                        });
+                        } catch (error) {
+                          console.error('Failed to add to cart:', error);
+                        }
                       }
                     }}
                     disabled={relatedProduct.stock === 0}

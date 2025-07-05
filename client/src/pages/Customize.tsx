@@ -10,7 +10,7 @@ import {
   Upload
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { addItemToCart } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { getDesigns, getAllDesignTags } from '../admin/helper/designapicall';
 import { getProducts } from '../core/helper/coreapicalls';
 import { getCategories } from '../admin/helper/adminapicall';
@@ -45,6 +45,7 @@ interface DesignPlacement {
 const Customize: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
+  const { addToCart } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loading, setLoading] = useState(true);
@@ -298,61 +299,46 @@ const Customize: React.FC = () => {
     return currentSide === 'front' ? frontPositions : backPositions;
   };
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!frontDesign.design && !backDesign.design) {
       alert('Please select at least one design');
       return;
     }
 
-    // Create a unique ID for this custom configuration
-    const uniqueId = `custom-${Date.now()}`;
-    const designNames = [];
-    if (frontDesign.design) designNames.push(`Front: ${frontDesign.design.name}`);
-    if (backDesign.design) designNames.push(`Back: ${backDesign.design.name}`);
+    try {
+      const designNames = [];
+      if (frontDesign.design) designNames.push(`Front: ${frontDesign.design.name}`);
+      if (backDesign.design) designNames.push(`Back: ${backDesign.design.name}`);
 
-    const cartItem = {
-      _id: uniqueId,
-      name: `Custom T-Shirt - ${designNames.join(', ')}`,
-      price: calculatePrice() / quantity, // Price per item
-      category: 'custom',
-      size: selectedSize,
-      color: tshirtColors.find(c => c.value === selectedColor)?.name || 'White',
-      colorValue: selectedColor,
-      quantity: quantity,
-      type: 'custom',
-      // Legacy fields for backward compatibility
-      design: frontDesign.design?.name || backDesign.design?.name,
-      designId: frontDesign.design?._id || backDesign.design?._id,
-      designPrice: (frontDesign.design?.price || 0) + (backDesign.design?.price || 0),
-      image: getImageUrl(frontDesign.design || backDesign.design),
-      // New customization structure
-      customization: {
-        frontDesign: frontDesign.design ? {
-          designId: frontDesign.design._id,
-          designImage: getImageUrl(frontDesign.design),
-          position: frontDesign.position,
-          price: frontDesign.design.price
-        } : null,
-        backDesign: backDesign.design ? {
-          designId: backDesign.design._id,
-          designImage: getImageUrl(backDesign.design),
-          position: backDesign.position,
-          price: backDesign.design.price
-        } : null
-      },
-      isCustom: true  // Mark as custom product
-    };
+      const cartItem = {
+        name: `Custom T-Shirt - ${designNames.join(', ')}`,
+        price: calculatePrice() / quantity, // Price per item
+        size: selectedSize,
+        color: tshirtColors.find(c => c.value === selectedColor)?.name || 'White',
+        quantity: quantity,
+        isCustom: true,
+        customization: {
+          frontDesign: frontDesign.design ? {
+            designId: frontDesign.design._id,
+            designImage: getImageUrl(frontDesign.design),
+            position: frontDesign.position,
+            price: frontDesign.design.price
+          } : undefined,
+          backDesign: backDesign.design ? {
+            designId: backDesign.design._id,
+            designImage: getImageUrl(backDesign.design),
+            position: backDesign.position,
+            price: backDesign.design.price
+          } : undefined
+        }
+      };
 
-    // Debug log
-    console.log('Adding to cart:', {
-      frontDesign: cartItem.customization?.frontDesign,
-      backDesign: cartItem.customization?.backDesign,
-      fullItem: cartItem
-    });
-
-    addItemToCart(cartItem, () => {
+      await addToCart(cartItem);
       setShowSuccessModal(true);
-    });
+    } catch (error) {
+      console.error('Failed to add to cart:', error);
+      alert('Failed to add to cart. Please try again.');
+    }
   };
 
   const toggleTag = (tag: string) => {
@@ -361,7 +347,7 @@ const Customize: React.FC = () => {
   };
 
   const getImageUrl = (design: Design) => {
-    if (design.imageUrl?.startsWith('http')) {
+    if (design.imageUrl && (design.imageUrl.startsWith('http') || design.imageUrl.startsWith('data:'))) {
       return design.imageUrl;
     }
     return `${API}/design/image/${design._id}`;

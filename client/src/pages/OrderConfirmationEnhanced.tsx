@@ -12,7 +12,7 @@ import {
   Shield,
   Star
 } from 'lucide-react';
-import { cartEmpty } from '../core/helper/cartHelper';
+import { useCart } from '../context/CartContext';
 import { isAutheticated, signup, authenticate } from '../auth/helper';
 
 const OrderConfirmationEnhanced: React.FC = () => {
@@ -21,6 +21,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
   
   const navigate = useNavigate();
   const location = useLocation();
+  const { clearCart } = useCart();
   const auth = isAutheticated();
   const isGuest = !auth || typeof auth === 'boolean' || !auth.user;
   
@@ -80,7 +81,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
 
   useEffect(() => {
     // Clear cart after successful order
-    cartEmpty(() => {
+    clearCart().then(() => {
       console.log('Cart cleared');
     });
 
