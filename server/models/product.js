@@ -194,6 +194,24 @@ const productSchema = new Schema(
   { timestamps: true }
 );
 
+// Indexes for performance optimization
+// Compound index for common filter combinations
+productSchema.index({ isDeleted: 1, isActive: 1, category: 1, productType: 1 });
+productSchema.index({ isDeleted: 1, isActive: 1, price: 1 });
+productSchema.index({ isDeleted: 1, isActive: 1, averageRating: -1 });
+
+// Text index for search functionality
+productSchema.index({ name: "text", description: "text", tags: "text" });
+
+// Single field indexes for sorting and specific queries
+productSchema.index({ createdAt: -1 });
+productSchema.index({ sold: -1 });
+productSchema.index({ price: 1 });
+productSchema.index({ averageRating: -1 });
+productSchema.index({ stock: 1 });
+productSchema.index({ productType: 1 });
+productSchema.index({ category: 1 });
+
 // Methods to check inventory
 productSchema.methods.getAvailableStock = function(size) {
   if (!size) {

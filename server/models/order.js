@@ -108,6 +108,12 @@ const OrderSchema = new Schema(
       default: "Received",
       enum: ["Cancelled", "Delivered", "Shipped", "Processing", "Received"], //this helps to restrict the options
     },
+    // Add payment status for analytics
+    paymentStatus: {
+      type: String,
+      default: "Pending",
+      enum: ["Pending", "Paid", "Failed", "Refunded"]
+    },
     address: {
       type: String,
     },
@@ -163,6 +169,31 @@ const OrderSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Indexes for performance optimization
+// Most common query pattern: user orders by date
+OrderSchema.index({ user: 1, createdAt: -1 });
+
+// For order management and status filtering
+OrderSchema.index({ status: 1, createdAt: -1 });
+
+// For analytics queries
+OrderSchema.index({ createdAt: -1, paymentStatus: 1 });
+OrderSchema.index({ createdAt: -1, status: 1 });
+
+// For guest order lookups
+OrderSchema.index({ "guestInfo.email": 1 });
+OrderSchema.index({ "guestInfo.id": 1 });
+
+// For transaction lookups
+OrderSchema.index({ transaction_id: 1 });
+
+// For shipping/tracking queries
+OrderSchema.index({ "shipping.trackingId": 1 });
+OrderSchema.index({ "shipping.courier": 1, status: 1 });
+
+// Compound index for analytics date range queries
+OrderSchema.index({ createdAt: 1, amount: 1 });
 
 const Order = mongoose.model("Order", OrderSchema);
 

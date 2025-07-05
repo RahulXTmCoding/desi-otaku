@@ -210,17 +210,33 @@ async function getTopProducts(orders) {
   orders.forEach(order => {
     order.products.forEach(item => {
       if (item.product) {
+        // Regular product with reference
         const productId = item.product._id.toString();
         if (!productStats[productId]) {
           productStats[productId] = {
             productId,
             name: item.product.name,
             sold: 0,
-            revenue: 0
+            revenue: 0,
+            isCustom: false
           };
         }
         productStats[productId].sold += item.count || 1;
         productStats[productId].revenue += (item.product.price * (item.count || 1));
+      } else if (item.isCustom || item.customization) {
+        // Custom design order
+        const customId = 'custom-design';
+        if (!productStats[customId]) {
+          productStats[customId] = {
+            productId: customId,
+            name: 'Custom Design T-Shirts',
+            sold: 0,
+            revenue: 0,
+            isCustom: true
+          };
+        }
+        productStats[customId].sold += item.count || 1;
+        productStats[customId].revenue += (item.price * (item.count || 1));
       }
     });
   });
@@ -260,6 +276,23 @@ async function getCategoryBreakdown(orders) {
         }
         
         const itemRevenue = item.product.price * (item.count || 1);
+        categoryStats[categoryKey].revenue += itemRevenue;
+        categoryStats[categoryKey].units += (item.count || 1);
+        totalRevenue += itemRevenue;
+      } else if (item.isCustom || item.customization) {
+        // Custom design order - add to custom category
+        const categoryKey = 'custom-designs';
+        const categoryName = 'Custom Designs';
+        
+        if (!categoryStats[categoryKey]) {
+          categoryStats[categoryKey] = {
+            name: categoryName,
+            revenue: 0,
+            units: 0
+          };
+        }
+        
+        const itemRevenue = item.price * (item.count || 1);
         categoryStats[categoryKey].revenue += itemRevenue;
         categoryStats[categoryKey].units += (item.count || 1);
         totalRevenue += itemRevenue;
@@ -318,6 +351,23 @@ async function getProductTypeBreakdown(orders) {
         }
         
         const itemRevenue = item.product.price * (item.count || 1);
+        productTypeStats[productTypeKey].revenue += itemRevenue;
+        productTypeStats[productTypeKey].units += (item.count || 1);
+        totalRevenue += itemRevenue;
+      } else if (item.isCustom || item.customization) {
+        // Custom design order - always a T-shirt
+        const productTypeKey = 'custom-tshirt';
+        const productTypeName = 'Custom T-Shirt';
+        
+        if (!productTypeStats[productTypeKey]) {
+          productTypeStats[productTypeKey] = {
+            name: productTypeName,
+            revenue: 0,
+            units: 0
+          };
+        }
+        
+        const itemRevenue = item.price * (item.count || 1);
         productTypeStats[productTypeKey].revenue += itemRevenue;
         productTypeStats[productTypeKey].units += (item.count || 1);
         totalRevenue += itemRevenue;

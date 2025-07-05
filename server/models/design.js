@@ -118,10 +118,22 @@ designSchema.pre('save', function(next) {
   next();
 });
 
-// Index for search
+// Indexes for performance optimization
+// Text index for search functionality
 designSchema.index({ name: 'text', description: 'text', tags: 'text' });
-designSchema.index({ category: 1, isActive: 1 });
+
+// Compound indexes for common filter combinations
+designSchema.index({ isActive: 1, category: 1, createdAt: -1 });
+designSchema.index({ isActive: 1, isFeatured: 1, 'popularity.used': -1 });
+designSchema.index({ isActive: 1, price: 1 });
+
+// Single field indexes
+designSchema.index({ category: 1 });
 designSchema.index({ tags: 1 });
 designSchema.index({ 'popularity.used': -1 });
+designSchema.index({ 'popularity.views': -1 });
+designSchema.index({ createdAt: -1 });
+designSchema.index({ price: 1 });
+designSchema.index({ slug: 1 });
 
 module.exports = mongoose.model("Design", designSchema);

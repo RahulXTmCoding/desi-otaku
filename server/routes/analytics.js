@@ -1,7 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { requireAdmin } = require("../middleware/adminAuth");
-const { getAnalyticsDashboard, exportAnalytics } = require("../controllers/analytics");
+// Switch to optimized analytics controller for better performance
+const { getAnalyticsDashboard, exportAnalytics } = require("../controllers/analyticsOptimized");
 
 // Analytics routes - Admin only
 router.get(
