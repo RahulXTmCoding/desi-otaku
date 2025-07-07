@@ -17,7 +17,6 @@ import { getCategories } from '../admin/helper/adminapicall';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
 import { API } from '../backend';
-import PhotoRealisticPreview from '../components/PhotoRealisticPreview';
 import RealTShirtPreview from '../components/RealTShirtPreview';
 
 interface Design {
