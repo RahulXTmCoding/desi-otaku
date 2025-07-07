@@ -201,6 +201,14 @@ exports.createOrder = async (req, res) => {
     // Log price validation
     console.log(`Price validation - Client sent: ₹${req.body.order.amount}, Server calculated: ₹${recalculatedTotal}`);
     
+    // Set payment status based on successful verification
+    if (req.payment && req.payment.status === 'captured') {
+      req.body.order.paymentStatus = 'Paid';
+    } else {
+      // This should not be reached if middleware is working, but as a fallback
+      req.body.order.paymentStatus = 'Pending';
+    }
+    
     const order = new Order(req.body.order);
     
     // Save order first

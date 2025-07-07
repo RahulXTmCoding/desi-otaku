@@ -20,6 +20,7 @@ const {
   bulkUpdateStatus,
   exportOrders
 } = require("../controllers/order");
+const { verifyPayment } = require("../middleware/paymentAuth");
 
 //params
 
@@ -33,6 +34,7 @@ router.post(
   "/order/create/:userId",
   isSignedIn,
   isAuthenticated,
+  verifyPayment,
   pushOrderInPurchaseList,
   updateStock,
   createOrder

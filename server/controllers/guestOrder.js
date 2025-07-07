@@ -93,7 +93,7 @@ exports.createGuestOrder = async (req, res) => {
       address,
       status,
       shipping,
-      paymentStatus: transaction_id ? 'Paid' : 'Pending', // Set to Paid if payment was processed
+      paymentStatus: 'Pending', // Default to Pending
       user: userId, // Link to existing user if found
       guestInfo: {
         id: guestId,
@@ -102,6 +102,11 @@ exports.createGuestOrder = async (req, res) => {
         phone: guestInfo.phone
       }
     });
+
+    // Set payment status based on successful verification
+    if (req.payment && req.payment.status === 'captured') {
+      order.paymentStatus = 'Paid';
+    }
 
     const savedOrder = await order.save();
     
