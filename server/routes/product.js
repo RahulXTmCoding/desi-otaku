@@ -4,7 +4,7 @@ const {
   getProductById,
   createProduct,
   getProduct,
-  photo,
+  getProductImage,
   deleteProduct,
   permanentlyDeleteProduct,
   restoreProduct,
@@ -29,6 +29,10 @@ const {
   getProductVariants, 
   saveProductVariants 
 } = require("../controllers/productVariant");
+const {
+  createProductJson,
+  updateProductJson
+} = require("../controllers/productJson");
 const { isSignedIn, isAuthenticated, isAdmin } = require("../controllers/auth");
 const { getUserById } = require("../controllers/user");
 
@@ -48,7 +52,8 @@ router.post(
 
 //read route
 router.get("/product/:productId", getProduct);
-router.get("/product/photo/:productId", photo);
+router.get("/product/image/:productId", getProductImage);
+router.get("/product/image/:productId/:imageIndex", getProductImage);
 
 //delete routes - soft delete, permanent delete, and restore
 
@@ -155,6 +160,23 @@ router.post(
   isAuthenticated,
   isAdmin,
   saveProductVariants
+);
+
+// JSON-based product routes (for handling multiple images properly)
+router.post(
+  "/product/create-json/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  createProductJson
+);
+
+router.put(
+  "/product/update-json/:productId/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  updateProductJson
 );
 
 module.exports = router;

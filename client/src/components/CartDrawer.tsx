@@ -33,7 +33,47 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       return '';
     }
     
-    // Check if product has photoUrl (URL-based images)
+    // Check if product has images array (new multi-image structure)
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+      // Find primary image or use first image
+      const primaryImage = item.images.find((img: any) => img.isPrimary) || item.images[0];
+      if (primaryImage) {
+        // If it has a URL
+        if (primaryImage.url) {
+          return primaryImage.url;
+        }
+        // If it has binary data, use the product image endpoint with index
+        if (item._id && !item._id.startsWith('temp_')) {
+          const imageIndex = item.images.indexOf(primaryImage);
+          return `${API}/product/image/${item._id}/${imageIndex}`;
+        }
+      }
+    }
+    
+    // Check if product object has images array
+    if (item.product && typeof item.product === 'object') {
+      // If product has images array
+      if (item.product.images && Array.isArray(item.product.images) && item.product.images.length > 0) {
+        const primaryImage = item.product.images.find((img: any) => img.isPrimary) || item.product.images[0];
+        if (primaryImage && primaryImage.url) {
+          return primaryImage.url;
+        } else if (item.product._id) {
+          const imageIndex = item.product.images.indexOf(primaryImage);
+          return `${API}/product/image/${item.product._id}/${imageIndex}`;
+        }
+      }
+      // If product has photoUrl (legacy)
+      else if (item.product.photoUrl) {
+        return item.product.photoUrl;
+      }
+      // Try without index for older products
+      else if (item.product._id) {
+        // First try the old photo endpoint for legacy products
+        return `${API}/product/photo/${item.product._id}`;
+      }
+    }
+    
+    // Check if product has photoUrl (legacy URL-based images)
     if (item.photoUrl) {
       if (item.photoUrl.startsWith('http') || item.photoUrl.startsWith('data:')) {
         return item.photoUrl;
@@ -60,18 +100,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       }
       // If product is an object with _id
       if (typeof item.product === 'object' && item.product._id) {
-        return `${API}/product/photo/${item.product._id}`;
+        return `${API}/product/image/${item.product._id}`;
       }
       // If product is a string ID
-      return `${API}/product/photo/${item.product}`;
+      return `${API}/product/image/${item.product}`;
     }
     
     // Fallback to _id if not custom
     if (item._id && !item._id.startsWith('temp_') && !item._id.startsWith('custom')) {
-      return `${API}/product/photo/${item._id}`;
+      return `${API}/product/image/${item._id}`;
     }
     
-    return '/api/placeholder/80/80';
+    // Return a data URL placeholder instead of a relative path
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
   };
 
   const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
@@ -235,7 +276,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             alt={item.name}
                             className="w-full h-full object-cover"
                             onError={(e) => {
-                              (e.target as HTMLImageElement).src = '/api/placeholder/80/80';
+                              (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
                             }}
                           />
                         )}

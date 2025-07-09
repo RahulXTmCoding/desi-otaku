@@ -84,9 +84,16 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
     if (product.photoUrl) return product.photoUrl;
     if (product.images && product.images.length > 0) {
       const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
-      return primaryImage.url;
+      if (primaryImage.url) {
+        return primaryImage.url;
+      } else {
+        // For file uploads, we need to get the image from the backend
+        const imageIndex = product.images.indexOf(primaryImage);
+        return `${API}/product/image/${product._id}/${imageIndex}`;
+      }
     }
-    return `${API}/product/photo/${product._id}`;
+    // Fallback to default endpoint which returns primary image
+    return `${API}/product/image/${product._id}`;
   };
 
   const getAvailableSizes = () => {

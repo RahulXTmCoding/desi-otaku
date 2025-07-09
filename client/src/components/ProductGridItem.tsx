@@ -73,8 +73,20 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
       return product.photoUrl;
     }
     
-    // Default to API photo endpoint
-    return `${API}/product/photo/${product._id}`;
+    // Check for multi-image support
+    if ((product as any).images && (product as any).images.length > 0) {
+      const primaryImage = (product as any).images.find((img: any) => img.isPrimary) || (product as any).images[0];
+      if (primaryImage.url) {
+        return primaryImage.url;
+      } else {
+        // For file uploads, we need to get the image from the backend
+        const imageIndex = (product as any).images.indexOf(primaryImage);
+        return `${API}/product/image/${product._id}/${imageIndex}`;
+      }
+    }
+    
+    // Default to API image endpoint which returns primary image
+    return `${API}/product/image/${product._id}`;
   };
 
   const handleImageError = () => {

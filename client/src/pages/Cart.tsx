@@ -24,7 +24,33 @@ const Cart: React.FC = () => {
       return '';
     }
     
-    // Check if product has photoUrl (URL-based images)
+    // Check if product has images array (new multi-image system)
+    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+      // Find the primary image or use the first one
+      const primaryImage = item.images.find((img: any) => img.isPrimary) || item.images[0];
+      if (primaryImage && primaryImage.url) {
+        return primaryImage.url;
+      }
+      // If no URL, try the indexed endpoint
+      const primaryIndex = item.images.findIndex((img: any) => img.isPrimary);
+      const index = primaryIndex >= 0 ? primaryIndex : 0;
+      const productId = item.product?._id || item.product || item._id;
+      return `${API}/product/image/${productId}/${index}`;
+    }
+    
+    // Check if product object has images array
+    if (item.product && typeof item.product === 'object' && item.product.images && Array.isArray(item.product.images)) {
+      const primaryImage = item.product.images.find((img: any) => img.isPrimary) || item.product.images[0];
+      if (primaryImage && primaryImage.url) {
+        return primaryImage.url;
+      }
+      // If no URL, use indexed endpoint
+      const primaryIndex = item.product.images.findIndex((img: any) => img.isPrimary);
+      const index = primaryIndex >= 0 ? primaryIndex : 0;
+      return `${API}/product/image/${item.product._id}/${index}`;
+    }
+    
+    // Check if product has photoUrl (URL-based images - legacy)
     if (item.photoUrl) {
       if (item.photoUrl.startsWith('http') || item.photoUrl.startsWith('data:')) {
         return item.photoUrl;
@@ -40,26 +66,12 @@ const Cart: React.FC = () => {
       if (item.image.startsWith('/api')) {
         return item.image;
       }
-      return `${API}/product/photo/${item.image}`;
     }
     
-    // If we have a product ID in the product field, use it
-    if (item.product) {
-      // If product is an object with photoUrl
-      if (typeof item.product === 'object' && item.product.photoUrl) {
-        return item.product.photoUrl;
-      }
-      // If product is an object with _id
-      if (typeof item.product === 'object' && item.product._id) {
-        return `${API}/product/photo/${item.product._id}`;
-      }
-      // If product is a string ID
-      return `${API}/product/photo/${item.product}`;
-    }
-    
-    // Fallback to _id if not custom
-    if (item._id && !item._id.startsWith('temp_') && !item._id.startsWith('custom')) {
-      return `${API}/product/photo/${item._id}`;
+    // If we have a product ID, try the new endpoint with index 0
+    const productId = item.product?._id || item.product || item._id;
+    if (productId && !productId.startsWith('temp_') && !productId.startsWith('custom')) {
+      return `${API}/product/image/${productId}/0`;
     }
     
     return '/api/placeholder/80/80';

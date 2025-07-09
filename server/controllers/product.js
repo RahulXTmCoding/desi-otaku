@@ -26,7 +26,8 @@ exports.createProduct = (req, res) => {
   let form = new formidable.IncomingForm();
   //This will display the extension of file
   form.keepExtensions = true;
-  form.parse(req, (err, fields, file) => {
+  form.multiples = true; // Enable multiple file uploads
+  form.parse(req, (err, fields, files) => {
     if (err) {
       return res.status(400).json({
         err: "problem to upload the img",
@@ -34,7 +35,7 @@ exports.createProduct = (req, res) => {
     }
 
     //destructure the fields
-    const { name, description, price, category, stock, inventory, photoUrl } = fields;
+    const { name, description, price, category, sizeStock, imageUrls } = fields;
 
     //Restrictions on the product fields
     if (!name || !description || !price || !category) {
@@ -45,52 +46,99 @@ exports.createProduct = (req, res) => {
 
     let product = new Product(fields);
 
-    // Handle inventory if provided as JSON string
-    if (inventory && typeof inventory === 'string') {
+    // Handle sizeStock if provided as JSON string
+    if (sizeStock && typeof sizeStock === 'string') {
       try {
-        const inventoryData = JSON.parse(inventory);
-        // Update inventory for each size
+        const stockData = JSON.parse(sizeStock);
+        // Update stock for each size
         ['S', 'M', 'L', 'XL', 'XXL'].forEach(size => {
-          if (inventoryData[size] && inventoryData[size].stock) {
-            product.inventory[size].stock = parseInt(inventoryData[size].stock) || 0;
+          if (stockData[size] !== undefined) {
+            product.sizeStock[size] = parseInt(stockData[size]) || 0;
           }
         });
       } catch (e) {
-        console.error("Error parsing inventory:", e);
+        console.error("Error parsing sizeStock:", e);
       }
-    } else if (stock) {
-      // If only total stock is provided, distribute evenly across sizes
-      const totalStock = parseInt(stock) || 0;
-      const stockPerSize = Math.floor(totalStock / 5); // 5 sizes
-      const remainder = totalStock % 5;
+    }
+
+    // Handle multiple image URLs
+    if (imageUrls) {
+      try {
+        const urlData = typeof imageUrls === 'string' ? JSON.parse(imageUrls) : imageUrls;
+        if (Array.isArray(urlData)) {
+          urlData.forEach((item) => {
+            // Handle both simple string URLs and object format
+            if (typeof item === 'string') {
+              product.images.push({
+                url: item.trim(),
+                isPrimary: product.images.length === 0,
+                order: product.images.length
+              });
+            } else if (item && item.url) {
+              product.images.push({
+                url: item.url.trim(),
+                isPrimary: item.isPrimary || product.images.length === 0,
+                order: item.order !== undefined ? item.order : product.images.length,
+                caption: item.caption || ''
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing imageUrls:", e);
+      }
+    }
+
+    // Handle multiple file uploads
+    // Check for both 'images' and 'images[]' field names
+    const imageField = files['images[]'] || files.images;
+    if (imageField) {
+      console.log("Files received:", imageField);
+      const imageFiles = Array.isArray(imageField) ? imageField : [imageField];
+      console.log("Processing", imageFiles.length, "image files");
       
-      ['S', 'M', 'L', 'XL', 'XXL'].forEach((size, index) => {
-        // Add remainder to first few sizes
-        product.inventory[size].stock = stockPerSize + (index < remainder ? 1 : 0);
+      imageFiles.forEach((file, index) => {
+        if (file && file.size && file.size <= 3000000) {
+          console.log(`  Processing file ${index}: ${file.originalFilename || 'unnamed'}`);
+          product.images.push({
+            data: fs.readFileSync(file.filepath),
+            contentType: file.mimetype,
+            isPrimary: false, // Will be set later based on primaryImageIndex
+            order: product.images.length
+          });
+        } else if (file && file.size > 3000000) {
+          console.log(`  File ${index} too large: ${file.size} bytes`);
+        }
       });
     }
 
-    // If photoUrl is provided, store it
-    if (photoUrl) {
-      product.photoUrl = photoUrl;
-    }
-
-    //handle file
-    if (file.photo) {
-      if (file.photo.size > 3000000) {
-        return res.status(400).json({
-          message: "file size is too large",
-        });
+    // Now handle primary image index across all images
+    if (fields.primaryImageIndex !== undefined) {
+      const primaryIndex = parseInt(fields.primaryImageIndex);
+      console.log("Setting primary image index:", primaryIndex);
+      // Reset all images to not primary
+      product.images.forEach((img, idx) => {
+        img.isPrimary = idx === primaryIndex;
+      });
+    } else {
+      // Ensure at least one image is marked as primary
+      if (product.images.length > 0 && !product.images.some(img => img.isPrimary)) {
+        product.images[0].isPrimary = true;
       }
-      product.photo.data = fs.readFileSync(file.photo.filepath);
-      product.photo.contentType = file.photo.mimetype;
     }
+    
+    console.log("\n=== Create Product Debug ===");
+    console.log("Total images to save:", product.images.length);
+    product.images.forEach((img, idx) => {
+      console.log(`  [${idx}] ${img.url || 'File upload'} - Primary: ${img.isPrimary}`);
+    });
 
     //save to DB
     product.save((err, product) => {
       if (err) {
         return res.status(400).json({
           err: "Failed to save the product in DB",
+          details: err.message
         });
       }
 
@@ -100,25 +148,65 @@ exports.createProduct = (req, res) => {
 };
 
 exports.getProduct = (req, res) => {
-  //for making application faster
-  req.product.photo = undefined;
-  return res.json(req.product);
+  // Remove image data for faster response
+  const product = req.product.toObject();
+  if (product.images) {
+    product.images = product.images.map(img => ({
+      _id: img._id,
+      url: img.url,
+      isPrimary: img.isPrimary,
+      order: img.order,
+      caption: img.caption,
+      // Exclude binary data
+      data: undefined,
+      contentType: undefined
+    }));
+  }
+  return res.json(product);
 };
 
-exports.photo = (req, res, next) => {
-  // First check if product has binary photo data
-  if (req.product.photo && req.product.photo.data) {
-    res.set("Content-Type", req.product.photo.contentType);
-    return res.send(req.product.photo.data);
+// Get product image by index or primary image
+exports.getProductImage = (req, res, next) => {
+  const { imageIndex } = req.params;
+  const product = req.product;
+  
+  // Check if product exists
+  if (!product) {
+    return res.status(404).json({ error: "Product not found" });
   }
   
-  // If no binary data, check for photoUrl and redirect to it
-  if (req.product.photoUrl) {
-    return res.redirect(req.product.photoUrl);
+  // Check if product has images
+  if (!product.images || product.images.length === 0) {
+    return res.status(404).json({ error: "No images available for this product" });
   }
   
-  // If no photo at all, return a placeholder or 404
-  res.status(404).json({ error: "No photo available for this product" });
+  let image;
+  
+  if (imageIndex !== undefined) {
+    // Get specific image by index
+    image = product.images[parseInt(imageIndex)];
+  } else {
+    // Get primary image
+    image = product.images.find(img => img.isPrimary) || product.images[0];
+  }
+  
+  if (!image) {
+    return res.status(404).json({ error: "No image available for this product" });
+  }
+  
+  // If image has binary data, send it
+  if (image.data && image.contentType) {
+    res.set("Content-Type", image.contentType);
+    return res.send(image.data);
+  }
+  
+  // If image has URL, redirect to it
+  if (image.url) {
+    return res.redirect(image.url);
+  }
+  
+  // No image data available
+  res.status(404).json({ error: "Image data not available" });
 };
 
 //delete controller - soft delete
@@ -211,7 +299,8 @@ exports.updateProduct = (req, res) => {
   let form = new formidable.IncomingForm();
   //This will display the extension of file
   form.keepExtensions = true;
-  form.parse(req, (err, fields, file) => {
+  form.multiples = true; // Enable multiple file uploads
+  form.parse(req, (err, fields, files) => {
     if (err) {
       return res.status(400).json({
         err: "problem to upload the img",
@@ -222,45 +311,152 @@ exports.updateProduct = (req, res) => {
     let product = req.product;
     product = _.extend(product, fields);
 
-    // Handle inventory update
-    if (fields.inventory && typeof fields.inventory === 'string') {
+    // Handle sizeStock update
+    if (fields.sizeStock && typeof fields.sizeStock === 'string') {
       try {
-        const inventoryData = JSON.parse(fields.inventory);
-        // Update inventory for each size
+        const stockData = JSON.parse(fields.sizeStock);
+        // Update stock for each size
         ['S', 'M', 'L', 'XL', 'XXL'].forEach(size => {
-          if (inventoryData[size] && inventoryData[size].stock !== undefined) {
-            product.inventory[size].stock = parseInt(inventoryData[size].stock) || 0;
+          if (stockData[size] !== undefined) {
+            product.sizeStock[size] = parseInt(stockData[size]) || 0;
           }
         });
       } catch (e) {
-        console.error("Error parsing inventory:", e);
+        console.error("Error parsing sizeStock:", e);
       }
-    } else if (fields.stock) {
-      // If only total stock is provided, distribute evenly across sizes
-      const totalStock = parseInt(fields.stock) || 0;
-      const stockPerSize = Math.floor(totalStock / 5); // 5 sizes
-      const remainder = totalStock % 5;
-      
-      ['S', 'M', 'L', 'XL', 'XXL'].forEach((size, index) => {
-        // Add remainder to first few sizes
-        product.inventory[size].stock = stockPerSize + (index < remainder ? 1 : 0);
-      });
     }
 
     // Update photoUrl if provided
     if (fields.photoUrl) {
       product.photoUrl = fields.photoUrl;
+      // Update or add as primary image
+      const primaryIndex = product.images.findIndex(img => img.isPrimary);
+      if (primaryIndex >= 0) {
+        product.images[primaryIndex].url = fields.photoUrl;
+      } else {
+        product.images.push({
+          url: fields.photoUrl,
+          isPrimary: true,
+          order: 0
+        });
+      }
     }
 
-    //handle file
-    if (file.photo) {
-      if (file.photo.size > 3000000) {
+    // Handle file upload
+    if (files.photo) {
+      if (files.photo.size > 3000000) {
         return res.status(400).json({
           message: "file size is too large",
         });
       }
-      product.photo.data = fs.readFileSync(file.photo.filepath);
-      product.photo.contentType = file.photo.mimetype;
+      product.photo.data = fs.readFileSync(files.photo.filepath);
+      product.photo.contentType = files.photo.mimetype;
+    }
+
+    // Keep track of original images before modification
+    const originalImages = [...product.images];
+    let newImagesArray = [];
+
+    console.log("\n=== Product Update Debug ===");
+    console.log("Product ID:", product._id);
+    console.log("Original images count:", originalImages.length);
+    originalImages.forEach((img, idx) => {
+      console.log(`  [${idx}] ${img.url || 'File upload'} - Primary: ${img.isPrimary}`);
+    });
+    console.log("\nReceived fields:");
+    console.log("  keepExistingImages:", fields.keepExistingImages);
+    console.log("  imageUrls:", fields.imageUrls);
+    console.log("  primaryImageIndex:", fields.primaryImageIndex);
+    console.log("  Has new file uploads:", files.images ? 'Yes' : 'No');
+
+    // Handle keeping existing images
+    if (fields.keepExistingImages) {
+      try {
+        const keepIndices = JSON.parse(fields.keepExistingImages);
+        console.log("Indices to keep:", keepIndices);
+        // Add the existing images we want to keep
+        keepIndices.forEach(index => {
+          if (originalImages[index]) {
+            newImagesArray.push(originalImages[index]);
+          }
+        });
+        console.log("Images kept:", newImagesArray.length);
+      } catch (e) {
+        console.error("Error parsing keepExistingImages:", e);
+        // If error, keep all existing images
+        newImagesArray = [...originalImages];
+      }
+    } else {
+      // If not specified, keep all existing images
+      newImagesArray = [...originalImages];
+    }
+
+    // Handle multiple image URLs update
+    if (fields.imageUrls) {
+      try {
+        const urlData = typeof fields.imageUrls === 'string' ? JSON.parse(fields.imageUrls) : fields.imageUrls;
+        if (Array.isArray(urlData)) {
+          urlData.forEach((item) => {
+            // Handle both simple string URLs and object format
+            if (typeof item === 'string') {
+              newImagesArray.push({
+                url: item.trim(),
+                isPrimary: false,
+                order: newImagesArray.length
+              });
+            } else if (item && item.url) {
+              newImagesArray.push({
+                url: item.url.trim(),
+                isPrimary: false,
+                order: item.order !== undefined ? item.order : newImagesArray.length,
+                caption: item.caption || ''
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.error("Error parsing imageUrls:", e);
+      }
+    }
+
+    // Handle multiple file uploads
+    // Check for both 'images' and 'images[]' field names
+    const imageField = files['images[]'] || files.images;
+    if (imageField) {
+      const imageFiles = Array.isArray(imageField) ? imageField : [imageField];
+      imageFiles.forEach((file, index) => {
+        if (file.size <= 3000000) {
+          newImagesArray.push({
+            data: fs.readFileSync(file.filepath),
+            contentType: file.mimetype,
+            isPrimary: false,
+            order: newImagesArray.length
+          });
+        }
+      });
+    }
+
+    // Update the product images array
+    product.images = newImagesArray;
+
+    console.log("\nFinal state before save:");
+    console.log("Total images:", product.images.length);
+    product.images.forEach((img, idx) => {
+      console.log(`  [${idx}] ${img.url || 'File upload'} - Primary: ${img.isPrimary}`);
+    });
+    console.log("=== End Debug ===\n");
+
+    // Handle setting primary image
+    if (fields.primaryImageIndex !== undefined) {
+      const primaryIndex = parseInt(fields.primaryImageIndex);
+      product.images.forEach((img, index) => {
+        img.isPrimary = index === primaryIndex;
+      });
+    }
+
+    // Ensure at least one image is marked as primary
+    if (product.images.length > 0 && !product.images.some(img => img.isPrimary)) {
+      product.images[0].isPrimary = true;
     }
 
     //save to DB
@@ -268,6 +464,7 @@ exports.updateProduct = (req, res) => {
       if (err) {
         return res.status(400).json({
           err: "Updation in DB is failed",
+          details: err.message
         });
       }
 
@@ -429,17 +626,32 @@ exports.getFilteredProducts = async (req, res) => {
     // Execute query
     const [products, totalCount] = await Promise.all([
       Product.find(filter)
-        .select("-photo")
+        .select("-photo -images.data")
         .populate("category")
         .populate("productType")
         .sort(sort)
         .limit(parseInt(limit))
-        .skip(skip),
+        .skip(skip)
+        .lean(),
       Product.countDocuments(filter)
     ]);
 
+    // Clean up image data from response
+    const cleanedProducts = products.map(product => {
+      if (product.images && product.images.length > 0) {
+        product.images = product.images.map(img => ({
+          _id: img._id,
+          url: img.url,
+          isPrimary: img.isPrimary,
+          order: img.order,
+          caption: img.caption
+        }));
+      }
+      return product;
+    });
+
     res.json({
-      products,
+      products: cleanedProducts,
       pagination: {
         currentPage: parseInt(page),
         totalPages: Math.ceil(totalCount / parseInt(limit)),
@@ -484,8 +696,8 @@ exports.updateStock = async (req, res, next) => {
           const size = item.size || 'M'; // Default to M if no size specified
           const quantity = item.count || item.quantity || 1;
           
-          // Use the new inventory methods
-          if (product.confirmSale(size, quantity)) {
+          // Use the simplified stock methods
+          if (product.decreaseStock(size, quantity)) {
             await product.save();
             
             // Check for low stock alerts

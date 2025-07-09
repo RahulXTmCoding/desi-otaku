@@ -311,8 +311,22 @@ const ManageProducts = () => {
     if (isTestMode) {
       return getMockProductImage(product._id);
     }
+    
+    // Check for multi-image support
+    if ((product as any).images && (product as any).images.length > 0) {
+      const primaryImage = (product as any).images.find((img: any) => img.isPrimary) || (product as any).images[0];
+      if (primaryImage.url) {
+        return primaryImage.url;
+      } else {
+        // For file uploads, we need to get the image from the backend
+        const imageIndex = (product as any).images.indexOf(primaryImage);
+        return `${API}/product/image/${product._id}/${imageIndex}`;
+      }
+    }
+    
+    // Fallback to default endpoint which returns primary image
     if (product._id) {
-      return `${API}/product/photo/${product._id}`;
+      return `${API}/product/image/${product._id}`;
     }
     return '/api/placeholder/50/50';
   };
@@ -597,13 +611,6 @@ const ManageProducts = () => {
                         <div className="flex items-center justify-end gap-2">
                           {viewMode === 'active' ? (
                             <>
-                              <Link
-                                to={`/admin/product/variants/${product._id}`}
-                                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group"
-                                title="Manage Variants"
-                              >
-                                <Palette className="w-4 h-4 group-hover:text-yellow-400" />
-                              </Link>
                               <Link
                                 to={`/admin/product/update/${product._id}`}
                                 className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors group"

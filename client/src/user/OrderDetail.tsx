@@ -172,13 +172,37 @@ const OrderDetail = () => {
                               className="relative group block w-full h-full"
                             >
                               <img 
-                                src={
-                                  product.photoUrl ||
-                                  product.product.photoUrl || 
-                                  (product.product._id ? `${API}/product/photo/${product.product._id}` : null) ||
-                                  (typeof product.product === 'string' ? `${API}/product/photo/${product.product}` : null) ||
-                                  '/placeholder.png'
-                                } 
+                                src={(() => {
+                                  // Direct photoUrl on product item
+                                  if (product.photoUrl) return product.photoUrl;
+                                  
+                                  // Check if product has images array (new multi-image system)
+                                  if (product.product.images && Array.isArray(product.product.images) && product.product.images.length > 0) {
+                                    const primaryImage = product.product.images.find((img: any) => img.isPrimary) || product.product.images[0];
+                                    if (primaryImage && primaryImage.url) {
+                                      return primaryImage.url;
+                                    }
+                                    // If no URL, use indexed endpoint
+                                    const primaryIndex = product.product.images.findIndex((img: any) => img.isPrimary);
+                                    const index = primaryIndex >= 0 ? primaryIndex : 0;
+                                    return `${API}/product/image/${product.product._id}/${index}`;
+                                  }
+                                  
+                                  // Legacy photoUrl support
+                                  if (product.product.photoUrl) return product.product.photoUrl;
+                                  
+                                  // New indexed endpoint for products without images array
+                                  if (product.product._id) {
+                                    return `${API}/product/image/${product.product._id}/0`;
+                                  }
+                                  
+                                  // String product ID
+                                  if (typeof product.product === 'string') {
+                                    return `${API}/product/image/${product.product}/0`;
+                                  }
+                                  
+                                  return '/placeholder.png';
+                                })()} 
                                 alt={product.name} 
                                 className="w-full h-full rounded-lg object-cover group-hover:scale-105 transition-transform duration-300"
                                 onError={(e) => {

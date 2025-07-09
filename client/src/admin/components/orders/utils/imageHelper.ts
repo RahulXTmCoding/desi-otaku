@@ -15,18 +15,24 @@ export const getProductImageUrl = (item: any): string => {
   // Direct image URL on the order item
   if (item.image) return item.image;
   
-  // Product photoUrl (most common for Zoro tshirt)
-  if (product && product.photoUrl) return product.photoUrl;
-  
-  // Product images array
+  // Product images array (new multi-image system)
   if (product && product.images && product.images.length > 0) {
     const primaryImage = product.images.find((img: any) => img.isPrimary) || product.images[0];
-    return primaryImage.url;
+    if (primaryImage && primaryImage.url) {
+      return primaryImage.url;
+    }
+    // If no URL, use the indexed endpoint
+    const primaryIndex = product.images.findIndex((img: any) => img.isPrimary);
+    const index = primaryIndex >= 0 ? primaryIndex : 0;
+    return `${API}/product/image/${product._id}/${index}`;
   }
   
-  // API photo endpoint fallback
+  // Product photoUrl (legacy support)
+  if (product && product.photoUrl) return product.photoUrl;
+  
+  // API image endpoint fallback with index 0 for new system
   if (product && product._id) {
-    return `${API}/product/photo/${product._id}`;
+    return `${API}/product/image/${product._id}/0`;
   }
   
   // Default placeholder

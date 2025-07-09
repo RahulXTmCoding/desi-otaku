@@ -129,19 +129,33 @@ export const deleteCategory = (categoryId: string, userId: string, token: string
 
 // Create a product
 export const createaProduct = (userId: string, token: string, product: FormData) => {
+  // Debug: Check FormData contents before sending
+  console.log("=== API Call Debug ===");
+  console.log("Sending FormData to:", `${API}/product/create/${userId}`);
+  let imageCount = 0;
+  for (let [key, value] of product.entries()) {
+    if (key === "images") {
+      imageCount++;
+      console.log(`FormData has ${key}[${imageCount}]:`, value instanceof File ? value.name : value);
+    }
+  }
+  console.log(`Total images in FormData at API call: ${imageCount}`);
+  
   return fetch(`${API}/product/create/${userId}`, {
     method: "POST",
     headers: {
       Accept: "application/json",
       Authorization: `Bearer ${token}`
+      // DO NOT set Content-Type for FormData - browser will set it with boundary
     },
     body: product
   })
     .then(response => {
+      console.log("Response status:", response.status);
       return response.json();
     })
     .catch(err => {
-      console.log(err);
+      console.log("API Error:", err);
       return { error: "Failed to connect to server" };
     });
 };

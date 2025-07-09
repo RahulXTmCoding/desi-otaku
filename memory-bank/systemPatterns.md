@@ -201,11 +201,23 @@ const memoizedValue = useMemo(() => computeExpensive(data), [data]);
 const memoizedCallback = useCallback(() => {}, [dependencies]);
 ```
 
-### Image Optimization
-- Use appropriate image formats
-- Implement lazy loading
-- Provide multiple sizes
-- Use placeholders
+### Image Optimization & Handling
+
+**New Multi-Image Pattern (Primary System):**
+- **Storage**: Products now have an `images` array in the database, storing objects with `url` and `isPrimary` fields.
+- **API Endpoints**:
+    - `POST /product/create-json/:userId`: Creates a product using a JSON payload, including base64-encoded images.
+    - `PUT /product/update-json/:productId/:userId`: Updates a product using a JSON payload, managing existing, new URL, and new file images.
+    - `GET /product/image/:productId/:index`: Serves a specific image by its index in the `images` array.
+- **Data Flow**:
+    1.  **Frontend**: `productApiHelper.tsx` prepares the JSON payload. File images are converted to base64.
+    2.  **Backend**: `product` controller decodes base64 images, uploads them to Cloudinary, and saves the URLs to the `product.images` array.
+    3.  **Display**: All components (`ProductCard`, `Cart`, `OrderDetail`, etc.) now use a helper function (`getProductImageUrl`) that prioritizes the primary image from the `images` array and falls back to the first image if none is marked as primary.
+
+**Legacy Single-Image Pattern (Fallback):**
+- **Storage**: Older products might have a single `photoUrl`.
+- **API Endpoint**: `GET /product/photo/:productId` (Still supported for backward compatibility).
+- **Display Logic**: Image display helpers check for the new `images` array first, then fall back to `photoUrl` if `images` is not present.
 
 ## Testing Patterns
 

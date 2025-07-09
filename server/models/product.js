@@ -8,7 +8,7 @@ const productSchema = new Schema(
       type: String,
       required: true,
       trim: true,
-      maxlength: 32,
+      maxlength: 100,
     },
     description: {
       type: String,
@@ -16,84 +16,26 @@ const productSchema = new Schema(
       trim: true,
       maxlength: 2500,
     },
-
     price: {
       type: Number,
       required: true,
-      maxlength: 32,
       trim: true,
     },
-
     category: {
       type: ObjectId,
       ref: "Category",
     },
-
-    // Product type reference
     productType: {
       type: ObjectId,
       ref: "ProductType",
       required: true
     },
     
-    // Total stock across all sizes (for backward compatibility)
-    stock: {
-      type: Number,
-      default: 0,
-    },
-
-    // Size-wise inventory
-    inventory: {
-      S: {
-        stock: { type: Number, default: 0 },
-        reserved: { type: Number, default: 0 }, // Reserved during checkout
-        sold: { type: Number, default: 0 }
-      },
-      M: {
-        stock: { type: Number, default: 0 },
-        reserved: { type: Number, default: 0 },
-        sold: { type: Number, default: 0 }
-      },
-      L: {
-        stock: { type: Number, default: 0 },
-        reserved: { type: Number, default: 0 },
-        sold: { type: Number, default: 0 }
-      },
-      XL: {
-        stock: { type: Number, default: 0 },
-        reserved: { type: Number, default: 0 },
-        sold: { type: Number, default: 0 }
-      },
-      XXL: {
-        stock: { type: Number, default: 0 },
-        reserved: { type: Number, default: 0 },
-        sold: { type: Number, default: 0 }
-      }
-    },
-
-    // Inventory alerts
-    lowStockThreshold: {
-      type: Number,
-      default: 10 // Alert when any size drops below this
-    },
-
-    sold: {
-      type: Number,
-      default: 0,
-    },
-
-    photo: {
+    // Multiple product images - supports both file uploads and URLs
+    images: [{
+      // Can be either file upload or URL
       data: Buffer,
       contentType: String,
-    },
-    
-    // Photo URL for external images
-    photoUrl: {
-      type: String,
-    },
-
-    // Multiple images support
-    images: [{
       url: String,
       caption: String,
       isPrimary: {
@@ -105,20 +47,63 @@ const productSchema = new Schema(
         default: 0
       }
     }],
-
-    // Available sizes (array of available sizes)
+    
+    // Simple size-based inventory
+    sizeStock: {
+      S: {
+        type: Number,
+        default: 0
+      },
+      M: {
+        type: Number,
+        default: 0
+      },
+      L: {
+        type: Number,
+        default: 0
+      },
+      XL: {
+        type: Number,
+        default: 0
+      },
+      XXL: {
+        type: Number,
+        default: 0
+      }
+    },
+    
+    // Available sizes (which sizes are offered for this product)
     availableSizes: {
       type: [String],
-      default: ['S', 'M', 'L', 'XL', 'XXL']
+      default: ['S', 'M', 'L', 'XL', 'XXL'],
+      enum: ['S', 'M', 'L', 'XL', 'XXL']
     },
-
-    // Track if product is active
+    
+    // Total stock (calculated from sizeStock)
+    totalStock: {
+      type: Number,
+      default: 0
+    },
+    
+    // Total sold
+    sold: {
+      type: Number,
+      default: 0
+    },
+    
+    // Low stock alert threshold
+    lowStockThreshold: {
+      type: Number,
+      default: 10
+    },
+    
+    // Product status
     isActive: {
       type: Boolean,
       default: true
     },
-
-    // Soft delete fields
+    
+    // Soft delete
     isDeleted: {
       type: Boolean,
       default: false
@@ -132,14 +117,8 @@ const productSchema = new Schema(
       ref: "User",
       default: null
     },
-
-    // Track if out of stock alerts have been sent
-    alertsSent: {
-      lowStock: { type: Boolean, default: false },
-      outOfStock: { type: Boolean, default: false }
-    },
-
-    // Review fields
+    
+    // Reviews
     averageRating: {
       type: Number,
       default: 0,
@@ -150,143 +129,71 @@ const productSchema = new Schema(
       type: Number,
       default: 0
     },
-
-    // Tags for search and filtering
+    
+    // Tags for search
     tags: [{
       type: String,
       trim: true,
       lowercase: true
-    }],
-
-    // Color variants
-    variants: [{
-      color: String,
-      colorValue: String,
-      image: String,
-      enabled: {
-        type: Boolean,
-        default: false
-      },
-      stock: {
-        S: {
-          type: mongoose.Schema.Types.Mixed,
-          default: 0
-        },
-        M: {
-          type: mongoose.Schema.Types.Mixed,
-          default: 0
-        },
-        L: {
-          type: mongoose.Schema.Types.Mixed,
-          default: 0
-        },
-        XL: {
-          type: mongoose.Schema.Types.Mixed,
-          default: 0
-        },
-        XXL: {
-          type: mongoose.Schema.Types.Mixed,
-          default: 0
-        }
-      }
     }]
   },
   { timestamps: true }
 );
 
-// Indexes for performance optimization
-// Compound index for common filter combinations
+// Indexes
 productSchema.index({ isDeleted: 1, isActive: 1, category: 1, productType: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, price: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, averageRating: -1 });
-
-// Text index for search functionality
 productSchema.index({ name: "text", description: "text", tags: "text" });
-
-// Single field indexes for sorting and specific queries
 productSchema.index({ createdAt: -1 });
 productSchema.index({ sold: -1 });
-productSchema.index({ price: 1 });
-productSchema.index({ averageRating: -1 });
-productSchema.index({ stock: 1 });
-productSchema.index({ productType: 1 });
-productSchema.index({ category: 1 });
+productSchema.index({ totalStock: 1 });
 
-// Methods to check inventory
-productSchema.methods.getAvailableStock = function(size) {
-  if (!size) {
-    // Return total available stock across all sizes
-    let total = 0;
-    for (const s of this.availableSizes) {
-      if (this.inventory[s]) {
-        total += (this.inventory[s].stock - this.inventory[s].reserved);
-      }
+// Pre-save hook to calculate total stock
+productSchema.pre('save', function(next) {
+  // Calculate total stock from size inventory
+  let total = 0;
+  if (this.sizeStock) {
+    for (const size of this.availableSizes) {
+      total += this.sizeStock[size] || 0;
     }
-    return total;
   }
-  
-  // Return available stock for specific size
-  if (this.inventory[size]) {
-    return this.inventory[size].stock - this.inventory[size].reserved;
-  }
-  return 0;
+  this.totalStock = total;
+  next();
+});
+
+// Methods
+productSchema.methods.getStockForSize = function(size) {
+  return this.sizeStock[size] || 0;
 };
 
 productSchema.methods.isInStock = function(size) {
-  return this.getAvailableStock(size) > 0;
+  if (size) {
+    return this.getStockForSize(size) > 0;
+  }
+  return this.totalStock > 0;
 };
 
-productSchema.methods.isLowStock = function(size) {
-  const available = this.getAvailableStock(size);
-  return available > 0 && available <= this.lowStockThreshold;
-};
-
-productSchema.methods.reserveStock = function(size, quantity) {
-  if (this.inventory[size] && this.getAvailableStock(size) >= quantity) {
-    this.inventory[size].reserved += quantity;
+productSchema.methods.updateStock = function(size, quantity) {
+  if (this.sizeStock[size] !== undefined) {
+    this.sizeStock[size] = Math.max(0, this.sizeStock[size] + quantity);
     return true;
   }
   return false;
 };
 
-productSchema.methods.releaseStock = function(size, quantity) {
-  if (this.inventory[size]) {
-    this.inventory[size].reserved = Math.max(0, this.inventory[size].reserved - quantity);
-    return true;
-  }
-  return false;
-};
-
-productSchema.methods.confirmSale = function(size, quantity) {
-  if (this.inventory[size]) {
-    this.inventory[size].stock = Math.max(0, this.inventory[size].stock - quantity);
-    this.inventory[size].reserved = Math.max(0, this.inventory[size].reserved - quantity);
-    this.inventory[size].sold += quantity;
+productSchema.methods.decreaseStock = function(size, quantity) {
+  if (this.sizeStock[size] !== undefined && this.sizeStock[size] >= quantity) {
+    this.sizeStock[size] -= quantity;
     this.sold += quantity;
-    
-    // Update total stock
-    this.stock = 0;
-    for (const s of this.availableSizes) {
-      if (this.inventory[s]) {
-        this.stock += this.inventory[s].stock;
-      }
-    }
     return true;
   }
   return false;
 };
 
-// Pre-save hook to update total stock
-productSchema.pre('save', function(next) {
-  // Calculate total stock from size inventory
-  let totalStock = 0;
-  for (const size of this.availableSizes) {
-    if (this.inventory[size]) {
-      totalStock += this.inventory[size].stock;
-    }
-  }
-  this.stock = totalStock;
-  next();
-});
+productSchema.methods.getPrimaryImage = function() {
+  const primaryImage = this.images.find(img => img.isPrimary);
+  return primaryImage || this.images[0] || null;
+};
 
 module.exports = mongoose.model("Product", productSchema);

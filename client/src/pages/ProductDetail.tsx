@@ -48,6 +48,24 @@ interface Product {
     newArrival?: boolean;
     limitedEdition?: boolean;
   };
+  // New multi-image support
+  images?: Array<{
+    _id?: string;
+    url?: string;
+    data?: any;
+    contentType?: string;
+    isPrimary?: boolean;
+    order?: number;
+    caption?: string;
+  }>;
+  // Size-based stock
+  sizeStock?: {
+    S: number;
+    M: number;
+    L: number;
+    XL: number;
+    XXL: number;
+  };
 }
 
 const ProductDetail: React.FC = () => {
@@ -108,15 +126,24 @@ const ProductDetail: React.FC = () => {
     if (id) {
       if (userId && token) {
         checkWishlistStatus();
-        loadProductImages();
       }
     }
   }, [id, isTestMode]);
 
-  // Load variants after product is loaded
+  // Load images after product is loaded
   useEffect(() => {
     if (product && id) {
-      loadProductVariants();
+      loadProductImages();
+      
+      // Auto-select first available size
+      if (product.sizeStock) {
+        const firstAvailableSize = defaultSizes.find(size => 
+          product.sizeStock && product.sizeStock[size as keyof typeof product.sizeStock] > 0
+        );
+        if (firstAvailableSize) {
+          setSelectedSize(firstAvailableSize);
+        }
+      }
     }
   }, [product, id]);
 
@@ -210,23 +237,47 @@ const ProductDetail: React.FC = () => {
   };
 
   const loadProductImages = async () => {
-    if (!id || isTestMode) return;
+    if (!product) return;
     
-    try {
-      const response = await fetch(`${API}/product/${id}/images`);
-      const data = await response.json();
+    console.log('Loading product images:', product.images);
+    
+    // Build image array from product data
+    const images = [];
+    
+    if (product.images && product.images.length > 0) {
+      // Use the new images array from product
+      product.images.forEach((img: any, index: number) => {
+        images.push({
+          url: img.url || `${API}/product/image/${product._id}/${index}`,
+          caption: img.caption || `Image ${index + 1}`,
+          isPrimary: img.isPrimary || false,
+          order: img.order || index
+        });
+      });
       
-      if (response.ok && data.images) {
-        setProductImages(data.images);
-        // Set the primary image as current if no image selected
-        const primaryIndex = data.images.findIndex((img: any) => img.isPrimary);
-        if (primaryIndex !== -1) {
-          setCurrentImageIndex(primaryIndex);
-        }
+      // Sort by order
+      images.sort((a, b) => a.order - b.order);
+      
+      // Ensure at least one image is primary
+      if (!images.some(img => img.isPrimary) && images.length > 0) {
+        images[0].isPrimary = true;
       }
-    } catch (err) {
-      console.error('Failed to load product images:', err);
+    } else {
+      // Fallback to single image
+      images.push({
+        url: `${API}/product/image/${product._id}`,
+        caption: 'Main Image',
+        isPrimary: true,
+        order: 0
+      });
     }
+    
+    console.log('Processed images:', images);
+    setProductImages(images);
+    
+    // Set primary image as current
+    const primaryIndex = images.findIndex(img => img.isPrimary);
+    setCurrentImageIndex(primaryIndex !== -1 ? primaryIndex : 0);
   };
 
   const loadProductVariants = async () => {
@@ -279,25 +330,14 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const getProductImage = (productData: Product & { photoUrl?: string }) => {
+  const getProductImage = (productData: Product) => {
     if (isTestMode) {
       return getMockProductImage(productData._id);
     }
     
-    // Check for photoUrl first (external URLs including data URLs)
-    if (productData.photoUrl) {
-      if (productData.photoUrl.startsWith('http') || productData.photoUrl.startsWith('data:')) {
-        return productData.photoUrl;
-      }
-      // If it's a relative path
-      if (productData.photoUrl.startsWith('/')) {
-        return productData.photoUrl;
-      }
-    }
-    
-    // Fallback to standard photo endpoint
+    // Use the new image endpoint
     if (productData._id) {
-      return `${API}/product/photo/${productData._id}`;
+      return `${API}/product/image/${productData._id}`;
     }
     return '/api/placeholder/600/600';
   };
@@ -548,63 +588,6 @@ const ProductDetail: React.FC = () => {
               </p>
             </div>
 
-            {/* Color Selection */}
-            <div className="mb-6">
-              <h3 className="font-semibold mb-3">Color: {selectedColor?.name}</h3>
-              <div className="flex gap-3">
-                {productVariants.length > 0 ? (
-                  // Show variant colors if available
-                  productVariants.map((variant) => (
-                    <button
-                      key={variant.colorValue}
-                      onClick={() => {
-                        setSelectedColor({
-                          name: variant.color,
-                          value: variant.colorValue
-                        });
-                        // Find and show the variant's image if it exists
-                        const variantImageIndex = productImages.findIndex(
-                          img => img.colorValue === variant.colorValue
-                        );
-                        if (variantImageIndex !== -1) {
-                          setCurrentImageIndex(variantImageIndex);
-                        }
-                      }}
-                      className={`relative w-12 h-12 rounded-full border-2 transition-all ${
-                        selectedColor?.value === variant.colorValue
-                          ? 'border-yellow-400 scale-110'
-                          : 'border-gray-600'
-                      }`}
-                      style={{ backgroundColor: variant.colorValue }}
-                      title={variant.color}
-                    >
-                      {selectedColor?.value === variant.colorValue && (
-                        <Check className="absolute inset-0 m-auto w-6 h-6 text-white" />
-                      )}
-                    </button>
-                  ))
-                ) : (
-                  // Fallback to default colors
-                  defaultColors.map((color) => (
-                    <button
-                      key={color.value}
-                      onClick={() => setSelectedColor(color)}
-                      className={`relative w-12 h-12 rounded-full border-2 transition-all ${
-                        selectedColor?.value === color.value
-                          ? 'border-yellow-400 scale-110'
-                          : 'border-gray-600'
-                      }`}
-                      style={{ backgroundColor: color.value }}
-                      title={color.name}
-                    >
-                      {selectedColor?.value === color.value && (
-                        <Check className="absolute inset-0 m-auto w-6 h-6 text-white" />
-                      )}
-                    </button>
-                  ))
-                )}
-              </div>
-            </div>
 
             {/* Size Selection */}
             <div className="mb-6">
@@ -614,29 +597,36 @@ const ProductDetail: React.FC = () => {
               </div>
               <div className="grid grid-cols-5 gap-3">
                 {defaultSizes.map((size) => {
-                  // Check stock availability for this size in selected variant
-                  const selectedVariant = productVariants.find(v => v.colorValue === selectedColor?.value);
-                  const sizeStock = selectedVariant?.stock?.[size];
-                  const isAvailable = sizeStock === 'infinity' || (typeof sizeStock === 'number' && sizeStock > 0);
-                  const isOutOfStock = sizeStock === 0;
+                  // Check stock availability from sizeStock
+                  const sizeStockCount = product.sizeStock?.[size as keyof typeof product.sizeStock] || 0;
+                  const isAvailable = sizeStockCount > 0;
+                  const isLowStock = sizeStockCount > 0 && sizeStockCount <= 5;
                   
                   return (
                     <button
                       key={size}
-                      onClick={() => setSelectedSize(size)}
-                      disabled={!isAvailable || product.stock === 0}
+                      onClick={() => {
+                        setSelectedSize(size);
+                        setQuantity(1); // Reset quantity when changing size
+                      }}
+                      disabled={!isAvailable}
                       className={`py-3 rounded-lg border-2 font-medium transition-all relative ${
                         selectedSize === size
                           ? 'bg-yellow-400 text-gray-900 border-yellow-400'
-                          : !isAvailable || product.stock === 0
+                          : !isAvailable
                           ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed'
                           : 'bg-gray-800 border-gray-700 hover:border-gray-600'
                       }`}
                     >
                       {size}
-                      {isOutOfStock && (
+                      {!isAvailable && (
                         <span className="absolute -top-1 -right-1 text-xs bg-red-500 text-white px-1 rounded">
                           Out
+                        </span>
+                      )}
+                      {isLowStock && (
+                        <span className="absolute -top-1 -right-1 text-xs bg-orange-500 text-white px-1 rounded">
+                          {sizeStockCount}
                         </span>
                       )}
                     </button>
@@ -648,9 +638,20 @@ const ProductDetail: React.FC = () => {
             {/* Stock Info */}
             <div className="mb-6">
               <p className="text-sm text-gray-400">
-                Stock: <span className={product.stock > 5 ? 'text-green-400' : 'text-orange-400'}>
-                  {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
-                </span>
+                {selectedSize && product.sizeStock ? (
+                  <>
+                    Stock for size {selectedSize}: 
+                    <span className={product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 5 ? 'text-green-400' : 'text-orange-400'}>
+                      {' '}{product.sizeStock[selectedSize as keyof typeof product.sizeStock]} available
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    Total Stock: <span className={product.stock > 5 ? 'text-green-400' : 'text-orange-400'}>
+                      {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
+                    </span>
+                  </>
+                )}
               </p>
             </div>
 
@@ -660,15 +661,20 @@ const ProductDetail: React.FC = () => {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  disabled={product.stock === 0}
+                  disabled={!selectedSize || (product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] === 0)}
                   className="bg-gray-800 hover:bg-gray-700 p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Minus className="w-5 h-5" />
                 </button>
                 <span className="w-16 text-center text-xl font-medium">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                  disabled={product.stock === 0 || quantity >= product.stock}
+                  onClick={() => {
+                    if (selectedSize && product.sizeStock) {
+                      const maxQty = product.sizeStock[selectedSize as keyof typeof product.sizeStock] || 0;
+                      setQuantity(Math.min(maxQty, quantity + 1));
+                    }
+                  }}
+                  disabled={!selectedSize || (product.sizeStock && quantity >= (product.sizeStock[selectedSize as keyof typeof product.sizeStock] || 0))}
                   className="bg-gray-800 hover:bg-gray-700 p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Plus className="w-5 h-5" />
@@ -680,15 +686,19 @@ const ProductDetail: React.FC = () => {
             <div className="flex gap-4 mb-8">
               <button
                 onClick={handleAddToCart}
-                disabled={product.stock === 0}
+                disabled={!selectedSize || (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] === 0)}
                 className={`flex-1 py-4 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 ${
-                  product.stock > 0
+                  selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
                     ? 'bg-yellow-400 hover:bg-yellow-300 text-gray-900'
                     : 'bg-gray-700 text-gray-500 cursor-not-allowed'
                 }`}
               >
                 <ShoppingCart className="w-5 h-5" />
-                {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+                {!selectedSize 
+                  ? 'Select a Size' 
+                  : product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] === 0
+                  ? 'Out of Stock'
+                  : 'Add to Cart'}
               </button>
               <button 
                 onClick={handleWishlistToggle}

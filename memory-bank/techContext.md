@@ -23,7 +23,9 @@
 - **Language**: JavaScript
 - **Database**: MongoDB with Mongoose
 - **Authentication**: JWT with express-jwt
-- **File Storage**: MongoDB GridFS for product images
+- **File Storage**: 
+  - **Cloudinary**: For the new multi-image system. Images are uploaded via the backend.
+  - **MongoDB GridFS**: Legacy system for older, single-image products.
 - **Payment**: 
   - Razorpay (integrated with guest checkout)
   - Braintree (integrated)

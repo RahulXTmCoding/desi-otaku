@@ -9,13 +9,16 @@ import CartDrawer from './CartDrawer';
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const auth = isAutheticated();
-  const { getItemCount, syncCart } = useCart();
+  const isAdmin = auth && auth.user && auth.user.role === 1;
+  
+  // Only use cart functionality for non-admin users
+  const { getItemCount, syncCart } = !isAdmin ? useCart() : { getItemCount: () => 0, syncCart: async () => {} };
   const [cartAnimation, setCartAnimation] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [prevCartCount, setPrevCartCount] = useState(0);
 
-  const cartCount = getItemCount();
+  const cartCount = !isAdmin ? getItemCount() : 0;
 
   useEffect(() => {
     // Trigger animation when cart count changes
@@ -382,8 +385,8 @@ const Header: React.FC = () => {
         }
       `}</style>
       
-      {/* Cart Drawer */}
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />
+      {/* Cart Drawer - Only render for non-admin users */}
+      {!isAdmin && <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} />}
     </>
   );
 };
