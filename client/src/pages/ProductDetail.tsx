@@ -436,7 +436,7 @@ const ProductDetail: React.FC = () => {
                     ? productImages[currentImageIndex].url 
                     : getProductImage(product)}
                   alt={productImages[currentImageIndex]?.caption || product.name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = getProductImage(product);
                     (e.target as HTMLImageElement).onerror = null;
@@ -494,7 +494,7 @@ const ProductDetail: React.FC = () => {
                     <img 
                       src={image.url}
                       alt={image.caption || `${product.name} ${index + 1}`}
-                      className="w-full h-full object-cover rounded"
+                      className="w-full h-full object-contain rounded"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = '/api/placeholder/150/150';
                         (e.target as HTMLImageElement).onerror = null;
@@ -509,7 +509,7 @@ const ProductDetail: React.FC = () => {
                   <img 
                     src={getProductImage(product)}
                     alt={product.name}
-                    className="w-full h-full object-cover rounded"
+                    className="w-full h-full object-contain rounded"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/api/placeholder/150/150';
                       (e.target as HTMLImageElement).onerror = null;
@@ -817,7 +817,7 @@ const ProductDetail: React.FC = () => {
                   <img 
                     src={getProductImage(relatedProduct)}
                     alt={relatedProduct.name}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = '/api/placeholder/300/300';
                       (e.target as HTMLImageElement).onerror = null;

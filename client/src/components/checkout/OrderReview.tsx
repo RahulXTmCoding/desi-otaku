@@ -167,7 +167,7 @@ const OrderItemCard = memo(({ item }: { item: CartItem }) => {
           <img 
             src={getProductImageUrl()} 
             alt={item.name}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
             onError={(e: any) => {
               e.target.onerror = null;
               e.target.src = '/placeholder.png';

@@ -204,7 +204,7 @@ const OrderDetail = () => {
                                   return '/placeholder.png';
                                 })()} 
                                 alt={product.name} 
-                                className="w-full h-full rounded-lg object-cover group-hover:scale-105 transition-transform duration-300"
+                                className="w-full h-full rounded-lg object-contain group-hover:scale-105 transition-transform duration-300"
                                 onError={(e) => {
                                   (e.target as HTMLImageElement).src = '/placeholder.png';
                                   (e.target as HTMLImageElement).onerror = null;

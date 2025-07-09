@@ -95,7 +95,7 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
                         <img
                           src={getProductImageUrl(item)}
                           alt={item.name}
-                          className="w-full h-full object-cover rounded-lg"
+                          className="w-full h-full object-contain rounded-lg"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/placeholder.png';
                             (e.target as HTMLImageElement).onerror = null;

@@ -201,7 +201,7 @@ const Cart: React.FC = () => {
                         <img
                           src={getProductImage(item)}
                           alt={item.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = '/api/placeholder/80/80';
                           }}
