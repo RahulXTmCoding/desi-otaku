@@ -603,10 +603,26 @@ exports.getFilteredProducts = async (req, res) => {
       filter.tags = { $in: tagArray };
     }
 
-    // Size filter - products that have the selected sizes available
+    // Size filter - products that have the selected sizes with stock > 0
     if (sizes) {
       const sizeArray = Array.isArray(sizes) ? sizes : sizes.split(',');
-      filter.availableSizes = { $in: sizeArray };
+      const sizeFilters = sizeArray.map(size => {
+        return { [`sizeStock.${size}`]: { $gt: 0 } };
+      });
+      
+      // If we already have $or from search, we need to combine conditions properly
+      if (filter.$or) {
+        // Wrap existing $or conditions and size filters in an $and
+        const existingOr = filter.$or;
+        delete filter.$or;
+        filter.$and = [
+          { $or: existingOr },
+          { $or: sizeFilters }
+        ];
+      } else {
+        // Otherwise just use $or for size filters
+        filter.$or = sizeFilters;
+      }
     }
 
     // Availability filter

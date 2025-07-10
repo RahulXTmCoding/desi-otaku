@@ -10,6 +10,7 @@ import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, mockCategories, getMockProductImage } from '../data/mockData';
 import ProductGridItem from '../components/ProductGridItem';
 import RealTShirtPreview from '../components/RealTShirtPreview';
+import QuickViewModal from '../components/QuickViewModal';
 
 interface Product {
   _id: string;
@@ -47,6 +48,10 @@ const Home: React.FC = () => {
   const [selectedRandomColor, setSelectedRandomColor] = useState<any>(null);
   const [selectedRandomSize, setSelectedRandomSize] = useState<string>('');
   const [addedToCart, setAddedToCart] = useState(false);
+  
+  // Quick View Modal state
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
   useEffect(() => {
     loadProducts();
@@ -264,6 +269,16 @@ const Home: React.FC = () => {
     return tshirts.filter(product => product.category?._id === category._id).length;
   };
 
+  const handleQuickView = (product: Product) => {
+    setSelectedProduct(product);
+    setIsQuickViewOpen(true);
+  };
+
+  const handleCloseQuickView = () => {
+    setIsQuickViewOpen(false);
+    setSelectedProduct(null);
+  };
+
   return (
     <Base title="" description="">
       <div className="min-h-screen bg-gray-900 text-white">
@@ -385,6 +400,7 @@ const Home: React.FC = () => {
                   <ProductGridItem 
                     key={product._id} 
                     product={product}
+                    onQuickView={handleQuickView}
                   />
                 ))}
               </div>
@@ -611,6 +627,13 @@ const Home: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Quick View Modal */}
+      <QuickViewModal
+        product={selectedProduct}
+        isOpen={isQuickViewOpen}
+        onClose={handleCloseQuickView}
+      />
     </Base>
   );
 };

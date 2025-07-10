@@ -19,6 +19,7 @@ import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, mockCategories } from '../data/mockData';
 import ProductGridItem from '../components/ProductGridItem';
+import QuickViewModal from '../components/QuickViewModal';
 
 interface Product {
   _id: string;
@@ -92,6 +93,10 @@ const ShopWithBackendFilters: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
   const productsPerPage = 12;
+  
+  // Quick View Modal state
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
   // Available sizes
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
@@ -318,6 +323,16 @@ const ShopWithBackendFilters: React.FC = () => {
     if (selectedTags.length > 0) count++;
     return count;
   }, [selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags]);
+
+  const handleQuickView = (product: Product) => {
+    setSelectedProduct(product);
+    setIsQuickViewOpen(true);
+  };
+
+  const handleCloseQuickView = () => {
+    setIsQuickViewOpen(false);
+    setSelectedProduct(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -638,7 +653,11 @@ const ShopWithBackendFilters: React.FC = () => {
               <>
                 <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {products.map(product => (
-                    <ProductGridItem key={product._id} product={product} />
+                    <ProductGridItem 
+                      key={product._id} 
+                      product={product}
+                      onQuickView={handleQuickView}
+                    />
                   ))}
                 </div>
 
@@ -714,6 +733,13 @@ const ShopWithBackendFilters: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Quick View Modal */}
+      <QuickViewModal
+        product={selectedProduct}
+        isOpen={isQuickViewOpen}
+        onClose={handleCloseQuickView}
+      />
     </div>
   );
 };
