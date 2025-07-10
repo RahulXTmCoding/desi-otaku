@@ -1,33 +1,44 @@
 # Active Context
 
-## Current Focus: Multi-Image System Implementation ✅
+## Current Work Focus
+- Extending the website layout horizontally to accommodate more screen components.
+- Implementing a better mobile experience for the cart functionality.
+- Making all pages responsive including the Custom Design page.
 
-### Completed Multi-Image Feature
-Successfully implemented and integrated the multi-image upload and display system across the entire application.
+## Recent Changes
+- Replaced `max-w-7xl` with `w-[96%] md:w-[90%]` in all major pages to increase the width of the main content area and make it responsive.
+- Adjusted typography, spacing, and layout for all pages to ensure a consistent and responsive experience on mobile and desktop devices.
+- Implemented a better mobile solution for the cart: redirect to cart page instead of opening cart drawer on mobile devices.
 
-#### Key Changes & Fixes:
-1.  **Backend**:
-    *   Implemented JSON-based endpoints (`/product/create-json`, `/product/update-json`) to handle base64 image uploads.
-    *   Increased Express payload limit to 50MB to support larger images.
-    *   Switched file storage from GridFS to Cloudinary for better scalability.
-    *   The `product` model now uses an `images` array with `url` and `isPrimary` fields.
+## Responsive Page Updates
 
-2.  **Frontend - Product Management**:
-    *   **AddProduct.tsx**: Users can now upload multiple images (via file or URL) and select a primary image. The UI was updated to remove misleading text.
-    *   **UpdateProduct.tsx**: Correctly loads and displays existing images, respecting the `isPrimary` flag from the database.
+### Wishlist Page
+- Made header and buttons responsive.
+- Adjusted product grid to be 2-column on mobile, scaling up to 5 columns on larger screens.
 
-3.  **Frontend - Image Display**:
-    *   **All Components**: Updated all components that display product images to use the new system. This includes `ProductCard`, `ProductGridItem`, `Cart`, `OrderReview`, `OrderDetail` (user), and admin order details.
-    *   **imageHelper.ts**: The central image utility was updated to prioritize the primary image from the `images` array, with fallbacks for legacy products.
+### Contact Us Page
+- Made header and form elements responsive.
+- Adjusted layout to be single-column on mobile.
 
-### Benefits of the New System:
--   **Full Multi-Image Support**: Admins can add multiple images to any product.
--   **User-Controlled Primary Image**: The primary image is no longer automatically the first one; it's explicitly set by the user.
--   **Consistent Display**: Product images are now displayed correctly and consistently across all user-facing and admin components.
--   **Robust Backend**: The JSON-based API is more flexible and robust for handling complex product data.
+### Sign In / Sign Up Pages
+- Made forms and text responsive for smaller screens.
+- Adjusted layout and spacing for a better mobile experience.
+
+### Order Confirmation Page
+- Made all sections responsive, including header, order details, and action buttons.
+- Adjusted layout to be single-column on mobile.
+
+### User Dashboard Page
+- Made sidebar and main content responsive.
+- Adjusted stats cards and recent orders to be single-column on mobile.
+- Made all tabs (Orders, Wishlist, Addresses, Settings) responsive.
+
+## Final Solution for Mobile Cart
+- Modified the Header component to detect mobile devices (window width < 768px)
+- On mobile devices, clicking the cart icon redirects to `/cart` page
+- On desktop devices, the cart drawer opens as usual
+- This provides a better user experience on mobile without the layout issues
 
 ## Next Steps
-1.  **Code Cleanup**: Remove any remaining unused code related to the old single-image system (e.g., old API routes, unused helper functions).
-2.  **Testing**: Perform a full end-to-end test of the product creation, update, and purchase flow to ensure the new image system is working perfectly.
-3.  **Documentation**: Ensure all relevant documentation (like `README.md`) is updated to reflect the new image handling process.
-4.  **Performance**: Investigate lazy-loading for product images to improve initial page load times, especially on pages with many products.
+- All identified issues have been addressed successfully
+- The website is now fully responsive and optimized for both mobile and desktop viewing

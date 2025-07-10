@@ -354,24 +354,24 @@ const Customize: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="w-[96%] md:w-[90%] mx-auto px-4 py-4 md:py-8">
           {/* Page Header */}
-          <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold mb-4">
+          <div className="text-center mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-4">
               Customize Your
               <span className="text-yellow-400"> T-Shirt</span>
             </h1>
-            <p className="text-xl text-gray-300">
+            <p className="text-base md:text-xl text-gray-300">
               Choose from our collection of designs or create your unique style
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
             {/* Left Column - Design Selection */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="xl:col-span-2 space-y-4 md:space-y-6">
               {/* Search and Filters */}
-              <div className="bg-gray-800 rounded-xl p-6">
-                <div className="flex flex-col md:flex-row gap-4 mb-4">
+              <div className="bg-gray-800 rounded-xl p-4 md:p-6">
+                <div className="flex flex-col gap-4 mb-4">
                   <div className="flex-1 relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
@@ -382,10 +382,10 @@ const Customize: React.FC = () => {
                       className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
                     />
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
                     <button
                       onClick={() => setActiveCategory('all')}
-                      className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                      className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap text-sm md:text-base ${
                         activeCategory === 'all' 
                           ? 'bg-yellow-400 text-gray-900' 
                           : 'bg-gray-700 hover:bg-gray-600'
@@ -397,7 +397,7 @@ const Customize: React.FC = () => {
                       <button
                         key={cat._id}
                         onClick={() => setActiveCategory(cat._id)}
-                        className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                        className={`px-3 md:px-4 py-2 rounded-lg font-medium transition-all whitespace-nowrap text-sm md:text-base ${
                           activeCategory === cat._id 
                             ? 'bg-yellow-400 text-gray-900' 
                             : 'bg-gray-700 hover:bg-gray-600'
@@ -430,11 +430,11 @@ const Customize: React.FC = () => {
               </div>
 
               {/* Side Selector */}
-              <div className="bg-gray-800 rounded-xl p-4">
-                <div className="flex gap-2">
+              <div className="bg-gray-800 rounded-xl p-3 md:p-4">
+                <div className="flex flex-col sm:flex-row gap-2">
                   <button
                     onClick={() => setCurrentSide('front')}
-                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                    className={`flex-1 py-2 md:py-3 px-3 md:px-4 rounded-lg font-medium transition-all text-sm md:text-base ${
                       currentSide === 'front'
                         ? 'bg-yellow-400 text-gray-900'
                         : 'bg-gray-700 hover:bg-gray-600'
@@ -448,7 +448,7 @@ const Customize: React.FC = () => {
                   </button>
                   <button
                     onClick={() => setCurrentSide('back')}
-                    className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all ${
+                    className={`flex-1 py-2 md:py-3 px-3 md:px-4 rounded-lg font-medium transition-all text-sm md:text-base ${
                       currentSide === 'back'
                         ? 'bg-yellow-400 text-gray-900'
                         : 'bg-gray-700 hover:bg-gray-600'
@@ -465,8 +465,8 @@ const Customize: React.FC = () => {
 
               {/* Position Selector */}
               {getCurrentDesign().design && (
-                <div className="bg-gray-800 rounded-xl p-4">
-                  <h4 className="font-medium mb-3">Design Position ({currentSide})</h4>
+                <div className="bg-gray-800 rounded-xl p-3 md:p-4">
+                  <h4 className="font-medium mb-3 text-sm md:text-base">Design Position ({currentSide})</h4>
                   <div className="grid grid-cols-2 gap-2">
                     {getPositionOptions().map((pos) => (
                       <button
@@ -493,10 +493,10 @@ const Customize: React.FC = () => {
               )}
 
               {/* Design Grid */}
-              <div className="bg-gray-800 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4">
+              <div className="bg-gray-800 rounded-xl p-4 md:p-6">
+                <h3 className="text-base md:text-lg font-semibold mb-4">
                   Select a Design for {currentSide.charAt(0).toUpperCase() + currentSide.slice(1)} Side
-                  {!loading && <span className="text-gray-400 text-sm ml-2">({filteredDesigns.length} available)</span>}
+                  {!loading && <span className="text-gray-400 text-xs md:text-sm ml-2">({filteredDesigns.length} available)</span>}
                 </h3>
                 
                 {loading ? (
@@ -518,7 +518,7 @@ const Customize: React.FC = () => {
                     No designs found matching your criteria
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-3 gap-3 md:gap-4">
                     {filteredDesigns.map((design) => {
                       const isSelectedOnFront = frontDesign.design?._id === design._id;
                       const isSelectedOnBack = backDesign.design?._id === design._id;
@@ -565,7 +565,7 @@ const Customize: React.FC = () => {
             </div>
 
             {/* Right Column - T-Shirt Preview & Options */}
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-6">
               {/* T-Shirt Preview */}
               <RealTShirtPreview
                 selectedDesign={getCurrentDesign().design ? {
@@ -589,10 +589,10 @@ const Customize: React.FC = () => {
               />
 
               {/* T-Shirt Options */}
-              <div className="bg-gray-800 rounded-xl p-6 space-y-6">
+              <div className="bg-gray-800 rounded-xl p-4 md:p-6 space-y-4 md:space-y-6">
                 {/* Type Selection */}
                 <div>
-                  <h4 className="font-medium mb-3">T-Shirt Type</h4>
+                  <h4 className="font-medium mb-3 text-sm md:text-base">T-Shirt Type</h4>
                   <div className="space-y-2">
                     {types.map((type) => (
                       <button
@@ -620,13 +620,13 @@ const Customize: React.FC = () => {
 
                 {/* Color Selection */}
                 <div>
-                  <h4 className="font-medium mb-3">Color</h4>
-                  <div className="grid grid-cols-4 gap-2">
+                  <h4 className="font-medium mb-3 text-sm md:text-base">Color</h4>
+                  <div className="grid grid-cols-4 sm:grid-cols-8 xl:grid-cols-4 gap-2">
                     {tshirtColors.map((color) => (
                       <button
                         key={color.value}
                         onClick={() => setSelectedColor(color.value)}
-                        className={`w-12 h-12 rounded-lg border-2 transition-all ${
+                        className={`w-10 h-10 md:w-12 md:h-12 rounded-lg border-2 transition-all ${
                           selectedColor === color.value 
                             ? 'border-yellow-400 scale-110' 
                             : 'border-gray-600'
@@ -640,8 +640,8 @@ const Customize: React.FC = () => {
 
                 {/* Size Selection */}
                 <div>
-                  <h4 className="font-medium mb-3">Size</h4>
-                  <div className="grid grid-cols-3 gap-2">
+                  <h4 className="font-medium mb-3 text-sm md:text-base">Size</h4>
+                  <div className="grid grid-cols-5 sm:grid-cols-3 gap-2">
                     {sizes.map((size) => (
                       <button
                         key={size}
@@ -660,7 +660,7 @@ const Customize: React.FC = () => {
 
                 {/* Quantity */}
                 <div>
-                  <h4 className="font-medium mb-3">Quantity</h4>
+                  <h4 className="font-medium mb-3 text-sm md:text-base">Quantity</h4>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
@@ -681,7 +681,7 @@ const Customize: React.FC = () => {
                 </div>
 
                 {/* Price Summary */}
-                <div className="bg-gray-900 p-4 rounded-lg">
+                <div className="bg-gray-900 p-3 md:p-4 rounded-lg text-sm md:text-base">
                   <div className="flex justify-between items-center mb-2">
                     <span className="text-gray-300">Base Price:</span>
                     <span>₹{basePrice}</span>
@@ -733,8 +733,8 @@ const Customize: React.FC = () => {
 
         {/* Success Modal */}
         {showSuccessModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-gray-800 rounded-2xl p-6 max-w-md w-full mx-4 border border-gray-700">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-2xl p-4 md:p-6 max-w-md w-full border border-gray-700">
               <div className="text-center">
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Check className="w-8 h-8 text-white" />

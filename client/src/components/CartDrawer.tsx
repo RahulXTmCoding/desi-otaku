@@ -175,14 +175,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
       {/* Cart Drawer */}
       <div
-        className={`fixed right-0 top-0 h-screen w-full md:w-96 shadow-2xl z-50 transform transition-transform duration-300 overflow-hidden ${
+        className={`fixed right-0 top-0 h-screen w-full sm:w-96 shadow-2xl z-50 transform transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
         style={{ backgroundColor: '#1F2937' }}
       >
-        <div className="flex flex-col h-full" style={{ backgroundColor: '#1F2937' }}>
+        <div className="flex flex-col h-screen relative">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-600 bg-gray-800 flex-shrink-0">
+          <div className="flex items-center justify-between p-6 border-b border-gray-600 bg-gray-800">
             <div className="flex items-center gap-3">
               <ShoppingCart className="w-6 h-6 text-yellow-400" />
               <h2 className="text-xl font-bold text-white">Your Cart</h2>
@@ -214,140 +214,142 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 text-sm">
-              {error}
-            </div>
-          )}
-
-          {/* Cart Items */}
-          <div className="flex-1 overflow-y-auto p-6">
-            {loading && cart.length === 0 ? (
-              <div className="flex justify-center items-center h-full">
-                <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
+          {/* Cart Items Area (scrollable) */}
+          <div className="flex-1 overflow-hidden">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 text-sm">
+                {error}
               </div>
-            ) : cart.length === 0 ? (
-              <div className="text-center py-12">
-                <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-500" />
-                <p className="text-gray-300 mb-6">Your cart is empty</p>
-                <button
-                  onClick={handleContinueShopping}
-                  className="bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
-                >
-                  Start Shopping
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {cart.map((item) => (
-                  <div
-                    key={item._id}
-                    className={`rounded-lg p-4 transition-all ${
-                      isRemoving === item._id ? 'opacity-50 scale-95' : ''
-                    }`}
-                    style={{ backgroundColor: '#374151' }}
-                    onMouseEnter={(e) => !isRemoving && (e.currentTarget.style.backgroundColor = '#4B5563')}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#374151'}
+            )}
+            
+            <div className="h-full overflow-y-auto p-6" style={{ paddingBottom: cart.length > 0 ? '300px' : '24px' }}>
+              {loading && cart.length === 0 ? (
+                <div className="flex justify-center items-center h-full">
+                  <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
+                </div>
+              ) : cart.length === 0 ? (
+                <div className="text-center py-12">
+                  <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-500" />
+                  <p className="text-gray-300 mb-6">Your cart is empty</p>
+                  <button
+                    onClick={handleContinueShopping}
+                    className="bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
                   >
-                    <div className="flex gap-4">
-                      {/* Product Image */}
-                      <div className="w-20 h-20 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
-                        {item.isCustom && item.customization ? (
-                          <CartTShirtPreview
-                            design={null}
-                            color={item.color}
-                            colorValue="#000000"
-                            image={null}
-                            customization={{
-                              frontDesign: item.customization.frontDesign ? {
-                                designImage: item.customization.frontDesign.designImage,
-                                position: item.customization.frontDesign.position
-                              } : undefined,
-                              backDesign: item.customization.backDesign ? {
-                                designImage: item.customization.backDesign.designImage,
-                                position: item.customization.backDesign.position
-                              } : undefined
-                            }}
-                          />
-                        ) : (
-                          <img
-                            src={getProductImage(item)}
-                            alt={item.name}
-                            className="w-full h-full object-contain"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
-                            }}
-                          />
-                        )}
-                      </div>
-
-                      {/* Product Details */}
-                      <div className="flex-1">
-                        <h3 className="font-semibold mb-1 text-white">{item.name}</h3>
-                        <div className="text-sm text-gray-300 space-y-1">
-                          <p>Size: {item.size}</p>
-                          <p>Color: {item.color}</p>
-                          {item.isCustom && (
-                            <p className="text-yellow-400 text-xs">Custom Design</p>
+                    Start Shopping
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {cart.map((item) => (
+                    <div
+                      key={item._id}
+                      className={`rounded-lg p-4 transition-all ${
+                        isRemoving === item._id ? 'opacity-50 scale-95' : ''
+                      }`}
+                      style={{ backgroundColor: '#374151' }}
+                      onMouseEnter={(e) => !isRemoving && (e.currentTarget.style.backgroundColor = '#4B5563')}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#374151'}
+                    >
+                      <div className="flex gap-4">
+                        {/* Product Image */}
+                        <div className="w-20 h-20 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                          {item.isCustom && item.customization ? (
+                            <CartTShirtPreview
+                              design={null}
+                              color={item.color}
+                              colorValue="#000000"
+                              image={null}
+                              customization={{
+                                frontDesign: item.customization.frontDesign ? {
+                                  designImage: item.customization.frontDesign.designImage,
+                                  position: item.customization.frontDesign.position
+                                } : undefined,
+                                backDesign: item.customization.backDesign ? {
+                                  designImage: item.customization.backDesign.designImage,
+                                  position: item.customization.backDesign.position
+                                } : undefined
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src={getProductImage(item)}
+                              alt={item.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
+                              }}
+                            />
                           )}
+                        </div>
+
+                        {/* Product Details */}
+                        <div className="flex-1">
+                          <h3 className="font-semibold mb-1 text-white">{item.name}</h3>
+                          <div className="text-sm text-gray-300 space-y-1">
+                            <p>Size: {item.size}</p>
+                            <p>Color: {item.color}</p>
+                            {item.isCustom && (
+                              <p className="text-yellow-400 text-xs">Custom Design</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Price */}
+                        <div className="text-right">
+                          <p className="font-bold text-yellow-400">₹{item.price}</p>
                         </div>
                       </div>
 
-                      {/* Price */}
-                      <div className="text-right">
-                        <p className="font-bold text-yellow-400">₹{item.price}</p>
-                      </div>
-                    </div>
-
-                    {/* Quantity Controls */}
-                    <div className="mt-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
+                      {/* Quantity Controls */}
+                      <div className="mt-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleQuantityUpdate(item._id!, item.quantity - 1)}
+                            disabled={isUpdating === item._id || item.quantity <= 1}
+                            className="p-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isUpdating === item._id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Minus className="w-4 h-4" />
+                            )}
+                          </button>
+                          <span className="w-8 text-center text-white">{item.quantity}</span>
+                          <button
+                            onClick={() => handleQuantityUpdate(item._id!, item.quantity + 1)}
+                            disabled={isUpdating === item._id}
+                            className="p-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors disabled:opacity-50"
+                          >
+                            {isUpdating === item._id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Plus className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
                         <button
-                          onClick={() => handleQuantityUpdate(item._id!, item.quantity - 1)}
-                          disabled={isUpdating === item._id || item.quantity <= 1}
-                          className="p-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handleRemoveItem(item._id!)}
+                          disabled={isRemoving === item._id}
+                          className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                         >
-                          {isUpdating === item._id ? (
+                          {isRemoving === item._id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
                           ) : (
-                            <Minus className="w-4 h-4" />
-                          )}
-                        </button>
-                        <span className="w-8 text-center text-white">{item.quantity}</span>
-                        <button
-                          onClick={() => handleQuantityUpdate(item._id!, item.quantity + 1)}
-                          disabled={isUpdating === item._id}
-                          className="p-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors disabled:opacity-50"
-                        >
-                          {isUpdating === item._id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Plus className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           )}
                         </button>
                       </div>
-                      <button
-                        onClick={() => handleRemoveItem(item._id!)}
-                        disabled={isRemoving === item._id}
-                        className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                      >
-                        {isRemoving === item._id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </button>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Footer */}
           {cart.length > 0 && (
-            <div className="border-t border-gray-700 p-6 space-y-4" style={{ backgroundColor: '#111827' }}>
+            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-700 p-6 space-y-4" style={{ backgroundColor: '#111827' }}>
               {/* Price Summary */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">

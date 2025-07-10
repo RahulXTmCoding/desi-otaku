@@ -296,9 +296,9 @@ const Home: React.FC = () => {
           <div className="absolute bottom-20 left-10 w-20 h-20 bg-orange-500 rounded-full opacity-30"></div>
           <div className="absolute top-40 left-20 w-12 h-12 bg-yellow-400 rounded-full opacity-40"></div>
 
-          <div className="relative max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+          <div className="relative w-[96%] md:w-[90%] mx-auto grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
-              <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
                 Design Your Own
                 <span className="block bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
                   Otakool T-Shirt
@@ -341,7 +341,7 @@ const Home: React.FC = () => {
 
         {/* Categories Section
         <section className="px-6 py-16 bg-gray-800/50">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-[96%] md:w-[90%] mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Shop by Category</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {categoryDisplay.map((display, index) => {
@@ -374,7 +374,7 @@ const Home: React.FC = () => {
 
         {/* Trending Section */}
         <section className="px-6 py-16">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-[96%] md:w-[90%] mx-auto">
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-3xl font-bold">Trending T-Shirts</h2>
               <Link 
@@ -395,7 +395,7 @@ const Home: React.FC = () => {
                 <p className="text-red-400">{error}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {tshirts.map((product) => (
                   <ProductGridItem 
                     key={product._id} 

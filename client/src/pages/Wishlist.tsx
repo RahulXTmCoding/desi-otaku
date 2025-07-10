@@ -115,28 +115,28 @@ const Wishlist = () => {
 
   return (
     <Base title="My Wishlist">
-      <div className="container mx-auto px-4 py-8">
+      <div className="w-[96%] md:w-[90%] mx-auto px-4 py-4 md:py-8">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
           <div>
-            <h1 className="text-3xl font-bold mb-2">My Wishlist</h1>
-            <p className="text-gray-400">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">My Wishlist</h1>
+            <p className="text-gray-400 text-sm md:text-base">
               {wishlist?.products?.length || 0} items in your wishlist
             </p>
           </div>
           
           {wishlist?.products?.length > 0 && (
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
               <button
                 onClick={handleAddAllToCart}
-                className="px-6 py-3 bg-yellow-400 text-gray-900 rounded-full hover:bg-yellow-300 transition-colors flex items-center gap-2"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-yellow-400 text-gray-900 rounded-full hover:bg-yellow-300 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
               >
-                <ShoppingCart className="w-5 h-5" />
+                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                 Add All to Cart
               </button>
               <button
                 onClick={handleClearWishlist}
-                className="px-6 py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition-colors text-sm sm:text-base"
               >
                 Clear Wishlist
               </button>
@@ -171,7 +171,7 @@ const Wishlist = () => {
 
         {/* Wishlist Grid */}
         {!loading && wishlist?.products?.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
             {wishlist.products.map((item: any) => {
               const product = item.product;
               if (!product) return null;

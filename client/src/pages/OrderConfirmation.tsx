@@ -78,22 +78,22 @@ const OrderConfirmation: React.FC = () => {
   estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-12">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-900 text-white py-8 md:py-12">
+      <div className="w-[96%] md:w-[90%] max-w-4xl mx-auto px-4">
         {/* Success Animation */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-green-500 rounded-full mb-6 animate-bounce">
-            <CheckCircle className="w-16 h-16 text-white" />
+        <div className="text-center mb-6 md:mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-green-500 rounded-full mb-4 md:mb-6 animate-bounce">
+            <CheckCircle className="w-14 h-14 md:w-16 md:h-16 text-white" />
           </div>
-          <h1 className="text-4xl font-bold mb-3">Order Confirmed!</h1>
-          <p className="text-xl text-gray-300">Thank you for your purchase</p>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2 md:mb-3">Order Confirmed!</h1>
+          <p className="text-lg md:text-xl text-gray-300">Thank you for your purchase</p>
         </div>
 
         {/* Order Details Card */}
-        <div className="bg-gray-800 rounded-2xl p-8 mb-6 border border-gray-700">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div className="bg-gray-800 rounded-2xl p-6 md:p-8 mb-6 border border-gray-700">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 md:mb-6">
             <div>
-              <h2 className="text-2xl font-bold mb-2">Order Details</h2>
+              <h2 className="text-xl md:text-2xl font-bold mb-2">Order Details</h2>
               <div className="flex items-center gap-2">
                 <span className="text-gray-400">Order Number:</span>
                 <span className="font-mono text-yellow-400">{orderNumber}</span>
@@ -176,8 +176,8 @@ const OrderConfirmation: React.FC = () => {
         </div>
 
         {/* What's Next */}
-        <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700">
-          <h2 className="text-xl font-bold mb-6">What happens next?</h2>
+        <div className="bg-gray-800 rounded-2xl p-6 md:p-8 border border-gray-700">
+          <h2 className="text-lg md:text-xl font-bold mb-6">What happens next?</h2>
           <div className="space-y-4">
             <div className="flex gap-4">
               <div className="w-10 h-10 bg-yellow-400/20 rounded-full flex items-center justify-center flex-shrink-0">

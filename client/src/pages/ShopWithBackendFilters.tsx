@@ -338,16 +338,16 @@ const ShopWithBackendFilters: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
       <div className="bg-gray-800 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center">
+        <div className="w-[96%] md:w-[90%] mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold mb-2">Shop All Products</h1>
           <p className="text-gray-300">Discover our collection of anime and brand t-shirts</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex gap-8">
+      <div className="w-[96%] md:w-[90%] mx-auto px-4 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
-          <div className={`${showFilters ? 'w-80' : 'w-0'} transition-all duration-300 overflow-hidden`}>
+          <div className={`lg:w-80 ${showFilters ? 'block' : 'hidden'} lg:block`}>
             <div className="bg-gray-800 rounded-2xl p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold flex items-center gap-2">
@@ -541,14 +541,14 @@ const ShopWithBackendFilters: React.FC = () => {
           {/* Main Content */}
           <div className="flex-1">
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="bg-gray-800 p-2 rounded-lg flex items-center gap-2"
+                  className="bg-gray-800 p-2 rounded-lg flex items-center gap-2 lg:hidden"
                 >
                   <Filter className="w-5 h-5" />
-                  <span className="hidden sm:inline">Filters</span>
+                  <span>Filters</span>
                   {activeFilterCount > 0 && (
                     <span className="bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full">
                       {activeFilterCount}
@@ -651,7 +651,7 @@ const ShopWithBackendFilters: React.FC = () => {
             {/* Products Grid */}
             {!loading && !error && products.length > 0 ? (
               <>
-                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                   {products.map(product => (
                     <ProductGridItem 
                       key={product._id} 

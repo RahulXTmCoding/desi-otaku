@@ -140,7 +140,15 @@ const Header: React.FC = () => {
                 <Heart className="w-5 h-5" />
               </Link>
               <button 
-                onClick={() => setIsCartOpen(true)} 
+                onClick={() => {
+                  // Check if on mobile device
+                  const isMobile = window.innerWidth < 768;
+                  if (isMobile) {
+                    navigate('/cart');
+                  } else {
+                    setIsCartOpen(true);
+                  }
+                }} 
                 className="relative p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all group"
               >
                 <ShoppingCart 

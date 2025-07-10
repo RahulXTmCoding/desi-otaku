@@ -76,20 +76,20 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
       {/* Background decoration */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-400/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-purple-900/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 md:w-96 md:h-96 bg-yellow-400/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 md:w-96 md:h-96 bg-purple-900/20 rounded-full blur-3xl"></div>
       </div>
 
       <div className="relative z-10 w-full max-w-md">
         {/* Logo/Title */}
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-2">
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
             Join Our Community!
           </h1>
-          <p className="text-gray-400">Create your anime t-shirt account</p>
+          <p className="text-gray-400 text-sm md:text-base">Create your anime t-shirt account</p>
         </div>
 
         {/* Success Message */}
@@ -112,7 +112,7 @@ const Signup = () => {
         )}
 
         {/* Sign Up Form */}
-        <div className="bg-gray-800 rounded-2xl p-8 shadow-xl border border-gray-700">
+        <div className="bg-gray-800 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-700">
           <form onSubmit={onSubmit} className="space-y-6">
             {/* Name Field */}
             <div>

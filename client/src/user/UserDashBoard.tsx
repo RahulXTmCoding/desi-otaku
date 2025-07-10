@@ -123,43 +123,43 @@ const UserDashBoard = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">My Dashboard</h1>
+      <div className="w-[96%] md:w-[90%] mx-auto px-4 py-4 md:py-8">
+        <h1 className="text-2xl md:text-3xl font-bold mb-6 md:mb-8">My Dashboard</h1>
         
-        <div className="grid lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 md:gap-8">
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-gray-800 rounded-2xl p-6">
+            <div className="bg-gray-800 rounded-2xl p-4 md:p-6">
               {/* User Info */}
               <div className="text-center mb-6">
-                <div className="w-20 h-20 bg-yellow-400 rounded-full mx-auto mb-4 flex items-center justify-center">
-                  <User className="w-10 h-10 text-gray-900" />
+                <div className="w-16 h-16 md:w-20 md:h-20 bg-yellow-400 rounded-full mx-auto mb-3 md:mb-4 flex items-center justify-center">
+                  <User className="w-8 h-8 md:w-10 md:h-10 text-gray-900" />
                 </div>
-                <h2 className="font-semibold text-lg">{user?.name || 'User'}</h2>
-                <p className="text-gray-400 text-sm">{user?.email}</p>
+                <h2 className="font-semibold text-base md:text-lg">{user?.name || 'User'}</h2>
+                <p className="text-gray-400 text-xs md:text-sm">{user?.email}</p>
               </div>
 
               {/* Navigation */}
-              <nav className="space-y-2">
+              <nav className="space-y-1 md:space-y-2">
                 {sidebarItems.map((item) => (
                   <button
                     key={item.id}
                     onClick={() => setActiveTab(item.id)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                    className={`w-full flex items-center gap-3 px-3 py-2 md:px-4 md:py-3 rounded-lg transition-all text-sm md:text-base ${
                       activeTab === item.id
                         ? 'bg-yellow-400 text-gray-900'
                         : 'hover:bg-gray-700 text-gray-300'
                     }`}
                   >
-                    <item.icon className="w-5 h-5" />
+                    <item.icon className="w-4 h-4 md:w-5 md:h-5" />
                     <span className="font-medium">{item.label}</span>
                   </button>
                 ))}
                 <button
                   onClick={handleSignout}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-400 transition-all"
+                  className="w-full flex items-center gap-3 px-3 py-2 md:px-4 md:py-3 rounded-lg hover:bg-red-500/10 text-red-400 transition-all text-sm md:text-base"
                 >
-                  <LogOut className="w-5 h-5" />
+                  <LogOut className="w-4 h-4 md:w-5 md:h-5" />
                   <span className="font-medium">Sign Out</span>
                 </button>
               </nav>
@@ -172,33 +172,33 @@ const UserDashBoard = () => {
             {activeTab === 'overview' && (
               <div className="space-y-6">
                 {/* Stats Cards */}
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                      <ShoppingBag className="w-8 h-8 text-yellow-400" />
-                      <span className="text-2xl font-bold">{orders.length}</span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-gray-800 rounded-xl p-4 md:p-6 border border-gray-700">
+                    <div className="flex items-center justify-between mb-3 md:mb-4">
+                      <ShoppingBag className="w-6 h-6 md:w-8 md:h-8 text-yellow-400" />
+                      <span className="text-xl md:text-2xl font-bold">{orders.length}</span>
                     </div>
-                    <p className="text-gray-400">Total Orders</p>
+                    <p className="text-gray-400 text-sm md:text-base">Total Orders</p>
                   </div>
-                  <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                      <Heart className="w-8 h-8 text-red-400" />
-                      <span className="text-2xl font-bold">0</span>
+                  <div className="bg-gray-800 rounded-xl p-4 md:p-6 border border-gray-700">
+                    <div className="flex items-center justify-between mb-3 md:mb-4">
+                      <Heart className="w-6 h-6 md:w-8 md:h-8 text-red-400" />
+                      <span className="text-xl md:text-2xl font-bold">0</span>
                     </div>
-                    <p className="text-gray-400">Wishlist Items</p>
+                    <p className="text-gray-400 text-sm md:text-base">Wishlist Items</p>
                   </div>
-                  <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
-                    <div className="flex items-center justify-between mb-4">
-                      <MapPin className="w-8 h-8 text-blue-400" />
-                      <span className="text-2xl font-bold">0</span>
+                  <div className="bg-gray-800 rounded-xl p-4 md:p-6 border border-gray-700">
+                    <div className="flex items-center justify-between mb-3 md:mb-4">
+                      <MapPin className="w-6 h-6 md:w-8 md:h-8 text-blue-400" />
+                      <span className="text-xl md:text-2xl font-bold">0</span>
                     </div>
-                    <p className="text-gray-400">Saved Addresses</p>
+                    <p className="text-gray-400 text-sm md:text-base">Saved Addresses</p>
                   </div>
                 </div>
 
                 {/* Recent Orders */}
-                <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-                  <h3 className="text-xl font-bold mb-4 flex items-center justify-between">
+                <div className="bg-gray-800 rounded-2xl p-4 md:p-6 border border-gray-700">
+                  <h3 className="text-lg md:text-xl font-bold mb-4 flex items-center justify-between">
                     Recent Orders
                     <button
                       onClick={() => setActiveTab('orders')}
@@ -238,8 +238,8 @@ const UserDashBoard = () => {
 
             {/* Orders Tab */}
             {activeTab === 'orders' && (
-              <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-                <h2 className="text-xl font-bold mb-6">Order History</h2>
+              <div className="bg-gray-800 rounded-2xl p-4 md:p-6 border border-gray-700">
+                <h2 className="text-lg md:text-xl font-bold mb-6">Order History</h2>
                 {loading ? (
                   <div className="flex justify-center items-center py-12">
                     <Loader className="w-8 h-8 animate-spin text-yellow-400" />
@@ -271,8 +271,8 @@ const UserDashBoard = () => {
 
             {/* Wishlist Tab */}
             {activeTab === 'wishlist' && (
-              <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-                <h2 className="text-xl font-bold mb-6">My Wishlist</h2>
+              <div className="bg-gray-800 rounded-2xl p-4 md:p-6 border border-gray-700">
+                <h2 className="text-lg md:text-xl font-bold mb-6">My Wishlist</h2>
                 <div className="text-center py-12">
                   <Heart className="w-16 h-16 text-gray-600 mx-auto mb-4" />
                   <p className="text-gray-400 mb-4">Your wishlist is empty</p>
@@ -288,10 +288,10 @@ const UserDashBoard = () => {
 
             {/* Addresses Tab */}
             {activeTab === 'addresses' && (
-              <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold">Saved Addresses</h2>
-                  <button className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-4 py-2 rounded-lg font-medium transition-colors">
+              <div className="bg-gray-800 rounded-2xl p-4 md:p-6 border border-gray-700">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                  <h2 className="text-lg md:text-xl font-bold mb-4 sm:mb-0">Saved Addresses</h2>
+                  <button className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-4 py-2 rounded-lg font-medium transition-colors text-sm md:text-base">
                     Add New Address
                   </button>
                 </div>
@@ -305,8 +305,8 @@ const UserDashBoard = () => {
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="space-y-6">
-                <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-                  <h2 className="text-xl font-bold mb-6">Profile Settings</h2>
+                <div className="bg-gray-800 rounded-2xl p-4 md:p-6 border border-gray-700">
+                  <h2 className="text-lg md:text-xl font-bold mb-6">Profile Settings</h2>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -349,13 +349,13 @@ const UserDashBoard = () => {
                       />
                     </div>
                   </div>
-                  <button className="mt-6 bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105">
+                  <button className="mt-6 bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 text-sm md:text-base">
                     Save Changes
                   </button>
                 </div>
 
-                <div className="bg-gray-800 rounded-2xl p-6 border border-gray-700">
-                  <h2 className="text-xl font-bold mb-6">Change Password</h2>
+                <div className="bg-gray-800 rounded-2xl p-4 md:p-6 border border-gray-700">
+                  <h2 className="text-lg md:text-xl font-bold mb-6">Change Password</h2>
                   <div className="space-y-4 max-w-md">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -385,7 +385,7 @@ const UserDashBoard = () => {
                       />
                     </div>
                   </div>
-                  <button className="mt-6 bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105">
+                  <button className="mt-6 bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-3 rounded-lg font-bold transition-all transform hover:scale-105 text-sm md:text-base">
                     Update Password
                   </button>
                 </div>

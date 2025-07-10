@@ -414,7 +414,7 @@ const ProductDetail: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-4 py-4">
+      <div className="w-[96%] md:w-[90%] mx-auto px-4 py-4">
         <div className="flex items-center gap-2 text-sm text-gray-400">
           <button onClick={() => navigate('/')} className="hover:text-yellow-400">Home</button>
           <span>/</span>
@@ -424,8 +424,8 @@ const ProductDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-2 gap-12">
+      <div className="w-[96%] md:w-[90%] mx-auto px-4 py-8">
+        <div className="grid md:grid-cols-2 gap-12">
           {/* Product Images */}
           <div>
             <div className="relative bg-gray-800 rounded-2xl overflow-hidden mb-4">

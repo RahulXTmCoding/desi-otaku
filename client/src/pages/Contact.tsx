@@ -34,23 +34,23 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-12">
-      <div className="max-w-7xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-900 text-white py-8 md:py-12">
+      <div className="w-[96%] md:w-[90%] mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl lg:text-5xl font-bold mb-4">
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-3 md:mb-4">
             Get in
             <span className="text-yellow-400"> Touch</span>
           </h1>
-          <p className="text-xl text-gray-300">
+          <p className="text-lg md:text-xl text-gray-300">
             Have questions about your order or custom designs? We're here to help!
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12">
           {/* Contact Form */}
-          <div className="bg-gray-800 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <div className="bg-gray-800 rounded-2xl p-6 md:p-8">
+            <h2 className="text-xl md:text-2xl font-bold mb-6 flex items-center gap-2">
               <MessageSquare className="w-6 h-6 text-yellow-400" />
               Send us a Message
             </h2>
@@ -119,10 +119,10 @@ const Contact: React.FC = () => {
           </div>
 
           {/* Contact Information */}
-          <div className="space-y-6">
+          <div className="space-y-6 md:space-y-8">
             {/* Contact Details */}
-            <div className="bg-gray-800 rounded-2xl p-8">
-              <h2 className="text-2xl font-bold mb-6">Contact Information</h2>
+            <div className="bg-gray-800 rounded-2xl p-6 md:p-8">
+              <h2 className="text-xl md:text-2xl font-bold mb-6">Contact Information</h2>
               <div className="space-y-4">
                 <div className="flex items-start gap-4">
                   <div className="bg-gray-700 p-3 rounded-lg">
@@ -175,8 +175,8 @@ const Contact: React.FC = () => {
             </div>
 
             {/* Social Media */}
-            <div className="bg-gray-800 rounded-2xl p-8">
-              <h2 className="text-2xl font-bold mb-6">Follow Us</h2>
+            <div className="bg-gray-800 rounded-2xl p-6 md:p-8">
+              <h2 className="text-xl md:text-2xl font-bold mb-6">Follow Us</h2>
               <div className="flex gap-4">
                 <a
                   href="#"
@@ -203,8 +203,8 @@ const Contact: React.FC = () => {
             </div>
 
             {/* FAQ Section */}
-            <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 rounded-2xl p-8 border border-gray-700">
-              <h3 className="text-xl font-bold mb-4">Frequently Asked Questions</h3>
+            <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 rounded-2xl p-6 md:p-8 border border-gray-700">
+              <h3 className="text-lg md:text-xl font-bold mb-4">Frequently Asked Questions</h3>
               <ul className="space-y-3 text-gray-300">
                 <li className="flex items-start gap-2">
                   <span className="text-yellow-400">•</span>
@@ -231,8 +231,8 @@ const Contact: React.FC = () => {
         </div>
 
         {/* Map Section (Optional) */}
-        <div className="mt-12 bg-gray-800 rounded-2xl p-8">
-          <h2 className="text-2xl font-bold mb-6 text-center">Find Us</h2>
+        <div className="mt-8 md:mt-12 bg-gray-800 rounded-2xl p-6 md:p-8">
+          <h2 className="text-xl md:text-2xl font-bold mb-6 text-center">Find Us</h2>
           <div className="bg-gray-700 rounded-lg h-64 flex items-center justify-center">
             <p className="text-gray-400">Interactive Map Coming Soon</p>
           </div>
