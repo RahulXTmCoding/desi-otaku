@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { signup, mockSignup } from "../auth/helper";
 import { useDevMode } from "../context/DevModeContext";
+import { API } from "../backend";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -229,11 +230,17 @@ const Signup = () => {
 
           {/* Social Sign Up */}
           <div className="grid grid-cols-2 gap-4">
-            <button className="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={() => window.location.href = `${API}/auth/google`}
+              className="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
               <div className="text-xl">🔷</div>
               Google
             </button>
-            <button className="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={() => window.location.href = `${API}/auth/facebook`}
+              className="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
               <div className="text-xl">📘</div>
               Facebook
             </button>

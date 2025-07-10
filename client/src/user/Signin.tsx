@@ -4,6 +4,7 @@ import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { signin, authenticate, isAutheticated, mockSignin } from "../auth/helper";
 import { useDevMode } from "../context/DevModeContext";
 import { useCart } from "../context/CartContext";
+import { API } from "../backend";
 
 const Signin = () => {
   const { isTestMode } = useDevMode();
@@ -191,11 +192,17 @@ const Signin = () => {
 
           {/* Social Login */}
           <div className="grid grid-cols-2 gap-4">
-            <button className="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={() => window.location.href = `${API}/auth/google`}
+              className="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
               <div className="text-xl">🔷</div>
               Google
             </button>
-            <button className="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={() => window.location.href = `${API}/auth/facebook`}
+              className="bg-gray-700 hover:bg-gray-600 py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+            >
               <div className="text-xl">📘</div>
               Facebook
             </button>

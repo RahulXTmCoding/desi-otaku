@@ -87,6 +87,24 @@ export const isAutheticated = (): AuthResponse | false => {
   }
 };
 
+export const socialLogin = (provider: 'google' | 'facebook', response: any): Promise<AuthResponse> => {
+  return fetch(`${API}/auth/${provider}/callback`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(response)
+  })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => {
+      console.log(err);
+      return { error: "Failed to connect to server" };
+    });
+};
+
 // Mock authentication for test mode
 export const mockSignin = (email: string, password: string): AuthResponse => {
   // Mock admin user

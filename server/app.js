@@ -4,6 +4,8 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const passport = require("passport");
+require("./config/passport");
 
 //My Routes
 const authRoutes = require("./routes/auth");
@@ -46,6 +48,7 @@ app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 app.use(cors());
+app.use(passport.initialize());
 
 //My Routers
 app.use("/api", authRoutes);
