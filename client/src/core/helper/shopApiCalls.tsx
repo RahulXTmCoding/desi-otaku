@@ -7,6 +7,8 @@ export const getFilteredProducts = async (filters: {
   productType?: string;
   minPrice?: number;
   maxPrice?: number;
+  sizes?: string[];
+  availability?: string;
   tags?: string[];
   sortBy?: string;
   sortOrder?: string;
@@ -22,6 +24,8 @@ export const getFilteredProducts = async (filters: {
     if (filters.productType && filters.productType !== 'all') queryParams.append('productType', filters.productType);
     if (filters.minPrice) queryParams.append('minPrice', filters.minPrice.toString());
     if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice.toString());
+    if (filters.sizes && filters.sizes.length > 0) queryParams.append('sizes', filters.sizes.join(','));
+    if (filters.availability) queryParams.append('availability', filters.availability);
     if (filters.tags && filters.tags.length > 0) queryParams.append('tags', filters.tags.join(','));
     if (filters.sortBy) queryParams.append('sortBy', filters.sortBy);
     if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);

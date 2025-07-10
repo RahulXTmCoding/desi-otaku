@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { 
   Search, 
   Filter,
@@ -35,6 +35,21 @@ interface Product {
   tags?: string[];
   createdAt?: string;
   updatedAt?: string;
+  totalStock?: number;
+  sizeStock?: {
+    S: number;
+    M: number;
+    L: number;
+    XL: number;
+    XXL: number;
+  };
+  sizeAvailability?: {
+    S: boolean;
+    M: boolean;
+    L: boolean;
+    XL: boolean;
+    XXL: boolean;
+  };
 }
 
 interface Category {
@@ -54,11 +69,17 @@ const ShopWithBackendFilters: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [selectedProductType, setSelectedProductType] = useState(searchParams.get('type') || 'all');
   const [selectedPriceRange, setSelectedPriceRange] = useState(searchParams.get('price') || 'all');
+  const [selectedSizes, setSelectedSizes] = useState<string[]>((searchParams.get('sizes')?.split(',').filter(Boolean)) || []);
+  const [selectedAvailability, setSelectedAvailability] = useState(searchParams.get('availability') || 'all');
   const [selectedTags, setSelectedTags] = useState<string[]>((searchParams.get('tags')?.split(',').filter(Boolean)) || []);
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>((searchParams.get('view') as 'grid' | 'list') || 'grid');
   const [showFilters, setShowFilters] = useState(searchParams.get('filters') !== 'hidden');
+  
+  // Price slider states
+  const [minPrice, setMinPrice] = useState(0);
+  const [maxPrice, setMaxPrice] = useState(5000);
+  const [priceRange, setPriceRange] = useState([0, 5000]);
   
   // Data states
   const [products, setProducts] = useState<Product[]>([]);
@@ -72,6 +93,9 @@ const ShopWithBackendFilters: React.FC = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   const productsPerPage = 12;
 
+  // Available sizes
+  const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
+
   // Update URL params whenever filters change
   useEffect(() => {
     const params = new URLSearchParams();
@@ -79,15 +103,19 @@ const ShopWithBackendFilters: React.FC = () => {
     if (searchQuery) params.set('search', searchQuery);
     if (selectedCategory !== 'all') params.set('category', selectedCategory);
     if (selectedProductType !== 'all') params.set('type', selectedProductType);
-    if (selectedPriceRange !== 'all') params.set('price', selectedPriceRange);
+    if (selectedSizes.length > 0) params.set('sizes', selectedSizes.join(','));
+    if (selectedAvailability !== 'all') params.set('availability', selectedAvailability);
+    if (priceRange[0] !== 0 || priceRange[1] !== 5000) {
+      params.set('minPrice', priceRange[0].toString());
+      params.set('maxPrice', priceRange[1].toString());
+    }
     if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
     if (sortBy !== 'newest') params.set('sort', sortBy);
     if (currentPage > 1) params.set('page', currentPage.toString());
-    if (viewMode !== 'grid') params.set('view', viewMode);
     if (!showFilters) params.set('filters', 'hidden');
     
     setSearchParams(params);
-  }, [searchQuery, selectedCategory, selectedProductType, selectedPriceRange, selectedTags, sortBy, currentPage, viewMode, showFilters, setSearchParams]);
+  }, [searchQuery, selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, currentPage, showFilters, setSearchParams]);
 
   // Load categories and product types on mount
   useEffect(() => {
@@ -99,10 +127,10 @@ const ShopWithBackendFilters: React.FC = () => {
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
       loadFilteredProducts();
-    }, 500); // Debounce for search input
+    }, 500); // Debounce for search input and price slider
 
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, selectedCategory, selectedProductType, selectedPriceRange, selectedTags, sortBy, currentPage, isTestMode]);
+  }, [searchQuery, selectedCategory, selectedProductType, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage, isTestMode]);
 
   const loadCategories = () => {
     if (isTestMode) {
@@ -147,14 +175,6 @@ const ShopWithBackendFilters: React.FC = () => {
     }
 
     try {
-      // Parse price range
-      let minPrice, maxPrice;
-      if (selectedPriceRange !== 'all') {
-        const [min, max] = selectedPriceRange.split('-');
-        minPrice = parseInt(min);
-        maxPrice = max ? parseInt(max) : undefined;
-      }
-
       // Parse sort options
       let sortField = 'createdAt';
       let sortOrder = 'desc';
@@ -181,8 +201,10 @@ const ShopWithBackendFilters: React.FC = () => {
         search: searchQuery,
         category: selectedCategory,
         productType: selectedProductType,
-        minPrice,
-        maxPrice,
+        minPrice: priceRange[0],
+        maxPrice: priceRange[1],
+        sizes: selectedSizes.length > 0 ? selectedSizes : undefined,
+        availability: selectedAvailability !== 'all' ? selectedAvailability : undefined,
         tags: selectedTags,
         sortBy: sortField,
         sortOrder,
@@ -216,11 +238,22 @@ const ShopWithBackendFilters: React.FC = () => {
     setCurrentPage(1); // Reset to first page
   };
 
+  const toggleSize = (size: string) => {
+    setSelectedSizes(prev =>
+      prev.includes(size)
+        ? prev.filter(s => s !== size)
+        : [...prev, size]
+    );
+    setCurrentPage(1); // Reset to first page
+  };
+
   const clearFilters = () => {
     setSearchQuery('');
     setSelectedCategory('all');
     setSelectedProductType('all');
-    setSelectedPriceRange('all');
+    setSelectedSizes([]);
+    setSelectedAvailability('all');
+    setPriceRange([0, 5000]);
     setSelectedTags([]);
     setSortBy('newest');
     setCurrentPage(1);
@@ -241,8 +274,8 @@ const ShopWithBackendFilters: React.FC = () => {
       case 'productType':
         setSelectedProductType(value);
         break;
-      case 'priceRange':
-        setSelectedPriceRange(value);
+      case 'availability':
+        setSelectedAvailability(value);
         break;
       case 'sort':
         setSortBy(value);
@@ -267,20 +300,24 @@ const ShopWithBackendFilters: React.FC = () => {
     }))
   ];
 
-  const priceRanges = [
-    { id: 'all', name: 'All Prices' },
-    { id: '0-500', name: 'Under ₹500' },
-    { id: '500-700', name: '₹500 - ₹700' },
-    { id: '700-1000', name: '₹700 - ₹1000' },
-    { id: '1000-', name: 'Above ₹1000' },
-  ];
-
   const getProductImage = (product: Product) => {
     if (product._id) {
       return `${API}/product/photo/${product._id}`;
     }
     return '/api/placeholder/300/350';
   };
+
+  // Count products with active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedCategory !== 'all') count++;
+    if (selectedProductType !== 'all') count++;
+    if (selectedSizes.length > 0) count++;
+    if (selectedAvailability !== 'all') count++;
+    if (priceRange[0] !== 0 || priceRange[1] !== 5000) count++;
+    if (selectedTags.length > 0) count++;
+    return count;
+  }, [selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -301,6 +338,11 @@ const ShopWithBackendFilters: React.FC = () => {
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <Filter className="w-5 h-5" />
                   Filters
+                  {activeFilterCount > 0 && (
+                    <span className="bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full">
+                      {activeFilterCount}
+                    </span>
+                  )}
                 </h2>
                 <button
                   onClick={clearFilters}
@@ -321,6 +363,120 @@ const ShopWithBackendFilters: React.FC = () => {
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                     className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
                   />
+                </div>
+              </div>
+
+              {/* Price Range Slider */}
+              <div className="mb-8 bg-gray-700/50 p-4 rounded-xl">
+                <h3 className="font-semibold mb-4 text-yellow-400">Price Range</h3>
+                <div className="px-2">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-600">
+                      <span className="text-xs text-gray-400">MIN</span>
+                      <p className="font-semibold text-white">₹{priceRange[0]}</p>
+                    </div>
+                    <div className="flex-1 mx-4 h-px bg-gray-600"></div>
+                    <div className="bg-gray-800 px-3 py-1.5 rounded-lg border border-gray-600">
+                      <span className="text-xs text-gray-400">MAX</span>
+                      <p className="font-semibold text-white">₹{priceRange[1]}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="relative py-1">
+                    {/* Track background */}
+                    <div className="absolute h-1.5 w-full bg-gray-600 rounded-full shadow-inner"></div>
+                    
+                    {/* Active track */}
+                    <div 
+                      className="absolute h-1.5 bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full shadow-lg"
+                      style={{
+                        left: `${(priceRange[0] / 5000) * 100}%`,
+                        width: `${((priceRange[1] - priceRange[0]) / 5000) * 100}%`
+                      }}
+                    />
+                    
+                    {/* Min price slider */}
+                    <input
+                      type="range"
+                      min="0"
+                      max="5000"
+                      step="50"
+                      value={priceRange[0]}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        const newMin = Math.min(value, priceRange[1] - 100);
+                        setPriceRange([newMin, priceRange[1]]);
+                      }}
+                      className="absolute w-full -top-1 h-5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_rgba(251,191,36,0.3)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:hover:shadow-[0_0_0_6px_rgba(251,191,36,0.4)] [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-[0_0_0_4px_rgba(251,191,36,0.3)] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:hover:shadow-[0_0_0_6px_rgba(251,191,36,0.4)] [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:duration-150"
+                    />
+                    
+                    {/* Max price slider */}
+                    <input
+                      type="range"
+                      min="0"
+                      max="5000"
+                      step="50"
+                      value={priceRange[1]}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        const newMax = Math.max(value, priceRange[0] + 100);
+                        setPriceRange([priceRange[0], newMax]);
+                      }}
+                      className="absolute w-full -top-1 h-5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_rgba(251,191,36,0.3)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:hover:shadow-[0_0_0_6px_rgba(251,191,36,0.4)] [&::-webkit-slider-thumb]:transition-all [&::-webkit-slider-thumb]:duration-150 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:shadow-[0_0_0_4px_rgba(251,191,36,0.3)] [&::-moz-range-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:hover:shadow-[0_0_0_6px_rgba(251,191,36,0.4)] [&::-moz-range-thumb]:transition-all [&::-moz-range-thumb]:duration-150"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Size Filter */}
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-yellow-400">Size</h3>
+                <div className="flex flex-wrap gap-2">
+                  {availableSizes.map(size => (
+                    <button
+                      key={size}
+                      onClick={() => toggleSize(size)}
+                      className={`px-4 py-2 rounded-xl font-medium transition-all duration-200 ${
+                        selectedSizes.includes(size)
+                          ? 'bg-yellow-400 text-gray-900 shadow-lg shadow-yellow-400/20 scale-105'
+                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Availability Filter */}
+              <div className="mb-8">
+                <h3 className="font-semibold mb-4 text-yellow-400">Availability</h3>
+                <div className="space-y-3">
+                  {[
+                    { value: 'all', label: 'All Products', icon: '🛍️' },
+                    { value: 'instock', label: 'In Stock', icon: '✅' },
+                    { value: 'outofstock', label: 'Out of Stock', icon: '❌' }
+                  ].map(option => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleFilterChange('availability', option.value)}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                        selectedAvailability === option.value
+                          ? 'bg-yellow-400 text-gray-900 shadow-lg shadow-yellow-400/20'
+                          : 'bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white'
+                      }`}
+                    >
+                      <span className="text-lg">{option.icon}</span>
+                      <span className="font-medium">{option.label}</span>
+                      {selectedAvailability === option.value && (
+                        <span className="ml-auto">
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
               </div>
 
@@ -364,26 +520,6 @@ const ShopWithBackendFilters: React.FC = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Price Range */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3">Price Range</h3>
-                <div className="space-y-2">
-                  {priceRanges.map(range => (
-                    <button
-                      key={range.id}
-                      onClick={() => handleFilterChange('priceRange', range.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        selectedPriceRange === range.id
-                          ? 'bg-yellow-400 text-gray-900'
-                          : 'hover:bg-gray-700'
-                      }`}
-                    >
-                      {range.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
 
@@ -394,9 +530,15 @@ const ShopWithBackendFilters: React.FC = () => {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="lg:hidden bg-gray-800 p-2 rounded-lg"
+                  className="bg-gray-800 p-2 rounded-lg flex items-center gap-2"
                 >
                   <Filter className="w-5 h-5" />
+                  <span className="hidden sm:inline">Filters</span>
+                  {activeFilterCount > 0 && (
+                    <span className="bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded-full">
+                      {activeFilterCount}
+                    </span>
+                  )}
                 </button>
                 <p className="text-gray-300">
                   {loading ? 'Loading...' : `Showing ${products.length} of ${totalProducts} products`}
@@ -419,27 +561,11 @@ const ShopWithBackendFilters: React.FC = () => {
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none" />
                 </div>
-
-                {/* View Mode */}
-                <div className="flex bg-gray-800 rounded-lg p-1">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`p-2 rounded ${viewMode === 'grid' ? 'bg-gray-700' : ''}`}
-                  >
-                    <Grid className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`p-2 rounded ${viewMode === 'list' ? 'bg-gray-700' : ''}`}
-                  >
-                    <List className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
             </div>
 
             {/* Active Filters */}
-            {(selectedTags.length > 0 || selectedCategory !== 'all' || selectedProductType !== 'all' || selectedPriceRange !== 'all') && (
+            {activeFilterCount > 0 && (
               <div className="flex flex-wrap gap-2 mb-6">
                 {selectedCategory !== 'all' && (
                   <span className="bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
@@ -457,10 +583,26 @@ const ShopWithBackendFilters: React.FC = () => {
                     </button>
                   </span>
                 )}
-                {selectedPriceRange !== 'all' && (
+                {(priceRange[0] !== 0 || priceRange[1] !== 5000) && (
                   <span className="bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
-                    Price: {priceRanges.find(r => r.id === selectedPriceRange)?.name}
-                    <button onClick={() => handleFilterChange('priceRange', 'all')}>
+                    Price: ₹{priceRange[0]} - ₹{priceRange[1]}
+                    <button onClick={() => setPriceRange([0, 5000])}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedSizes.length > 0 && (
+                  <span className="bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    Sizes: {selectedSizes.join(', ')}
+                    <button onClick={() => setSelectedSizes([])}>
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                )}
+                {selectedAvailability !== 'all' && (
+                  <span className="bg-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+                    {selectedAvailability === 'instock' ? 'In Stock' : 'Out of Stock'}
+                    <button onClick={() => handleFilterChange('availability', 'all')}>
                       <X className="w-3 h-3" />
                     </button>
                   </span>
@@ -491,14 +633,10 @@ const ShopWithBackendFilters: React.FC = () => {
               </div>
             )}
 
-            {/* Products Grid/List */}
+            {/* Products Grid */}
             {!loading && !error && products.length > 0 ? (
               <>
-                <div className={`grid gap-6 ${
-                  viewMode === 'grid' 
-                    ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-                    : 'grid-cols-1'
-                }`}>
+                <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
                   {products.map(product => (
                     <ProductGridItem key={product._id} product={product} />
                   ))}

@@ -546,6 +546,8 @@ exports.getFilteredProducts = async (req, res) => {
       minPrice,
       maxPrice,
       tags,
+      sizes,
+      availability,
       sortBy,
       sortOrder,
       page = 1,
@@ -601,6 +603,21 @@ exports.getFilteredProducts = async (req, res) => {
       filter.tags = { $in: tagArray };
     }
 
+    // Size filter - products that have the selected sizes available
+    if (sizes) {
+      const sizeArray = Array.isArray(sizes) ? sizes : sizes.split(',');
+      filter.availableSizes = { $in: sizeArray };
+    }
+
+    // Availability filter
+    if (availability) {
+      if (availability === 'instock') {
+        filter.totalStock = { $gt: 0 };
+      } else if (availability === 'outofstock') {
+        filter.totalStock = { $eq: 0 };
+      }
+    }
+
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -636,7 +653,7 @@ exports.getFilteredProducts = async (req, res) => {
       Product.countDocuments(filter)
     ]);
 
-    // Clean up image data from response
+    // Clean up image data from response and add stock info
     const cleanedProducts = products.map(product => {
       if (product.images && product.images.length > 0) {
         product.images = product.images.map(img => ({
@@ -647,6 +664,15 @@ exports.getFilteredProducts = async (req, res) => {
           caption: img.caption
         }));
       }
+      
+      // Add stock availability info for each size
+      product.sizeAvailability = {};
+      if (product.sizeStock) {
+        ['S', 'M', 'L', 'XL', 'XXL'].forEach(size => {
+          product.sizeAvailability[size] = (product.sizeStock[size] || 0) > 0;
+        });
+      }
+      
       return product;
     });
 
