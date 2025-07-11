@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, ShoppingCart, Heart, Plus, Minus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ShoppingCart, Heart, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { API } from '../backend';
 import { useCart } from '../context/CartContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
@@ -56,6 +56,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
   const [imageError, setImageError] = useState(false);
   const [wishlistState, setWishlistState] = useState(isInWishlist);
   const [isLoading, setIsLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { addToCart } = useCart();
 
   const authData = isAutheticated();
@@ -64,34 +65,63 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
 
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
+  // Reset current image index when product changes
+  useEffect(() => {
+    setCurrentImageIndex(0);
+    setImageError(false);
+  }, [product]);
+
   if (!isOpen || !product) return null;
+
+  // Get all images for the product
+  const getAllImages = () => {
+    const images = [];
+    
+    // Check if product has multiple images
+    if ((product as any).images && (product as any).images.length > 0) {
+      (product as any).images.forEach((img: any, index: number) => {
+        if (img.url) {
+          images.push(img.url);
+        } else {
+          images.push(`${API}/product/image/${product._id}/${index}`);
+        }
+      });
+    } else if (product.photoUrl) {
+      // Single image from photoUrl
+      if (product.photoUrl.startsWith('http')) {
+        images.push(product.photoUrl);
+      } else if (product.photoUrl.startsWith('/api/')) {
+        images.push(`${API}${product.photoUrl.substring(4)}`);
+      } else {
+        images.push(product.photoUrl);
+      }
+    } else {
+      // Default image URL
+      images.push(`${API}/product/image/${product._id}`);
+    }
+    
+    return images;
+  };
+
+  const productImages = getAllImages();
+  const hasMultipleImages = productImages.length > 1;
 
   const getImageUrl = () => {
     if (imageError) {
       return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"%3E%3Crect width="400" height="400" fill="%23374151"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="%236B7280"%3ENo Image%3C/text%3E%3C/svg%3E';
     }
     
-    if (product.photoUrl) {
-      if (product.photoUrl.startsWith('http')) {
-        return product.photoUrl;
-      }
-      if (product.photoUrl.startsWith('/api/')) {
-        return `${API}${product.photoUrl.substring(4)}`;
-      }
-      return product.photoUrl;
-    }
-    
-    if ((product as any).images && (product as any).images.length > 0) {
-      const primaryImage = (product as any).images.find((img: any) => img.isPrimary) || (product as any).images[0];
-      if (primaryImage.url) {
-        return primaryImage.url;
-      } else {
-        const imageIndex = (product as any).images.indexOf(primaryImage);
-        return `${API}/product/image/${product._id}/${imageIndex}`;
-      }
-    }
-    
-    return `${API}/product/image/${product._id}`;
+    return productImages[currentImageIndex] || productImages[0];
+  };
+
+  const handlePreviousImage = () => {
+    setImageError(false);
+    setCurrentImageIndex((prev) => (prev - 1 + productImages.length) % productImages.length);
+  };
+
+  const handleNextImage = () => {
+    setImageError(false);
+    setCurrentImageIndex((prev) => (prev + 1) % productImages.length);
   };
 
   const handleImageError = () => {
@@ -170,7 +200,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
           <div className="flex flex-col md:flex-row">
             {/* Image Section */}
             <div className="md:w-1/2 bg-gray-900 p-8">
-              <div className="aspect-square relative">
+              <div className="aspect-square relative group">
                 <img 
                   src={getImageUrl()}
                   alt={product.name}
@@ -181,6 +211,42 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   <div className="absolute top-4 right-4 bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
                     Out of Stock
                   </div>
+                )}
+                
+                {/* Navigation Arrows */}
+                {hasMultipleImages && (
+                  <>
+                    <button
+                      onClick={handlePreviousImage}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <ChevronLeft className="w-6 h-6" />
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 rounded-full text-white transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <ChevronRight className="w-6 h-6" />
+                    </button>
+                    
+                    {/* Image Indicators */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                      {productImages.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={() => {
+                            setImageError(false);
+                            setCurrentImageIndex(index);
+                          }}
+                          className={`w-2 h-2 rounded-full transition-all ${
+                            index === currentImageIndex 
+                              ? 'bg-white w-8' 
+                              : 'bg-white/50 hover:bg-white/70'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
             </div>

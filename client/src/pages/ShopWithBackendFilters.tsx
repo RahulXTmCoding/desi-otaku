@@ -181,7 +181,7 @@ const ShopWithBackendFilters: React.FC = () => {
 
     try {
       // Parse sort options
-      let sortField = 'createdAt';
+      let sortField = 'newest';
       let sortOrder = 'desc';
       
       switch (sortBy) {

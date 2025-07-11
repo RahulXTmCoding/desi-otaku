@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Heart, Star, ChevronRight, Shuffle, ShoppingCart, Sparkles, Check } from 'lucide-react';
 import Base from './Base';
 import { useCart } from '../context/CartContext';
-import { getProducts, getCategories } from './helper/coreapicalls';
+import { getFilteredProducts } from './helper/shopApiCalls';
+import { getCategories } from './helper/coreapicalls';
 import { getDesigns } from '../admin/helper/designapicall';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
@@ -62,20 +63,19 @@ const Home: React.FC = () => {
     setLoading(true);
     
     if (isTestMode) {
-      // Use mock data - show only first 6 products for home page
+      // Use mock data - show only first 8 products for home page
       setTimeout(() => {
-        setTshirts(mockProducts.slice(0, 6));
+        setTshirts(mockProducts.slice(0, 8));
         setLoading(false);
       }, 500);
     } else {
       // Use real backend
-      getProducts()
+      getFilteredProducts({ sortBy: 'newest', sortOrder: 'desc', limit: 8 })
         .then((data: any) => {
-          if (data && data.error) {
+          if (data && data.products) {
+            setTshirts(data.products);
+          } else if (data && data.error) {
             setError(data.error);
-          } else {
-            // Show only first 6 products for home page
-            setTshirts((data || []).slice(0, 6));
           }
           setLoading(false);
         })

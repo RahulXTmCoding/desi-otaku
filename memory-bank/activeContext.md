@@ -4,11 +4,13 @@
 - Extending the website layout horizontally to accommodate more screen components.
 - Implementing a better mobile experience for the cart functionality.
 - Making all pages responsive including the Custom Design page.
+- Updating the trending products section on the home page.
 
 ## Recent Changes
 - Replaced `max-w-7xl` with `w-[96%] md:w-[90%]` in all major pages to increase the width of the main content area and make it responsive.
 - Adjusted typography, spacing, and layout for all pages to ensure a consistent and responsive experience on mobile and desktop devices.
 - Implemented a better mobile solution for the cart: redirect to cart page instead of opening cart drawer on mobile devices.
+- Updated the home page to load 8 of the latest products in the trending section by using the `getFilteredProducts` function.
 
 ## Responsive Page Updates
 
