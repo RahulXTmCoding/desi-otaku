@@ -347,7 +347,7 @@ const ShopWithBackendFilters: React.FC = () => {
       <div className="w-[96%] md:w-[90%] mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar */}
-          <div className={`lg:w-80 ${showFilters ? 'block' : 'hidden'} lg:block`}>
+          <div className={`lg:w-80 ${showFilters ? 'block' : 'hidden'}`}>
             <div className="bg-gray-800 rounded-2xl p-6 sticky top-24">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold flex items-center gap-2">
@@ -545,7 +545,7 @@ const ShopWithBackendFilters: React.FC = () => {
               <div className="flex items-center gap-4">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="bg-gray-800 p-2 rounded-lg flex items-center gap-2 lg:hidden"
+                  className="bg-gray-800 p-2 rounded-lg flex items-center gap-2"
                 >
                   <Filter className="w-5 h-5" />
                   <span>Filters</span>

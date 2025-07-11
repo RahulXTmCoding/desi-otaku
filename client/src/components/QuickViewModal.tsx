@@ -188,18 +188,18 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
         />
         
         {/* Modal */}
-        <div className="relative bg-gray-800 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+        <div className="relative bg-gray-800 rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden mx-4">
           {/* Close button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors z-10"
+            className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors z-10"
           >
             <X className="w-5 h-5" />
           </button>
 
-          <div className="flex flex-col md:flex-row">
+          <div className="flex flex-col md:flex-row max-h-[90vh] overflow-y-auto">
             {/* Image Section */}
-            <div className="md:w-1/2 bg-gray-900 p-8">
+            <div className="md:w-1/2 bg-gray-900 p-4 sm:p-6 lg:p-8">
               <div className="aspect-square relative group">
                 <img 
                   src={getImageUrl()}
@@ -252,7 +252,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
             </div>
 
             {/* Details Section */}
-            <div className="md:w-1/2 p-8">
+            <div className="md:w-1/2 p-4 sm:p-6 lg:p-8">
               {/* Category */}
               {product.category?.name && (
                 <span className="inline-block bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold mb-4">
@@ -261,10 +261,10 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
               )}
 
               {/* Product Name */}
-              <h2 className="text-3xl font-bold mb-4">{product.name}</h2>
+              <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4">{product.name}</h2>
 
               {/* Price */}
-              <p className="text-4xl font-bold text-yellow-400 mb-4">₹{product.price}</p>
+              <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-yellow-400 mb-4">₹{product.price}</p>
 
               {/* Description */}
               {product.description && (
@@ -274,13 +274,13 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
               {/* Size Selection */}
               <div className="mb-6">
                 <h3 className="text-sm font-semibold text-gray-400 mb-3">SELECT SIZE</h3>
-                <div className="grid grid-cols-5 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                   {availableSizes.map((size) => (
                     <button
                       key={size}
                       onClick={() => setSelectedSize(size)}
                       disabled={!isSizeAvailable(size)}
-                      className={`py-3 px-4 rounded-lg text-sm font-medium transition-all ${
+                      className={`py-2 sm:py-3 px-2 sm:px-4 rounded-lg text-sm font-medium transition-all ${
                         selectedSize === size
                           ? 'bg-yellow-400 text-gray-900'
                           : isSizeAvailable(size)
@@ -300,44 +300,44 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                    className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
                   >
-                    <Minus className="w-5 h-5" />
+                    <Minus className="w-4 sm:w-5 h-4 sm:h-5" />
                   </button>
-                  <span className="w-16 text-center text-xl font-semibold">{quantity}</span>
+                  <span className="w-12 sm:w-16 text-center text-lg sm:text-xl font-semibold">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                    className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
                   </button>
                 </div>
               </div>
 
               {/* Actions */}
-              <div className="flex gap-4 mb-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
                 <button
                   onClick={handleAddToCart}
                   disabled={!selectedSize || product.stock === 0}
-                  className={`flex-1 py-3 px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                  className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
                     selectedSize && product.stock !== 0
                       ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
                       : 'bg-gray-700 text-gray-500 cursor-not-allowed'
                   }`}
                 >
-                  <ShoppingCart className="w-5 h-5" />
+                  <ShoppingCart className="w-4 sm:w-5 h-4 sm:h-5" />
                   {product.stock === 0 ? 'Out of Stock' : selectedSize ? 'Add to Cart' : 'Select Size'}
                 </button>
                 <button
                   onClick={handleWishlistToggle}
                   disabled={isLoading}
-                  className={`p-3 rounded-lg transition-colors ${
+                  className={`w-full sm:w-auto p-2.5 sm:p-3 rounded-lg transition-colors ${
                     wishlistState 
                       ? 'bg-red-500 hover:bg-red-600' 
                       : 'bg-gray-700 hover:bg-gray-600'
                   }`}
                 >
-                  <Heart className={`w-5 h-5 ${wishlistState ? 'fill-white' : ''} text-white`} />
+                  <Heart className={`w-4 sm:w-5 h-4 sm:h-5 ${wishlistState ? 'fill-white' : ''} text-white mx-auto`} />
                 </button>
               </div>
 

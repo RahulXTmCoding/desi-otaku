@@ -33,6 +33,7 @@ const {
   createProductJson,
   updateProductJson
 } = require("../controllers/productJson");
+const { getSimilarProducts } = require("../controllers/productSimilar");
 const { isSignedIn, isAuthenticated, isAdmin } = require("../controllers/auth");
 const { getUserById } = require("../controllers/user");
 
@@ -95,6 +96,9 @@ router.put(
 router.get("/products", getAllProducts);
 router.get("/products/filtered", getFilteredProducts);
 router.get("/products/categories", getAllUniqueCategories);
+
+// Similar products route
+router.get("/products/:productId/similar", getSimilarProducts);
 
 // Get deleted products (admin only)
 router.get(

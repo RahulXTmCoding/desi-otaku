@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, Star, ChevronRight, Shuffle, ShoppingCart, Sparkles, Check } from 'lucide-react';
+import { Heart, Star, ChevronRight, Shuffle, ShoppingCart, Sparkles, Check, X } from 'lucide-react';
 import Base from './Base';
 import { useCart } from '../context/CartContext';
 import { getFilteredProducts } from './helper/shopApiCalls';
@@ -438,192 +438,187 @@ const Home: React.FC = () => {
 
       {/* Random Design Modal */}
       {showRandomModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-gray-800 rounded-3xl p-4 sm:p-6 lg:p-8 max-w-lg w-full border border-gray-700 transform transition-all duration-500 scale-100 my-8 max-h-[90vh] overflow-y-auto">
-            <div className="text-center">
-              {isGenerating ? (
-                <>
-                  <div className="relative inline-block mb-6">
-                    <Shuffle className="w-16 h-16 text-yellow-400 animate-spin" />
-                    <Sparkles className="w-8 h-8 text-purple-400 absolute -top-2 -right-2 animate-pulse" />
-                  </div>
-                  <h3 className="text-2xl font-bold mb-3">Generating Your Random Design...</h3>
-                  <p className="text-gray-400">Our AI is picking the perfect combination for you!</p>
-                </>
-              ) : randomSelection ? (
-                <>
-                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Check className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6">Your Random Selection!</h3>
-                  
-                  <div className="bg-gray-900 rounded-2xl p-4 sm:p-6 mb-4 sm:mb-6">
-                    {/* Product Info */}
-                    <div className="mb-4 text-center">
-                      <h4 className="font-semibold text-lg">{randomSelection.design.name}</h4>
-                      <p className="text-gray-400 text-sm mt-1">Design selected randomly for you!</p>
-                    </div>
-                    
-                    {/* T-Shirt Preview with Design */}
-                    <div className="mb-4 sm:mb-6">
-                      <div className="h-48 sm:h-64 md:h-72 overflow-hidden">
-                        <RealTShirtPreview
-                          selectedDesign={randomSelection.design ? {
-                            ...randomSelection.design,
-                            image: getDesignImageUrl(randomSelection.design)
-                          } : null}
-                          selectedColor={selectedRandomColor?.name || 'White'}
-                          selectedSize={selectedRandomSize || 'M'}
-                          position={randomSelection.designPosition}
-                          side={randomSelection.position}
-                          frontDesign={
-                            randomSelection.position === 'front' && randomSelection.design
-                              ? {
-                                  ...randomSelection.design,
-                                  image: getDesignImageUrl(randomSelection.design),
-                                  position: randomSelection.designPosition
-                                }
-                              : null
-                          }
-                          backDesign={
-                            randomSelection.position === 'back' && randomSelection.design
-                              ? {
-                                  ...randomSelection.design,
-                                  image: getDesignImageUrl(randomSelection.design),
-                                  position: randomSelection.designPosition
-                                }
-                              : null
-                          }
-                        />
-                      </div>
-                      <p className="text-center text-xs sm:text-sm text-gray-400 mt-2">
-                        {randomSelection.position === 'front' && `Front Design - ${randomSelection.designPosition === 'center-bottom' ? 'Bottom Position' : 'Center Position'}`}
-                        {randomSelection.position === 'back' && `Back Design - ${randomSelection.designPosition === 'center-bottom' ? 'Bottom Position' : 'Center Position'}`}
-                      </p>
-                    </div>
-                    {/* Design Info */}
-                    <div className="mb-4 text-center">
-                      <h4 className="font-semibold text-lg">{randomSelection.design.name}</h4>
-                      <p className="text-gray-400 text-sm mt-1">
-                        Design on {randomSelection.position} side ({randomSelection.designPosition === 'center-bottom' ? 'bottom' : 'center'})
-                      </p>
-                    </div>
-                    
-                    {/* Customization Options */}
-                    <div className="space-y-4">
-                      {/* Color Selection - Smaller */}
-                      <div>
-                        <p className="text-sm font-medium text-gray-300 mb-2">T-Shirt Color</p>
-                        <div className="flex justify-center gap-2 flex-wrap">
-                          {tshirtColors.map((color) => (
-                            <button
-                              key={color.value}
-                              onClick={() => setSelectedRandomColor(color)}
-                              className={`relative w-8 h-8 rounded-full border-2 transition-all ${
-                                selectedRandomColor?.value === color.value 
-                                  ? 'border-yellow-400 scale-125' 
-                                  : 'border-gray-600 hover:border-gray-500'
-                              }`}
-                              style={{ backgroundColor: color.value }}
-                              title={color.name}
-                            >
-                              {selectedRandomColor?.value === color.value && (
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <Check className="w-3 h-3 text-white drop-shadow-lg" 
-                                    style={{ 
-                                      filter: color.value === '#FFFFFF' ? 'invert(1)' : 'none' 
-                                    }}
-                                  />
-                                </div>
-                              )}
-                            </button>
-                          ))}
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-800 rounded-3xl max-w-2xl w-full border border-gray-700 transform transition-all duration-500 scale-100 max-h-[90vh] overflow-hidden flex flex-col relative">
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setShowRandomModal(false);
+                setRandomSelection(null);
+                setSelectedRandomColor(null);
+                setSelectedRandomSize('');
+              }}
+              className="absolute top-4 right-4 p-2 bg-gray-700 hover:bg-gray-600 rounded-full transition-colors z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            {/* Modal Header */}
+            
+            {isGenerating ? (
+              <div className="text-center">
+                <div className="relative inline-block mb-6">
+                  <Shuffle className="w-16 h-16 text-yellow-400 animate-spin" />
+                  <Sparkles className="w-8 h-8 text-purple-400 absolute -top-2 -right-2 animate-pulse" />
+                </div>
+                <h3 className="text-2xl font-bold mb-3">Generating Your Random Design...</h3>
+                <p className="text-gray-400">Our AI is picking the perfect combination for you!</p>
+              </div>
+            ) : null}
+            
+            
+            {/* Modal Content - Scrollable */}
+            {randomSelection && !isGenerating && (
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 pt-2">
+                <div className="flex flex-col lg:flex-row gap-6">
+                  {/* Left Column - Preview */}
+                  <div className="lg:w-1/2">
+                    <div className="bg-gray-900 rounded-2xl p-4 space-y-4">
+                      {/* T-Shirt Preview - Full height */}
+                      <div className="flex items-center justify-center">
+                        <div className="w-full max-w-sm">
+                          <RealTShirtPreview
+                              selectedDesign={randomSelection.design ? {
+                                ...randomSelection.design,
+                                image: getDesignImageUrl(randomSelection.design)
+                              } : null}
+                              selectedColor={selectedRandomColor?.name || 'White'}
+                              selectedSize={selectedRandomSize || 'M'}
+                              position={randomSelection.designPosition}
+                              side={randomSelection.position}
+                              frontDesign={
+                                randomSelection.position === 'front' && randomSelection.design
+                                  ? {
+                                      ...randomSelection.design,
+                                      image: getDesignImageUrl(randomSelection.design),
+                                      position: randomSelection.designPosition
+                                    }
+                                  : null
+                              }
+                              backDesign={
+                                randomSelection.position === 'back' && randomSelection.design
+                                  ? {
+                                      ...randomSelection.design,
+                                      image: getDesignImageUrl(randomSelection.design),
+                                      position: randomSelection.designPosition
+                                    }
+                                  : null
+                              }
+                            />
                         </div>
                       </div>
-
-                      {/* Size Selection */}
-                      <div>
-                        <p className="text-sm font-medium text-gray-300 mb-2">Size</p>
-                        <div className="grid grid-cols-5 gap-2">
-                          {sizes.map((size) => (
-                            <button
-                              key={size}
-                              onClick={() => setSelectedRandomSize(size)}
-                              className={`py-1.5 text-sm rounded-lg font-medium transition-all ${
-                                selectedRandomSize === size
-                                  ? 'bg-yellow-400 text-gray-900'
-                                  : 'bg-gray-800 hover:bg-gray-700'
-                              }`}
-                            >
-                              {size}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Price */}
-                      <div className="bg-gray-800 rounded-lg p-3 text-center">
-                        <p className="text-gray-400 text-sm">Total Price</p>
-                        <p className="text-xl font-bold text-yellow-400">₹{randomSelection.price}</p>
-                        <p className="text-xs text-gray-500">
-                          Base ₹499 + Design ₹150
+                      
+                      {/* Design Info - Separated from preview */}
+                      <div className="text-center p-3 bg-gray-800 rounded-lg">
+                        <h4 className="font-semibold text-sm">{randomSelection.design.name}</h4>
+                        <p className="text-gray-400 text-xs mt-1">
+                          {randomSelection.position === 'front' ? 'Front' : 'Back'} - {randomSelection.designPosition === 'center-bottom' ? 'Bottom' : 'Center'}
                         </p>
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Right Column - Options */}
+                  <div className="lg:w-1/2 space-y-4">
+                    {/* Color Selection */}
+                    <div>
+                      <p className="text-sm font-medium text-gray-300 mb-3">T-Shirt Color</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {tshirtColors.map((color) => (
+                          <button
+                            key={color.value}
+                            onClick={() => setSelectedRandomColor(color)}
+                            className={`relative w-10 h-10 rounded-full border-2 transition-all ${
+                              selectedRandomColor?.value === color.value 
+                                ? 'border-yellow-400 scale-110' 
+                                : 'border-gray-600 hover:border-gray-500'
+                            }`}
+                            style={{ backgroundColor: color.value }}
+                            title={color.name}
+                          >
+                            {selectedRandomColor?.value === color.value && (
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <Check className="w-4 h-4 text-white drop-shadow-lg" 
+                                  style={{ 
+                                    filter: color.value === '#FFFFFF' ? 'invert(1)' : 'none' 
+                                  }}
+                                />
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                    <button
-                      onClick={() => {
-                        setRandomSelection(null);
-                        setSelectedRandomColor(null);
-                        setSelectedRandomSize('');
-                        handleRandomDesign();
-                      }}
-                      className="flex-1 bg-purple-600 hover:bg-purple-500 py-2.5 sm:py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-                    >
-                      <Shuffle className="w-4 h-4 sm:w-5 sm:h-5" />
-                      Try Again
-                    </button>
-                    <button
-                      onClick={handleAddRandomToCart}
-                      disabled={addedToCart}
-                      className={`flex-1 py-2.5 sm:py-3 rounded-xl font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 text-sm sm:text-base ${
-                        addedToCart 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-yellow-400 hover:bg-yellow-300 text-gray-900'
-                      }`}
-                    >
-                      {addedToCart ? (
-                        <>
-                          <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-                          Added!
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                          Add to Cart
-                        </>
-                      )}
-                    </button>
+                    {/* Size Selection */}
+                    <div>
+                      <p className="text-sm font-medium text-gray-300 mb-3">Size</p>
+                      <div className="grid grid-cols-5 gap-2">
+                        {sizes.map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setSelectedRandomSize(size)}
+                            className={`py-2 text-sm rounded-lg font-medium transition-all ${
+                              selectedRandomSize === size
+                                ? 'bg-yellow-400 text-gray-900'
+                                : 'bg-gray-700 hover:bg-gray-600'
+                            }`}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Price */}
+                    <div className="bg-gray-700 rounded-lg p-4 text-center">
+                      <p className="text-gray-400 text-sm">Total Price</p>
+                      <p className="text-2xl font-bold text-yellow-400">₹{randomSelection.price}</p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Base ₹499 + Design ₹150
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-3 pt-2">
+                      <button
+                        onClick={() => {
+                          setRandomSelection(null);
+                          setSelectedRandomColor(null);
+                          setSelectedRandomSize('');
+                          handleRandomDesign();
+                        }}
+                        className="bg-purple-600 hover:bg-purple-500 py-3 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Shuffle className="w-5 h-5" />
+                        Try Again
+                      </button>
+                      <button
+                        onClick={handleAddRandomToCart}
+                        disabled={addedToCart}
+                        className={`py-3 rounded-xl font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 ${
+                          addedToCart 
+                            ? 'bg-green-500 text-white' 
+                            : 'bg-yellow-400 hover:bg-yellow-300 text-gray-900'
+                        }`}
+                      >
+                        {addedToCart ? (
+                          <>
+                            <Check className="w-5 h-5" />
+                            Added!
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="w-5 h-5" />
+                            Add to Cart
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </>
-              ) : null}
-              
-              {!isGenerating && (
-                <button
-                  onClick={() => {
-                    setShowRandomModal(false);
-                    setRandomSelection(null);
-                    setSelectedRandomColor(null);
-                    setSelectedRandomSize('');
-                  }}
-                  className="mt-4 text-gray-400 hover:text-gray-300 text-sm"
-                >
-                  Close
-                </button>
-              )}
-            </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

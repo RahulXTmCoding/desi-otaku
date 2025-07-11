@@ -16,11 +16,14 @@ import {
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getProduct, getProducts } from '../core/helper/coreapicalls';
+import { getSimilarProducts } from '../core/helper/shopApiCalls';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
 import SizeChart from '../components/SizeChart';
 import ProductReviews from '../components/ProductReviews';
+import ProductGridItem from '../components/ProductGridItem';
+import QuickViewModal from '../components/QuickViewModal';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 
@@ -87,6 +90,10 @@ const ProductDetail: React.FC = () => {
   const [error, setError] = useState('');
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
+  
+  // Quick View Modal state for related products
+  const [selectedRelatedProduct, setSelectedRelatedProduct] = useState<Product | null>(null);
+  const [isRelatedQuickViewOpen, setIsRelatedQuickViewOpen] = useState(false);
   
   const auth = isAutheticated();
   const userId = auth && auth.user ? auth.user._id : null;
@@ -212,28 +219,58 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const loadRelatedProducts = () => {
+  const loadRelatedProducts = async () => {
     if (isTestMode) {
-      // Show 4 random products as related
-      const related = mockProducts
-        .filter(p => p._id !== id)
-        .sort(() => Math.random() - 0.5)
-        .slice(0, 4);
-      setRelatedProducts(related);
+      // In test mode, show products from same category
+      const currentProduct = mockProducts.find(p => p._id === id);
+      if (currentProduct) {
+        const related = mockProducts
+          .filter(p => p._id !== id && p.category._id === currentProduct.category._id)
+          .slice(0, 4);
+        
+        // If not enough from same category, add random ones
+        if (related.length < 4) {
+          const additional = mockProducts
+            .filter(p => p._id !== id && !related.includes(p))
+            .slice(0, 4 - related.length);
+          related.push(...additional);
+        }
+        
+        setRelatedProducts(related);
+      }
     } else {
-      getProducts()
-        .then((data: any) => {
-          if (data && !data.error) {
-            // Show 4 products from same category or random
-            const related = data
-              .filter((p: Product) => p._id !== id)
-              .sort(() => Math.random() - 0.5)
-              .slice(0, 4);
-            setRelatedProducts(related);
+      // Use the new similar products API
+      if (id) {
+        try {
+          const data = await getSimilarProducts(id, 4);
+          if (data && data.products) {
+            setRelatedProducts(data.products);
+          } else if (data && data.error) {
+            console.error('Error loading similar products:', data.error);
+            // Fallback to random products
+            loadRandomProducts();
           }
-        })
-        .catch((err: any) => console.log(err));
+        } catch (err) {
+          console.error('Error loading similar products:', err);
+          // Fallback to random products
+          loadRandomProducts();
+        }
+      }
     }
+  };
+  
+  const loadRandomProducts = () => {
+    getProducts()
+      .then((data: any) => {
+        if (data && !data.error) {
+          const related = data
+            .filter((p: Product) => p._id !== id)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 4);
+          setRelatedProducts(related);
+        }
+      })
+      .catch((err: any) => console.log(err));
   };
 
   const loadProductImages = async () => {
@@ -340,6 +377,16 @@ const ProductDetail: React.FC = () => {
       return `${API}/product/image/${productData._id}`;
     }
     return '/api/placeholder/600/600';
+  };
+  
+  const handleRelatedQuickView = (product: Product) => {
+    setSelectedRelatedProduct(product);
+    setIsRelatedQuickViewOpen(true);
+  };
+
+  const handleCloseRelatedQuickView = () => {
+    setIsRelatedQuickViewOpen(false);
+    setSelectedRelatedProduct(null);
   };
 
   const handleAddToCart = async () => {
@@ -808,60 +855,21 @@ const ProductDetail: React.FC = () => {
           <h2 className="text-2xl font-bold mb-8">You May Also Like</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {relatedProducts.map((relatedProduct) => (
-              <div 
+              <ProductGridItem 
                 key={relatedProduct._id} 
-                className="bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-all transform hover:scale-105"
-                onClick={() => navigate(`/product/${relatedProduct._id}`)}
-              >
-                <div className="aspect-square bg-gray-700 rounded-lg mb-3 overflow-hidden">
-                  <img 
-                    src={getProductImage(relatedProduct)}
-                    alt={relatedProduct.name}
-                    className="w-full h-full object-contain"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/api/placeholder/300/300';
-                      (e.target as HTMLImageElement).onerror = null;
-                    }}
-                  />
-                </div>
-                <h4 className="font-medium mb-2 truncate">{relatedProduct.name}</h4>
-                <div className="flex justify-between items-center">
-                  <p className="text-yellow-400 font-bold">₹{relatedProduct.price}</p>
-                  <button
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      if (relatedProduct.stock > 0) {
-                        try {
-                          await addToCart({
-                            product: relatedProduct._id,
-                            name: relatedProduct.name,
-                            price: relatedProduct.price,
-                            size: 'M',
-                            color: 'Black',
-                            quantity: 1,
-                            isCustom: false
-                          });
-                          setShowSuccessMessage(true);
-                          setTimeout(() => setShowSuccessMessage(false), 3000);
-                        } catch (error) {
-                          console.error('Failed to add to cart:', error);
-                        }
-                      }
-                    }}
-                    disabled={relatedProduct.stock === 0}
-                    className={`text-sm px-3 py-1 rounded transition-colors ${
-                      relatedProduct.stock > 0
-                        ? 'bg-yellow-400 text-gray-900 hover:bg-yellow-300'
-                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                    }`}
-                  >
-                    {relatedProduct.stock > 0 ? 'Quick Add' : 'Out of Stock'}
-                  </button>
-                </div>
-              </div>
+                product={relatedProduct}
+                onQuickView={handleRelatedQuickView}
+              />
             ))}
           </div>
         </div>
+
+        {/* Quick View Modal for Related Products */}
+        <QuickViewModal
+          product={selectedRelatedProduct}
+          isOpen={isRelatedQuickViewOpen}
+          onClose={handleCloseRelatedQuickView}
+        />
       </div>
     </div>
   );

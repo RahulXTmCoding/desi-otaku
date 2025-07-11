@@ -1,6 +1,4 @@
-import { API } from "../../backend";
-
-// Get filtered products with pagination
+import { API } from '../../backend';
 export const getFilteredProducts = async (filters: {
   search?: string;
   category?: string;
@@ -43,5 +41,21 @@ export const getFilteredProducts = async (filters: {
   } catch (err) {
     console.log(err);
     return { error: "Failed to fetch products" };
+  }
+};
+
+export const getSimilarProducts = async (productId: string, limit: number = 4) => {
+  try {
+    const response = await fetch(`${API}/products/${productId}/similar?limit=${limit}`);
+    const data = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to fetch similar products');
+    }
+    
+    return data;
+  } catch (err) {
+    console.log('getSimilarProducts error:', err);
+    return { error: err instanceof Error ? err.message : 'Failed to fetch similar products' };
   }
 };
