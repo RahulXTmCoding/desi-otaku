@@ -124,28 +124,65 @@ cartSchema.methods.getItemCount = function() {
 // Method to merge guest cart
 cartSchema.methods.mergeCart = function(guestCartItems) {
   guestCartItems.forEach(guestItem => {
+    // Skip invalid items
+    if (!guestItem || !guestItem.size) return;
+    
     // Check if item already exists
     const existingItemIndex = this.items.findIndex(item => {
       if (guestItem.isCustom && item.isCustom) {
         // For custom items, check if designs match
-        return JSON.stringify(item.customization) === JSON.stringify(guestItem.customization) &&
-               item.size === guestItem.size &&
-               item.color === guestItem.color;
-      } else if (!guestItem.isCustom && !item.isCustom) {
-        // For regular products
-        return item.product.toString() === guestItem.product.toString() &&
-               item.size === guestItem.size &&
-               item.color === guestItem.color;
+        try {
+          return JSON.stringify(item.customization) === JSON.stringify(guestItem.customization) &&
+                 item.size === guestItem.size &&
+                 item.color === guestItem.color;
+        } catch (e) {
+          return false;
+        }
+      } else if (!guestItem.isCustom && !item.isCustom && guestItem.product && item.product) {
+        // For regular products - ensure both have valid product IDs
+        try {
+          const guestProductId = guestItem.product._id || guestItem.product;
+          const itemProductId = item.product._id || item.product;
+          return guestProductId.toString() === itemProductId.toString() &&
+                 item.size === guestItem.size &&
+                 item.color === guestItem.color;
+        } catch (e) {
+          return false;
+        }
       }
       return false;
     });
     
     if (existingItemIndex > -1) {
       // Update quantity if item exists
-      this.items[existingItemIndex].quantity += guestItem.quantity;
+      this.items[existingItemIndex].quantity += (guestItem.quantity || 1);
     } else {
+      // Create a clean item object to avoid validation errors
+      const newItem = {
+        size: guestItem.size,
+        color: guestItem.color || 'Black',
+        quantity: guestItem.quantity || 1,
+        price: guestItem.price || 0,
+        name: guestItem.name || 'Product',
+        addedAt: guestItem.addedAt || new Date()
+      };
+      
+      // Add product or custom fields
+      if (guestItem.isCustom) {
+        newItem.isCustom = true;
+        newItem.customization = guestItem.customization || {};
+      } else if (guestItem.product) {
+        // Extract just the ID if it's an object
+        newItem.product = guestItem.product._id || guestItem.product;
+      }
+      
+      // Include photoUrl if available
+      if (guestItem.photoUrl) {
+        newItem.photoUrl = guestItem.photoUrl;
+      }
+      
       // Add new item
-      this.items.push(guestItem);
+      this.items.push(newItem);
     }
   });
 };

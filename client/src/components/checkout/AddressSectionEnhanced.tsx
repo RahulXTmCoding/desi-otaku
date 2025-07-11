@@ -1,9 +1,19 @@
 import React, { memo, useState, useEffect } from 'react';
 import {
-  Plus, Edit2, Trash2, Star, X, Check, Home, User, Mail, Phone, MapPin, Loader, CheckCircle
+  Plus, Edit2, Trash2, Star, X, Check, Home, User, Mail, Phone, MapPin, Loader, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { Address } from '../../core/helper/addressHelper';
 import { getLocationFromPincode, guessStateFromPincode } from '../../data/pincodeData';
+import { 
+  validateEmail, 
+  validatePhone, 
+  validateName, 
+  validateAddress, 
+  validateCity, 
+  validateState, 
+  validatePinCode,
+  cleanPhoneNumber 
+} from '../../utils/validation';
 
 interface AddressSectionProps {
   savedAddresses: Address[];
@@ -50,6 +60,8 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
   validateShipping
 }) => {
   const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   // Auto-fill city and state based on pincode
   const handlePincodeChange = async (value: string) => {
@@ -75,6 +87,85 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
         // For now, we'll just use the guessed state
         setPincodeLoading(false);
       }
+    }
+  };
+
+  // Validate individual fields
+  const validateField = (field: string, value: string): string => {
+    switch (field) {
+      case 'fullName':
+        const nameValidation = validateName(value);
+        return nameValidation.isValid ? '' : nameValidation.error!;
+      case 'email':
+        const emailValidation = validateEmail(value);
+        return emailValidation.isValid ? '' : emailValidation.error!;
+      case 'phone':
+        const phoneValidation = validatePhone(value);
+        return phoneValidation.isValid ? '' : phoneValidation.error!;
+      case 'address':
+        const addressValidation = validateAddress(value);
+        return addressValidation.isValid ? '' : addressValidation.error!;
+      case 'city':
+        const cityValidation = validateCity(value);
+        return cityValidation.isValid ? '' : cityValidation.error!;
+      case 'state':
+        const stateValidation = validateState(value);
+        return stateValidation.isValid ? '' : stateValidation.error!;
+      case 'pinCode':
+        const pinCodeValidation = validatePinCode(value);
+        return pinCodeValidation.isValid ? '' : pinCodeValidation.error!;
+      default:
+        return '';
+    }
+  };
+
+  // Handle input change with validation
+  const handleInputChange = (field: string, value: string) => {
+    onInputChange(field, value);
+    
+    // Validate on change if field was touched
+    if (touched[field]) {
+      const error = validateField(field, value);
+      setErrors(prev => ({ ...prev, [field]: error }));
+    }
+  };
+
+  // Handle input blur
+  const handleInputBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    const value = shippingInfo[field as keyof typeof shippingInfo];
+    const error = validateField(field, value);
+    setErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  // Validate all fields
+  const validateAllFields = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    let isValid = true;
+
+    Object.keys(shippingInfo).forEach(field => {
+      if (field !== 'country') { // Skip country validation
+        const error = validateField(field, shippingInfo[field as keyof typeof shippingInfo]);
+        if (error) {
+          newErrors[field] = error;
+          isValid = false;
+        }
+      }
+    });
+
+    setErrors(newErrors);
+    setTouched(Object.keys(shippingInfo).reduce((acc, key) => ({ ...acc, [key]: true }), {}));
+    
+    return isValid;
+  };
+
+  // Handle save with validation
+  const handleSaveAddress = () => {
+    if (validateAllFields()) {
+      // Clean phone number before saving
+      const cleanedPhone = cleanPhoneNumber(shippingInfo.phone);
+      onInputChange('phone', cleanedPhone);
+      onSaveAddress();
     }
   };
 
@@ -213,11 +304,22 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
               <input
                 type="text"
                 value={shippingInfo.fullName}
-                onChange={(e) => onInputChange('fullName', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
+                onChange={(e) => handleInputChange('fullName', e.target.value)}
+                onBlur={() => handleInputBlur('fullName')}
+                className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all ${
+                  errors.fullName && touched.fullName
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                }`}
                 placeholder="Enter full name"
                 required
               />
+              {errors.fullName && touched.fullName && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.fullName}
+                </p>
+              )}
             </div>
             
             <div>
@@ -228,26 +330,49 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
               <input
                 type="email"
                 value={shippingInfo.email}
-                onChange={(e) => onInputChange('email', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                onBlur={() => handleInputBlur('email')}
+                className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all ${
+                  errors.email && touched.email
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                }`}
                 placeholder="Enter email address"
                 required
               />
+              {errors.email && touched.email && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.email}
+                </p>
+              )}
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 <Phone className="inline w-4 h-4 mr-1" />
-                Phone
+                Phone <span className="text-xs text-gray-400">(10-digit Indian number)</span>
               </label>
               <input
                 type="tel"
                 value={shippingInfo.phone}
-                onChange={(e) => onInputChange('phone', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
-                placeholder="Enter phone number"
+                onChange={(e) => handleInputChange('phone', e.target.value)}
+                onBlur={() => handleInputBlur('phone')}
+                className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all ${
+                  errors.phone && touched.phone
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                }`}
+                placeholder="e.g. 9876543210"
+                maxLength={10}
                 required
               />
+              {errors.phone && touched.phone && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.phone}
+                </p>
+              )}
             </div>
             
             <div>
@@ -258,11 +383,22 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
               <input
                 type="text"
                 value={shippingInfo.address}
-                onChange={(e) => onInputChange('address', e.target.value)}
-                className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                onBlur={() => handleInputBlur('address')}
+                className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all ${
+                  errors.address && touched.address
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                    : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                }`}
                 placeholder="Enter street address"
                 required
               />
+              {errors.address && touched.address && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.address}
+                </p>
+              )}
             </div>
             
             {/* PIN Code with Auto-fill */}
@@ -274,8 +410,16 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
                 <input
                   type="text"
                   value={shippingInfo.pinCode}
-                  onChange={(e) => handlePincodeChange(e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
+                  onChange={(e) => {
+                    handlePincodeChange(e.target.value);
+                    handleInputChange('pinCode', e.target.value);
+                  }}
+                  onBlur={() => handleInputBlur('pinCode')}
+                  className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all ${
+                    errors.pinCode && touched.pinCode
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                  }`}
                   placeholder="Enter PIN code"
                   maxLength={6}
                   required
@@ -286,6 +430,12 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
                   </div>
                 )}
               </div>
+              {errors.pinCode && touched.pinCode && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {errors.pinCode}
+                </p>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-4">
@@ -297,30 +447,52 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
                 <input
                   type="text"
                   value={shippingInfo.city}
-                  onChange={(e) => onInputChange('city', e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
+                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  onBlur={() => handleInputBlur('city')}
+                  className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all ${
+                    errors.city && touched.city
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                  }`}
                   placeholder="Enter city"
                   required
                 />
+                {errors.city && touched.city && (
+                  <p className="mt-1 text-sm text-red-400 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.city}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">State</label>
                 <input
                   type="text"
                   value={shippingInfo.state}
-                  onChange={(e) => onInputChange('state', e.target.value)}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 transition-all"
+                  onChange={(e) => handleInputChange('state', e.target.value)}
+                  onBlur={() => handleInputBlur('state')}
+                  className={`w-full px-4 py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all ${
+                    errors.state && touched.state
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                  }`}
                   placeholder="Enter state"
                   required
                 />
+                {errors.state && touched.state && (
+                  <p className="mt-1 text-sm text-red-400 flex items-center">
+                    <AlertCircle className="w-4 h-4 mr-1" />
+                    {errors.state}
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
           {/* Save Address Button */}
           <button
-            onClick={onSaveAddress}
-            disabled={addressLoading || !validateShipping()}
+            onClick={handleSaveAddress}
+            disabled={addressLoading}
             className="mt-4 w-full bg-green-600 hover:bg-green-500 disabled:bg-gray-600 text-white py-3 rounded-lg font-medium disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-colors"
           >
             {addressLoading ? (

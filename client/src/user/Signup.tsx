@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { signup, mockSignup } from "../auth/helper";
 import { useDevMode } from "../context/DevModeContext";
 import { API } from "../backend";
+import { validateEmail, validatePassword, validateName, validateConfirmPassword } from "../utils/validation";
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -12,19 +13,87 @@ const Signup = () => {
     name: "",
     email: "",
     password: "",
+    confirmPassword: "",
     error: "",
     success: false,
     loading: false,
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const { name, email, password, error, success, loading } = values;
+  const { name, email, password, confirmPassword, error, success, loading } = values;
 
   const handleChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setValues({ ...values, error: "", [field]: event.target.value });
+    const value = event.target.value;
+    setValues({ ...values, error: "", [field]: value });
+    
+    // Validate on change if field was touched
+    if (touched[field]) {
+      validateField(field, value);
+    }
+  };
+
+  const handleBlur = (field: string) => {
+    setTouched(prev => ({ ...prev, [field]: true }));
+    validateField(field, values[field as keyof typeof values] as string);
+  };
+
+  const validateField = (field: string, value: string) => {
+    let error = '';
+    
+    switch (field) {
+      case 'name':
+        const nameValidation = validateName(value);
+        error = nameValidation.isValid ? '' : nameValidation.error!;
+        break;
+      case 'email':
+        const emailValidation = validateEmail(value);
+        error = emailValidation.isValid ? '' : emailValidation.error!;
+        break;
+      case 'password':
+        const passwordValidation = validatePassword(value);
+        error = passwordValidation.isValid ? '' : passwordValidation.error!;
+        // If password changes, revalidate confirm password
+        if (confirmPassword && touched.confirmPassword) {
+          validateField('confirmPassword', confirmPassword);
+        }
+        break;
+      case 'confirmPassword':
+        const confirmValidation = validateConfirmPassword(password, value);
+        error = confirmValidation.isValid ? '' : confirmValidation.error!;
+        break;
+    }
+    
+    setFieldErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const validateForm = (): boolean => {
+    const nameValidation = validateName(name);
+    const emailValidation = validateEmail(email);
+    const passwordValidation = validatePassword(password);
+    const confirmValidation = validateConfirmPassword(password, confirmPassword);
+    
+    const errors: Record<string, string> = {};
+    if (!nameValidation.isValid) errors.name = nameValidation.error!;
+    if (!emailValidation.isValid) errors.email = emailValidation.error!;
+    if (!passwordValidation.isValid) errors.password = passwordValidation.error!;
+    if (!confirmValidation.isValid) errors.confirmPassword = confirmValidation.error!;
+    
+    setFieldErrors(errors);
+    setTouched({ name: true, email: true, password: true, confirmPassword: true });
+    
+    return Object.keys(errors).length === 0;
   };
 
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setValues({ ...values, error: "", loading: true });
 
     if (isTestMode) {
@@ -127,11 +196,21 @@ const Signup = () => {
                   type="text"
                   value={name}
                   onChange={handleChange("name")}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                  onBlur={() => handleBlur("name")}
+                  className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg focus:ring-2 text-white placeholder-gray-400 transition-all ${
+                    fieldErrors.name && touched.name
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400/20'
+                  }`}
                   placeholder="John Doe"
-                  required
                 />
               </div>
+              {fieldErrors.name && touched.name && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {fieldErrors.name}
+                </p>
+              )}
             </div>
 
             {/* Email Field */}
@@ -147,11 +226,21 @@ const Signup = () => {
                   type="email"
                   value={email}
                   onChange={handleChange("email")}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                  onBlur={() => handleBlur("email")}
+                  className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg focus:ring-2 text-white placeholder-gray-400 transition-all ${
+                    fieldErrors.email && touched.email
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400/20'
+                  }`}
                   placeholder="your@email.com"
-                  required
                 />
               </div>
+              {fieldErrors.email && touched.email && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -164,17 +253,71 @@ const Signup = () => {
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={handleChange("password")}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                  onBlur={() => handleBlur("password")}
+                  className={`w-full pl-10 pr-12 py-3 bg-gray-700 border rounded-lg focus:ring-2 text-white placeholder-gray-400 transition-all ${
+                    fieldErrors.password && touched.password
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400/20'
+                  }`}
                   placeholder="Create a strong password"
-                  required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
+                >
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
               </div>
+              {fieldErrors.password && touched.password && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {fieldErrors.password}
+                </p>
+              )}
               <p className="text-xs text-gray-400 mt-1">
-                Password must be at least 6 characters long
+                Min 6 characters with at least one letter and number
               </p>
+            </div>
+
+            {/* Confirm Password Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Confirm Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={handleChange("confirmPassword")}
+                  onBlur={() => handleBlur("confirmPassword")}
+                  className={`w-full pl-10 pr-12 py-3 bg-gray-700 border rounded-lg focus:ring-2 text-white placeholder-gray-400 transition-all ${
+                    fieldErrors.confirmPassword && touched.confirmPassword
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400/20'
+                  }`}
+                  placeholder="Confirm your password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
+                >
+                  {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
+              {fieldErrors.confirmPassword && touched.confirmPassword && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {fieldErrors.confirmPassword}
+                </p>
+              )}
             </div>
 
             {/* Terms Checkbox */}

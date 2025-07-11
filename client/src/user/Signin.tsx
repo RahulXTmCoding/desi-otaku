@@ -5,6 +5,7 @@ import { signin, authenticate, isAutheticated, mockSignin } from "../auth/helper
 import { useDevMode } from "../context/DevModeContext";
 import { useCart } from "../context/CartContext";
 import { API } from "../backend";
+import { validateEmail, validatePassword } from "../utils/validation";
 
 const Signin = () => {
   const { isTestMode } = useDevMode();
@@ -16,16 +17,62 @@ const Signin = () => {
     loading: false,
     didRedirect: false,
   });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
 
   const { email, password, error, loading, didRedirect } = values;
   const auth = isAutheticated();
 
   const handleChange = (name: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    setValues({ ...values, error: "", [name]: event.target.value });
+    const value = event.target.value;
+    setValues({ ...values, error: "", [name]: value });
+    
+    // Validate on change if field was touched
+    if (touched[name]) {
+      validateField(name, value);
+    }
+  };
+
+  const handleBlur = (name: string) => {
+    setTouched(prev => ({ ...prev, [name]: true }));
+    validateField(name, values[name as keyof typeof values] as string);
+  };
+
+  const validateField = (field: string, value: string) => {
+    let error = '';
+    
+    if (field === 'email') {
+      const validation = validateEmail(value);
+      error = validation.isValid ? '' : validation.error!;
+    } else if (field === 'password') {
+      const validation = validatePassword(value);
+      error = validation.isValid ? '' : validation.error!;
+    }
+    
+    setFieldErrors(prev => ({ ...prev, [field]: error }));
+  };
+
+  const validateForm = (): boolean => {
+    const emailValidation = validateEmail(email);
+    const passwordValidation = validatePassword(password);
+    
+    const errors: Record<string, string> = {};
+    if (!emailValidation.isValid) errors.email = emailValidation.error!;
+    if (!passwordValidation.isValid) errors.password = passwordValidation.error!;
+    
+    setFieldErrors(errors);
+    setTouched({ email: true, password: true });
+    
+    return Object.keys(errors).length === 0;
   };
 
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setValues({ ...values, error: "", loading: true });
 
     if (isTestMode) {
@@ -122,11 +169,21 @@ const Signin = () => {
                   type="email"
                   value={email}
                   onChange={handleChange("email")}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                  onBlur={() => handleBlur("email")}
+                  className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg focus:ring-2 text-white placeholder-gray-400 transition-all ${
+                    fieldErrors.email && touched.email
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400/20'
+                  }`}
                   placeholder="your@email.com"
-                  required
                 />
               </div>
+              {fieldErrors.email && touched.email && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
 
             {/* Password Field */}
@@ -142,11 +199,24 @@ const Signin = () => {
                   type="password"
                   value={password}
                   onChange={handleChange("password")}
-                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                  onBlur={() => handleBlur("password")}
+                  className={`w-full pl-10 pr-4 py-3 bg-gray-700 border rounded-lg focus:ring-2 text-white placeholder-gray-400 transition-all ${
+                    fieldErrors.password && touched.password
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
+                      : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400/20'
+                  }`}
                   placeholder="Enter your password"
-                  required
                 />
               </div>
+              {fieldErrors.password && touched.password && (
+                <p className="mt-1 text-sm text-red-400 flex items-center">
+                  <AlertCircle className="w-4 h-4 mr-1" />
+                  {fieldErrors.password}
+                </p>
+              )}
+              <p className="mt-1 text-xs text-gray-400">
+                Min 6 characters with at least one letter and number
+              </p>
             </div>
 
             {/* Remember Me & Forgot Password */}

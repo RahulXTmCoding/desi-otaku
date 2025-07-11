@@ -171,6 +171,47 @@ const [value, setValue] = useState('');
 - Display errors inline with fields
 - Validate nested objects (e.g., customization data)
 
+### Enhanced Form Validation Pattern
+**New Validation System**: Comprehensive validation utility (`client/src/utils/validation.ts`)
+
+```typescript
+// Validation functions with specific rules
+export const validateEmail = (email: string): { isValid: boolean; error?: string } => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!email) return { isValid: false, error: 'Email is required' };
+  if (!emailRegex.test(email)) return { isValid: false, error: 'Please enter a valid email address' };
+  return { isValid: true };
+};
+
+export const validatePhone = (phone: string): { isValid: boolean; error?: string } => {
+  const cleanPhone = phone.replace(/[\s-+]/g, '').replace(/^91/, '');
+  if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+    return { isValid: false, error: 'Please enter a valid 10-digit Indian phone number' };
+  }
+  return { isValid: true };
+};
+```
+
+**Real-time Validation Pattern**:
+```typescript
+const [errors, setErrors] = useState<Record<string, string>>({});
+const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+const handleBlur = (field: string) => {
+  setTouched(prev => ({ ...prev, [field]: true }));
+  const error = validateField(field, values[field]);
+  setErrors(prev => ({ ...prev, [field]: error }));
+};
+
+// Show error only if field was touched
+{errors.email && touched.email && (
+  <p className="text-red-400 flex items-center">
+    <AlertCircle className="w-4 h-4 mr-1" />
+    {errors.email}
+  </p>
+)}
+```
+
 ## Navigation Patterns
 
 ### Route Structure
@@ -333,6 +374,77 @@ const debounced = useMemo(
 );
 ```
 
+## Smart Product Recommendations Pattern
+
+### Similar Products Algorithm
+```typescript
+// MongoDB aggregation pipeline for intelligent recommendations
+const getSimilarProducts = async (productId: string) => {
+  const product = await Product.findById(productId);
+  
+  const pipeline = [
+    // Filter out current product and deleted items
+    { $match: { 
+      _id: { $ne: productId },
+      isDeleted: { $ne: true }
+    }},
+    
+    // Calculate similarity score
+    { $addFields: {
+      similarityScore: {
+        $sum: [
+          // Same category: 50 points
+          { $cond: [{ $eq: ["$category", product.category] }, 50, 0] },
+          // Same product type: 30 points
+          { $cond: [{ $eq: ["$productType", product.productType] }, 30, 0] },
+          // Similar price (±20%): 20 points
+          { $cond: [{
+            $and: [
+              { $gte: ["$price", product.price * 0.8] },
+              { $lte: ["$price", product.price * 1.2] }
+            ]
+          }, 20, 0] },
+          // Matching tags: 10 points per tag (max 30)
+          { $min: [30, { $multiply: [10, { $size: { 
+            $setIntersection: ["$tags", product.tags || []] 
+          }}]}]}
+        ]
+      }
+    }},
+    
+    // Sort by similarity and popularity
+    { $sort: { similarityScore: -1, soldCount: -1 } },
+    { $limit: 8 }
+  ];
+  
+  return Product.aggregate(pipeline);
+};
+```
+
+## Responsive Layout Patterns
+
+### Flexible Width Container
+```typescript
+// Replace fixed max-width with percentage-based responsive width
+<div className="w-[96%] md:w-[90%] mx-auto">
+  {/* Content */}
+</div>
+```
+
+### Mobile-First Responsive Design
+```typescript
+// Cart behavior based on screen size
+const isMobile = window.innerWidth < 768;
+
+const handleCartClick = () => {
+  if (isMobile) {
+    navigate('/cart'); // Redirect on mobile
+  } else {
+    setCartOpen(true); // Open drawer on desktop
+  }
+};
+```
+
 ## Best Practices Summary
 
 1. **Always break large components into smaller modules**
@@ -348,6 +460,9 @@ const debounced = useMemo(
 11. **Validate nested data structures at every layer**
 12. **Use soft delete for data preservation**
 13. **Ensure complete data flow from frontend to database**
+14. **Implement comprehensive form validation with real-time feedback**
+15. **Use intelligent algorithms for product recommendations**
+16. **Design mobile-first responsive layouts**
 
 ## Testing Utilities
 

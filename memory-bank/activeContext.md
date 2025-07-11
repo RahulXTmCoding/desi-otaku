@@ -6,6 +6,10 @@
 - Made all pages responsive including the Custom Design page
 - Updated the trending products section on the home page
 - Fixed the "Surprise Me" modal and QuickView modal responsiveness
+- Enhanced "You May Also Like" section with intelligent similar products
+- Fixed cart merge error during user login
+- Fixed delete address API endpoint mismatch
+- Added comprehensive form validation across the application
 
 ## Recent Changes
 - Replaced `max-w-7xl` with `w-[96%] md:w-[90%]` in all major pages to increase the width of the main content area and make it responsive
@@ -15,6 +19,11 @@
 - Enhanced the QuickView modal with image navigation (left/right arrows and image indicators)
 - Completely redesigned the "Surprise Me" modal with a two-column layout that prevents overlapping
 - Fixed the preview section overlapping by adding proper spacing and container structure
+- Fixed shop page filter toggle button visibility on all screen sizes
+- Implemented smart "You May Also Like" section with similarity-based product recommendations
+- Fixed cart merge error by adding validation for empty product IDs
+- Fixed delete address endpoint from singular `/address/` to plural `/addresses/`
+- Added comprehensive form validation across address forms, signin, and signup pages
 
 ## Surprise Me Modal - Final Design
 - Two-column layout on desktop, stacks vertically on mobile
@@ -61,8 +70,45 @@
 - On desktop devices, the cart drawer opens as usual
 - This provides a better user experience on mobile without the layout issues
 
+## Smart "You May Also Like" Implementation
+- Created new MongoDB aggregation-based similar products API (`server/controllers/productSimilar.js`)
+- Similarity scoring based on:
+  - Same category: 50 points
+  - Same product type: 30 points
+  - Similar price range (±20%): 20 points
+  - Matching tags: 10 points per tag (max 30)
+  - Name similarity: Up to 20 points
+- Products sorted by similarity score, then by popularity
+- Falls back to popular products if not enough similar ones found
+- Uses ProductGridItem component for consistent UI
+
+## Form Validation System
+- Created comprehensive validation utility (`client/src/utils/validation.ts`)
+- Validation rules:
+  - Email: Valid format check
+  - Phone: 10-digit Indian numbers (6-9 prefix)
+  - Name: Min 2 chars, letters only
+  - Password: Min 6 chars with letter & number
+  - PIN Code: 6 digits, Indian format
+  - Address: Min 10 chars
+  - City/State: Letters and spaces only
+- Real-time validation on blur and change (if touched)
+- Visual error indicators with red borders
+- Clear error messages with icons
+- Applied to:
+  - Address forms (AddressSectionEnhanced)
+  - Sign in page
+  - Sign up page with password confirmation
+
+## Backend Fixes
+- Cart Merge Error: Added validation to filter out empty product IDs and invalid items
+- Delete Address Route: Fixed URL mismatch by changing backend routes from `/address/` to `/addresses/`
+- Both PUT and DELETE now use consistent plural naming
+
 ## Next Steps
 - All identified issues have been addressed successfully
 - The website is now fully responsive and optimized for both mobile and desktop viewing
 - Both the "Surprise Me" modal and QuickView modal are now properly responsive and functional
 - No overlapping elements in any modal or page section
+- Form validation provides a better user experience with clear feedback
+- Similar products algorithm enhances product discovery

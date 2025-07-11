@@ -36,7 +36,7 @@ router.delete("/user/account/:userId", isSignedIn, isAuthenticated, deleteAccoun
 // Address management routes
 router.get("/user/:userId/addresses", isSignedIn, isAuthenticated, getUserAddresses);
 router.post("/user/:userId/addresses", isSignedIn, isAuthenticated, addUserAddress);
-router.put("/user/:userId/address/:addressId", isSignedIn, isAuthenticated, updateUserAddress);
-router.delete("/user/:userId/address/:addressId", isSignedIn, isAuthenticated, deleteUserAddress);
+router.put("/user/:userId/addresses/:addressId", isSignedIn, isAuthenticated, updateUserAddress);
+router.delete("/user/:userId/addresses/:addressId", isSignedIn, isAuthenticated, deleteUserAddress);
 
 module.exports = router;

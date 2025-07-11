@@ -293,6 +293,38 @@ exports.mergeCart = async (req, res) => {
       });
     }
     
+    // Filter and validate guest cart items
+    const validGuestItems = guestCartItems.filter(item => {
+      // Skip invalid items
+      if (!item || !item.size) return false;
+      
+      // For custom items, ensure customization exists
+      if (item.isCustom) {
+        return item.customization && (item.customization.frontDesign || item.customization.backDesign);
+      }
+      
+      // For regular products, ensure product ID exists and is valid
+      if (item.product) {
+        // Check if it's a valid ObjectId format
+        const productId = item.product.toString();
+        return productId && productId.length === 24 && /^[0-9a-fA-F]{24}$/.test(productId);
+      }
+      
+      return false;
+    });
+    
+    if (validGuestItems.length === 0) {
+      return res.json({
+        success: true,
+        message: "No valid items to merge",
+        cart: {
+          items: [],
+          total: 0,
+          itemCount: 0
+        }
+      });
+    }
+    
     // Find or create user cart
     let cart = await Cart.findOne({ user: userId });
     if (!cart) {
@@ -300,7 +332,7 @@ exports.mergeCart = async (req, res) => {
     }
     
     // Merge guest items
-    cart.mergeCart(guestCartItems);
+    cart.mergeCart(validGuestItems);
     await cart.save();
     
     // Populate and return merged cart

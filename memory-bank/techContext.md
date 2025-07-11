@@ -38,26 +38,37 @@
 - **Database**: MongoDB Atlas
 - **CI/CD**: GitHub Actions
 
-### Recent Implementations (January 7, 2025)
+### Recent Implementations (January 11, 2025)
 
 #### Enhanced User Experience
 - **UserDashBoardEnhanced**: Modern UI with tabs, glassmorphism effects
 - **ProductGridItem**: Universal product display component
 - **Toast Notifications**: User feedback system
 - **Loading/Empty States**: Consistent across all components
-- **Responsive Design**: Mobile-first approach
+- **Responsive Design**: Mobile-first approach with flexible width containers
+- **Form Validation**: Comprehensive validation with real-time feedback
+- **Smart Product Recommendations**: AI-powered similar products
 
 #### Performance Optimizations
 - **React.memo**: For expensive components
 - **useCallback/useMemo**: Preventing unnecessary re-renders
 - **Image Optimization**: Smart URL handling with fallbacks
 - **Component Splitting**: Smaller, focused components
+- **MongoDB Aggregation**: Efficient similar products algorithm
 
 #### Architecture Improvements
 - **Routing Clarity**: All routes in pages/App.tsx
 - **Component Reusability**: ProductGridItem used everywhere
 - **Helper Organization**: Domain-based helper functions
 - **TypeScript Adoption**: Interfaces for key components
+- **Validation Utility**: Centralized validation rules
+
+#### Recent Bug Fixes (January 11, 2025)
+- **Cart Merge Error**: Fixed empty product ID validation
+- **Delete Address API**: Fixed endpoint mismatch (singular to plural)
+- **Shop Filter Toggle**: Fixed visibility on all screen sizes
+- **Modal Overlapping**: Redesigned "Surprise Me" modal layout
+- **Mobile Cart**: Redirect to cart page instead of drawer on mobile
 
 ## Current Development Setup
 
@@ -165,10 +176,24 @@ interface ProductGridItemProps {
 ```
 
 ### State Management
-- **Global State**: Context API (DevModeContext)
+- **Global State**: Context API (DevModeContext, CartContext)
 - **Local State**: useState for component state
 - **Persistent State**: LocalStorage for cart, auth
 - **Server State**: Direct API calls with loading states
+- **Form State**: Controlled components with validation
+
+### Validation Pattern
+```typescript
+// Validation utility (client/src/utils/validation.ts)
+export const validateEmail = (email: string): { isValid: boolean; error?: string }
+export const validatePhone = (phone: string): { isValid: boolean; error?: string }
+export const validatePassword = (password: string): { isValid: boolean; error?: string }
+export const validatePinCode (pinCode: string): { isValid: boolean; error?: string }
+
+// Real-time validation with touched state
+const [errors, setErrors] = useState<Record<string, string>>({});
+const [touched, setTouched] = useState<Record<string, boolean>>({});
+```
 
 ### API Pattern
 ```javascript
@@ -225,10 +250,17 @@ main.tsx
 - Hover: scale-105 hover:bg-opacity
 ```
 
-### Responsive Breakpoints
-- Mobile: < 640px
-- Tablet: 640px - 1024px
-- Desktop: > 1024px
+### Responsive Design System
+- **Breakpoints**:
+  - Mobile: < 640px
+  - Tablet: 640px - 1024px
+  - Desktop: > 1024px
+- **Layout Pattern**: 
+  - Flexible width: `w-[96%] md:w-[90%]` instead of `max-w-7xl`
+  - Mobile-specific behaviors (cart redirect)
+- **Grid Systems**:
+  - Product grid: 2 cols mobile → 5 cols desktop
+  - Responsive modals with proper spacing
 
 ## Security Implementation
 - **Authentication**: JWT tokens in localStorage
@@ -257,13 +289,39 @@ main.tsx
 - **API Testing**: Test scripts in server directory
 - **Browser DevTools**: React Developer Tools
 
-## Recent Bug Fixes
+## Recent Features & Improvements
+
+### Smart Product Recommendations
+- **MongoDB Aggregation Pipeline**: Efficient similarity calculation
+- **Scoring Algorithm**:
+  - Same category: 50 points
+  - Same product type: 30 points
+  - Price similarity (±20%): 20 points
+  - Tag matching: 10 points per tag (max 30)
+- **Fallback Strategy**: Popular products when insufficient matches
+
+### Form Validation System
+- **Comprehensive Rules**:
+  - Email: Format validation
+  - Phone: 10-digit Indian numbers
+  - Password: Min 6 chars with letter & number
+  - Address fields: Complete validation
+- **User Experience**:
+  - Real-time validation on blur
+  - Clear error messages with icons
+  - Touch state management
+
+### Recent Bug Fixes
 - Fixed wishlist image display (API path handling)
 - Fixed address count in dashboard overview
 - Fixed checkout performance issues
 - Fixed routing confusion (removed Routes.tsx)
 - Implemented guest checkout flow
 - Added proper error handling and timeouts
+- **Cart merge error**: Added validation for empty product IDs
+- **Delete address API**: Fixed endpoint mismatch
+- **Mobile cart drawer**: Redirect to cart page on mobile
+- **Shop filter toggle**: Fixed visibility issues
 
 ## Next Technical Goals
 1. **Complete TypeScript Migration**
