@@ -24,6 +24,12 @@
 - Fixed cart merge error by adding validation for empty product IDs
 - Fixed delete address endpoint from singular `/address/` to plural `/addresses/`
 - Added comprehensive form validation across address forms, signin, and signup pages
+- Fixed the color preview in the custom design page to show the exact same color as selected
+- Fixed the color preview in the random design generator to show the exact same color as selected
+- Fixed the loader padding in the random design generator
+- Fixed the color preview in the cart page and cart drawer to show the exact same color as selected
+- Fixed the color preview in the order details page for users and admin to show the exact same color as selected
+- Fixed the color preview in the order review page to show the exact same color as selected
 
 ## Surprise Me Modal - Final Design
 - Two-column layout on desktop, stacks vertically on mobile

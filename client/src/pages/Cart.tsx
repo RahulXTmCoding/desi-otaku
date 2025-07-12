@@ -184,7 +184,6 @@ const Cart: React.FC = () => {
                         <CartTShirtPreview
                           design={null}
                           color={item.color}
-                          colorValue="#000000"
                           image={null}
                           customization={{
                             frontDesign: item.customization.frontDesign ? {

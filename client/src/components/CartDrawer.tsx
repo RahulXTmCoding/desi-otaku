@@ -258,7 +258,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                             <CartTShirtPreview
                               design={null}
                               color={item.color}
-                              colorValue="#000000"
                               image={null}
                               customization={{
                                 frontDesign: item.customization.frontDesign ? {

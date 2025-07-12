@@ -198,7 +198,7 @@ const Home: React.FC = () => {
         name: `Custom T-Shirt - ${designName}`,
         price: randomSelection.price,
         size: selectedRandomSize,
-        color: selectedRandomColor.name,
+        color: selectedRandomColor.value,
         quantity: 1,
         isCustom: true,
         customization: {
@@ -456,7 +456,7 @@ const Home: React.FC = () => {
             {/* Modal Header */}
             
             {isGenerating ? (
-              <div className="text-center">
+              <div className="text-center py-12">
                 <div className="relative inline-block mb-6">
                   <Shuffle className="w-16 h-16 text-yellow-400 animate-spin" />
                   <Sparkles className="w-8 h-8 text-purple-400 absolute -top-2 -right-2 animate-pulse" />
@@ -482,7 +482,8 @@ const Home: React.FC = () => {
                                 ...randomSelection.design,
                                 image: getDesignImageUrl(randomSelection.design)
                               } : null}
-                              selectedColor={selectedRandomColor?.name || 'White'}
+                              selectedColor={selectedRandomColor?.value || '#FFFFFF'}
+                              selectedColorName={selectedRandomColor?.name || 'White'}
                               selectedSize={selectedRandomSize || 'M'}
                               position={randomSelection.designPosition}
                               side={randomSelection.position}

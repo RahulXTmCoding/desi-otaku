@@ -5,6 +5,7 @@ import { API } from '../backend';
 interface RealTShirtPreviewProps {
   selectedDesign: any | null;
   selectedColor: string;
+  selectedColorName?: string;
   selectedSize: string;
   position?: string;
   side?: 'front' | 'back';
@@ -15,6 +16,7 @@ interface RealTShirtPreviewProps {
 const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
   selectedDesign,
   selectedColor,
+  selectedColorName,
   selectedSize,
   position = 'center',
   side,
@@ -36,51 +38,7 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
     back: '/back.png'    // White t-shirt back view
   };
 
-  // Convert color name to hex for overlay
-  const getColorValue = (colorName: string): string => {
-    const colors: { [key: string]: string } = {
-      'White': '#FFFFFF',
-      'Black': '#000000',
-      'Navy': '#1e3a8a',
-      'Red': '#dc2626',
-      'Gray': '#6b7280',
-      'Green': '#059669',
-      'Blue': '#2563eb',
-      'Yellow': '#fbbf24',
-      'Purple': '#7c3aed',
-      'Pink': '#ec4899',
-    };
-    return colors[colorName] || '#FFFFFF';
-  };
-
-  const colorHex = getColorValue(selectedColor);
-  const isWhite = selectedColor === 'White';
-
-  // Get CSS filter for t-shirt color
-  const getColorFilter = (colorName: string): string => {
-    switch (colorName) {
-      case 'Black':
-        return 'brightness(0.2) contrast(1.2)';
-      case 'Navy':
-        return 'brightness(0.4) sepia(1) hue-rotate(190deg) saturate(2)';
-      case 'Red':
-        return 'brightness(0.6) sepia(1) hue-rotate(-20deg) saturate(2.5)';
-      case 'Gray':
-        return 'brightness(0.6) grayscale(1)';
-      case 'Green':
-        return 'brightness(0.6) sepia(1) hue-rotate(90deg) saturate(2)';
-      case 'Blue':
-        return 'brightness(0.7) sepia(1) hue-rotate(180deg) saturate(2)';
-      case 'Yellow':
-        return 'brightness(0.9) sepia(1) hue-rotate(30deg) saturate(2)';
-      case 'Purple':
-        return 'brightness(0.6) sepia(1) hue-rotate(250deg) saturate(2)';
-      case 'Pink':
-        return 'brightness(0.8) sepia(1) hue-rotate(300deg) saturate(1.5)';
-      default:
-        return 'none';
-    }
-  };
+  const isWhite = selectedColor === '#FFFFFF';
 
   return (
     <div className="bg-gray-800 rounded-xl p-6 border border-gray-700">
@@ -96,19 +54,31 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
       </div>
 
       <div className="relative bg-gray-100 rounded-lg overflow-hidden" style={{ aspectRatio: '4/5' }}>
-        {/* T-shirt base image */}
-        <div className="relative w-full h-full">
-          {/* White t-shirt image with color filter */}
-          <img
-            src={tshirtImages[view]}
-            alt={`T-shirt ${view} view`}
-            className="w-full h-full object-contain"
+        {/* Base t-shirt image (for structure and shadows) */}
+        <img
+          src={tshirtImages[view]}
+          alt={`T-shirt ${view} view`}
+          className="w-full h-full object-contain"
+        />
+        
+        {/* Color layer using mask */}
+        {!isWhite && (
+          <div
+            className="absolute inset-0"
             style={{
-              filter: getColorFilter(selectedColor),
-              transition: 'filter 0.3s ease',
+              backgroundColor: selectedColor,
+              maskImage: `url(${tshirtImages[view]})`,
+              maskSize: 'contain',
+              maskPosition: 'center',
+              maskRepeat: 'no-repeat',
+              WebkitMaskImage: `url(${tshirtImages[view]})`,
+              WebkitMaskSize: 'contain',
+              WebkitMaskPosition: 'center',
+              WebkitMaskRepeat: 'no-repeat',
+              transition: 'background-color 0.3s ease',
             }}
-          />
-        </div>
+          ></div>
+        )}
 
         {/* Design overlay */}
         {renderDesign()}
@@ -116,16 +86,16 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
 
       {/* Color and Size Info */}
       <div className="mt-4 space-y-2">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-gray-400">Color:</span>
-          <div className="flex items-center gap-2">
-            <div
-              className="w-5 h-5 rounded-full border-2 border-gray-600"
-              style={{ backgroundColor: colorHex }}
-            />
-            <span className="text-white">{selectedColor}</span>
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-gray-400">Color:</span>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-5 h-5 rounded-full border-2 border-gray-600"
+                style={{ backgroundColor: selectedColor }}
+              />
+              <span className="text-white">{selectedColorName || selectedColor}</span>
+            </div>
           </div>
-        </div>
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-400">Size:</span>
           <span className="text-white">{selectedSize}</span>
@@ -242,7 +212,7 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
             alt={design.name}
             className="w-full h-full object-contain"
             style={{
-              filter: selectedColor === 'Black' ? 'brightness(1.2)' : 'none',
+              filter: selectedColor === '#000000' ? 'brightness(1.2)' : 'none',
             }}
             onError={(e) => {
               const target = e.target as HTMLImageElement;

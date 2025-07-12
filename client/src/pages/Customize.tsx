@@ -313,7 +313,7 @@ const Customize: React.FC = () => {
         name: `Custom T-Shirt - ${designNames.join(', ')}`,
         price: calculatePrice() / quantity, // Price per item
         size: selectedSize,
-        color: tshirtColors.find(c => c.value === selectedColor)?.name || 'White',
+        color: selectedColor,
         quantity: quantity,
         isCustom: true,
         customization: {
@@ -572,7 +572,8 @@ const Customize: React.FC = () => {
                   ...getCurrentDesign().design,
                   image: getImageUrl(getCurrentDesign().design)
                 } : null}
-                selectedColor={tshirtColors.find(c => c.value === selectedColor)?.name || 'White'}
+                selectedColor={selectedColor}
+                selectedColorName={tshirtColors.find(c => c.value === selectedColor)?.name || 'White'}
                 selectedSize={selectedSize}
                 position={getCurrentDesign().position}
                 side={currentSide}

@@ -27,40 +27,13 @@ const CartTShirtPreview: React.FC<CartTShirtPreviewProps> = ({
 }) => {
   const [view, setView] = useState<'front' | 'back'>('front');
   
-  // Check if we have multi-side designs with actual design data
   const hasFrontDesign = (customization?.frontDesign?.designImage) || (!customization && design && image);
   const hasBackDesign = customization?.backDesign?.designImage;
-  const hasMultipleSides = !!(customization?.frontDesign?.designImage || customization?.backDesign?.designImage);
-  // T-shirt images
+  const hasMultipleSides = !!(customization?.frontDesign?.designImage && customization?.backDesign?.designImage);
+  
   const tshirtImages = {
     front: '/front.png',
     back: '/back.png'
-  };
-
-  // Get CSS filter for t-shirt color
-  const getColorFilter = (colorName: string): string => {
-    switch (colorName) {
-      case 'Black':
-        return 'brightness(0.2) contrast(1.2)';
-      case 'Navy':
-        return 'brightness(0.4) sepia(1) hue-rotate(190deg) saturate(2)';
-      case 'Red':
-        return 'brightness(0.6) sepia(1) hue-rotate(-20deg) saturate(2.5)';
-      case 'Gray':
-        return 'brightness(0.6) grayscale(1)';
-      case 'Green':
-        return 'brightness(0.6) sepia(1) hue-rotate(90deg) saturate(2)';
-      case 'Blue':
-        return 'brightness(0.7) sepia(1) hue-rotate(180deg) saturate(2)';
-      case 'Yellow':
-        return 'brightness(0.9) sepia(1) hue-rotate(30deg) saturate(2)';
-      case 'Purple':
-        return 'brightness(0.6) sepia(1) hue-rotate(250deg) saturate(2)';
-      case 'Pink':
-        return 'brightness(0.8) sepia(1) hue-rotate(300deg) saturate(1.5)';
-      default:
-        return 'none';
-    }
   };
 
   const getPositionStyles = (position: string) => {
@@ -115,9 +88,53 @@ const CartTShirtPreview: React.FC<CartTShirtPreviewProps> = ({
     }
   };
 
+  const renderDesign = () => {
+    if (hasMultipleSides || customization) {
+      const currentDesign = view === 'front' ? customization?.frontDesign : customization?.backDesign;
+      if (!currentDesign) return null;
+
+      const position = currentDesign.position || 'center';
+      const positionStyles = getPositionStyles(position);
+      
+      return (
+        <div style={positionStyles}>
+          <img
+            src={currentDesign.designImage}
+            alt=""
+            className="w-full h-full object-contain"
+            style={{
+              filter: color === '#000000' ? 'brightness(1.2)' : 'none',
+            }}
+            onError={(e) => {
+              const target = e.target as HTMLImageElement;
+              console.error('Failed to load design image:', currentDesign.designImage);
+              target.src = 'https://via.placeholder.com/100?text=Design';
+            }}
+          />
+        </div>
+      );
+    } else if (design && image && view === 'front') {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-1/3 h-1/3 flex items-center justify-center">
+            <img
+              src={image}
+              alt={design}
+              className="max-w-full max-h-full object-contain"
+              style={{
+                filter: color === '#000000' ? 'brightness(1.2)' : 'none',
+              }}
+            />
+          </div>
+        </div>
+      );
+    }
+    
+    return null;
+  }
+
   return (
     <div className="relative w-full h-full">
-      {/* View toggle for multi-side designs */}
       {hasMultipleSides && (
         <button
           onClick={() => setView(view === 'front' ? 'back' : 'front')}
@@ -128,7 +145,6 @@ const CartTShirtPreview: React.FC<CartTShirtPreviewProps> = ({
         </button>
       )}
       
-      {/* Indicator badges */}
       {hasMultipleSides && (
         <div className="absolute top-2 left-2 z-10 flex gap-1">
           {hasFrontDesign && (
@@ -145,73 +161,33 @@ const CartTShirtPreview: React.FC<CartTShirtPreviewProps> = ({
       )}
       
       <div className="relative w-full h-full bg-gray-100 rounded overflow-hidden">
-        {/* T-shirt base */}
         <img
           src={tshirtImages[view]}
           alt="T-shirt preview"
           className="w-full h-full object-contain"
-          style={{
-            filter: getColorFilter(color),
-          }}
         />
         
-        {/* Design overlay */}
+        {color && color !== '#FFFFFF' && (
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: color,
+              maskImage: `url(${tshirtImages[view]})`,
+              maskSize: 'contain',
+              maskPosition: 'center',
+              maskRepeat: 'no-repeat',
+              WebkitMaskImage: `url(${tshirtImages[view]})`,
+              WebkitMaskSize: 'contain',
+              WebkitMaskPosition: 'center',
+              WebkitMaskRepeat: 'no-repeat',
+            }}
+          ></div>
+        )}
+        
         {renderDesign()}
       </div>
     </div>
   );
-
-  function renderDesign() {
-    if (hasMultipleSides) {
-      // New multi-side design structure
-      const currentDesign = view === 'front' ? customization?.frontDesign : customization?.backDesign;
-      if (!currentDesign) return null;
-
-      // Extract position from the design object
-      const position = currentDesign.position || 'center';
-      const positionStyles = getPositionStyles(position);
-      
-      return (
-        <div style={positionStyles}>
-          <img
-            src={currentDesign.designImage}
-            alt=""
-            className="w-full h-full object-contain"
-            style={{
-              filter: color === 'Black' ? 'brightness(1.2)' : 'none',
-            }}
-            onError={(e) => {
-              const target = e.target as HTMLImageElement;
-              console.error('Failed to load design image:', currentDesign.designImage);
-              // Try to use a placeholder
-              target.src = 'https://via.placeholder.com/100?text=Design';
-            }}
-            onLoad={() => {
-              console.log('Successfully loaded design image:', currentDesign.designImage);
-            }}
-          />
-        </div>
-      );
-    } else if (design && image && view === 'front') {
-      // Legacy single design support
-      return (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-1/3 h-1/3 flex items-center justify-center">
-            <img
-              src={image}
-              alt={design}
-              className="max-w-full max-h-full object-contain"
-              style={{
-                filter: color === 'Black' ? 'brightness(1.2)' : 'none',
-              }}
-            />
-          </div>
-        </div>
-      );
-    }
-    
-    return null;
-  }
 };
 
 export default CartTShirtPreview;
