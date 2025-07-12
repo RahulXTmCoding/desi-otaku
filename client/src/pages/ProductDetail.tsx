@@ -15,15 +15,13 @@ import {
   Share2
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getProduct, getProducts } from '../core/helper/coreapicalls';
-import { getSimilarProducts } from '../core/helper/shopApiCalls';
+import { getProduct } from '../core/helper/coreapicalls';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
 import SizeChart from '../components/SizeChart';
 import ProductReviews from '../components/ProductReviews';
-import ProductGridItem from '../components/ProductGridItem';
-import QuickViewModal from '../components/QuickViewModal';
+import LazyRelatedProducts from '../components/LazyRelatedProducts';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 
@@ -77,7 +75,6 @@ const ProductDetail: React.FC = () => {
   const { isTestMode } = useDevMode();
   const { addToCart } = useCart();
   const [product, setProduct] = useState<Product | null>(null);
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [selectedColor, setSelectedColor] = useState<{ name: string; value: string } | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -90,10 +87,6 @@ const ProductDetail: React.FC = () => {
   const [error, setError] = useState('');
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
-  
-  // Quick View Modal state for related products
-  const [selectedRelatedProduct, setSelectedRelatedProduct] = useState<Product | null>(null);
-  const [isRelatedQuickViewOpen, setIsRelatedQuickViewOpen] = useState(false);
   
   const auth = isAutheticated();
   const userId = auth && auth.user ? auth.user._id : null;
@@ -129,7 +122,6 @@ const ProductDetail: React.FC = () => {
 
   useEffect(() => {
     loadProduct();
-    loadRelatedProducts();
     if (id) {
       if (userId && token) {
         checkWishlistStatus();
@@ -219,59 +211,6 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const loadRelatedProducts = async () => {
-    if (isTestMode) {
-      // In test mode, show products from same category
-      const currentProduct = mockProducts.find(p => p._id === id);
-      if (currentProduct) {
-        const related = mockProducts
-          .filter(p => p._id !== id && p.category._id === currentProduct.category._id)
-          .slice(0, 4);
-        
-        // If not enough from same category, add random ones
-        if (related.length < 4) {
-          const additional = mockProducts
-            .filter(p => p._id !== id && !related.includes(p))
-            .slice(0, 4 - related.length);
-          related.push(...additional);
-        }
-        
-        setRelatedProducts(related);
-      }
-    } else {
-      // Use the new similar products API
-      if (id) {
-        try {
-          const data = await getSimilarProducts(id, 4);
-          if (data && data.products) {
-            setRelatedProducts(data.products);
-          } else if (data && data.error) {
-            console.error('Error loading similar products:', data.error);
-            // Fallback to random products
-            loadRandomProducts();
-          }
-        } catch (err) {
-          console.error('Error loading similar products:', err);
-          // Fallback to random products
-          loadRandomProducts();
-        }
-      }
-    }
-  };
-  
-  const loadRandomProducts = () => {
-    getProducts()
-      .then((data: any) => {
-        if (data && !data.error) {
-          const related = data
-            .filter((p: Product) => p._id !== id)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 4);
-          setRelatedProducts(related);
-        }
-      })
-      .catch((err: any) => console.log(err));
-  };
 
   const loadProductImages = async () => {
     if (!product) return;
@@ -377,16 +316,6 @@ const ProductDetail: React.FC = () => {
       return `${API}/product/image/${productData._id}`;
     }
     return '/api/placeholder/600/600';
-  };
-  
-  const handleRelatedQuickView = (product: Product) => {
-    setSelectedRelatedProduct(product);
-    setIsRelatedQuickViewOpen(true);
-  };
-
-  const handleCloseRelatedQuickView = () => {
-    setIsRelatedQuickViewOpen(false);
-    setSelectedRelatedProduct(null);
   };
 
   const handleAddToCart = async () => {
@@ -850,26 +779,8 @@ const ProductDetail: React.FC = () => {
           />
         )}
 
-        {/* Related Products */}
-        <div className="mt-16">
-          <h2 className="text-2xl font-bold mb-8">You May Also Like</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {relatedProducts.map((relatedProduct) => (
-              <ProductGridItem 
-                key={relatedProduct._id} 
-                product={relatedProduct}
-                onQuickView={handleRelatedQuickView}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Quick View Modal for Related Products */}
-        <QuickViewModal
-          product={selectedRelatedProduct}
-          isOpen={isRelatedQuickViewOpen}
-          onClose={handleCloseRelatedQuickView}
-        />
+        {/* Lazy Related Products */}
+        {id && <LazyRelatedProducts currentProductId={id} />}
       </div>
     </div>
   );
