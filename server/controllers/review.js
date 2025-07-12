@@ -1,6 +1,6 @@
 const Review = require("../models/review");
 const Product = require("../models/product");
-const Order = require("../models/order");
+const { Order } = require("../models/order");
 const Settings = require("../models/settings");
 
 // Get all reviews for a product
@@ -87,11 +87,13 @@ exports.createReview = async (req, res) => {
     }
 
     // Check if user has purchased this product
-    const hasPurchased = await Order.exists({
+    const purchasedOrder = await Order.findOne({
       user: req.profile._id,
       "products.product": productId,
       status: { $in: ["Delivered", "Received"] }
     });
+    
+    const hasPurchased = !!purchasedOrder;
 
     // Create review
     const review = new Review({

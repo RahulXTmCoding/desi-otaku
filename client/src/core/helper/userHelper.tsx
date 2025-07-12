@@ -9,17 +9,25 @@ export const updateUserProfile = async (
     email?: string;
     phone?: string;
     dateOfBirth?: string;
+    dob?: string;
   }
 ) => {
   try {
-    const response = await fetch(`${API}/user/update/${userId}`, {
+    // Convert dateOfBirth to dob for backend compatibility
+    const updateData = {
+      ...profileData,
+      dob: profileData.dateOfBirth || profileData.dob
+    };
+    delete updateData.dateOfBirth;
+    
+    const response = await fetch(`${API}/user/${userId}`, {
       method: "PUT",
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify(profileData)
+      body: JSON.stringify(updateData)
     });
     
     const data = await response.json();
@@ -50,7 +58,7 @@ export const changePassword = async (
   newPassword: string
 ) => {
   try {
-    const response = await fetch(`${API}/user/changepassword/${userId}`, {
+    const response = await fetch(`${API}/user/password/${userId}`, {
       method: "PUT",
       headers: {
         Accept: "application/json",

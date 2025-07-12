@@ -101,6 +101,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       
       const method = userReview ? 'PUT' : 'POST';
       
+      console.log('Submitting review to:', url);
+      console.log('Review data:', formData);
+      
       const response = await fetch(url, {
         method,
         headers: {
@@ -110,16 +113,23 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
         body: JSON.stringify(formData)
       });
 
+      const data = await response.json();
+      console.log('Review response:', response.status, data);
+
       if (response.ok) {
         await loadReviews();
         await checkUserReview();
         setShowReviewForm(false);
+        // Reset form for new reviews
+        if (!userReview) {
+          setFormData({ rating: 5, title: '', comment: '' });
+        }
       } else {
-        const data = await response.json();
-        alert(data.error || 'Failed to submit review');
+        alert(data.error || 'Failed to submit review. Please try again.');
       }
     } catch (err) {
       console.error('Error submitting review:', err);
+      alert('Failed to submit review. Please check your connection and try again.');
     }
   };
 
@@ -271,13 +281,24 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       )}
 
       {/* Write Review Button/Form */}
-      {userId && !userReview && (
-        <button
-          onClick={() => setShowReviewForm(true)}
-          className="mb-8 px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
-        >
-          Write a Review
-        </button>
+      {userId ? (
+        !userReview && !showReviewForm && (
+          <button
+            onClick={() => {
+              console.log('Opening review form');
+              setShowReviewForm(true);
+            }}
+            className="mb-8 px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
+          >
+            Write a Review
+          </button>
+        )
+      ) : (
+        <div className="mb-8 p-4 bg-gray-800 rounded-lg">
+          <p className="text-gray-400">
+            Please <a href="/signin" className="text-yellow-400 hover:text-yellow-300">sign in</a> to write a review
+          </p>
+        </div>
       )}
 
       {/* Review Form */}

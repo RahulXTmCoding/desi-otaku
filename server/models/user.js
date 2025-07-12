@@ -83,6 +83,9 @@ var userSchema = new Schema(
       type: String,
       trim: true,
     },
+    dob: {
+      type: Date,
+    },
     
     // Saved addresses array
     addresses: [{

@@ -14,6 +14,8 @@ interface AuthResponse {
     name: string;
     email: string;
     role: number;
+    phone?: string;
+    dob?: string;
   };
   error?: string;
 }

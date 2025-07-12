@@ -24,7 +24,7 @@ exports.getUser = (req, res) => {
 
 exports.updateUser = (req, res) => {
   // Prevent updating sensitive fields
-  const allowedUpdates = ['name', 'lastname', 'email', 'userinfo', 'phone', 'address', 'city', 'state', 'country', 'pincode'];
+  const allowedUpdates = ['name', 'lastname', 'email', 'userinfo', 'phone', 'address', 'city', 'state', 'country', 'pincode', 'dob'];
   const updates = {};
   
   // Only include allowed fields

@@ -59,8 +59,9 @@ reviewSchema.virtual('helpfulCount').get(function() {
 
 // Static method to calculate product average rating
 reviewSchema.statics.calculateAverageRating = async function(productId) {
+  const ObjectId = mongoose.Types.ObjectId;
   const result = await this.aggregate([
-    { $match: { product: productId } },
+    { $match: { product: new ObjectId(productId) } },
     {
       $group: {
         _id: null,

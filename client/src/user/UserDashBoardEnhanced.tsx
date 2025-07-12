@@ -31,7 +31,7 @@ import { isAutheticated, signout } from "../auth/helper";
 import { getOrders, mockGetOrders } from "../core/helper/orderHelper";
 import { getWishlist } from "../core/helper/wishlistHelper";
 import { getUserAddresses, addUserAddress, updateUserAddress, deleteUserAddress } from "../core/helper/addressHelper";
-import { updateUserProfile, changePassword } from "../core/helper/userHelper";
+import { updateUserProfile, changePassword, getUserDetails } from "../core/helper/userHelper";
 import { useDevMode } from "../context/DevModeContext";
 import { API } from "../backend";
 import { addItemToCart } from "../core/helper/cartHelper";
@@ -115,8 +115,8 @@ const UserDashBoardEnhanced = () => {
   const [profileForm, setProfileForm] = useState({
     name: user?.name || '',
     email: user?.email || '',
-    phone: '',
-    dateOfBirth: ''
+    phone: user?.phone || '',
+    dateOfBirth: user?.dob ? new Date(user.dob).toISOString().split('T')[0] : ''
   });
   
   const [passwordForm, setPasswordForm] = useState({
@@ -177,6 +177,29 @@ const UserDashBoardEnhanced = () => {
           }
         }
       }
+
+      // Load user details for settings
+      if (activeTab === 'settings') {
+        if (user && token && !isTestMode) {
+          const userDetails = await getUserDetails(user._id, token);
+          if (!userDetails.error) {
+            // Update profile form with latest user data
+            setProfileForm({
+              name: userDetails.name || '',
+              email: userDetails.email || '',
+              phone: userDetails.phone || '',
+              dateOfBirth: userDetails.dob ? new Date(userDetails.dob).toISOString().split('T')[0] : ''
+            });
+            
+            // Update localStorage with fresh user data including dob
+            const authData = JSON.parse(localStorage.getItem("jwt") || "{}");
+            if (authData && authData.user) {
+              authData.user = { ...authData.user, ...userDetails };
+              localStorage.setItem("jwt", JSON.stringify(authData));
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error('Error loading data:', err);
     } finally {
@@ -190,23 +213,37 @@ const UserDashBoardEnhanced = () => {
     });
   };
 
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = async (product: any) => {
+    if (!user || !token) {
+      setError('Please login to add items to cart');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+
     const cartItem = {
-      _id: product._id,
+      productId: product._id,
       name: product.name,
       price: product.price,
       size: 'M',
       color: 'Default',
-      colorValue: '#000000',
       quantity: 1,
-      type: 'product',
-      image: product.photoUrl || `${API}/product/photo/${product._id}`
+      isCustom: false,
+      photoUrl: product.photoUrl || `${API}/product/photo/${product._id}`
     };
     
-    addItemToCart(cartItem, () => {
-      setSuccessMessage('Product added to cart!');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    });
+    try {
+      const result = await addItemToCart(user._id, token, cartItem);
+      if (!result.error) {
+        setSuccessMessage('Product added to cart!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setError('Failed to add to cart');
+        setTimeout(() => setError(''), 3000);
+      }
+    } catch (err) {
+      setError('Failed to add to cart');
+      setTimeout(() => setError(''), 3000);
+    }
   };
 
   const handleRemoveFromWishlist = async (productId: string) => {
@@ -233,17 +270,69 @@ const UserDashBoardEnhanced = () => {
     }
   };
 
+  const validateAddressForm = () => {
+    // Validate name
+    if (!addressForm.name || addressForm.name.trim().length < 3) {
+      setError('Name must be at least 3 characters long');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
+    
+    // Validate phone
+    const phoneRegex = /^[6-9]\d{9}$/;
+    const cleanPhone = addressForm.phone.replace(/[\s+\-()]/g, '');
+    if (!cleanPhone || !phoneRegex.test(cleanPhone)) {
+      setError('Please enter a valid 10-digit Indian phone number');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
+    
+    // Validate address
+    if (!addressForm.address || addressForm.address.trim().length < 10) {
+      setError('Address must be at least 10 characters long');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
+    
+    // Validate city
+    if (!addressForm.city || addressForm.city.trim().length < 2) {
+      setError('Please enter a valid city name');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
+    
+    // Validate state
+    if (!addressForm.state || addressForm.state.trim().length < 2) {
+      setError('Please enter a valid state name');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
+    
+    // Validate pincode
+    const pincodeRegex = /^[1-9][0-9]{5}$/;
+    if (!addressForm.pincode || !pincodeRegex.test(addressForm.pincode)) {
+      setError('Please enter a valid 6-digit PIN code');
+      setTimeout(() => setError(''), 3000);
+      return false;
+    }
+    
+    return true;
+  };
+
   const handleAddAddress = async () => {
     if (!user || !token) return;
     
+    // Validate form
+    if (!validateAddressForm()) return;
+    
     try {
       const addressData = {
-        fullName: addressForm.name,
+        fullName: addressForm.name.trim(),
         email: user.email,
-        phone: addressForm.phone,
-        address: addressForm.address,
-        city: addressForm.city,
-        state: addressForm.state,
+        phone: addressForm.phone.replace(/[\s+\-()]/g, ''),
+        address: addressForm.address.trim(),
+        city: addressForm.city.trim(),
+        state: addressForm.state.trim(),
         country: 'India',
         pinCode: addressForm.pincode,
         isDefault: addresses.length === 0
@@ -273,14 +362,17 @@ const UserDashBoardEnhanced = () => {
   const handleUpdateAddress = async () => {
     if (!user || !token || !editingAddress?._id) return;
     
+    // Validate form
+    if (!validateAddressForm()) return;
+    
     try {
       const addressData = {
-        fullName: addressForm.name,
+        fullName: addressForm.name.trim(),
         email: user.email,
-        phone: addressForm.phone,
-        address: addressForm.address,
-        city: addressForm.city,
-        state: addressForm.state,
+        phone: addressForm.phone.replace(/[\s+\-()]/g, ''),
+        address: addressForm.address.trim(),
+        city: addressForm.city.trim(),
+        state: addressForm.state.trim(),
         country: 'India',
         pinCode: addressForm.pincode,
         isDefault: editingAddress.isDefault
@@ -313,6 +405,33 @@ const UserDashBoardEnhanced = () => {
       } catch (err) {
         setError('Failed to delete address');
       }
+    }
+  };
+
+  const handleSetDefaultAddress = async (address: Address) => {
+    if (!user || !token || !address._id) return;
+    
+    try {
+      const addressData = {
+        fullName: address.fullName || address.name || '',
+        email: user.email,
+        phone: address.phone,
+        address: address.address,
+        city: address.city,
+        state: address.state,
+        country: 'India',
+        pinCode: address.pinCode || address.pincode || '',
+        isDefault: true
+      };
+      
+      const result = await updateUserAddress(user._id, token, address._id, addressData);
+      if (!result.error) {
+        await loadData();
+        setSuccessMessage('Default address updated!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      }
+    } catch (err) {
+      setError('Failed to set default address');
     }
   };
 
@@ -860,6 +979,15 @@ const UserDashBoardEnhanced = () => {
                           </p>
                         </div>
                         <div className="flex gap-2 mt-4">
+                          {!address.isDefault && (
+                            <button
+                              onClick={() => handleSetDefaultAddress(address)}
+                              className="px-4 py-2 bg-yellow-400/20 hover:bg-yellow-400/30 text-yellow-400 rounded-lg transition-colors flex items-center gap-2"
+                            >
+                              <Star className="w-4 h-4" />
+                              Make Default
+                            </button>
+                          )}
                           <button
                             onClick={() => {
                               setEditingAddress(address);
