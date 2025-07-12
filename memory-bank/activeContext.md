@@ -105,7 +105,42 @@
 - Delete Address Route: Fixed URL mismatch by changing backend routes from `/address/` to `/addresses/`
 - Both PUT and DELETE now use consistent plural naming
 
+## Subcategory Implementation (Completed)
+- Implemented hierarchical category system with parent-child relationships
+- Backend changes:
+  - Updated Category model with parentCategory, level, slug, icon, and isActive fields
+  - Added subcategory field to Product model with proper indexes
+  - Created new API endpoints for category hierarchy management
+  - Updated product filtering to support subcategory queries
+  - Fixed getAllCategory and getMainCategories to include old categories without isActive field
+- Frontend changes:
+  - Added API functions for subcategory operations
+  - Updated ShopWithBackendFilters to use getMainCategories() instead of getCategories()
+  - Shop page now only shows main categories, subcategories appear when parent selected
+  - Added dynamic subcategory filter that appears when main category is selected
+  - Updated getFilteredProducts to include subcategory parameter
+- Admin Panel Updates:
+  - ManageCategories now shows hierarchical tree view with expand/collapse
+  - AddCategory supports creating both main categories and subcategories
+  - Added parent category selection and icon picker
+  - Categories display with folder icons and level indicators
+  - Fixed to show all categories including old ones without new fields
+- Created migration scripts:
+  - updateCategoriesStructure.js - initial attempt
+  - fixCategories.js - direct MongoDB connection for updating categories
+- Documentation created in docs/SUBCATEGORY_IMPLEMENTATION.md
+
+## Fixes Applied
+- Old categories visibility: Updated queries to { $or: [{ isActive: true }, { isActive: { $exists: false } }] }
+- Shop page subcategory issue: Changed to getMainCategories() to only show parent categories
+- Created fixCategories.js script to update database with new fields
+- 400 error on category creation resolved by ensuring unique names
+
 ## Next Steps
+- Update product creation/editing to support subcategory selection
+- Update the UpdateCategory component for subcategory support
+- Implement breadcrumb navigation for categories
+- Run fixCategories.js script to update existing categories in database
 - All identified issues have been addressed successfully
 - The website is now fully responsive and optimized for both mobile and desktop viewing
 - Both the "Surprise Me" modal and QuickView modal are now properly responsive and functional

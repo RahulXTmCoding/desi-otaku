@@ -36,7 +36,27 @@ All core features are operational, now with robust multi-image support integrate
 ### Known Issues
 -   No major known issues at this time. The focus is now on cleanup and preparing for the next phase of development.
 
-### Latest Implementation: UI/UX Enhancements & Bug Fixes ✅ (Completed 7/11/2025)
+### Latest Implementation: Subcategory System ✅ (Completed 7/12/2025)
+
+#### Full Hierarchical Category Implementation
+- **Backend Architecture**:
+  - Extended Category model with parentCategory, level, slug, icon, and isActive fields
+  - Added subcategory field to Product model with proper indexes
+  - Created new API endpoints for category hierarchy management
+  - Fixed queries to include old categories without new fields
+
+- **Frontend Updates**:
+  - Shop page now uses getMainCategories() to show only parent categories
+  - Subcategories appear dynamically when main category is selected
+  - Admin panel shows hierarchical tree view with expand/collapse
+  - AddCategory supports creating both main and subcategories
+
+- **Migration & Fixes**:
+  - Created fixCategories.js script for database updates
+  - Fixed 400 errors by ensuring unique category names
+  - Updated queries to include categories without isActive field
+
+### Previous Implementation: UI/UX Enhancements & Bug Fixes ✅ (Completed 7/11/2025)
 
 #### Responsive Layout Improvements
 - **Extended Horizontal Layout**: Replaced `max-w-7xl` with `w-[96%] md:w-[90%]` across all pages for better screen utilization

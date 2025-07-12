@@ -25,6 +25,11 @@ const productSchema = new Schema(
       type: ObjectId,
       ref: "Category",
     },
+    subcategory: {
+      type: ObjectId,
+      ref: "Category",
+      default: null
+    },
     productType: {
       type: ObjectId,
       ref: "ProductType",
@@ -142,6 +147,7 @@ const productSchema = new Schema(
 
 // Indexes
 productSchema.index({ isDeleted: 1, isActive: 1, category: 1, productType: 1 });
+productSchema.index({ isDeleted: 1, isActive: 1, subcategory: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, price: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, averageRating: -1 });
 productSchema.index({ name: "text", description: "text", tags: "text" });

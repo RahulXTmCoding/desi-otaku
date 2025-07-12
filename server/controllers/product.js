@@ -9,6 +9,7 @@ const emailService = require("../services/emailService");
 exports.getProductById = (req, res, next, id) => {
   Product.findById(id)
     .populate("category")
+    .populate("subcategory")
     .populate("productType")
     .exec((err, product) => {
       if (err) {
@@ -542,6 +543,7 @@ exports.getFilteredProducts = async (req, res) => {
     const {
       search,
       category,
+      subcategory,
       productType,
       minPrice,
       maxPrice,
@@ -566,9 +568,38 @@ exports.getFilteredProducts = async (req, res) => {
       ];
     }
 
-    // Category filter
-    if (category && category !== 'all') {
-      filter.category = category;
+    // Category and subcategory filter
+    if (subcategory) {
+      // If subcategory is specified, filter by subcategory
+      filter.subcategory = subcategory;
+    } else if (category && category !== 'all') {
+      // If only category is specified, get all products in that category AND its subcategories
+      try {
+        const Category = require("../models/category");
+        
+        // Get all subcategories of this category
+        const subcategories = await Category.find({ 
+          parentCategory: category,
+          isActive: true 
+        }).select('_id');
+        
+        const subcategoryIds = subcategories.map(sub => sub._id);
+        
+        // Filter products by main category OR any of its subcategories
+        if (subcategoryIds.length > 0) {
+          filter.$or = [
+            { category: category },
+            { subcategory: { $in: subcategoryIds } }
+          ];
+        } else {
+          // No subcategories, just filter by category
+          filter.category = category;
+        }
+      } catch (err) {
+        console.error('Error getting subcategories:', err);
+        // Fallback to simple category filter
+        filter.category = category;
+      }
     }
 
     // Product type filter - handle both old string values and new ObjectIds

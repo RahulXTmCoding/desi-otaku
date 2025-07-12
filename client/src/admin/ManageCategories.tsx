@@ -1,45 +1,156 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { Trash2, Edit, Plus, List, AlertCircle } from 'lucide-react';
+import { Trash2, Edit, Plus, List, AlertCircle, ChevronRight, Folder, FolderOpen } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
 import { getCategories, deleteCategory, mockDeleteCategory } from "./helper/adminapicall";
+import { getCategoryTree } from "../core/helper/coreapicalls";
 import { useDevMode } from "../context/DevModeContext";
 import { mockCategories } from "../data/mockData";
 
 interface Category {
   _id: string;
   name: string;
+  parentCategory?: string | null;
+  level?: number;
+  icon?: string;
+  isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+  subcategories?: Category[];
 }
+
+// Recursive component for rendering category tree
+const CategoryTreeItem: React.FC<{
+  categories: Category[];
+  expandedCategories: Set<string>;
+  onToggleExpand: (id: string) => void;
+  onEdit: (id: string) => void;
+  onDelete: (id: string) => void;
+  level: number;
+}> = ({ categories, expandedCategories, onToggleExpand, onEdit, onDelete, level }) => {
+  return (
+    <>
+      {categories.map(category => {
+        const hasSubcategories = category.subcategories && category.subcategories.length > 0;
+        const isExpanded = expandedCategories.has(category._id);
+        
+        return (
+          <div key={category._id} className="mb-2">
+            <div 
+              className={`flex items-center justify-between p-4 rounded-lg hover:bg-gray-700/50 transition-colors ${
+                level > 0 ? 'ml-' + (level * 8) : ''
+              }`}
+              style={{ marginLeft: level > 0 ? `${level * 2}rem` : 0 }}
+            >
+              <div className="flex items-center gap-3">
+                {hasSubcategories && (
+                  <button
+                    onClick={() => onToggleExpand(category._id)}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    <ChevronRight 
+                      className={`w-5 h-5 transition-transform ${
+                        isExpanded ? 'rotate-90' : ''
+                      }`}
+                    />
+                  </button>
+                )}
+                {!hasSubcategories && <div className="w-5" />}
+                
+                <div className="text-yellow-400">
+                  {isExpanded ? <FolderOpen className="w-5 h-5" /> : <Folder className="w-5 h-5" />}
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium">{category.name}</h3>
+                  {level > 0 && (
+                    <p className="text-sm text-gray-400">Subcategory</p>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Link
+                  to={`/admin/category/update/${category._id}`}
+                  className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-500 transition-colors"
+                >
+                  <Edit className="w-4 h-4" />
+                </Link>
+                <button
+                  onClick={() => onDelete(category._id)}
+                  className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-500 transition-colors"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            
+            {hasSubcategories && isExpanded && (
+              <CategoryTreeItem
+                categories={category.subcategories!}
+                expandedCategories={expandedCategories}
+                onToggleExpand={onToggleExpand}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                level={level + 1}
+              />
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+};
 
 const ManageCategories = () => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryTree, setCategoryTree] = useState<Category[]>([]);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { isTestMode } = useDevMode();
   const auth = isAutheticated();
 
-  const preload = () => {
+  const preload = async () => {
     setLoading(true);
     
     if (isTestMode) {
       // Use mock data
       setTimeout(() => {
         setCategories(mockCategories);
+        setCategoryTree(mockCategories);
         setLoading(false);
       }, 500);
     } else {
-      // Use real backend
-      getCategories().then((data: any) => {
-        if (data.error) {
-          setError(data.error);
+      try {
+        // Get all categories and category tree
+        const [allCategories, tree] = await Promise.all([
+          getCategories(),
+          getCategoryTree()
+        ]);
+        
+        if (allCategories.error) {
+          setError(allCategories.error);
         } else {
-          setCategories(data);
+          setCategories(allCategories);
+          setCategoryTree(tree || []);
         }
+      } catch (err) {
+        setError("Failed to load categories");
+      } finally {
         setLoading(false);
-      });
+      }
     }
+  };
+
+  const toggleExpand = (categoryId: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId);
+    } else {
+      newExpanded.add(categoryId);
+    }
+    setExpandedCategories(newExpanded);
   };
 
   useEffect(() => {
@@ -114,9 +225,9 @@ const ManageCategories = () => {
           </div>
         </div>
 
-        {/* Categories Table */}
+        {/* Categories Tree */}
         <div className="bg-gray-800 rounded-2xl overflow-hidden">
-          {categories.length === 0 ? (
+          {categoryTree.length === 0 ? (
             <div className="p-12 text-center">
               <p className="text-gray-400 mb-4">No categories found</p>
               <Link 
@@ -127,61 +238,15 @@ const ManageCategories = () => {
               </Link>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-900">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-400 uppercase tracking-wider">
-                      #
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-400 uppercase tracking-wider">
-                      Category Name
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-gray-400 uppercase tracking-wider">
-                      Created
-                    </th>
-                    <th className="px-6 py-4 text-right text-sm font-medium text-gray-400 uppercase tracking-wider">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-700">
-                  {categories.map((category, index) => (
-                    <tr 
-                      key={category._id} 
-                      className="hover:bg-gray-700/50 transition-colors"
-                    >
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                        {index + 1}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-lg font-medium">{category.name}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400">
-                        {category.createdAt
-                          ? new Date(category.createdAt).toLocaleDateString()
-                          : 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link
-                            to={`/admin/category/update/${category._id}`}
-                            className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-500 transition-colors"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Link>
-                          <button
-                            onClick={() => deleteThisCategory(category._id)}
-                            className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-500 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="p-6">
+              <CategoryTreeItem 
+                categories={categoryTree}
+                expandedCategories={expandedCategories}
+                onToggleExpand={toggleExpand}
+                onEdit={(id) => window.location.href = `/admin/category/update/${id}`}
+                onDelete={deleteThisCategory}
+                level={0}
+              />
             </div>
           )}
         </div>

@@ -44,3 +44,39 @@ export const searchProducts = (searchTerm: string) => {
     })
     .catch(err => console.log(err));
 };
+
+// Get main categories only (no subcategories)
+export const getMainCategories = () => {
+  return fetch(`${API}/categories/main`, { method: "GET" })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => console.log(err));
+};
+
+// Get subcategories for a parent category
+export const getSubcategories = (parentId: string) => {
+  return fetch(`${API}/categories/subcategories/${parentId}`, { method: "GET" })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => console.log(err));
+};
+
+// Get category hierarchy (category with its subcategories)
+export const getCategoryHierarchy = (categoryId: string) => {
+  return fetch(`${API}/categories/hierarchy/${categoryId}`, { method: "GET" })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => console.log(err));
+};
+
+// Get all categories in tree structure
+export const getCategoryTree = () => {
+  return fetch(`${API}/categories/tree`, { method: "GET" })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => console.log(err));
+};

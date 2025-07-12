@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { addItemToCart } from '../core/helper/cartHelper';
-import { getCategories } from '../core/helper/coreapicalls';
+import { getCategories, getMainCategories, getSubcategories } from '../core/helper/coreapicalls';
 import { getAllProductTypes } from '../admin/helper/productTypeApiCalls';
 import { getFilteredProducts } from '../core/helper/shopApiCalls';
 import { API } from '../backend';
@@ -68,6 +68,7 @@ const ShopWithBackendFilters: React.FC = () => {
   // Initialize filter states from URL params
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
+  const [selectedSubcategory, setSelectedSubcategory] = useState(searchParams.get('subcategory') || 'all');
   const [selectedProductType, setSelectedProductType] = useState(searchParams.get('type') || 'all');
   const [selectedPriceRange, setSelectedPriceRange] = useState(searchParams.get('price') || 'all');
   const [selectedSizes, setSelectedSizes] = useState<string[]>((searchParams.get('sizes')?.split(',').filter(Boolean)) || []);
@@ -85,6 +86,7 @@ const ShopWithBackendFilters: React.FC = () => {
   // Data states
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [productTypes, setProductTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -128,6 +130,16 @@ const ShopWithBackendFilters: React.FC = () => {
     loadProductTypes();
   }, [isTestMode]);
 
+  // Load subcategories when category changes
+  useEffect(() => {
+    if (selectedCategory && selectedCategory !== 'all') {
+      loadSubcategories(selectedCategory);
+    } else {
+      setSubcategories([]);
+      setSelectedSubcategory('all');
+    }
+  }, [selectedCategory]);
+
   // Load products whenever filters change
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
@@ -135,13 +147,13 @@ const ShopWithBackendFilters: React.FC = () => {
     }, 500); // Debounce for search input and price slider
 
     return () => clearTimeout(debounceTimer);
-  }, [searchQuery, selectedCategory, selectedProductType, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage, isTestMode]);
+  }, [searchQuery, selectedCategory, selectedSubcategory, selectedProductType, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage, isTestMode]);
 
   const loadCategories = () => {
     if (isTestMode) {
       setCategories(mockCategories);
     } else {
-      getCategories()
+      getMainCategories()
         .then((data: any) => {
           if (data && !data.error) {
             setCategories(data);
@@ -160,6 +172,19 @@ const ShopWithBackendFilters: React.FC = () => {
         }
       } catch (err) {
         console.log('Error loading product types:', err);
+      }
+    }
+  };
+
+  const loadSubcategories = async (categoryId: string) => {
+    if (!isTestMode) {
+      try {
+        const subs = await getSubcategories(categoryId);
+        if (subs && !subs.error) {
+          setSubcategories(subs);
+        }
+      } catch (err) {
+        console.log('Error loading subcategories:', err);
       }
     }
   };
@@ -205,6 +230,7 @@ const ShopWithBackendFilters: React.FC = () => {
       const response = await getFilteredProducts({
         search: searchQuery,
         category: selectedCategory,
+        subcategory: selectedSubcategory !== 'all' ? selectedSubcategory : undefined,
         productType: selectedProductType,
         minPrice: priceRange[0],
         maxPrice: priceRange[1],
@@ -514,6 +540,38 @@ const ShopWithBackendFilters: React.FC = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Subcategories - show only when a category is selected */}
+              {selectedCategory !== 'all' && subcategories.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-3">Subcategories</h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setSelectedSubcategory('all')}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        selectedSubcategory === 'all'
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'hover:bg-gray-700'
+                      }`}
+                    >
+                      <span>All Subcategories</span>
+                    </button>
+                    {subcategories.map(subcategory => (
+                      <button
+                        key={subcategory._id}
+                        onClick={() => setSelectedSubcategory(subcategory._id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                          selectedSubcategory === subcategory._id
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'hover:bg-gray-700'
+                        }`}
+                      >
+                        <span>{subcategory.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Product Types */}
               <div className="mb-6">

@@ -2,6 +2,7 @@ import { API } from '../../backend';
 export const getFilteredProducts = async (filters: {
   search?: string;
   category?: string;
+  subcategory?: string;
   productType?: string;
   minPrice?: number;
   maxPrice?: number;
@@ -19,6 +20,7 @@ export const getFilteredProducts = async (filters: {
     
     if (filters.search) queryParams.append('search', filters.search);
     if (filters.category && filters.category !== 'all') queryParams.append('category', filters.category);
+    if (filters.subcategory && filters.subcategory !== 'all') queryParams.append('subcategory', filters.subcategory);
     if (filters.productType && filters.productType !== 'all') queryParams.append('productType', filters.productType);
     if (filters.minPrice) queryParams.append('minPrice', filters.minPrice.toString());
     if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice.toString());

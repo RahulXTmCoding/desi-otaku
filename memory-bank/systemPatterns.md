@@ -445,6 +445,80 @@ const handleCartClick = () => {
 };
 ```
 
+## Hierarchical Category Pattern
+
+### Category Structure
+```typescript
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+  parentCategory?: string | null;
+  level: number; // 0 for main, 1 for sub
+  icon?: string;
+  isActive: boolean;
+}
+```
+
+### Category API Patterns
+```typescript
+// Get only main categories (level 0)
+export const getMainCategories = () => {
+  return fetch(`${API}/categories/main`)
+    .then(response => response.json());
+};
+
+// Get subcategories for a parent
+export const getSubcategories = (parentId: string) => {
+  return fetch(`${API}/categories/${parentId}/subcategories`)
+    .then(response => response.json());
+};
+
+// Get full category tree
+export const getCategoryTree = () => {
+  return fetch(`${API}/categories/tree`)
+    .then(response => response.json());
+};
+```
+
+### Admin Category Management
+```typescript
+// Hierarchical tree display with expand/collapse
+const CategoryTreeItem = ({ categories, level }) => {
+  return categories.map(category => (
+    <div style={{ marginLeft: `${level * 2}rem` }}>
+      <button onClick={() => toggleExpand(category._id)}>
+        {hasSubcategories ? <ChevronRight /> : null}
+        {category.name}
+      </button>
+      {isExpanded && category.subcategories && (
+        <CategoryTreeItem 
+          categories={category.subcategories} 
+          level={level + 1} 
+        />
+      )}
+    </div>
+  ));
+};
+```
+
+### Database Query Patterns
+```typescript
+// Include old categories without new fields
+Category.find({ 
+  $or: [
+    { isActive: true }, 
+    { isActive: { $exists: false } }
+  ]
+});
+
+// Shop page: Show only main categories
+Category.find({ 
+  parentCategory: null,
+  $or: [{ isActive: true }, { isActive: { $exists: false } }]
+});
+```
+
 ## Best Practices Summary
 
 1. **Always break large components into smaller modules**
@@ -463,6 +537,8 @@ const handleCartClick = () => {
 14. **Implement comprehensive form validation with real-time feedback**
 15. **Use intelligent algorithms for product recommendations**
 16. **Design mobile-first responsive layouts**
+17. **Support hierarchical data structures (categories/subcategories)**
+18. **Handle backward compatibility for schema changes**
 
 ## Testing Utilities
 

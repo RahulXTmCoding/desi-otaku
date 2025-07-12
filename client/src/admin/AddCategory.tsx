@@ -1,18 +1,59 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ChevronLeft, FolderPlus, CheckCircle, AlertCircle } from 'lucide-react';
+import { ChevronLeft, FolderPlus, CheckCircle, AlertCircle, Folder } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
-import { createCategory, mockCreateCategory } from "./helper/adminapicall";
+import { createCategory, mockCreateCategory, getCategories } from "./helper/adminapicall";
+import { getMainCategories } from "../core/helper/coreapicalls";
 import { useDevMode } from "../context/DevModeContext";
+
+interface Category {
+  _id: string;
+  name: string;
+  parentCategory?: string | null;
+  level?: number;
+}
 
 const AddCategory = () => {
   const [name, setName] = useState("");
+  const [parentCategory, setParentCategory] = useState<string>("");
+  const [icon, setIcon] = useState("📁");
+  const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [error, setError] = useState(false);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const auth = isAutheticated();
+
+  // Common emoji icons for categories
+  const categoryIcons = [
+    "📁", "🎯", "🌟", "🔥", "⚡", "🎨", "🎮", "🎵", 
+    "📸", "🎬", "🍕", "☕", "🏆", "💎", "🚀", "🌈"
+  ];
+
+  useEffect(() => {
+    loadMainCategories();
+  }, [isTestMode]);
+
+  const loadMainCategories = async () => {
+    if (isTestMode) {
+      // Mock categories
+      setMainCategories([
+        { _id: "1", name: "Anime", level: 0 },
+        { _id: "2", name: "Brand", level: 0 },
+        { _id: "3", name: "Seasonal", level: 0 }
+      ]);
+    } else {
+      try {
+        const data = await getMainCategories();
+        if (data && !data.error) {
+          setMainCategories(data);
+        }
+      } catch (err) {
+        console.log("Error loading categories:", err);
+      }
+    }
+  };
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError(false);
@@ -31,9 +72,16 @@ const AddCategory = () => {
       return;
     }
 
+    const categoryData = {
+      name,
+      parentCategory: parentCategory || null,
+      icon,
+      isActive: true
+    };
+
     if (isTestMode) {
       // Use mock function
-      mockCreateCategory({ name }).then((data: any) => {
+      mockCreateCategory(categoryData).then((data: any) => {
         setLoading(false);
         if (data.error) {
           setError(true);
@@ -41,13 +89,14 @@ const AddCategory = () => {
           setError(false);
           setSuccess(true);
           setName("");
+          setIcon("📁");
           // Reset success message after 3 seconds
           setTimeout(() => setSuccess(false), 3000);
         }
       });
     } else if (auth && auth.user && auth.token) {
       // Use real backend
-      createCategory(auth.user._id, auth.token, { name }).then((data: any) => {
+      createCategory(auth.user._id, auth.token, categoryData).then((data: any) => {
         setLoading(false);
         if (data.error) {
           setError(true);
@@ -55,6 +104,11 @@ const AddCategory = () => {
           setError(false);
           setSuccess(true);
           setName("");
+          setIcon("📁");
+          // Reload categories if subcategory was created
+          if (parentCategory) {
+            loadMainCategories();
+          }
           // Reset success message after 3 seconds
           setTimeout(() => setSuccess(false), 3000);
         }
@@ -103,6 +157,54 @@ const AddCategory = () => {
 
           {/* Form */}
           <form onSubmit={onSubmit} className="space-y-6">
+            {/* Category Type Selection */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <button
+                type="button"
+                onClick={() => setParentCategory("")}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  !parentCategory 
+                    ? 'border-yellow-400 bg-yellow-400/10' 
+                    : 'border-gray-600 hover:border-gray-500'
+                }`}
+              >
+                <Folder className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
+                <p className="font-medium">Main Category</p>
+                <p className="text-xs text-gray-400 mt-1">Top-level category</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setParentCategory(mainCategories[0]?._id || "")}
+                className={`p-4 rounded-lg border-2 transition-all ${
+                  parentCategory 
+                    ? 'border-yellow-400 bg-yellow-400/10' 
+                    : 'border-gray-600 hover:border-gray-500'
+                }`}
+              >
+                <FolderPlus className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
+                <p className="font-medium">Subcategory</p>
+                <p className="text-xs text-gray-400 mt-1">Under existing category</p>
+              </button>
+            </div>
+
+            {/* Parent Category Selection (for subcategories) */}
+            {parentCategory && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Parent Category
+                </label>
+                <select
+                  value={parentCategory}
+                  onChange={(e) => setParentCategory(e.target.value)}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white"
+                >
+                  {mainCategories.map(cat => (
+                    <option key={cat._id} value={cat._id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Category Name
@@ -112,13 +214,36 @@ const AddCategory = () => {
                 value={name}
                 onChange={handleChange}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
-                placeholder="For example: Summer, Anime, Limited Edition"
+                placeholder={parentCategory ? "For example: One Piece, Nike, Winter" : "For example: Anime, Brand, Seasonal"}
                 autoFocus
                 required
               />
               <p className="text-xs text-gray-400 mt-2">
-                Choose a descriptive name for your category
+                Choose a descriptive name for your {parentCategory ? 'subcategory' : 'category'}
               </p>
+            </div>
+
+            {/* Icon Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Category Icon
+              </label>
+              <div className="grid grid-cols-8 gap-2">
+                {categoryIcons.map(emoji => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setIcon(emoji)}
+                    className={`p-3 rounded-lg border-2 transition-all text-2xl ${
+                      icon === emoji
+                        ? 'border-yellow-400 bg-yellow-400/10'
+                        : 'border-gray-600 hover:border-gray-500'
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="flex gap-4">
