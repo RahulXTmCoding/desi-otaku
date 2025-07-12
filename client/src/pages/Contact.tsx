@@ -116,6 +116,30 @@ const Contact: React.FC = () => {
                 Send Message
               </button>
             </form>
+            
+            <div className="mt-8 border-t border-gray-700 pt-6">
+              <h3 className="text-lg font-bold mb-4">You can also contact us for:</h3>
+              <ul className="space-y-3 text-gray-300">
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-400 font-bold">•</span>
+                  <span>
+                    <strong>Bulk Orders:</strong> Planning an event or need a large quantity? We offer special pricing for bulk purchases.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-400 font-bold">•</span>
+                  <span>
+                    <strong>Custom Design Prints:</strong> Have a unique idea? We can print your custom designs on our high-quality t-shirts.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-yellow-400 font-bold">•</span>
+                  <span>
+                    <strong>Returns & Exchanges:</strong> Questions about a return or need to exchange an item? Our team is here to assist you.
+                  </span>
+                </li>
+              </ul>
+            </div>
           </div>
 
           {/* Contact Information */}
