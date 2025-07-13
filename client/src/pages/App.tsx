@@ -7,6 +7,7 @@ import AdminRoute from "../auth/helper/AdminRoutes";
 import DevModeToggle from '../components/DevModeToggle';
 
 // Lazy load all pages
+const HomeEnhanced = lazy(() => import('./HomeEnhanced'));
 const Home = lazy(() => import('../core/Home'));
 const ShopWithBackendFilters = lazy(() => import('../pages/ShopWithBackendFilters'));
 const Contact = lazy(() => import('../pages/Contact'));
@@ -58,7 +59,7 @@ export default function App() {
       <main className="flex-grow">
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<HomeEnhanced />} />
             <Route path="/shop" element={<ShopWithBackendFilters />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/contact" element={<Contact />} />
