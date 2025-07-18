@@ -46,7 +46,7 @@ const ReviewCarousel: React.FC<ReviewCarouselProps> = ({ reviews }) => {
   if (reviews.length === 0) return null;
 
   return (
-    <section className="bg-gray-800/50 py-16 px-6">
+    <section className="py-16 px-6" style={{ backgroundColor: 'var(--color-background)' }}>
       <div className="w-[96%] mx-auto">
         <h2 className="text-3xl font-bold text-center mb-12">
           Reviews From Our Otaku's

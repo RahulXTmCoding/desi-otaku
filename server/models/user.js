@@ -1,13 +1,53 @@
 //import mongoose from "mongoose";
 const mongoose = require("mongoose");
-var { Schema } = mongoose;
+var { Schema, ObjectId } = mongoose;
 //const { createHmac } = await import("node:crypto");
 const crypto = require("crypto");
 
 const { v4: uuidv4 } = require("uuid");
 
-// Has defined the architecture of the user database
+// Address Schema
+const addressSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  phone: {
+    type: String,
+    required: true,
+  },
+  addressLine1: {
+    type: String,
+    required: true,
+  },
+  addressLine2: String,
+  city: {
+    type: String,
+    required: true,
+  },
+  state: {
+    type: String,
+    required: true,
+  },
+  country: {
+    type: String,
+    default: 'India',
+  },
+  pinCode: {
+    type: String,
+    required: true,
+  },
+  isDefault: {
+    type: Boolean,
+    default: false,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  }
+});
 
+// Has defined the architecture of the user database
 var userSchema = new Schema(
   {
     name: {
@@ -48,85 +88,64 @@ var userSchema = new Schema(
       type: Number,
       default: 0,
     },
-
-    purchases: {
-      type: Array,
-      default: [],
+    photo: {
+      data: Buffer,
+      contentType: String,
     },
-
-    // Password reset fields
-    resetPasswordToken: String,
-    resetPasswordExpire: Date,
-
-    // Additional profile fields
-    phone: {
+    oauthId: {
       type: String,
-      trim: true,
+      sparse: true,
     },
-    address: {
+    oauthProvider: {
       type: String,
-      trim: true,
     },
-    city: {
+    facebookId: {
       type: String,
-      trim: true,
+      sparse: true,
     },
-    state: {
+    googleId: {
       type: String,
-      trim: true,
+      sparse: true,
     },
-    country: {
-      type: String,
-      trim: true,
-    },
-    pincode: {
-      type: String,
-      trim: true,
-    },
-    dob: {
+    accountCreatedOn: {
       type: Date,
+      default: Date.now,
     },
-    
-    // Saved addresses array
-    addresses: [{
-      fullName: {
-        type: String,
-        required: true,
+    purchases: [
+      {
+        type: ObjectId,
+        ref: "Order",
       },
-      email: String,
-      phone: {
-        type: String,
-        required: true,
-      },
-      address: {
-        type: String,
-        required: true,
-      },
-      city: {
-        type: String,
-        required: true,
-      },
-      state: {
-        type: String,
-        required: true,
-      },
-      country: {
-        type: String,
-        default: 'India',
-      },
-      pinCode: {
-        type: String,
-        required: true,
-      },
-      isDefault: {
+    ],
+    addresses: [addressSchema],
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+    lastLogin: Date,
+    dateOfBirth: Date,
+    gender: String,
+    preferences: {
+      newsletter: {
         type: Boolean,
-        default: false,
+        default: true,
       },
-      createdAt: {
-        type: Date,
-        default: Date.now,
-      }
-    }],
+      smsNotifications: {
+        type: Boolean,
+        default: true,
+      },
+    },
+    rewardPoints: {
+      type: Number,
+      default: 0,
+      min: 0
+    },
     
     // Account status
     isActive: {

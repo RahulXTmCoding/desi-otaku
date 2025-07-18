@@ -1,3 +1,43 @@
+@import './styles/theme.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Additional theme overrides for common patterns */
+.bg-gray-900, 
+.dark\:bg-gray-900 {
+  background-color: var(--color-background) !important;
+}
+
+.bg-gray-800,
+.dark\:bg-gray-800 {
+  background-color: var(--color-surface) !important;
+}
+
+.text-white,
+.dark\:text-white {
+  color: var(--color-text) !important;
+}
+
+.text-gray-400,
+.dark\:text-gray-400 {
+  color: var(--color-textMuted) !important;
+}
+
+/* Primary color overrides */
+.bg-yellow-400,
+.from-yellow-400 {
+  background-color: var(--color-primary) !important;
+}
+
+.bg-gradient-to-r,
+.bg-gradient-to-br {
+  background-image: linear-gradient(to right, var(--color-primary), var(--color-primaryHover)) !important;
+}
+
+/* Border overrides */
+.border-gray-700,
+.border-gray-800 {
+  border-color: var(--color-border) !important;
+}

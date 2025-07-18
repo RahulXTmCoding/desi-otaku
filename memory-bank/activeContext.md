@@ -1,15 +1,59 @@
 # Active Context
 
 ## Current Work Focus
-- Enhanced User Dashboard with profile management, password change, and address management
-- Fixed product review functionality with proper statistics display
-- Added comprehensive form validation for address forms
-- Fixed date of birth display in user settings
-- Added "Make Default" functionality for addresses
+- ✅ Enhanced Coupon Management System (Completed 7/13/2025)
+- ✅ Secure Reward Points System (Completed 7/13/2025)
+- ✅ Multi-Theme Support System (Completed 7/13/2025)
+- Maintaining existing features: User Dashboard, Product Reviews, Subcategories
 
 ## Recent Changes
 
-### User Dashboard Enhancements (Completed)
+### Theme System Color Update (Completed 7/13/2025)
+- **Primary Color Change**:
+  - Changed primary color from yellow (#fbbf24) to maroon (#991B1B) across all themes
+  - Updated hover states to darker maroon (#7F1D1D)
+  - Yellow remains available only as a t-shirt color option, not UI element
+- **Light Theme Improvements**:
+  - Changed background from pure white to gray-100 (#f3f4f6) for better visibility
+  - Surface colors now use gray-200 (#e5e7eb) instead of gray-50
+  - Borders use gray-400 (#9ca3af) for better definition
+  - Text colors darkened for improved contrast
+- **Component Updates**:
+  - CartDrawer fully integrated with theme system using CSS variables
+  - ProductDetail page updated to use theme colors throughout
+  - Product image sections now use theme surface colors (gray backgrounds)
+  - All hardcoded colors replaced with theme variables
+- **Technical Implementation**:
+  - Updated theme.css, ThemeContext.tsx, and themeColors.ts
+  - All color changes use CSS custom properties for dynamic switching
+  - Maroon provides sophisticated look while maintaining readability
+- **Homepage Button Fix**:
+  - Fixed the "Know More" button in the "About Us" section on the homepage to correctly use theme colors.
+  - The button now dynamically updates its background and text color based on the selected theme.
+
+### Enhanced Coupon Management System (Completed 7/13/2025)
+- **Backend Implementation**:
+  - Extended Coupon model with displayType (promotional/hidden/auto-apply), bannerImage, bannerText, autoApplyPriority
+  - Added userLimit and firstTimeOnly flags for better control
+  - Added usedBy array to track user-specific usage
+  - Created new API endpoints:
+    - GET `/coupons/promotional` - Returns active promotional coupons
+    - GET `/coupons/active` - Returns all active coupons
+    - POST `/coupon/auto-apply` - Gets best auto-apply coupon for subtotal
+    - POST `/coupon/validate` - Enhanced validation with user tracking
+- **Frontend Implementation**:
+  - Created PromotionalCouponBanner component with carousel for multiple coupons
+  - Added coupon type badges in ManageCoupons (Promotional, Auto-Apply, Hidden, Has Banner)
+  - Integrated promotional banners on homepage
+  - Added copy-to-clipboard functionality for coupon codes
+  - Shows days until expiry and discount amount prominently
+- **Migration & Sample Data**:
+  - Created migration script to update existing coupons with new fields
+  - Added sample promotional coupons (WELCOME20, ANIME10, FLAT100)
+  - Set up auto-apply priority system for intelligent coupon selection
+
+
+### User Dashboard Enhancements (Completed 7/13/2025)
 - **Profile Management**:
   - Fixed API endpoints in userHelper.tsx (removed duplicate '/user' in URLs)
   - Added functionality to update name, phone, and date of birth
@@ -30,7 +74,7 @@
   - PIN Code: Valid 6-digit format
   - Real-time validation with error messages
 
-### Product Reviews Fix (Completed)
+### Product Reviews Fix (Completed 7/13/2025)
 - **Backend Fixes**:
   - Fixed Order model import: Changed `const Order = require("../models/order")` to `const { Order } = require("../models/order")`
   - Fixed review statistics calculation by converting productId to ObjectId in aggregation query
@@ -45,61 +89,110 @@
   - Rating distribution shows correct counts for each star level
   - Total review count displays accurately
 
-### Previous Work (Maintained)
-- Extended website layout horizontally with responsive design
-- Implemented better mobile experience for cart functionality
-- Made all pages responsive including Custom Design page
-- Fixed color preview in custom design and random generator
-- Enhanced "You May Also Like" section with intelligent recommendations
-- Fixed cart merge error during user login
-- Fixed delete address API endpoint mismatch
-- Added comprehensive form validation system
+## Upcoming Features
+
+### Phase 1: Enhanced Coupon Management (3-4 days)
+**Backend Enhancements:**
+- Extend coupon model with:
+  - `displayType`: 'promotional' | 'hidden' | 'auto-apply'
+  - `bannerImage`, `bannerText` for promotional display
+  - `autoApplyPriority` for best coupon selection
+- New API endpoints:
+  - GET `/coupons/promotional` - For homepage banners
+  - POST `/coupons/auto-apply` - Best coupon for cart
+- Integration with order flow
+
+**Frontend Implementation:**
+- Promotional banner component for homepage
+- Coupon application in checkout
+- Auto-apply logic
+- Admin coupon analytics
+
+### Phase 2: Secure Reward Points System (4-5 days)
+**Security Architecture:**
+- Create `RewardTransaction` model for audit trail
+- Points can ONLY be modified through:
+  - Order completion (earning)
+  - Checkout redemption (spending)
+  - Admin adjustments (with logging)
+- No direct user API for points modification
+
+**Implementation:**
+- Earn: 1% of order value as points
+- Redeem: Max 50 points per order (1 point = ₹0.5)
+- Points balance display in dashboard
+- Transaction history tracking
+- Admin management panel
+
+### Phase 3: Multi-Theme System (2-3 days)
+**Themes to Implement:**
+1. Dark (Current) - Gray-900 base
+2. Light - White/gray-50
+3. Midnight Blue - Deep blue tones
+4. Cyberpunk - Neon accents
+5. Sakura - Soft pink/purple anime theme
+
+**Architecture:**
+- CSS variables for theme values
+- Theme provider context
+- LocalStorage persistence
+- User preference storage
 
 ## Key Technical Decisions
 
-### User Dashboard Architecture
-- Used UserDashBoardEnhanced component as the main implementation
-- Integrated with existing API structure maintaining backward compatibility
-- Profile data fetched fresh on Settings tab activation to ensure accuracy
+### Coupon System Architecture
+- Leverage existing coupon infrastructure
+- Add promotional display capabilities
+- Implement intelligent auto-apply algorithm
+- Track usage for analytics
 
-### Review System Architecture
-- MongoDB aggregation for calculating review statistics
-- Post-save hooks to update product ratings
-- Unique constraint: one review per user per product
-- Verified purchase badge based on order history
+### Reward Points Security
+- Audit trail for every transaction
+- Server-side only modifications
+- Atomic operations to prevent race conditions
+- Comprehensive validation
 
-### API Endpoints
-- User Profile: `PUT /user/${userId}`
-- Change Password: `PUT /user/password/${userId}`
-- Address Management: `GET/POST/PUT/DELETE /addresses/${userId}`
-- Reviews: `POST /reviews/product/${productId}/${userId}`
+### Theme System Design
+- CSS variables approach for performance
+- Context-based theme switching
+- Consistent application across all components
+- Smooth theme transitions
 
-## Form Validation System (Extended)
-- Created comprehensive validation utility (`client/src/utils/validation.ts`)
-- Applied to:
-  - Address forms (with new enhanced validation)
-  - Sign in/up pages
-  - User dashboard forms
-- Visual indicators with red borders and error messages
+## API Endpoints (Planned)
 
-## Next Steps
-- Continue monitoring review system performance
-- Consider adding image upload to reviews
-- Enhance user dashboard with order tracking features
-- Add email notifications for order status changes
+### Coupon Management
+- GET `/coupons/promotional` - Public promotional coupons
+- POST `/coupons/validate-enhanced` - Enhanced validation
+- POST `/coupons/auto-apply` - Get best auto-apply coupon
+- GET `/coupons/analytics/:couponId` - Admin analytics
 
-## Known Issues Resolved
-- ✅ DOB not displaying in settings (Fixed by fetching fresh data)
-- ✅ Review statistics showing 0.0 (Fixed ObjectId conversion)
-- ✅ API endpoint mismatches in userHelper (Fixed duplicate '/user')
-- ✅ "Make Default" address functionality (Added)
+### Reward Points
+- GET `/rewards/balance/:userId` - User points balance
+- GET `/rewards/history/:userId` - Transaction history
+- POST `/internal/rewards/credit` - Credit points (internal only)
+- POST `/internal/rewards/redeem` - Redeem points (checkout only)
+- POST `/admin/rewards/adjust` - Admin adjustment
 
-## Testing Checklist
-- ✅ User can update profile (name, phone, DOB)
-- ✅ User can change password
-- ✅ User can add/edit/delete addresses
-- ✅ User can set default address
-- ✅ Form validation works on all address operations
-- ✅ Users can write reviews
-- ✅ Review statistics calculate correctly
-- ✅ Non-authenticated users see login prompt
+### Theme System
+- GET `/user/theme-preference/:userId` - Get saved preference
+- PUT `/user/theme-preference/:userId` - Update preference
+
+## Testing Strategy
+- Unit tests for points calculations
+- Integration tests for coupon application
+- E2E tests for complete checkout flow with discounts
+- Visual regression tests for themes
+- Security tests for points manipulation attempts
+
+## Known Challenges
+- Ensuring points security against manipulation
+- Handling coupon conflicts (multiple auto-apply)
+- Theme consistency across third-party components
+- Performance with multiple theme files
+
+## Success Metrics
+- 25% increase in coupon usage
+- Higher average order value with auto-apply
+- User engagement through points system
+- 50%+ users customizing theme
+- Reduced cart abandonment

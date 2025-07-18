@@ -1,0 +1,262 @@
+/* Theme CSS Variables */
+:root {
+  /* Default to dark theme */
+  --color-background: #111827;
+  --color-surface: #1f2937;
+  --color-surfaceHover: #374151;
+  --color-border: #374151;
+  --color-borderHover: #4b5563;
+  --color-text: #f9fafb;
+  --color-textMuted: #9ca3af;
+  --color-textInverse: #111827;
+  --color-primary: #991B1B;
+  --color-primaryHover: #7F1D1D;
+  --color-primaryText: #111827;
+  --color-success: #10b981;
+  --color-warning: #991B1B;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+  --color-gradient: from-red-800 to-red-900;
+  --color-shadow: rgba(153, 27, 27, 0.1);
+}
+
+/* Theme-specific styles */
+body {
+  background-color: var(--color-background) !important;
+  color: var(--color-text) !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Override Tailwind dark theme backgrounds */
+.bg-gray-900 {
+  background-color: var(--color-background) !important;
+}
+
+.bg-gray-800 {
+  background-color: var(--color-surface) !important;
+}
+
+.bg-gray-700 {
+  background-color: var(--color-surfaceHover) !important;
+}
+
+.border-gray-800, .border-gray-700 {
+  border-color: var(--color-border) !important;
+}
+
+.text-white, .text-gray-50 {
+  color: var(--color-text) !important;
+}
+
+.text-gray-400 {
+  color: var(--color-textMuted) !important;
+}
+
+.bg-yellow-400 {
+  background-color: var(--color-primary) !important;
+}
+
+.text-gray-900 {
+  color: var(--color-primaryText) !important;
+}
+
+/* Header specific overrides */
+nav.bg-gray-900 {
+  background-color: var(--color-background) !important;
+}
+
+/* Header text visibility fixes */
+header a,
+header button,
+nav a,
+nav button {
+  color: var(--color-text) !important;
+}
+
+/* Product card fixes - ensure full opacity */
+.group,
+[class*="ProductCard"],
+[class*="product-card"] {
+  opacity: 1 !important;
+}
+
+/* Button and card overrides */
+.hover\:bg-gray-700:hover {
+  background-color: var(--color-surfaceHover) !important;
+}
+
+.hover\:bg-gray-800:hover {
+  background-color: var(--color-surface) !important;
+}
+
+/* Section background fixes */
+section {
+  opacity: 1 !important;
+}
+
+/* Gradient section fixes */
+.bg-gradient-to-br,
+.bg-gradient-to-r {
+  opacity: 1 !important;
+}
+
+/* Transparent backgrounds that should use theme colors */
+.bg-gray-800\/30 {
+  background-color: var(--color-surface) !important;
+  opacity: 0.3 !important;
+}
+
+.bg-gray-800\/50 {
+  background-color: var(--color-surface) !important;
+  opacity: 0.5 !important;
+}
+
+/* Utility classes for theme colors */
+.theme-bg {
+  background-color: var(--color-background);
+}
+
+.theme-surface {
+  background-color: var(--color-surface);
+}
+
+.theme-surface-hover:hover {
+  background-color: var(--color-surfaceHover);
+}
+
+.theme-border {
+  border-color: var(--color-border);
+}
+
+.theme-border-hover:hover {
+  border-color: var(--color-borderHover);
+}
+
+.theme-text {
+  color: var(--color-text);
+}
+
+.theme-text-muted {
+  color: var(--color-textMuted);
+}
+
+.theme-text-inverse {
+  color: var(--color-textInverse);
+}
+
+.theme-primary {
+  background-color: var(--color-primary);
+  color: var(--color-primaryText);
+}
+
+.theme-primary-hover:hover {
+  background-color: var(--color-primaryHover);
+}
+
+.theme-success {
+  color: var(--color-success);
+}
+
+.theme-warning {
+  color: var(--color-warning);
+}
+
+.theme-error {
+  color: var(--color-error);
+}
+
+.theme-info {
+  color: var(--color-info);
+}
+
+/* Theme-specific animations */
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Cyberpunk theme special effects */
+body.theme-cyberpunk {
+  position: relative;
+}
+
+body.theme-cyberpunk::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 255, 136, 0.03) 2px,
+      rgba(0, 255, 136, 0.03) 4px
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+body.theme-cyberpunk .theme-primary {
+  text-shadow: 0 0 10px currentColor;
+  box-shadow: 0 0 20px var(--color-primary);
+}
+
+/* Sakura theme special effects */
+body.theme-sakura {
+  position: relative;
+  overflow-x: hidden;
+}
+
+body.theme-sakura::after {
+  content: '🌸';
+  position: fixed;
+  font-size: 20px;
+  animation: sakura-fall 10s linear infinite;
+  opacity: 0.1;
+  pointer-events: none;
+  z-index: 1;
+}
+
+@keyframes sakura-fall {
+  0% {
+    top: -50px;
+    left: calc(100% * var(--random-x));
+    transform: translateX(0) rotate(0deg);
+  }
+  100% {
+    top: 100vh;
+    transform: translateX(100px) rotate(360deg);
+  }
+}
+
+/* Theme-aware scrollbar */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-borderHover);
+}
+
+/* Theme-aware selection */
+::selection {
+  background-color: var(--color-primary);
+  color: var(--color-primaryText);
+}
+
+::-moz-selection {
+  background-color: var(--color-primary);
+  color: var(--color-primaryText);
+}

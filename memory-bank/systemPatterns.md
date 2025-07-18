@@ -108,6 +108,318 @@ const processProducts = products.map(product => {
 - **Session Storage**: For temporary data persistence
 - **Local Storage**: For user preferences
 
+## Enhanced Coupon System Patterns (New)
+
+### Coupon Display Types
+```typescript
+interface EnhancedCoupon extends Coupon {
+  displayType: 'promotional' | 'hidden' | 'auto-apply';
+  bannerImage?: string;
+  bannerText?: string;
+  autoApplyPriority?: number;
+}
+```
+
+### Auto-Apply Algorithm
+```typescript
+const getBestAutoApplyCoupon = async (cartTotal: number, userId?: string) => {
+  const eligibleCoupons = await Coupon.find({
+    displayType: 'auto-apply',
+    isActive: true,
+    minimumPurchase: { $lte: cartTotal },
+    $or: [
+      { validUntil: { $gte: new Date() } },
+      { validUntil: null }
+    ]
+  }).sort({ autoApplyPriority: -1, discountValue: -1 });
+  
+  // Check user eligibility for each coupon
+  for (const coupon of eligibleCoupons) {
+    if (await isUserEligible(coupon, userId)) {
+      return coupon;
+    }
+  }
+  return null;
+};
+```
+
+### Promotional Banner Pattern
+```typescript
+// Homepage component
+const PromotionalBanner = () => {
+  const [promotionalCoupons, setPromotionalCoupons] = useState([]);
+  
+  useEffect(() => {
+    fetchPromotionalCoupons().then(setPromotionalCoupons);
+  }, []);
+  
+  return (
+    <div className="promotional-banner-carousel">
+      {promotionalCoupons.map(coupon => (
+        <div key={coupon._id} className="banner-slide">
+          <img src={coupon.bannerImage} alt={coupon.code} />
+          <div className="banner-content">
+            <h3>{coupon.bannerText}</h3>
+            <p>Use code: {coupon.code}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+```
+
+## Secure Reward Points Patterns (New)
+
+### Points Transaction Model
+```typescript
+interface RewardTransaction {
+  userId: ObjectId;
+  type: 'earned' | 'redeemed' | 'expired' | 'admin_adjustment';
+  points: number;
+  orderId?: ObjectId;
+  description: string;
+  balance: number; // Balance after transaction
+  metadata: {
+    orderAmount?: number;
+    adminId?: ObjectId;
+    reason?: string;
+  };
+  createdAt: Date;
+}
+```
+
+### Secure Points Service
+```typescript
+class RewardPointsService {
+  // Called ONLY from order controller after payment success
+  async creditPoints(userId: string, orderId: string, amount: number) {
+    const order = await Order.findById(orderId);
+    
+    // Verify order exists and is paid
+    if (!order || order.status !== 'paid') {
+      throw new Error('Invalid order for points credit');
+    }
+    
+    // Calculate points (1% of order value)
+    const pointsToCredit = Math.floor(amount * 0.01);
+    
+    // Create transaction record
+    const transaction = await RewardTransaction.create({
+      userId,
+      type: 'earned',
+      points: pointsToCredit,
+      orderId,
+      description: `Earned from order ${orderId}`,
+      metadata: { orderAmount: amount }
+    });
+    
+    // Update user points atomically
+    await User.findByIdAndUpdate(
+      userId,
+      { 
+        $inc: { 
+          rewardPoints: pointsToCredit,
+          totalPointsEarned: pointsToCredit 
+        }
+      },
+      { session } // Use MongoDB session for atomicity
+    );
+    
+    return transaction;
+  }
+  
+  // Called ONLY during checkout
+  async redeemPoints(userId: string, pointsToRedeem: number, orderId: string) {
+    const user = await User.findById(userId);
+    
+    // Verify user has sufficient points
+    if (!user || user.rewardPoints < pointsToRedeem) {
+      throw new Error('Insufficient points');
+    }
+    
+    // Max 50 points per order
+    const actualRedemption = Math.min(pointsToRedeem, 50);
+    
+    // Create redemption transaction
+    const transaction = await RewardTransaction.create({
+      userId,
+      type: 'redeemed',
+      points: -actualRedemption,
+      orderId,
+      description: `Redeemed for order ${orderId}`,
+      balance: user.rewardPoints - actualRedemption
+    });
+    
+    // Deduct points atomically
+    await User.findByIdAndUpdate(
+      userId,
+      { $inc: { rewardPoints: -actualRedemption } },
+      { session }
+    );
+    
+    return transaction;
+  }
+}
+```
+
+### Points Display Pattern
+```typescript
+// User dashboard component
+const PointsBalance = () => {
+  const [balance, setBalance] = useState(0);
+  const [history, setHistory] = useState([]);
+  
+  return (
+    <div className="points-widget">
+      <div className="points-balance">
+        <h3>Reward Points</h3>
+        <p className="text-3xl font-bold text-yellow-400">{balance}</p>
+        <p className="text-sm text-gray-400">₹{balance * 0.5} value</p>
+      </div>
+      <TransactionHistory transactions={history} />
+    </div>
+  );
+};
+```
+
+## Multi-Theme System Patterns (New)
+
+### Theme Configuration
+```typescript
+// themes/config.ts
+export const themes = {
+  dark: {
+    name: 'Dark',
+    colors: {
+      'bg-primary': '#111827',
+      'bg-secondary': '#1F2937',
+      'bg-card': '#374151',
+      'text-primary': '#FFFFFF',
+      'text-secondary': '#D1D5DB',
+      'accent': '#FCD34D',
+      'border': '#4B5563'
+    }
+  },
+  light: {
+    name: 'Light',
+    colors: {
+      'bg-primary': '#FFFFFF',
+      'bg-secondary': '#F9FAFB',
+      'bg-card': '#F3F4F6',
+      'text-primary': '#111827',
+      'text-secondary': '#6B7280',
+      'accent': '#F59E0B',
+      'border': '#E5E7EB'
+    }
+  },
+  midnightBlue: {
+    name: 'Midnight Blue',
+    colors: {
+      'bg-primary': '#0F172A',
+      'bg-secondary': '#1E293B',
+      'bg-card': '#334155',
+      'text-primary': '#F8FAFC',
+      'text-secondary': '#CBD5E1',
+      'accent': '#3B82F6',
+      'border': '#475569'
+    }
+  },
+  cyberpunk: {
+    name: 'Cyberpunk',
+    colors: {
+      'bg-primary': '#0A0A0A',
+      'bg-secondary': '#1A1A1A',
+      'bg-card': '#2A2A2A',
+      'text-primary': '#FFFFFF',
+      'text-secondary': '#C0C0C0',
+      'accent': '#FF0080',
+      'border': '#FF00FF'
+    }
+  },
+  sakura: {
+    name: 'Sakura',
+    colors: {
+      'bg-primary': '#FFF0F5',
+      'bg-secondary': '#FFE4E1',
+      'bg-card': '#FFC0CB',
+      'text-primary': '#4A0E4E',
+      'text-secondary': '#8B4789',
+      'accent': '#FF69B4',
+      'border': '#FFB6C1'
+    }
+  }
+};
+```
+
+### Theme Provider Pattern
+```typescript
+// context/ThemeContext.tsx
+const ThemeProvider = ({ children }) => {
+  const [theme, setTheme] = useState('dark');
+  
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    setTheme(savedTheme);
+    applyTheme(savedTheme);
+  }, []);
+  
+  const applyTheme = (themeName: string) => {
+    const themeConfig = themes[themeName];
+    const root = document.documentElement;
+    
+    Object.entries(themeConfig.colors).forEach(([key, value]) => {
+      root.style.setProperty(`--color-${key}`, value);
+    });
+    
+    root.setAttribute('data-theme', themeName);
+  };
+  
+  const switchTheme = (newTheme: string) => {
+    setTheme(newTheme);
+    applyTheme(newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Save to user preferences if authenticated
+    if (isAuthenticated()) {
+      updateUserThemePreference(newTheme);
+    }
+  };
+  
+  return (
+    <ThemeContext.Provider value={{ theme, switchTheme, themes }}>
+      {children}
+    </ThemeContext.Provider>
+  );
+};
+```
+
+### CSS Variables Usage
+```css
+/* globals.css */
+:root {
+  --color-bg-primary: #111827;
+  --color-bg-secondary: #1F2937;
+  --color-bg-card: #374151;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #D1D5DB;
+  --color-accent: #FCD34D;
+  --color-border: #4B5563;
+}
+
+/* Component usage */
+.card {
+  background-color: var(--color-bg-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
+.button-primary {
+  background-color: var(--color-accent);
+  color: var(--color-bg-primary);
+}
+```
+
 ## UI/UX Patterns
 
 ### Dark Theme Implementation
@@ -539,6 +851,9 @@ Category.find({
 16. **Design mobile-first responsive layouts**
 17. **Support hierarchical data structures (categories/subcategories)**
 18. **Handle backward compatibility for schema changes**
+19. **Implement secure reward points with audit trails**
+20. **Use CSS variables for theme flexibility**
+21. **Create intelligent auto-apply algorithms for coupons**
 
 ## Testing Utilities
 
@@ -561,3 +876,13 @@ const testCustomizationFlow = async () => {
   // Fetch and validate stored data
 };
 ```
+
+### Security Testing
+```typescript
+// testRewardPointsManipulation.js - Test security
+const testPointsManipulation = async () => {
+  // Attempt direct API calls to modify points
+  // Verify all attempts are blocked
+  // Test race conditions
+  // Verify audit trail creation
+};

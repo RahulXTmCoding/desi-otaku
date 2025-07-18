@@ -10,7 +10,9 @@ const {
   updateCoupon,
   deleteCoupon,
   validateCoupon,
-  getActiveCoupons
+  getActiveCoupons,
+  getPromotionalCoupons,
+  getBestAutoApplyCoupon
 } = require("../controllers/coupon");
 
 const { isSignedIn, isAuthenticated, isAdmin } = require("../controllers/auth");
@@ -71,5 +73,7 @@ router.delete(
 // Public/User routes
 router.post("/coupon/validate", validateCoupon);
 router.get("/coupons/active", getActiveCoupons);
+router.get("/coupons/promotional", getPromotionalCoupons);
+router.post("/coupon/auto-apply", getBestAutoApplyCoupon);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const { Order, ProductCart } = require("../models/order");
 const shiprocketService = require("../services/shiprocket");
 const emailService = require("../services/emailService");
+const { creditPoints } = require("./reward");
 
 exports.getOrderById = (req, res, next, id) => {
   Order.findById(id)
@@ -221,6 +222,17 @@ exports.createOrder = async (req, res) => {
     emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(err => {
       console.error("Failed to send order confirmation email:", err);
     });
+    
+    // Credit reward points for paid orders (only for registered users)
+    if (savedOrder.paymentStatus === 'Paid' && savedOrder.user && savedOrder.user._id) {
+      creditPoints(savedOrder.user._id, savedOrder._id, savedOrder.amount).then(result => {
+        if (result.success) {
+          console.log(`Credited ${result.points} reward points to user ${savedOrder.user._id} for order ${savedOrder._id}`);
+        }
+      }).catch(err => {
+        console.error("Failed to credit reward points:", err);
+      });
+    }
     
     // If Shiprocket is configured, create shipment
     if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {

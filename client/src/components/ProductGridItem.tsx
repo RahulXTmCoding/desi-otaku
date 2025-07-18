@@ -212,7 +212,8 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
 
   return (
     <div 
-      className={`bg-gray-800/50 backdrop-blur rounded-xl overflow-hidden hover:bg-gray-800/70 transition-all group relative cursor-pointer ${className}`}
+      className={`rounded-xl overflow-hidden transition-all group relative cursor-pointer ${className}`}
+      style={{ backgroundColor: 'var(--color-surface)' }}
       onClick={handleCardClick}
     >
       {/* Card Container with Flip Effect */}

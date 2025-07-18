@@ -101,6 +101,50 @@ exports.getReviewsStatus = async (req, res) => {
   }
 };
 
+// Toggle rewards enabled/disabled (admin only)
+exports.toggleRewards = async (req, res) => {
+  const userId = req.profile._id;
+  
+  try {
+    // Get current status
+    const currentStatus = await Settings.getSetting("rewards_enabled", true);
+    
+    // Toggle it
+    const newStatus = !currentStatus;
+    
+    const setting = await Settings.setSetting(
+      "rewards_enabled",
+      newStatus,
+      "Enable or disable reward points system-wide",
+      userId
+    );
+    
+    res.json({
+      message: `Reward points ${newStatus ? 'enabled' : 'disabled'} successfully`,
+      rewardsEnabled: newStatus,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Failed to toggle reward points",
+    });
+  }
+};
+
+// Get rewards status (public)
+exports.getRewardsStatus = async (req, res) => {
+  try {
+    const rewardsEnabled = await Settings.getSetting("rewards_enabled", true);
+    
+    res.json({
+      rewardsEnabled,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Failed to get rewards status",
+    });
+  }
+};
+
 // Initialize default settings
 exports.initializeSettings = async () => {
   try {
@@ -113,8 +157,20 @@ exports.initializeSettings = async () => {
         true,
         "Enable or disable product reviews system-wide"
       );
-      console.log("Initialized default settings");
     }
+    
+    // Check if rewards_enabled setting exists
+    const rewardsSetting = await Settings.findOne({ key: "rewards_enabled" });
+    
+    if (!rewardsSetting) {
+      await Settings.setSetting(
+        "rewards_enabled",
+        true,
+        "Enable or disable reward points system-wide"
+      );
+    }
+    
+    console.log("Initialized default settings");
   } catch (error) {
     console.error("Error initializing settings:", error);
   }

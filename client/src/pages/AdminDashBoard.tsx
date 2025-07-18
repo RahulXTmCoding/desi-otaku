@@ -74,7 +74,8 @@ const AdminDashBoard = () => {
       icon: Megaphone,
       links: [
         { name: "Manage Coupons", path: "/admin/coupons", color: "text-red-400" },
-        { name: "Review Settings", path: "/admin/review-settings", color: "text-teal-400" }
+        { name: "Review Settings", path: "/admin/review-settings", color: "text-teal-400" },
+        { name: "Reward Points Settings", path: "/admin/reward-settings", color: "text-yellow-400" }
       ]
     }
   ];

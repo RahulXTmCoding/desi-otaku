@@ -25,7 +25,8 @@ import {
   Check,
   Eye,
   ShoppingCart,
-  Star
+  Star,
+  Gift
 } from 'lucide-react';
 import { isAutheticated, signout } from "../auth/helper";
 import { getOrders, mockGetOrders } from "../core/helper/orderHelper";
@@ -37,6 +38,7 @@ import { API } from "../backend";
 import { addItemToCart } from "../core/helper/cartHelper";
 import OrderCard from "../components/OrderCard";
 import ProductGridItem from "../components/ProductGridItem";
+import RewardPointsSection from "../components/user/RewardPointsSection";
 
 interface Order {
   _id: string;
@@ -511,7 +513,8 @@ const UserDashBoardEnhanced = () => {
     { id: 'orders', label: 'My Orders', icon: Package, color: 'text-blue-400' },
     { id: 'wishlist', label: 'Wishlist', icon: Heart, color: 'text-red-400' },
     { id: 'addresses', label: 'Addresses', icon: MapPin, color: 'text-green-400' },
-    { id: 'settings', label: 'Settings', icon: Settings, color: 'text-purple-400' }
+    { id: 'rewards', label: 'Rewards', icon: Gift, color: 'text-purple-400' },
+    { id: 'settings', label: 'Settings', icon: Settings, color: 'text-gray-400' }
   ];
 
   const stats = [
@@ -1019,6 +1022,19 @@ const UserDashBoardEnhanced = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Rewards Tab */}
+            {activeTab === 'rewards' && (
+              <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                    <Gift className="w-6 h-6 text-purple-400" />
+                    Reward Points
+                  </h2>
+                </div>
+                <RewardPointsSection />
               </div>
             )}
 

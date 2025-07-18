@@ -26,6 +26,7 @@ const razorpayRoutes = require("./routes/razorpay");
 const guestOrderRoutes = require("./routes/guestOrder");
 const productTypeRoutes = require("./routes/productType");
 const cartRoutes = require("./routes/cart");
+const rewardRoutes = require("./routes/reward");
 const { initializeSettings } = require("./controllers/settings");
 
 const app = express();
@@ -69,6 +70,7 @@ app.use("/api/razorpay", razorpayRoutes);
 app.use("/api/guest/order", guestOrderRoutes);
 app.use("/api", productTypeRoutes);
 app.use("/api", cartRoutes);
+app.use("/api", rewardRoutes);
 
 //Port
 const port = process.env.PORT || 8000;

@@ -178,15 +178,15 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         className={`fixed right-0 top-0 h-screen w-full sm:w-96 shadow-2xl z-50 transform transition-transform duration-300 ${
           isOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
-        style={{ backgroundColor: '#1F2937' }}
+        style={{ backgroundColor: 'var(--color-surface)' }}
       >
         <div className="flex flex-col h-screen relative">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-600 bg-gray-800">
+          <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid var(--color-border)', backgroundColor: 'var(--color-surfaceHover)' }}>
             <div className="flex items-center gap-3">
-              <ShoppingCart className="w-6 h-6 text-yellow-400" />
-              <h2 className="text-xl font-bold text-white">Your Cart</h2>
-              <span className="bg-yellow-400 text-gray-900 px-2 py-1 rounded-full text-sm font-semibold">
+              <ShoppingCart className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
+              <h2 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>Your Cart</h2>
+              <span className="px-2 py-1 rounded-full text-sm font-semibold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }}>
                 {getItemCount()}
               </span>
             </div>
@@ -201,13 +201,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   </span>
                 ) : (
                   <span title="Cart stored locally">
-                    <CloudOff className="w-4 h-4 text-gray-400" />
+                    <CloudOff className="w-4 h-4" style={{ color: 'var(--color-textMuted)' }} />
                   </span>
                 )}
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-700 rounded-lg transition-colors text-white"
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--color-text)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -218,7 +221,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
           <div className="flex-1 overflow-hidden">
             {/* Error Message */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-2 text-sm">
+              <div className="px-4 py-2 text-sm" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: 'var(--color-error)' }}>
                 {error}
               </div>
             )}
@@ -230,11 +233,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
               ) : cart.length === 0 ? (
                 <div className="text-center py-12">
-                  <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-500" />
-                  <p className="text-gray-300 mb-6">Your cart is empty</p>
+                  <ShoppingCart className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-textMuted)' }} />
+                  <p className="mb-6" style={{ color: 'var(--color-textMuted)' }}>Your cart is empty</p>
                   <button
                     onClick={handleContinueShopping}
-                    className="bg-yellow-400 text-gray-900 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
+                    className="px-6 py-3 rounded-lg font-semibold transition-colors"
+                    style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primaryHover)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
                   >
                     Start Shopping
                   </button>
@@ -247,13 +253,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       className={`rounded-lg p-4 transition-all ${
                         isRemoving === item._id ? 'opacity-50 scale-95' : ''
                       }`}
-                      style={{ backgroundColor: '#374151' }}
-                      onMouseEnter={(e) => !isRemoving && (e.currentTarget.style.backgroundColor = '#4B5563')}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#374151'}
+                      style={{ backgroundColor: 'var(--color-surfaceHover)' }}
+                      onMouseEnter={(e) => !isRemoving && (e.currentTarget.style.backgroundColor = 'var(--color-border)')}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)'}
                     >
                       <div className="flex gap-4">
                         {/* Product Image */}
-                        <div className="w-20 h-20 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                        <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--color-border)' }}>
                           {item.isCustom && item.customization ? (
                             <CartTShirtPreview
                               design={null}
@@ -284,19 +290,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
                         {/* Product Details */}
                         <div className="flex-1">
-                          <h3 className="font-semibold mb-1 text-white">{item.name}</h3>
-                          <div className="text-sm text-gray-300 space-y-1">
+                          <h3 className="font-semibold mb-1" style={{ color: 'var(--color-text)' }}>{item.name}</h3>
+                          <div className="text-sm space-y-1" style={{ color: 'var(--color-textMuted)' }}>
                             <p>Size: {item.size}</p>
                             <p>Color: {item.color}</p>
                             {item.isCustom && (
-                              <p className="text-yellow-400 text-xs">Custom Design</p>
+                              <p className="text-xs" style={{ color: 'var(--color-primary)' }}>Custom Design</p>
                             )}
                           </div>
                         </div>
 
                         {/* Price */}
                         <div className="text-right">
-                          <p className="font-bold text-yellow-400">₹{item.price}</p>
+                          <p className="font-bold" style={{ color: 'var(--color-primary)' }}>₹{item.price}</p>
                         </div>
                       </div>
 
@@ -306,7 +312,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                           <button
                             onClick={() => handleQuantityUpdate(item._id!, item.quantity - 1)}
                             disabled={isUpdating === item._id || item.quantity <= 1}
-                            className="p-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{ backgroundColor: 'var(--color-border)', color: 'var(--color-text)' }}
+                            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--color-borderHover)')}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
                           >
                             {isUpdating === item._id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -314,11 +323,14 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                               <Minus className="w-4 h-4" />
                             )}
                           </button>
-                          <span className="w-8 text-center text-white">{item.quantity}</span>
+                          <span className="w-8 text-center" style={{ color: 'var(--color-text)' }}>{item.quantity}</span>
                           <button
                             onClick={() => handleQuantityUpdate(item._id!, item.quantity + 1)}
                             disabled={isUpdating === item._id}
-                            className="p-1 bg-gray-700 hover:bg-gray-600 rounded transition-colors disabled:opacity-50"
+                            className="p-1 rounded transition-colors disabled:opacity-50"
+                            style={{ backgroundColor: 'var(--color-border)', color: 'var(--color-text)' }}
+                            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--color-borderHover)')}
+                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
                           >
                             {isUpdating === item._id ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
@@ -330,7 +342,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         <button
                           onClick={() => handleRemoveItem(item._id!)}
                           disabled={isRemoving === item._id}
-                          className="p-2 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                          className="p-2 transition-colors disabled:opacity-50"
+                          style={{ color: 'var(--color-textMuted)' }}
+                          onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.color = 'var(--color-error)')}
+                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
                         >
                           {isRemoving === item._id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
@@ -348,27 +363,27 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
           {/* Footer */}
           {cart.length > 0 && (
-            <div className="absolute bottom-0 left-0 right-0 border-t border-gray-700 p-6 space-y-4" style={{ backgroundColor: '#111827' }}>
+            <div className="absolute bottom-0 left-0 right-0 p-6 space-y-4" style={{ borderTop: '1px solid var(--color-border)', backgroundColor: 'var(--color-background)' }}>
               {/* Price Summary */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-300">Subtotal</span>
-                  <span className="text-white">₹{cartTotal}</span>
+                  <span style={{ color: 'var(--color-textMuted)' }}>Subtotal</span>
+                  <span style={{ color: 'var(--color-text)' }}>₹{cartTotal}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-300">Shipping</span>
-                  <span className={shipping === 0 ? 'text-green-400' : 'text-white'}>
+                  <span style={{ color: 'var(--color-textMuted)' }}>Shipping</span>
+                  <span style={{ color: shipping === 0 ? 'var(--color-success)' : 'var(--color-text)' }}>
                     {shipping === 0 ? 'FREE' : `₹${shipping}`}
                   </span>
                 </div>
                 {shipping > 0 && (
-                  <p className="text-xs text-yellow-300">
+                  <p className="text-xs" style={{ color: 'var(--color-warning)' }}>
                     Add ₹{999 - cartTotal} more for free shipping
                   </p>
                 )}
-                <div className="flex justify-between font-bold text-lg pt-2 border-t border-gray-600">
-                  <span className="text-white">Total</span>
-                  <span className="text-yellow-400">₹{finalTotal}</span>
+                <div className="flex justify-between font-bold text-lg pt-2" style={{ borderTop: '1px solid var(--color-border)' }}>
+                  <span style={{ color: 'var(--color-text)' }}>Total</span>
+                  <span style={{ color: 'var(--color-primary)' }}>₹{finalTotal}</span>
                 </div>
               </div>
 
@@ -376,7 +391,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               <div className="space-y-2">
                 <button
                   onClick={handleCheckout}
-                  className="w-full bg-yellow-400 text-gray-900 py-4 rounded-lg font-bold hover:bg-yellow-300 transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primaryHover)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
                 >
                   Proceed to Checkout
                   <ChevronRight className="w-5 h-5" />
@@ -384,7 +402,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
                 <button
                   onClick={handleContinueShopping}
-                  className="w-full py-3 text-gray-400 hover:text-white transition-colors"
+                  className="w-full py-3 transition-colors"
+                  style={{ color: 'var(--color-textMuted)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-text)'}
+                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
                 >
                   Continue Shopping
                 </button>
@@ -392,7 +413,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 {cart.length > 1 && (
                   <button
                     onClick={handleClearCart}
-                    className="w-full py-2 text-red-400 hover:text-red-300 transition-colors text-sm"
+                    className="w-full py-2 transition-colors text-sm"
+                    style={{ color: 'var(--color-error)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                    onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                   >
                     Clear Cart
                   </button>
@@ -400,7 +424,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* Sync Status Info */}
-              <div className="text-xs text-center text-gray-500 pt-2 border-t border-gray-700">
+              <div className="text-xs text-center pt-2" style={{ color: 'var(--color-textMuted)', borderTop: '1px solid var(--color-border)' }}>
                 {isLoggedIn ? (
                   <span className="flex items-center justify-center gap-1">
                     <Cloud className="w-3 h-3" />

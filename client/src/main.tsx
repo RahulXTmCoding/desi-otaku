@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './pages/App'
 import { DevModeProvider } from './context/DevModeContext'
 import { CartProvider } from './context/CartContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { initializeAuth } from './utils/clearAuth'
 import './index.css'
 
@@ -12,12 +13,14 @@ initializeAuth();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <DevModeProvider>
-      <BrowserRouter>
-        <CartProvider>
-          <App />
-        </CartProvider>
-      </BrowserRouter>
-    </DevModeProvider>
+    <ThemeProvider>
+      <DevModeProvider>
+        <BrowserRouter>
+          <CartProvider>
+            <App />
+          </CartProvider>
+        </BrowserRouter>
+      </DevModeProvider>
+    </ThemeProvider>
   </React.StrictMode>,
 )

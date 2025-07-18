@@ -218,12 +218,122 @@ exports.getActiveCoupons = async (req, res) => {
   }
 };
 
+// Get promotional coupons for homepage display
+exports.getPromotionalCoupons = async (req, res) => {
+  try {
+    const now = new Date();
+    const promotionalCoupons = await Coupon.find({
+      displayType: "promotional",
+      isActive: true,
+      validFrom: { $lte: now },
+      validUntil: { $gte: now },
+      $or: [
+        { usageLimit: null },
+        { $expr: { $lt: ["$usageCount", "$usageLimit"] } }
+      ]
+    })
+    .select("code description discountType discountValue minimumPurchase bannerImage bannerText validUntil")
+    .sort({ autoApplyPriority: -1, createdAt: -1 })
+    .limit(5); // Limit to 5 promotional banners
+
+    res.json(promotionalCoupons);
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: "Failed to fetch promotional coupons"
+    });
+  }
+};
+
+// Get best auto-apply coupon for a cart
+exports.getBestAutoApplyCoupon = async (req, res) => {
+  try {
+    const { subtotal = 0, userId = null } = req.body;
+    
+    const now = new Date();
+    const eligibleCoupons = await Coupon.find({
+      displayType: "auto-apply",
+      isActive: true,
+      validFrom: { $lte: now },
+      validUntil: { $gte: now },
+      minimumPurchase: { $lte: subtotal },
+      $or: [
+        { usageLimit: null },
+        { $expr: { $lt: ["$usageCount", "$usageLimit"] } }
+      ]
+    }).sort({ autoApplyPriority: -1, discountValue: -1 });
+
+    // Find the best coupon that the user is eligible for
+    let bestCoupon = null;
+    let maxDiscount = 0;
+
+    for (const coupon of eligibleCoupons) {
+      // Check if user has already used this coupon too many times
+      if (userId && coupon.userLimit) {
+        const userUsageCount = coupon.usedBy.filter(
+          usage => usage.userId?.toString() === userId.toString()
+        ).length;
+        
+        if (userUsageCount >= coupon.userLimit) continue;
+      }
+
+      // Check first-time only restriction
+      if (coupon.firstTimeOnly && userId) {
+        const Order = require("../models/order");
+        const previousOrders = await Order.countDocuments({ 
+          user: userId,
+          status: { $ne: "cancelled" }
+        });
+        if (previousOrders > 0) continue;
+      }
+
+      // Calculate discount for this coupon
+      const discount = coupon.calculateDiscount(subtotal);
+      
+      if (discount > maxDiscount) {
+        maxDiscount = discount;
+        bestCoupon = coupon;
+      }
+    }
+
+    if (bestCoupon) {
+      res.json({
+        coupon: {
+          code: bestCoupon.code,
+          description: bestCoupon.description,
+          discountType: bestCoupon.discountType,
+          discountValue: bestCoupon.discountValue,
+          discount: maxDiscount,
+          minimumPurchase: bestCoupon.minimumPurchase
+        }
+      });
+    } else {
+      res.json({ coupon: null });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      error: "Failed to find auto-apply coupon"
+    });
+  }
+};
+
 // Track coupon usage (called when order is placed)
-exports.trackCouponUsage = async (couponCode, orderId) => {
+exports.trackCouponUsage = async (couponCode, orderId, userId = null) => {
   try {
     const coupon = await Coupon.findOne({ code: couponCode });
     if (coupon) {
       coupon.usageCount += 1;
+      
+      // Track user-specific usage
+      if (userId) {
+        coupon.usedBy.push({
+          userId,
+          orderId,
+          usedAt: new Date()
+        });
+      }
+      
       await coupon.save();
     }
   } catch (err) {

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import Base from '../core/Base';
 import { isAutheticated } from '../auth/helper/index';
 import { getAllCoupons, deleteCoupon } from '../core/helper/couponHelper';
-import { Plus, Edit, Trash2, Tag, Calendar, Users } from 'lucide-react';
+import { Plus, Edit, Trash2, Tag, Calendar, Users, Eye, EyeOff, Zap, Image } from 'lucide-react';
 
 interface Coupon {
   _id: string;
@@ -12,6 +12,10 @@ interface Coupon {
   discountType: string;
   discountValue: number;
   minimumPurchase: number;
+  displayType?: string;
+  bannerImage?: string;
+  bannerText?: string;
+  autoApplyPriority?: number;
   usageLimit: number | null;
   usageCount: number;
   validFrom: string;
@@ -138,6 +142,30 @@ const ManageCoupons = () => {
                       {(!coupon.isActive || isExpired(coupon.validUntil)) && (
                         <span className="px-2 py-1 bg-red-500/20 text-red-400 text-xs rounded-full">
                           {!coupon.isActive ? 'Inactive' : 'Expired'}
+                        </span>
+                      )}
+                      {coupon.displayType === 'promotional' && (
+                        <span className="px-2 py-1 bg-purple-500/20 text-purple-400 text-xs rounded-full flex items-center gap-1">
+                          <Eye className="w-3 h-3" />
+                          Promotional
+                        </span>
+                      )}
+                      {coupon.displayType === 'auto-apply' && (
+                        <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
+                          Auto-Apply
+                        </span>
+                      )}
+                      {(coupon.displayType === 'hidden' || !coupon.displayType) && (
+                        <span className="px-2 py-1 bg-gray-500/20 text-gray-400 text-xs rounded-full flex items-center gap-1">
+                          <EyeOff className="w-3 h-3" />
+                          Hidden
+                        </span>
+                      )}
+                      {coupon.bannerImage && (
+                        <span className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs rounded-full flex items-center gap-1">
+                          <Image className="w-3 h-3" />
+                          Has Banner
                         </span>
                       )}
                     </div>

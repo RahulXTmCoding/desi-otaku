@@ -362,20 +362,23 @@ const ProductDetail: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-400"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderBottomColor: 'var(--color-primary)' }}></div>
       </div>
     );
   }
 
   if (error || !product) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)' }}>
         <div className="text-center">
-          <p className="text-red-400 mb-4">{error || 'Product not found'}</p>
+          <p className="mb-4" style={{ color: 'var(--color-error)' }}>{error || 'Product not found'}</p>
           <button
             onClick={() => navigate('/shop')}
-            className="bg-yellow-400 text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-yellow-300"
+            className="px-6 py-2 rounded-lg font-semibold transition-colors"
+            style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primaryHover)'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
           >
             Back to Shop
           </button>
@@ -388,15 +391,21 @@ const ProductDetail: React.FC = () => {
   const discount = Math.round(((originalPrice - product.price) / originalPrice) * 100);
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
       {/* Breadcrumb */}
       <div className="w-[96%] md:w-[90%] mx-auto px-4 py-4">
-        <div className="flex items-center gap-2 text-sm text-gray-400">
-          <button onClick={() => navigate('/')} className="hover:text-yellow-400">Home</button>
+        <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-textMuted)' }}>
+          <button onClick={() => navigate('/')} className="transition-colors" 
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
+          >Home</button>
           <span>/</span>
-          <button onClick={() => navigate('/shop')} className="hover:text-yellow-400">Shop</button>
+          <button onClick={() => navigate('/shop')} className="transition-colors"
+            onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
+            onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
+          >Shop</button>
           <span>/</span>
-          <span className="text-white">{product.name}</span>
+          <span style={{ color: 'var(--color-text)' }}>{product.name}</span>
         </div>
       </div>
 
@@ -404,8 +413,8 @@ const ProductDetail: React.FC = () => {
         <div className="grid md:grid-cols-2 gap-12">
           {/* Product Images */}
           <div>
-            <div className="relative bg-gray-800 rounded-2xl overflow-hidden mb-4">
-              <div className="aspect-square bg-gradient-to-br from-gray-700 to-gray-600 relative">
+            <div className="relative rounded-2xl overflow-hidden mb-4" style={{ backgroundColor: 'var(--color-surface)' }}>
+              <div className="aspect-square relative" style={{ backgroundColor: 'var(--color-surfaceHover)' }}>
                 {/* Main Image */}
                 <img 
                   src={productImages.length > 0 && productImages[currentImageIndex]?.url 
@@ -424,13 +433,19 @@ const ProductDetail: React.FC = () => {
                   <>
                     <button
                       onClick={() => setCurrentImageIndex((prev) => (prev === 0 ? productImages.length - 1 : prev - 1))}
-                      className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors"
+                      className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors"
+                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
                     >
                       <ChevronLeft className="w-6 h-6" />
                     </button>
                     <button
                       onClick={() => setCurrentImageIndex((prev) => (prev === productImages.length - 1 ? 0 : prev + 1))}
-                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-gray-900/80 hover:bg-gray-900 rounded-full transition-colors"
+                      className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full transition-colors"
+                      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'}
+                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
                     >
                       <ChevronRight className="w-6 h-6" />
                     </button>
@@ -463,9 +478,11 @@ const ProductDetail: React.FC = () => {
                   <button
                     key={index}
                     onClick={() => setCurrentImageIndex(index)}
-                    className={`bg-gray-800 rounded-lg p-2 border-2 transition-all ${
-                      currentImageIndex === index ? 'border-yellow-400' : 'border-gray-700'
-                    }`}
+                    className={`rounded-lg p-2 border-2 transition-all`}
+                    style={{ 
+                      backgroundColor: 'var(--color-surface)',
+                      borderColor: currentImageIndex === index ? 'var(--color-primary)' : 'var(--color-border)'
+                    }}
                   >
                     <img 
                       src={image.url}
@@ -480,7 +497,11 @@ const ProductDetail: React.FC = () => {
                 ))
               ) : (
                 <button
-                  className="bg-gray-800 rounded-lg p-2 border-2 border-yellow-400"
+                  className="rounded-lg p-2 border-2"
+                  style={{ 
+                    backgroundColor: 'var(--color-surface)',
+                    borderColor: 'var(--color-primary)'
+                  }}
                 >
                   <img 
                     src={getProductImage(product)}
@@ -547,20 +568,20 @@ const ProductDetail: React.FC = () => {
 
             {/* Price */}
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-3xl font-bold text-yellow-400">₹{product.price}</span>
-              <span className="text-xl text-gray-400 line-through">₹{originalPrice}</span>
-              <span className="bg-green-500 text-white px-2 py-1 rounded text-sm font-semibold">
+              <span className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>₹{product.price}</span>
+              <span className="text-xl line-through" style={{ color: 'var(--color-textMuted)' }}>₹{originalPrice}</span>
+              <span className="px-2 py-1 rounded text-sm font-semibold" style={{ backgroundColor: 'var(--color-success)', color: 'white' }}>
                 {discount}% OFF
               </span>
             </div>
 
             {/* Description */}
-            <p className="text-gray-300 mb-8">{product.description}</p>
+            <p className="mb-8" style={{ color: 'var(--color-textMuted)' }}>{product.description}</p>
 
             {/* Category */}
             <div className="mb-6">
-              <p className="text-sm text-gray-400">
-                Category: <span className="text-yellow-400">{product.category?.name}</span>
+              <p className="text-sm" style={{ color: 'var(--color-textMuted)' }}>
+                Category: <span style={{ color: 'var(--color-primary)' }}>{product.category?.name}</span>
               </p>
             </div>
 
@@ -587,12 +608,21 @@ const ProductDetail: React.FC = () => {
                       }}
                       disabled={!isAvailable}
                       className={`py-3 rounded-lg border-2 font-medium transition-all relative ${
-                        selectedSize === size
-                          ? 'bg-yellow-400 text-gray-900 border-yellow-400'
-                          : !isAvailable
-                          ? 'bg-gray-800 border-gray-700 text-gray-500 cursor-not-allowed'
-                          : 'bg-gray-800 border-gray-700 hover:border-gray-600'
+                        !isAvailable ? 'cursor-not-allowed' : ''
                       }`}
+                      style={{
+                        backgroundColor: selectedSize === size ? 'var(--color-primary)' : 'var(--color-surface)',
+                        borderColor: selectedSize === size ? 'var(--color-primary)' : 'var(--color-border)',
+                        color: selectedSize === size ? 'var(--color-primaryText)' : (!isAvailable ? 'var(--color-textMuted)' : 'var(--color-text)')
+                      }}
+                      onMouseEnter={(e) => {
+                        if (!isAvailable || selectedSize === size) return;
+                        e.currentTarget.style.borderColor = 'var(--color-borderHover)';
+                      }}
+                      onMouseLeave={(e) => {
+                        if (!isAvailable || selectedSize === size) return;
+                        e.currentTarget.style.borderColor = 'var(--color-border)';
+                      }}
                     >
                       {size}
                       {!isAvailable && (
@@ -613,17 +643,17 @@ const ProductDetail: React.FC = () => {
 
             {/* Stock Info */}
             <div className="mb-6">
-              <p className="text-sm text-gray-400">
+              <p className="text-sm" style={{ color: 'var(--color-textMuted)' }}>
                 {selectedSize && product.sizeStock ? (
                   <>
                     Stock for size {selectedSize}: 
-                    <span className={product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 5 ? 'text-green-400' : 'text-orange-400'}>
+                    <span style={{ color: product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 5 ? 'var(--color-success)' : 'var(--color-warning)' }}>
                       {' '}{product.sizeStock[selectedSize as keyof typeof product.sizeStock]} available
                     </span>
                   </>
                 ) : (
                   <>
-                    Total Stock: <span className={product.stock > 5 ? 'text-green-400' : 'text-orange-400'}>
+                    Total Stock: <span style={{ color: product.stock > 5 ? 'var(--color-success)' : 'var(--color-warning)' }}>
                       {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
                     </span>
                   </>
@@ -638,7 +668,10 @@ const ProductDetail: React.FC = () => {
                 <button
                   onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   disabled={!selectedSize || (product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] === 0)}
-                  className="bg-gray-800 hover:bg-gray-700 p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'var(--color-surface)' }}
+                  onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)')}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface)'}
                 >
                   <Minus className="w-5 h-5" />
                 </button>
@@ -651,7 +684,10 @@ const ProductDetail: React.FC = () => {
                     }
                   }}
                   disabled={!selectedSize || (product.sizeStock && quantity >= (product.sizeStock[selectedSize as keyof typeof product.sizeStock] || 0))}
-                  className="bg-gray-800 hover:bg-gray-700 p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: 'var(--color-surface)' }}
+                  onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)')}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surface)'}
                 >
                   <Plus className="w-5 h-5" />
                 </button>
@@ -665,9 +701,27 @@ const ProductDetail: React.FC = () => {
                 disabled={!selectedSize || (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] === 0)}
                 className={`flex-1 py-4 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 ${
                   selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
-                    ? 'bg-yellow-400 hover:bg-yellow-300 text-gray-900'
-                    : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    ? ''
+                    : 'cursor-not-allowed'
                 }`}
+                style={{
+                  backgroundColor: selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
+                    ? 'var(--color-primary)'
+                    : 'var(--color-surface)',
+                  color: selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
+                    ? 'var(--color-primaryText)'
+                    : 'var(--color-textMuted)'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-primaryHover)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0) {
+                    e.currentTarget.style.backgroundColor = 'var(--color-primary)';
+                  }
+                }}
               >
                 <ShoppingCart className="w-5 h-5" />
                 {!selectedSize 
@@ -679,11 +733,16 @@ const ProductDetail: React.FC = () => {
               <button 
                 onClick={handleWishlistToggle}
                 disabled={wishlistLoading}
-                className={`p-4 rounded-lg transition-colors ${
-                  isWishlisted
-                    ? 'bg-red-500 hover:bg-red-600'
-                    : 'bg-gray-800 hover:bg-gray-700'
-                }`}
+                className={`p-4 rounded-lg transition-colors`}
+                style={{
+                  backgroundColor: isWishlisted ? 'var(--color-error)' : 'var(--color-surface)'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = isWishlisted ? '#dc2626' : 'var(--color-surfaceHover)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = isWishlisted ? 'var(--color-error)' : 'var(--color-surface)';
+                }}
               >
                 <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
               </button>
@@ -691,7 +750,7 @@ const ProductDetail: React.FC = () => {
 
             {/* Success Message */}
             {showSuccessMessage && (
-              <div className="bg-green-500 text-white px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+              <div className="px-4 py-3 rounded-lg mb-6 flex items-center gap-2" style={{ backgroundColor: 'var(--color-success)', color: 'white' }}>
                 <Check className="w-5 h-5" />
                 Product added to cart successfully!
               </div>
@@ -699,16 +758,16 @@ const ProductDetail: React.FC = () => {
 
             {/* Features */}
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <Truck className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--color-surface)' }}>
+                <Truck className="w-6 h-6 mx-auto mb-2" style={{ color: 'var(--color-primary)' }} />
                 <p className="text-sm">Free Shipping</p>
               </div>
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <RotateCw className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--color-surface)' }}>
+                <RotateCw className="w-6 h-6 mx-auto mb-2" style={{ color: 'var(--color-primary)' }} />
                 <p className="text-sm">Easy Returns</p>
               </div>
-              <div className="bg-gray-800 p-4 rounded-lg">
-                <Shield className="w-6 h-6 mx-auto mb-2 text-yellow-400" />
+              <div className="p-4 rounded-lg" style={{ backgroundColor: 'var(--color-surface)' }}>
+                <Shield className="w-6 h-6 mx-auto mb-2" style={{ color: 'var(--color-primary)' }} />
                 <p className="text-sm">Secure Payment</p>
               </div>
             </div>
@@ -717,19 +776,24 @@ const ProductDetail: React.FC = () => {
 
         {/* Product Details Tabs */}
         <div className="mt-12">
-          <div className="border-b border-gray-800">
+          <div style={{ borderBottom: '1px solid var(--color-border)' }}>
             <div className="flex gap-8">
               {['description', 'features', 'care'].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`pb-4 capitalize font-medium transition-colors relative ${
-                    activeTab === tab ? 'text-yellow-400' : 'text-gray-400 hover:text-white'
-                  }`}
+                  className={`pb-4 capitalize font-medium transition-colors relative`}
+                  style={{ color: activeTab === tab ? 'var(--color-primary)' : 'var(--color-textMuted)' }}
+                  onMouseEnter={(e) => {
+                    if (activeTab !== tab) e.currentTarget.style.color = 'var(--color-text)';
+                  }}
+                  onMouseLeave={(e) => {
+                    if (activeTab !== tab) e.currentTarget.style.color = 'var(--color-textMuted)';
+                  }}
                 >
                   {tab}
                   {activeTab === tab && (
-                    <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-yellow-400" />
+                    <div className="absolute bottom-0 left-0 right-0 h-0.5" style={{ backgroundColor: 'var(--color-primary)' }} />
                   )}
                 </button>
               ))}
@@ -739,10 +803,10 @@ const ProductDetail: React.FC = () => {
           <div className="py-8">
             {activeTab === 'description' && (
               <div className="prose prose-invert max-w-none">
-                <p className="text-gray-300">{product.description}</p>
+                <p style={{ color: 'var(--color-textMuted)' }}>{product.description}</p>
                 <div className="mt-4">
-                  <h4 className="text-white font-semibold mb-2">Material</h4>
-                  <p className="text-gray-300">100% Cotton (180 GSM)</p>
+                  <h4 className="font-semibold mb-2" style={{ color: 'var(--color-text)' }}>Material</h4>
+                  <p style={{ color: 'var(--color-textMuted)' }}>100% Cotton (180 GSM)</p>
                 </div>
               </div>
             )}
@@ -751,8 +815,8 @@ const ProductDetail: React.FC = () => {
               <ul className="space-y-3">
                 {(product.features || defaultFeatures).map((feature, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <Check className="w-5 h-5 text-yellow-400 mt-0.5" />
-                    <span className="text-gray-300">{feature}</span>
+                    <Check className="w-5 h-5 mt-0.5" style={{ color: 'var(--color-primary)' }} />
+                    <span style={{ color: 'var(--color-textMuted)' }}>{feature}</span>
                   </li>
                 ))}
               </ul>
@@ -762,8 +826,8 @@ const ProductDetail: React.FC = () => {
               <ul className="space-y-3">
                 {(product.careInstructions || defaultCareInstructions).map((instruction, index) => (
                   <li key={index} className="flex items-start gap-3">
-                    <div className="w-2 h-2 bg-yellow-400 rounded-full mt-2" />
-                    <span className="text-gray-300">{instruction}</span>
+                    <div className="w-2 h-2 rounded-full mt-2" style={{ backgroundColor: 'var(--color-primary)' }} />
+                    <span style={{ color: 'var(--color-textMuted)' }}>{instruction}</span>
                   </li>
                 ))}
               </ul>

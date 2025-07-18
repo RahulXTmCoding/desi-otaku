@@ -32,6 +32,24 @@ const couponSchema = new mongoose.Schema(
       type: Number, // For percentage discounts, max discount amount
       default: null
     },
+    displayType: {
+      type: String,
+      enum: ["promotional", "hidden", "auto-apply"],
+      default: "hidden",
+      required: true
+    },
+    bannerImage: {
+      type: String, // URL for promotional banner image
+      default: null
+    },
+    bannerText: {
+      type: String, // Custom promotional text
+      default: null
+    },
+    autoApplyPriority: {
+      type: Number, // Higher priority means this coupon is preferred for auto-apply
+      default: 0
+    },
     usageLimit: {
       type: Number, // Total number of times coupon can be used
       default: null
@@ -67,7 +85,21 @@ const couponSchema = new mongoose.Schema(
     firstTimeOnly: {
       type: Boolean,
       default: false
-    }
+    },
+    usedBy: [{
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
+      },
+      orderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Order"
+      },
+      usedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }]
   },
   { timestamps: true }
 );
@@ -102,6 +134,24 @@ couponSchema.methods.calculateDiscount = function(subtotal) {
   }
 
   return Math.min(discount, subtotal); // Discount can't exceed subtotal
+};
+
+// Check if coupon can be auto-applied for a user
+couponSchema.methods.canAutoApply = async function(userId, subtotal) {
+  if (!this.isValid()) return false;
+  if (this.displayType !== "auto-apply") return false;
+  if (subtotal < this.minimumPurchase) return false;
+  
+  // Check if user has already used this coupon
+  if (userId && this.userLimit) {
+    const usageCount = this.usedBy.filter(
+      usage => usage.userId?.toString() === userId.toString()
+    ).length;
+    
+    if (usageCount >= this.userLimit) return false;
+  }
+  
+  return true;
 };
 
 module.exports = mongoose.model("Coupon", couponSchema);

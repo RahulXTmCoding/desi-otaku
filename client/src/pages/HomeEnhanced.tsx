@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Shuffle, Sparkles, X, Check, ShoppingCart, Heart, Headphones, Globe, Package, Award, Users, Zap } from 'lucide-react';
 import Base from '../core/Base';
 import PromotionalBanner from '../components/home/PromotionalBanner';
+import PromotionalCouponBanner from '../components/home/PromotionalCouponBanner';
 import ProductCarousel from '../components/home/ProductCarousel';
 import CategoryCard from '../components/home/CategoryCard';
 import FeatureSection from '../components/home/FeatureSection';
 import ReviewCarousel from '../components/home/ReviewCarousel';
 import { useCart } from '../context/CartContext';
+import { useThemeClasses } from '../hooks/useThemeClasses';
 import { getFilteredProducts } from '../core/helper/shopApiCalls';
 import { getCategories } from '../core/helper/coreapicalls';
 import { API } from '../backend';
@@ -60,6 +62,7 @@ const HomeEnhanced: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const { addToCart } = useCart();
+  const { primary: primaryButtonClass, primaryHover: primaryButtonHoverClass } = useThemeClasses();
   const [showBanner, setShowBanner] = useState(true);
   const [newProducts, setNewProducts] = useState<Product[]>([]);
   const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
@@ -433,9 +436,14 @@ const HomeEnhanced: React.FC = () => {
         />
       )}
 
-      <div className="min-h-screen bg-gray-900 text-white">
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+        {/* Promotional Coupon Banner */}
+        <div className="w-[96%] mx-auto mt-4">
+          <PromotionalCouponBanner />
+        </div>
+
         {/* Hero Section */}
-        <section className="relative px-6 py-20 overflow-hidden bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-gray-900">
+        <section className="relative px-6 py-20 overflow-hidden" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="absolute top-10 right-10 grid grid-cols-4 gap-2">
             {[...Array(16)].map((_, i) => (
               <div key={i} className="w-2 h-2 bg-cyan-400 rounded-full opacity-60"></div>
@@ -496,7 +504,7 @@ const HomeEnhanced: React.FC = () => {
         </section>
 
         {/* Newly Launched Products */}
-        <section className="py-8">
+        <section className="py-8" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="w-[96%] mx-auto">
             <ProductCarousel
               title="Newly Launched"
@@ -509,7 +517,7 @@ const HomeEnhanced: React.FC = () => {
         </section>
 
         {/* Shop By Anime */}
-        <section className="py-16 bg-gray-800/30">
+        <section className="py-16" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="w-[96%] mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Shop By Anime</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
@@ -545,7 +553,7 @@ const HomeEnhanced: React.FC = () => {
         </section>
 
         {/* Trending Products */}
-        <section className="py-8">
+        <section className="py-8" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="w-[96%] mx-auto">
             <ProductCarousel
               title="Trending Products"
@@ -558,7 +566,7 @@ const HomeEnhanced: React.FC = () => {
         </section>
 
         {/* About Us Section */}
-        <section className="py-20 bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900">
+        <section className="py-20" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="w-[96%] mx-auto grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-4xl font-bold mb-4">ABOUT US</h2>
@@ -568,9 +576,9 @@ const HomeEnhanced: React.FC = () => {
                 clothing collections. Dive into a world where fashion meets fandom, and express your love for anime 
                 with our premium apparel.
               </p>
-              <button 
+              <button
                 onClick={() => navigate('/about')}
-                className="bg-white text-gray-900 px-8 py-3 rounded-lg font-bold hover:bg-gray-100 transition-all transform hover:scale-105"
+                className={`${primaryButtonClass} ${primaryButtonHoverClass} px-8 py-3 rounded-lg font-bold transition-all transform hover:scale-105`}
               >
                 KNOW MORE
               </button>
@@ -603,7 +611,7 @@ const HomeEnhanced: React.FC = () => {
         </section>
 
         {/* Why Choose Us Section */}
-        <section className="py-16 bg-gray-800/50">
+        <section className="py-16" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="w-[96%] mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Why Choose Desi Otaku?</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">

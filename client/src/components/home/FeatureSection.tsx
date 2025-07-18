@@ -27,13 +27,14 @@ const FeatureSection: React.FC = () => {
   ];
 
   return (
-    <section className="bg-gray-800/30 py-12 px-6">
+    <section className="py-12 px-6" style={{ backgroundColor: 'var(--color-surface)' }}>
       <div className="w-[96%] mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
             <div 
               key={index} 
-              className="text-center group hover:bg-gray-800/50 p-6 rounded-xl transition-all duration-300"
+              className="text-center group p-6 rounded-xl transition-all duration-300 hover:shadow-lg"
+              style={{ backgroundColor: 'var(--color-background)' }}
             >
               <div className="flex justify-center mb-4 group-hover:scale-110 transition-transform">
                 {feature.icon}

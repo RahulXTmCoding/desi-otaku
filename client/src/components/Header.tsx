@@ -5,6 +5,7 @@ import { signout, isAutheticated } from '../auth/helper';
 import { useCart } from '../context/CartContext';
 import { getWishlistCount } from '../core/helper/wishlistHelper';
 import CartDrawer from './CartDrawer';
+import ThemeSwitcher from './ThemeSwitcher';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -43,11 +44,12 @@ const Header: React.FC = () => {
 
   return (
     <>
-      <nav className="relative z-50 flex items-center justify-between px-4 md:px-6 py-4 bg-gray-900 border-b border-gray-800 shadow-lg">
+      <nav className="relative z-50 flex items-center justify-between px-4 md:px-6 py-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
         {/* Mobile Menu Button */}
         <button
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden p-2 text-white hover:text-yellow-400 transition-all hover:scale-110"
+          className="md:hidden p-2 transition-all hover:scale-110"
+          style={{ color: 'var(--color-text)' }}
         >
           {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
@@ -76,31 +78,31 @@ const Header: React.FC = () => {
           {auth && auth.user && auth.user.role === 1 ? (
             // Admin Navigation
             <>
-              <Link to="/admin/dashboard" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/admin/dashboard" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Dashboard</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/designs" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/admin/designs" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Designs</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/products" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/admin/products" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Products</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/product-types" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/admin/product-types" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Types</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/categories" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/admin/categories" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Categories</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/orders" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/admin/orders" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Orders</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/analytics" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/admin/analytics" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Analytics</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
@@ -108,22 +110,22 @@ const Header: React.FC = () => {
           ) : (
             // Customer Navigation
             <>
-              <Link to="/" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Home</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/shop" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/shop" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Shop</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
               <Link to="/customize" className="relative group">
-                <div className="relative px-4 py-1.5 bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
+                <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }} className="relative px-4 py-1.5 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
                   <Palette className="inline-block w-4 h-4 mr-1" />
                   Custom Design
                   <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </div>
               </Link>
-              <Link to="/contact" className="relative text-white/90 hover:text-white transition-all group">
+              <Link to="/contact" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
                 <span className="relative z-10">Contact</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
@@ -133,10 +135,13 @@ const Header: React.FC = () => {
 
         {/* Right Side Icons */}
         <div className="flex items-center space-x-2 md:space-x-3">
+          {/* Theme Switcher */}
+          <ThemeSwitcher />
+          
           {/* Only show wishlist and cart for non-admin users */}
           {(!auth || !auth.user || auth.user.role !== 1) && (
             <>
-              <Link to="/wishlist" className="relative p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all" title="Wishlist">
+              <Link to="/wishlist" className="relative p-2 rounded-lg transition-all" title="Wishlist" style={{ color: 'var(--color-text)', opacity: 0.8 }}>
                 <Heart className="w-5 h-5" />
               </Link>
               <button 
@@ -149,7 +154,8 @@ const Header: React.FC = () => {
                     setIsCartOpen(true);
                   }
                 }} 
-                className="relative p-2 text-white/80 hover:text-white hover:bg-gray-800 rounded-lg transition-all group"
+                className="relative p-2 rounded-lg transition-all group"
+                style={{ color: 'var(--color-text)', opacity: 0.8 }}
               >
                 <ShoppingCart 
                   className={`w-5 h-5 ${cartAnimation ? 'animate-bounce' : ''}`} 
