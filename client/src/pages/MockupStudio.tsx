@@ -780,13 +780,13 @@ const MockupStudio: React.FC = () => {
 
         {/* Main Canvas Area */}
         <div className="flex-1 lg:flex-1 flex flex-col p-2 sm:p-6 min-h-0">
-          <div className="bg-white rounded-lg shadow-lg p-2 sm:p-6 flex-1 flex flex-col">
+         
 
             {/* Canvas Container - Responsive */}
-            <div className="flex-1 flex justify-center items-center p-2 lg:p-4">
+            <div className="flex-1 flex justify-center  p-2 lg:p-4">
               <div 
                 id="tshirt-container"
-                className="relative bg-gray-100 rounded-lg w-full max-w-full lg:max-w-[800px] lg:h-[calc(100vh-300px)] lg:max-h-[900px]"
+                className="relative bg-gray-100 rounded-lg w-full max-w-full lg:max-w-[800px] lg:h-[calc(100vh-200px)] lg:max-h-[900px]"
                 style={{ 
                   aspectRatio: '8/9'
                 }}
@@ -813,7 +813,7 @@ const MockupStudio: React.FC = () => {
                 />
               </div>
             </div>
-          </div>
+      
         </div>
 
         {/* Right Properties Panel - Mobile: bottom, Desktop: right sidebar */}
