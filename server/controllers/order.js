@@ -1,7 +1,8 @@
 const { Order, ProductCart } = require("../models/order");
 const shiprocketService = require("../services/shiprocket");
 const emailService = require("../services/emailService");
-const { creditPoints } = require("./reward");
+const { creditPoints, redeemPoints } = require("./reward");
+const RewardTransaction = require("../models/rewardTransaction");
 
 exports.getOrderById = (req, res, next, id) => {
   Order.findById(id)
@@ -194,13 +195,136 @@ exports.createOrder = async (req, res) => {
     
     recalculatedTotal += shippingCost;
     
+    // Store original amount before discounts
+    req.body.order.originalAmount = recalculatedTotal;
+    
+    // Handle coupon validation and discount calculation
+    let couponDiscount = 0;
+    if (req.body.order.coupon && req.body.order.coupon.code) {
+      console.log(`Validating coupon: ${req.body.order.coupon.code}`);
+      
+      // Import Coupon model for validation
+      const Coupon = require("../models/coupon");
+      
+      // Validate coupon on server side
+      const coupon = await Coupon.findOne({ 
+        code: req.body.order.coupon.code.toUpperCase(),
+        isActive: true
+      });
+
+      if (!coupon) {
+        return res.status(400).json({
+          error: "Invalid coupon code"
+        });
+      }
+
+      // Check if coupon is valid
+      if (!coupon.isValid()) {
+        return res.status(400).json({
+          error: "Coupon has expired or reached usage limit"
+        });
+      }
+
+      // Check minimum purchase
+      if (recalculatedTotal < coupon.minimumPurchase) {
+        return res.status(400).json({
+          error: `Minimum purchase of ₹${coupon.minimumPurchase} required`
+        });
+      }
+
+      // Check first time only restriction
+      if (coupon.firstTimeOnly && req.profile && req.profile._id) {
+        const previousOrders = await Order.countDocuments({ 
+          user: req.profile._id,
+          status: { $ne: "Cancelled" }
+        });
+        if (previousOrders > 0) {
+          return res.status(400).json({
+            error: "This coupon is only valid for first-time customers"
+          });
+        }
+      }
+
+      // Check user usage limit
+      if (req.profile && req.profile._id && coupon.userLimit) {
+        const userUsageCount = await Order.countDocuments({
+          user: req.profile._id,
+          "coupon.code": coupon.code,
+          status: { $ne: "Cancelled" }
+        });
+        if (userUsageCount >= coupon.userLimit) {
+          return res.status(400).json({
+            error: "You have already used this coupon maximum times"
+          });
+        }
+      }
+      
+      // Calculate coupon discount using the server-validated coupon
+      if (coupon.discountType === 'percentage') {
+        couponDiscount = Math.floor((recalculatedTotal * coupon.discountValue) / 100);
+        // Apply max discount if specified
+        if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
+          couponDiscount = coupon.maxDiscount;
+        }
+      } else {
+        // Fixed discount
+        couponDiscount = coupon.discountValue;
+      }
+      
+      // Update coupon info with server-validated data
+      req.body.order.coupon = {
+        code: coupon.code,
+        discountType: coupon.discountType,
+        discountValue: couponDiscount
+      };
+      
+      console.log(`Applied coupon discount: ₹${couponDiscount}`);
+    } else {
+      // Remove coupon info if no valid coupon
+      delete req.body.order.coupon;
+    }
+    
+    // Handle reward points redemption (only for authenticated users)
+    let rewardPointsDiscount = 0;
+    if (req.body.order.rewardPointsRedeemed && req.body.order.rewardPointsRedeemed > 0 && req.profile && req.profile._id) {
+      console.log(`Processing reward points redemption: ${req.body.order.rewardPointsRedeemed} points`);
+      
+      const redeemResult = await redeemPoints(
+        req.profile._id,
+        req.body.order.rewardPointsRedeemed,
+        'pending' // Will be updated with actual order ID after save
+      );
+      
+      if (!redeemResult.success) {
+        return res.status(400).json({
+          error: redeemResult.message || "Failed to redeem reward points"
+        });
+      }
+      
+      rewardPointsDiscount = redeemResult.discountAmount;
+      req.body.order.rewardPointsDiscount = rewardPointsDiscount;
+      console.log(`Applied reward points discount: ₹${rewardPointsDiscount}`);
+    }
+    
+    // Apply total discount
+    const totalDiscount = couponDiscount + rewardPointsDiscount;
+    req.body.order.discount = totalDiscount;
+    
+    // Calculate final amount after all discounts
+    recalculatedTotal = recalculatedTotal - totalDiscount;
+    
+    // Ensure amount doesn't go below 0
+    if (recalculatedTotal < 0) {
+      recalculatedTotal = 0;
+    }
+    
     // Update order with validated data
     req.body.order.products = validatedProducts;
     req.body.order.amount = recalculatedTotal;
     req.body.order.paymentStatus = 'Paid';
     
     // Log price validation
-    console.log(`Price validation - Client sent: ₹${req.body.order.amount}, Server calculated: ₹${recalculatedTotal}`);
+    console.log(`Price validation - Client sent: ₹${req.body.order.amount}, Server calculated: ₹${recalculatedTotal}, Discounts: ₹${totalDiscount}`);
     
     // Set payment status based on successful verification
     if (req.payment && req.payment.status === 'captured') {
@@ -215,6 +339,26 @@ exports.createOrder = async (req, res) => {
     // Save order first
     const savedOrder = await order.save();
     
+    // Update reward transaction with actual order ID if points were redeemed
+    if (req.body.order.rewardPointsRedeemed && req.body.order.rewardPointsRedeemed > 0 && req.profile && req.profile._id) {
+      try {
+        await RewardTransaction.findOneAndUpdate(
+          { 
+            user: req.profile._id, 
+            orderId: 'pending',
+            type: 'redeemed'
+          },
+          { 
+            orderId: savedOrder._id,
+            description: `Redeemed ${req.body.order.rewardPointsRedeemed} points for order #${savedOrder._id}`
+          },
+          { sort: { createdAt: -1 } } // Get the most recent pending transaction
+        );
+      } catch (err) {
+        console.error('Failed to update reward transaction with order ID:', err);
+      }
+    }
+    
     // Populate user info for email and shipment
     await savedOrder.populate('user', 'email name');
     
@@ -222,6 +366,18 @@ exports.createOrder = async (req, res) => {
     emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(err => {
       console.error("Failed to send order confirmation email:", err);
     });
+    
+    // Track coupon usage if a coupon was applied
+    if (req.body.order.coupon && req.body.order.coupon.code) {
+      const { trackCouponUsage } = require("./coupon");
+      trackCouponUsage(
+        req.body.order.coupon.code, 
+        savedOrder._id, 
+        savedOrder.user ? savedOrder.user._id : null
+      ).catch(err => {
+        console.error("Failed to track coupon usage:", err);
+      });
+    }
     
     // Credit reward points for paid orders (only for registered users)
     if (savedOrder.paymentStatus === 'Paid' && savedOrder.user && savedOrder.user._id) {

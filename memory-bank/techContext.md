@@ -38,7 +38,17 @@
 - **Database**: MongoDB Atlas
 - **CI/CD**: GitHub Actions
 
-### Recent Implementations (January 11, 2025)
+### Recent Implementations (January 20, 2025)
+
+#### Checkout Discount Integration
+- **DiscountSection Component**: Coupon and reward points application UI
+- **OrderHandler Hook**: Extracted order placement logic for better separation
+- **Backend Validation**: All discount calculations moved server-side
+- **Security Enhancement**: Frontend only sends codes/points, not amounts
+- **Atomic Operations**: Reward points redeemed during order creation
+- **Guest Support**: Coupons available for guests, points for authenticated only
+
+### Previous Implementations (January 11, 2025)
 
 #### Enhanced User Experience
 - **UserDashBoardEnhanced**: Modern UI with tabs, glassmorphism effects

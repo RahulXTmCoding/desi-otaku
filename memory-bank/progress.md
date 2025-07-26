@@ -1,8 +1,55 @@
 # Progress
 
-## Current Status (7/13/2025)
+## Current Status (7/20/2025)
 
-### Latest Implementation: Theme System Color Update ✅ (Completed 7/13/2025)
+### Latest Implementation: Checkout Discount Integration ✅ (Completed 7/20/2025)
+
+Successfully integrated discount functionality (coupons and reward points) into the checkout flow with a strong focus on backend security and validation.
+
+**Frontend Implementation:**
+- **DiscountSection Component**:
+  - Created for Step 2 of checkout flow
+  - Allows coupon code application with real-time validation
+  - Reward points redemption interface (authenticated users only)
+  - Shows applied discounts and calculates savings
+  - Test mode support with mock data
+- **Checkout Integration**:
+  - Added comprehensive order summary showing all discounts
+  - Extracted order placement logic into OrderHandler component
+  - Updated final amount calculations to include all discounts
+  - Frontend sends only codes/points, not calculated amounts
+
+**Backend Security Implementation:**
+- **Server-Side Validation**:
+  - All discount validation moved to backend for security
+  - Coupon validation checks: existence, active status, expiry, usage limits
+  - Minimum purchase requirements enforced
+  - First-time-only and per-user restrictions validated
+  - Server calculates actual discount amounts (percentage or fixed)
+- **Reward Points Security**:
+  - Points redeemed atomically during order creation
+  - Validates user has sufficient balance before applying
+  - Updates reward transaction with actual order ID
+  - Only available for authenticated users
+- **Coupon Tracking**:
+  - Usage tracked after successful order creation
+  - Updates coupon usage count and user tracking
+  - Complete audit trail maintained
+
+**Key Security Features:**
+- Frontend cannot manipulate discount amounts
+- All prices and discounts recalculated server-side
+- Atomic operations prevent partial failures
+- Proper error messages for invalid discounts
+- Guest users can use coupons but not reward points
+
+**Technical Details:**
+- Updated Order model with discount tracking fields
+- Modified order and guest order controllers
+- Created comprehensive documentation
+- No new API endpoints - integrated into existing order flow
+
+### Previous Implementation: Theme System Color Update ✅ (Completed 7/13/2025)
 
 Successfully updated the theme system to use maroon as the primary color instead of yellow, improving the visual sophistication while maintaining the t-shirt color options.
 

@@ -3,15 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, MapPin, CreditCard, Package, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { isAutheticated } from '../auth/helper';
-import { createOrder, mockCreateOrder } from '../core/helper/orderHelper';
-import { getBraintreeClientToken, processPayment, mockProcessPayment } from '../core/helper/paymentHelper';
-import { 
-  loadRazorpayScript,
-  createRazorpayOrder,
-  verifyRazorpayPayment,
-  mockRazorpayPayment,
-  initializeRazorpayCheckout
-} from '../core/helper/razorpayHelper';
+import { getBraintreeClientToken } from '../core/helper/paymentHelper';
+import { loadRazorpayScript } from '../core/helper/razorpayHelper';
 import { 
   getUserAddresses, 
   addUserAddress, 
@@ -24,13 +17,14 @@ import {
   type Address
 } from '../core/helper/addressHelper';
 import { useDevMode } from '../context/DevModeContext';
-import { API } from '../backend';
+import { useOrderHandler } from '../components/checkout/OrderHandler';
 
 // Import optimized components
 import AddressSectionEnhanced from '../components/checkout/AddressSectionEnhanced';
 import ShippingMethodEnhanced from '../components/checkout/ShippingMethodEnhanced';
 import OrderReview from '../components/checkout/OrderReview';
 import PaymentSection from '../components/checkout/PaymentSection';
+import DiscountSection from '../components/checkout/DiscountSection';
 
 // Step progress component
 const StepProgress = React.memo(({ activeStep }: { activeStep: number }) => {
@@ -115,21 +109,18 @@ const CheckoutFixed: React.FC = () => {
   useEffect(() => {
     shippingInfoRef.current = shippingInfo;
   }, [shippingInfo]);
-
-  // Debug and prevent stuck loading states
-  useEffect(() => {
-    if (addressLoading) {
-      console.log('Address loading started');
-      const timeout = setTimeout(() => {
-        console.warn('Address loading timeout - forcing reset');
-        setAddressLoading(false);
-      }, 5000); // 5 second timeout
-      return () => clearTimeout(timeout);
-    }
-  }, [addressLoading]);
   
   const [paymentMethod, setPaymentMethod] = useState('razorpay');
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
+  
+  // Discount states
+  const [appliedDiscount, setAppliedDiscount] = useState<{
+    coupon: { code: string; discount: number; description: string } | null;
+    rewardPoints: { points: number; discount: number } | null;
+  }>({
+    coupon: null,
+    rewardPoints: null
+  });
   
   const [paymentData, setPaymentData] = useState<{
     loading: boolean;
@@ -283,6 +274,14 @@ const CheckoutFixed: React.FC = () => {
   const getTotalAmount = useCallback(() => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   }, [cart]);
+
+  const getFinalAmount = useCallback(() => {
+    const subtotal = getTotalAmount();
+    const shipping = selectedShipping?.rate || 0;
+    const couponDiscount = appliedDiscount.coupon?.discount || 0;
+    const rewardDiscount = appliedDiscount.rewardPoints?.discount || 0;
+    return subtotal + shipping - couponDiscount - rewardDiscount;
+  }, [getTotalAmount, selectedShipping, appliedDiscount]);
 
   const validateShipping = useCallback(() => {
     const required = ['fullName', 'email', 'phone', 'address', 'city', 'state', 'pinCode'];
@@ -492,7 +491,22 @@ const CheckoutFixed: React.FC = () => {
     }
   }, [savedAddresses, selectedAddressId, handleSelectAddress]);
 
-  const handlePlaceOrder = useCallback(async () => {
+  // Use the extracted order handler
+  const { handlePlaceOrder } = useOrderHandler({
+    cart,
+    auth,
+    isTestMode,
+    paymentMethod,
+    shippingInfo,
+    selectedShipping,
+    appliedDiscount,
+    getTotalAmount,
+    getFinalAmount,
+    razorpayReady,
+    clearCart
+  });
+
+  const handlePlaceOrderWithValidation = useCallback(async () => {
     if (!validateShipping()) {
       alert('Please fill all shipping details');
       return;
@@ -507,297 +521,17 @@ const CheckoutFixed: React.FC = () => {
       alert('Payment gateway is loading. Please try again.');
       return;
     }
-  
-    // Allow guest checkout - they can sign in later or create account after order
-    const isGuest = !auth || typeof auth === 'boolean' || !auth.user || !auth.token;
-  
+    
     setLoading(true);
-  
     try {
-      const totalAmount = getTotalAmount() + (selectedShipping?.rate || 0);
-      
-      if (isTestMode) {
-        // Test mode implementation
-        const paymentResult = paymentMethod === 'razorpay' 
-          ? await mockRazorpayPayment(totalAmount)
-          : await mockProcessPayment(totalAmount);
-          
-        const orderData = {
-          products: cart.map(item => ({
-            product: item.product || item._id?.split('-')[0] || '',
-            name: item.name,
-            price: item.price,
-            count: item.quantity,
-            size: item.size,
-          })),
-          transaction_id: paymentMethod === 'razorpay' 
-            ? paymentResult.razorpay_payment_id 
-            : paymentResult.transaction.id,
-          amount: totalAmount,
-          address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pinCode}, ${shippingInfo.country}`,
-          status: "Received",
-          shipping: {
-            name: shippingInfo.fullName,
-            phone: shippingInfo.phone,
-            pincode: shippingInfo.pinCode,
-            city: shippingInfo.city,
-            state: shippingInfo.state,
-            country: shippingInfo.country,
-            weight: 0.3 * cart.length,
-            shippingCost: selectedShipping?.rate || 0,
-            courier: selectedShipping?.courier_name || ''
-          }
-        };
-        
-        const orderResult = await mockCreateOrder(orderData);
-        
-        if (orderResult.error) {
-          throw new Error(orderResult.error);
-        }
-        
-        await clearCart();
-        navigate('/order-confirmation-enhanced', { 
-          state: { 
-            orderId: orderResult._id,
-            orderDetails: orderData,
-            shippingInfo,
-            paymentMethod
-          }
-        });
-      } else if (paymentMethod === 'razorpay') {
-        // Razorpay implementation for both authenticated and guest users
-        let orderResponse;
-        
-        if (isGuest) {
-          // Guest checkout - use dedicated endpoint
-          const response = await fetch(`${API}/razorpay/order/guest/create`, {
-            method: 'POST',
-            headers: {
-              Accept: 'application/json',
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              amount: totalAmount,
-                currency: 'INR',
-                receipt: `guest_${Date.now()}`,
-                customerInfo: {
-                  name: shippingInfo.fullName,
-                  email: shippingInfo.email,
-                  phone: shippingInfo.phone
-                },
-                notes: {
-                  items: cart.length,
-                  shipping_method: selectedShipping?.courier_name || 'Standard'
-                }
-            })
-          });
-          
-          const data = await response.json();
-          if (!response.ok) {
-            throw new Error(data.error || 'Failed to create guest order');
-          }
-          orderResponse = data;
-        } else {
-          // Authenticated user checkout
-          const userId = (auth as any).user._id;
-          const token = (auth as any).token;
-          
-          orderResponse = await createRazorpayOrder(
-            userId, 
-            token,
-            {
-              amount: totalAmount,
-              currency: 'INR',
-              receipt: `order_${Date.now()}`,
-              notes: {
-                customer_name: shippingInfo.fullName,
-                customer_email: shippingInfo.email
-              }
-            }
-          );
-        }
-        
-        if (orderResponse.error) {
-          throw new Error(orderResponse.error);
-        }
-        
-        setLoading(false);
-        
-        initializeRazorpayCheckout(
-          {
-            order_id: orderResponse.order.id,
-            amount: orderResponse.order.amount,
-            currency: orderResponse.order.currency,
-            key_id: orderResponse.key_id,
-            name: 'T-Shirt Store',
-            description: 'Order Payment',
-            prefill: {
-              name: shippingInfo.fullName,
-              email: shippingInfo.email,
-              phone: shippingInfo.phone
-            }
-          },
-          async (paymentData: any) => {
-            setLoading(true);
-            
-            try {
-              let verifyResponse;
-              
-              if (isGuest) {
-                // Guest payment verification
-                const response = await fetch(`${API}/razorpay/payment/guest/verify`, {
-                  method: 'POST',
-                  headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify(paymentData)
-                });
-                
-                const data = await response.json();
-                if (!response.ok) {
-                  throw new Error(data.error || 'Payment verification failed');
-                }
-                verifyResponse = data;
-              } else {
-                // Authenticated user verification
-                verifyResponse = await verifyRazorpayPayment(
-                  (auth as any).user._id,
-                  (auth as any).token,
-                  paymentData
-                );
-              }
-              
-              if (!verifyResponse.verified && !verifyResponse.success) {
-                throw new Error('Payment verification failed');
-              }
-              
-              const orderData = {
-                products: cart.map(item => {
-                  const baseProduct = {
-                    product: item.product || item._id?.split('-')[0] || '',
-                    name: item.name,
-                    price: item.price,
-                    count: item.quantity,
-                    size: item.size,
-                    // Include custom product data
-                    isCustom: item.isCustom,
-                    color: item.color
-                  };
-                  
-                  // Map customization to match backend expectation
-                  if (item.customization) {
-                    const mappedCustomization: any = {};
-                    
-                    if (item.customization.frontDesign) {
-                      mappedCustomization.frontDesign = {
-                        designId: item.customization.frontDesign.designId || 'custom-design',
-                        designImage: item.customization.frontDesign.designImage,
-                        position: item.customization.frontDesign.position || 'center',
-                        price: item.customization.frontDesign.price || 150
-                      };
-                    }
-                    
-                    if (item.customization.backDesign) {
-                      mappedCustomization.backDesign = {
-                        designId: item.customization.backDesign.designId || 'custom-design',
-                        designImage: item.customization.backDesign.designImage,
-                        position: item.customization.backDesign.position || 'center',
-                        price: item.customization.backDesign.price || 150
-                      };
-                    }
-                    
-                    return { ...baseProduct, customization: mappedCustomization };
-                  }
-                  
-                  return baseProduct;
-                }),
-                transaction_id: paymentData.razorpay_payment_id,
-                amount: totalAmount,
-                address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pinCode}, ${shippingInfo.country}`,
-                status: "Received",
-                shipping: {
-                  name: shippingInfo.fullName,
-                  phone: shippingInfo.phone,
-                  pincode: shippingInfo.pinCode,
-                  city: shippingInfo.city,
-                  state: shippingInfo.state,
-                  country: shippingInfo.country,
-                  weight: 0.3 * cart.length,
-                  shippingCost: selectedShipping?.rate || 0,
-                  courier: selectedShipping?.courier_name || ''
-                }
-              };
-              
-              let orderResult;
-              
-              if (isGuest) {
-                // Guest order creation
-                const response = await fetch(`${API}/guest/order/create`, {
-                  method: 'POST',
-                  headers: {
-                    Accept: 'application/json',
-                    'Content-Type': 'application/json'
-                  },
-                  body: JSON.stringify({
-                    ...orderData,
-                    guestInfo: {
-                      name: shippingInfo.fullName,
-                      email: shippingInfo.email,
-                      phone: shippingInfo.phone
-                    }
-                  })
-                });
-                
-                const data = await response.json();
-                if (!response.ok) {
-                  throw new Error(data.error || 'Failed to create guest order');
-                }
-                orderResult = data.order;
-              } else {
-                // Authenticated user order
-                orderResult = await createOrder((auth as any).user._id, (auth as any).token, orderData);
-                if (orderResult.error) {
-                  throw new Error(orderResult.error);
-                }
-              }
-              
-              setLoading(false);
-              
-              await clearCart();
-              // Navigate to enhanced confirmation page
-              navigate('/order-confirmation-enhanced', { 
-                state: { 
-                  orderId: orderResult._id,
-                  orderDetails: orderData,
-                  shippingInfo,
-                  paymentMethod,
-                  paymentDetails: verifyResponse.payment,
-                  isGuest,
-                  createdAt: new Date().toISOString()
-                }
-              });
-              
-            } catch (error: any) {
-              console.error('Order creation error:', error);
-              alert(`Failed to create order: ${error.message}`);
-              setLoading(false);
-            }
-          },
-          (error: any) => {
-            console.error('Razorpay payment error:', error);
-            if (error.error !== 'Payment cancelled by user') {
-              alert(`Payment failed: ${error.error || 'Unknown error'}`);
-            }
-          }
-        );
-      }
+      await handlePlaceOrder();
     } catch (error: any) {
       console.error('Order placement error:', error);
       alert(`Failed to place order: ${error.message}`);
+    } finally {
       setLoading(false);
     }
-  }, [validateShipping, selectedShipping, isTestMode, paymentMethod, razorpayReady, auth, navigate, getTotalAmount, cart, shippingInfo, clearCart]);
+  }, [validateShipping, selectedShipping, isTestMode, paymentMethod, razorpayReady, handlePlaceOrder]);
 
   // Render step content
   const renderStepContent = useMemo(() => {
@@ -859,6 +593,47 @@ const CheckoutFixed: React.FC = () => {
               getTotalAmount={getTotalAmount}
             />
             
+            {/* Add Discount Section */}
+            <DiscountSection
+              subtotal={getTotalAmount()}
+              shippingCost={selectedShipping?.rate || 0}
+              onDiscountChange={setAppliedDiscount}
+              isTestMode={isTestMode}
+            />
+            
+            {/* Order Summary */}
+            <div className="bg-gray-700/50 rounded-lg p-6 mb-6">
+              <h3 className="font-semibold mb-4">Order Summary</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>₹{getTotalAmount()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Shipping</span>
+                  <span>₹{selectedShipping?.rate || 0}</span>
+                </div>
+                {appliedDiscount.coupon && (
+                  <div className="flex justify-between text-green-400">
+                    <span>Coupon Discount</span>
+                    <span>-₹{appliedDiscount.coupon.discount}</span>
+                  </div>
+                )}
+                {appliedDiscount.rewardPoints && (
+                  <div className="flex justify-between text-purple-400">
+                    <span>Reward Points</span>
+                    <span>-₹{appliedDiscount.rewardPoints.discount}</span>
+                  </div>
+                )}
+                <div className="border-t border-gray-600 pt-2 mt-2">
+                  <div className="flex justify-between font-semibold text-lg">
+                    <span>Total</span>
+                    <span className="text-yellow-400">₹{getFinalAmount()}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div className="flex gap-4 mt-6">
               <button
                 onClick={() => setActiveStep(1)}
@@ -885,9 +660,9 @@ const CheckoutFixed: React.FC = () => {
               razorpayReady={razorpayReady}
               paymentData={paymentData}
               loading={loading}
-              totalAmount={getTotalAmount() + (selectedShipping?.rate || 0)}
+              totalAmount={getFinalAmount()}
               onPaymentMethodChange={setPaymentMethod}
-              onPlaceOrder={handlePlaceOrder}
+              onPlaceOrder={handlePlaceOrderWithValidation}
             />
             
             <div className="flex gap-4 mt-6">
@@ -919,8 +694,10 @@ const CheckoutFixed: React.FC = () => {
     razorpayReady,
     paymentData,
     loading,
+    appliedDiscount,
     validateShipping,
     getTotalAmount,
+    getFinalAmount,
     handleSelectAddress,
     handleAddNewAddress,
     handleEditAddress,
@@ -929,7 +706,7 @@ const CheckoutFixed: React.FC = () => {
     handleSaveAddress,
     handleCancelAddressForm,
     handleInputChange,
-    handlePlaceOrder
+    handlePlaceOrderWithValidation
   ]);
 
   return (

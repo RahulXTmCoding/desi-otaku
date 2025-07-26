@@ -602,6 +602,80 @@ const memoizedCallback = useCallback(() => {}, [dependencies]);
 - Prevent XSS attacks
 - Clean nested object structures before DB storage
 
+### Checkout Discount Security Pattern (New)
+```typescript
+// Backend-only discount validation
+class SecureDiscountValidation {
+  // In order controller - validate everything server-side
+  async validateAndApplyDiscounts(order: OrderData, userId?: string) {
+    let totalDiscount = 0;
+    
+    // Validate coupon if provided
+    if (order.coupon?.code) {
+      const coupon = await Coupon.findOne({ 
+        code: order.coupon.code.toUpperCase(),
+        isActive: true
+      });
+      
+      if (!coupon || !coupon.isValid()) {
+        throw new Error('Invalid coupon');
+      }
+      
+      // Check all restrictions
+      if (order.amount < coupon.minimumPurchase) {
+        throw new Error(`Minimum purchase of ₹${coupon.minimumPurchase} required`);
+      }
+      
+      if (coupon.firstTimeOnly && userId) {
+        const previousOrders = await Order.countDocuments({ 
+          user: userId, 
+          status: { $ne: "Cancelled" } 
+        });
+        if (previousOrders > 0) {
+          throw new Error('First-time customers only');
+        }
+      }
+      
+      // Calculate discount server-side
+      const couponDiscount = coupon.calculateDiscount(order.amount);
+      totalDiscount += couponDiscount;
+      
+      // Track usage after order success
+      await trackCouponUsage(coupon.code, order._id, userId);
+    }
+    
+    // Validate reward points if provided
+    if (order.rewardPointsRedeemed > 0 && userId) {
+      const redeemResult = await redeemPoints(
+        userId,
+        order.rewardPointsRedeemed,
+        order._id
+      );
+      
+      if (!redeemResult.success) {
+        throw new Error('Failed to redeem points');
+      }
+      
+      totalDiscount += redeemResult.discountAmount;
+    }
+    
+    // Apply validated discounts
+    order.discount = totalDiscount;
+    order.amount = Math.max(0, order.originalAmount - totalDiscount);
+    
+    return order;
+  }
+}
+
+// Frontend - only sends codes/points, not amounts
+interface CheckoutDiscountData {
+  coupon?: {
+    code: string;  // Only the code
+  };
+  rewardPointsRedeemed?: number;  // Only points count
+}
+```
+
 ### Soft Delete Pattern
 ```typescript
 // Never hard delete - preserve data for analytics

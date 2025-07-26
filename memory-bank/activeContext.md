@@ -4,9 +4,37 @@
 - ✅ Enhanced Coupon Management System (Completed 7/13/2025)
 - ✅ Secure Reward Points System (Completed 7/13/2025)
 - ✅ Multi-Theme Support System (Completed 7/13/2025)
+- ✅ Checkout Discount Integration (Completed 7/20/2025)
 - Maintaining existing features: User Dashboard, Product Reviews, Subcategories
 
 ## Recent Changes
+
+### Checkout Discount Integration (Completed 7/20/2025)
+- **Frontend Components**:
+  - Created DiscountSection component for Step 2 of checkout
+  - Displays coupon input and reward points redemption
+  - Shows real-time discount calculations
+  - Integrated into CheckoutFixed with order summary
+  - Extracted order placement logic into OrderHandler component
+- **Backend Security Implementation**:
+  - All discount validation moved to server-side
+  - Order controller validates coupons independently:
+    - Checks existence, active status, expiry dates
+    - Validates minimum purchase and usage limits
+    - Enforces first-time-only and per-user restrictions
+    - Calculates discounts server-side only
+  - Reward points redeemed atomically during order creation
+  - Coupon usage tracked after successful order
+  - Guest orders support coupons but not reward points
+- **Security Features**:
+  - Frontend cannot manipulate discount amounts
+  - Server recalculates all prices and validates discounts
+  - Atomic operations prevent partial failures
+  - Complete audit trail for coupon usage and points redemption
+- **Data Flow**:
+  - Frontend sends only coupon code and points to redeem
+  - Backend validates everything and calculates actual discounts
+  - No trust in client-side calculations
 
 ### Theme System Color Update (Completed 7/13/2025)
 - **Primary Color Change**:

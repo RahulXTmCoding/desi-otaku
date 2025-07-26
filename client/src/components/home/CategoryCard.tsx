@@ -21,13 +21,13 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       <div className="relative bg-gray-800 rounded-2xl overflow-hidden group hover:scale-105 transition-all duration-300 cursor-pointer border border-gray-700 hover:border-yellow-400/50">
         {image ? (
           <>
-            <div className="relative h-48 overflow-hidden">
+            <div className="relative h-80 overflow-hidden">
               <img 
                 src={image} 
                 alt={name}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-gray-900 to-transparent"></div>
+              {/* <div className="absolute inset-0 bg-gradient-to-t to-transparent"></div> */}
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-4">
               <h3 className="font-bold text-lg mb-1">{name}</h3>

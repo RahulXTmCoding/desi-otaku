@@ -98,21 +98,21 @@ const HomeEnhanced: React.FC = () => {
     { 
       name: "T-Shirts", 
       icon: "👕", 
-      image: "/api/placeholder/300/200", 
+      image: "https://fansarmy.in/cdn/shop/files/COMBOCAROUSALIMAGES_7_1800x1800.jpg?v=1710585925", 
       link: "/shop?type=tshirt",
       productCount: 156
     },
     { 
       name: "Hoodies", 
       icon: "🧥", 
-      image: "/api/placeholder/300/200", 
+      image: "https://fansarmy.in/cdn/shop/products/136_1800x1800.jpg?v=1673854564", 
       link: "/shop?type=hoodie",
       productCount: 89
     },
     { 
-      name: "Combos", 
+      name: "Oversized Tees", 
       icon: "🎁", 
-      image: "/api/placeholder/300/200", 
+      image: "https://fansarmy.in/cdn/shop/files/2_77968a83-e420-4a49-a355-2488f4776a10_1800x1800.jpg?v=1716963525", 
       link: "/shop?type=combo",
       productCount: 45
     },
@@ -127,12 +127,12 @@ const HomeEnhanced: React.FC = () => {
 
   // Placeholder anime images - these would be replaced with actual category images
   const animeImages: { [key: string]: string } = {
-    "naruto": "/api/placeholder/200/200",
-    "one piece": "/api/placeholder/200/200",
-    "demon slayer": "/api/placeholder/200/200",
-    "attack on titan": "/api/placeholder/200/200",
-    "jujutsu kaisen": "/api/placeholder/200/200",
-    "dragon ball": "/api/placeholder/200/200"
+    "naruto": "https://fansarmy.in/cdn/shop/products/itachitshirt_d3e14ec9-aa4a-4046-a863-f4be5fba667c_1800x1800.jpg?v=1639554509",
+    "one piece": "https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894",
+    "demon slayer": "https://fansarmy.in/cdn/shop/products/23_1800x1800.jpg?v=1653574998",
+    "attack on titan": "https://fansarmy.in/cdn/shop/products/attack-on-titan-logo-tshirt-black-front-402728_l_1800x1800.jpg?v=1630592280",
+    "jujutsu kaisen": "https://fansarmy.in/cdn/shop/products/jujutsukaisentshirt_3ba65438-bd96-4e3c-9740-b773be6ca35b_1800x1800.jpg?v=1634803587",
+    "dragon ball": "https://fansarmy.in/cdn/shop/files/COMBOCAROUSALIMAGES_7_1800x1800.jpg?v=1710585925"
   };
 
   useEffect(() => {
@@ -495,7 +495,7 @@ const HomeEnhanced: React.FC = () => {
                   name={category.name}
                   icon={category.icon}
                   image={category.image}
-                  productCount={category.productCount}
+                  // productCount={category.productCount}
                   link={category.link}
                 />
               ))}
@@ -587,12 +587,12 @@ const HomeEnhanced: React.FC = () => {
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-4 transform -rotate-6 hover:rotate-0 transition-transform">
-                    <img src="/api/placeholder/150/200" alt="Anime Tee 1" className="rounded-lg" />
+                    <img src="https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894" alt="Anime Tee 1" className="rounded-lg" />
                   </div>
                 </div>
                 <div className="space-y-4 pt-8">
                   <div className="bg-gradient-to-br from-gray-200 to-white rounded-2xl p-4 transform rotate-3 hover:rotate-0 transition-transform">
-                    <img src="/api/placeholder/150/200" alt="Anime Tee 2" className="rounded-lg" />
+                    <img src="https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894" alt="Anime Tee 2" className="rounded-lg" />
                   </div>
                   <div className="text-center">
                     <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-yellow-400 bg-clip-text text-transparent">DESI</h3>
@@ -602,7 +602,7 @@ const HomeEnhanced: React.FC = () => {
                 </div>
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl p-4 transform rotate-6 hover:rotate-0 transition-transform">
-                    <img src="/api/placeholder/150/200" alt="Anime Tee 3" className="rounded-lg" />
+                    <img src="https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894" alt="Anime Tee 3" className="rounded-lg" />
                   </div>
                 </div>
               </div>

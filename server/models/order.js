@@ -91,8 +91,11 @@ const OrderSchema = new Schema(
     amount: {
       type: Number,
     },
+    originalAmount: { 
+      type: Number // Amount before any discounts (subtotal + shipping)
+    },
     subtotal: { 
-      type: Number // Amount before discount
+      type: Number // Amount before discount (deprecated - use originalAmount)
     },
     discount: { 
       type: Number, 
@@ -102,6 +105,14 @@ const OrderSchema = new Schema(
       code: String,
       discountType: String,
       discountValue: Number
+    },
+    rewardPointsRedeemed: {
+      type: Number,
+      default: 0
+    },
+    rewardPointsDiscount: {
+      type: Number,
+      default: 0
     },
     status: {
       type: String,
