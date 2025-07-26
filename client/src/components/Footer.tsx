@@ -36,6 +36,11 @@ const Footer: React.FC = () => {
               </Link>
             </li>
             <li>
+              <Link to="/mockup-studio" className="hover:text-yellow-400 transition-colors">
+                Mock-up Studio
+              </Link>
+            </li>
+            <li>
               <Link to="/shop?filter=new" className="hover:text-yellow-400 transition-colors">
                 New Arrivals
               </Link>

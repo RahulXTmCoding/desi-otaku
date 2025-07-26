@@ -23,6 +23,7 @@ const Signin = lazy(() => import('../user/Signin'));
 const UserDashBoardEnhanced = lazy(() => import('../user/UserDashBoardEnhanced'));
 const OrderDetail = lazy(() => import('../user/OrderDetail'));
 const UserProfile = lazy(() => import('../user/UserProfile'));
+const MockupStudio = lazy(() => import('./MockupStudio'));
 
 // Lazy load admin pages - these are heavy and rarely accessed by regular users
 const AdminDashBoard = lazy(() => import('./AdminDashBoard'));
@@ -74,6 +75,7 @@ export default function App() {
             <Route path="/order-confirmation-enhanced" element={<OrderConfirmationEnhanced />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/signin" element={<Signin />} />
+            <Route path="/mockup-studio" element={<MockupStudio />} />
             <Route path="/user/dashboard" element={
               <PrivateRoute>
                 <UserDashBoardEnhanced />
