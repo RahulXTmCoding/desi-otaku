@@ -680,7 +680,7 @@ const MockupStudio: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="bg-gray-100">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="px-2 sm:px-4 py-3 flex items-center justify-between">
@@ -709,7 +709,7 @@ const MockupStudio: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-73px)]">
+      <div className="flex flex-col lg:flex-row lg:h-[calc(100vh-150px)]">
         {/* Left Sidebar - Mobile: horizontal, Desktop: vertical */}
         <div className="lg:w-20 w-full bg-gray-800 text-white p-2 lg:p-4 flex lg:flex-col flex-row items-center lg:justify-center justify-start gap-3 lg:gap-6 overflow-x-auto">
           <input
