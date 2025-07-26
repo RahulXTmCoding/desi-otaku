@@ -742,7 +742,7 @@ const MockupStudio: React.FC = () => {
           
           {/* Print Size Selector in Sidebar */}
           <div className="lg:w-full flex lg:flex-col items-center gap-1 lg:gap-2 lg:border-t lg:pt-4 lg:mt-4 border-l lg:border-l-0 pl-3 lg:pl-0 ml-auto lg:ml-0">
-            <span className="text-xs text-gray-400 hidden lg:block">Print Size</span>
+           
             <div className="flex lg:flex-col gap-1 lg:gap-2">
               <button
                 onClick={() => setPrintSize('A4')}
