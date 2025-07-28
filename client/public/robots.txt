@@ -1,3 +1,47 @@
-# https://www.robotstxt.org/robotstxt.html
+# Robots.txt for Desi Otaku - Custom Anime T-Shirts & Merchandise
+# https://desiotaku.com
+
 User-agent: *
-Disallow:
+Allow: /
+Disallow: /admin/
+Disallow: /user/dashboard
+Disallow: /user/profile
+Disallow: /checkout
+Disallow: /order-confirmation
+Disallow: /api/
+Disallow: /*.json$
+Disallow: /*?*sort=
+Disallow: /*?*filter=
+Allow: /shop
+Allow: /product/
+Allow: /customize
+Allow: /about
+Allow: /contact
+
+# Sitemap location
+Sitemap: https://desiotaku.com/sitemap.xml
+
+# Crawl-delay for being respectful
+Crawl-delay: 1
+
+# Specific search engine bots
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
+
+# Block bad bots
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /

@@ -50,6 +50,86 @@ admin/
 4. **Reusability**: Design components to be reusable across different contexts
 5. **Size Limit**: If a component exceeds 200 lines, consider breaking it down
 
+## Navigation Patterns (Updated 2025-01-28)
+
+### Enhanced Dropdown Navigation Pattern
+**New Pattern**: Professional e-commerce dropdown menus with visual hierarchy
+
+```typescript
+// ShoppingDropdown.tsx - Reusable dropdown component
+interface DropdownCategory {
+  title: string;
+  icon: ReactNode;
+  color: string; // Gradient classes
+  description: string;
+  items: {
+    name: string;
+    link: string;
+    badge?: string;
+    icon?: string; // Emoji or icon
+  }[];
+}
+
+const ShoppingDropdown = () => {
+  return (
+    <>
+      {/* Products Dropdown */}
+      <div className="dropdown-container">
+        {/* Category Cards with gradients */}
+        <div className="category-header gradient-bg">
+          {icon}
+          <h3>{title}</h3>
+          <p>{description}</p>
+        </div>
+        
+        {/* Items with hover states */}
+        <Link className="hover:bg-gray-100 dark:hover:bg-gray-800">
+          <span className="group-hover:text-yellow-600">
+            {item.name}
+          </span>
+          {item.badge && <Badge />}
+        </Link>
+      </div>
+      
+      {/* Quick Access Section */}
+      <div className="quick-access">
+        <Link className="gradient-card">
+          Best Sellers / New Arrivals / Limited Edition
+        </Link>
+      </div>
+    </>
+  );
+};
+```
+
+### Mobile Navigation Pattern
+```typescript
+// Enhanced mobile menu with categories
+const MobileMenu = () => {
+  return (
+    <div className="w-80 overflow-y-auto"> {/* Increased width */}
+      {/* Organized sections */}
+      <div className="shop-by-products">
+        <h3>Shop by Products</h3>
+        {/* Category links */}
+      </div>
+      
+      <div className="shop-by-anime">
+        <h3>Shop by Anime</h3>
+        {/* Grid layout for anime */}
+      </div>
+    </div>
+  );
+};
+```
+
+### Route Structure
+- All routes defined in `pages/App.tsx`
+- Protected routes check authentication
+- Consistent breadcrumb navigation
+- Clear URL patterns
+- Dropdown navigation for better discoverability
+
 ## Data Flow Patterns
 
 ### API Integration
@@ -283,7 +363,7 @@ const PointsBalance = () => {
 };
 ```
 
-## Multi-Theme System Patterns (New)
+## Multi-Theme System Patterns (Updated 2025-01-28)
 
 ### Theme Configuration
 ```typescript
@@ -312,84 +392,31 @@ export const themes = {
       'accent': '#F59E0B',
       'border': '#E5E7EB'
     }
-  },
-  midnightBlue: {
-    name: 'Midnight Blue',
-    colors: {
-      'bg-primary': '#0F172A',
-      'bg-secondary': '#1E293B',
-      'bg-card': '#334155',
-      'text-primary': '#F8FAFC',
-      'text-secondary': '#CBD5E1',
-      'accent': '#3B82F6',
-      'border': '#475569'
-    }
-  },
-  cyberpunk: {
-    name: 'Cyberpunk',
-    colors: {
-      'bg-primary': '#0A0A0A',
-      'bg-secondary': '#1A1A1A',
-      'bg-card': '#2A2A2A',
-      'text-primary': '#FFFFFF',
-      'text-secondary': '#C0C0C0',
-      'accent': '#FF0080',
-      'border': '#FF00FF'
-    }
-  },
-  sakura: {
-    name: 'Sakura',
-    colors: {
-      'bg-primary': '#FFF0F5',
-      'bg-secondary': '#FFE4E1',
-      'bg-card': '#FFC0CB',
-      'text-primary': '#4A0E4E',
-      'text-secondary': '#8B4789',
-      'accent': '#FF69B4',
-      'border': '#FFB6C1'
-    }
   }
+  // ... other themes
 };
 ```
 
-### Theme Provider Pattern
+### Theme-Aware Component Pattern
 ```typescript
-// context/ThemeContext.tsx
-const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState('dark');
-  
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    setTheme(savedTheme);
-    applyTheme(savedTheme);
-  }, []);
-  
-  const applyTheme = (themeName: string) => {
-    const themeConfig = themes[themeName];
-    const root = document.documentElement;
-    
-    Object.entries(themeConfig.colors).forEach(([key, value]) => {
-      root.style.setProperty(`--color-${key}`, value);
-    });
-    
-    root.setAttribute('data-theme', themeName);
-  };
-  
-  const switchTheme = (newTheme: string) => {
-    setTheme(newTheme);
-    applyTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
-    
-    // Save to user preferences if authenticated
-    if (isAuthenticated()) {
-      updateUserThemePreference(newTheme);
-    }
-  };
-  
+// Use theme variables for components
+const ThemedComponent = () => {
   return (
-    <ThemeContext.Provider value={{ theme, switchTheme, themes }}>
-      {children}
-    </ThemeContext.Provider>
+    <div style={{ 
+      backgroundColor: 'var(--color-background)', 
+      color: 'var(--color-text)' 
+    }}>
+      {/* Content */}
+    </div>
+  );
+};
+
+// Exception: Force contrast for critical UI
+const HighContrastSection = () => {
+  return (
+    <div className="bg-black text-white"> {/* Hardcoded for visibility */}
+      {/* Critical content like About page sections */}
+    </div>
   );
 };
 ```
@@ -398,29 +425,55 @@ const ThemeProvider = ({ children }) => {
 ```css
 /* globals.css */
 :root {
-  --color-bg-primary: #111827;
-  --color-bg-secondary: #1F2937;
-  --color-bg-card: #374151;
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #D1D5DB;
-  --color-accent: #FCD34D;
+  --color-background: #111827;
+  --color-surface: #1F2937;
+  --color-text: #FFFFFF;
+  --color-textMuted: #D1D5DB;
+  --color-primary: #FCD34D;
   --color-border: #4B5563;
 }
 
 /* Component usage */
 .card {
-  background-color: var(--color-bg-card);
-  color: var(--color-text-primary);
+  background-color: var(--color-surface);
+  color: var(--color-text);
   border: 1px solid var(--color-border);
 }
 
-.button-primary {
-  background-color: var(--color-accent);
-  color: var(--color-bg-primary);
+/* Hover states with proper contrast */
+.nav-item:hover {
+  color: var(--color-primary);
+  background-color: var(--color-surfaceHover);
 }
 ```
 
-## UI/UX Patterns
+## UI/UX Patterns (Updated 2025-01-28)
+
+### Enhanced Dropdown Pattern
+```typescript
+// Professional dropdown with visual hierarchy
+const EnhancedDropdown = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  
+  return (
+    <div 
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
+      <button className="flex items-center gap-1">
+        <span>SHOP BY PRODUCTS</span>
+        <ChevronDown className={isOpen ? 'rotate-180' : ''} />
+      </button>
+      
+      <div className={`dropdown ${isOpen ? 'visible' : 'invisible'}`}>
+        {/* Gradient category cards */}
+        {/* Hover states with backgrounds */}
+        {/* Visual badges and icons */}
+      </div>
+    </div>
+  );
+};
+```
 
 ### Dark Theme Implementation
 ```typescript
@@ -523,20 +576,6 @@ const handleBlur = (field: string) => {
   </p>
 )}
 ```
-
-## Navigation Patterns
-
-### Route Structure
-- All routes defined in `pages/App.tsx`
-- Protected routes check authentication
-- Consistent breadcrumb navigation
-- Clear URL patterns
-
-### Modal Navigation
-- Modals for detail views
-- Preserve background state
-- Clear close actions
-- Keyboard navigation support
 
 ## Performance Patterns
 
@@ -928,6 +967,9 @@ Category.find({
 19. **Implement secure reward points with audit trails**
 20. **Use CSS variables for theme flexibility**
 21. **Create intelligent auto-apply algorithms for coupons**
+22. **Use dropdown navigation for better product discovery**
+23. **Ensure text visibility across all themes with proper contrast**
+24. **Add visual hierarchy with icons, badges, and gradients**
 
 ## Testing Utilities
 

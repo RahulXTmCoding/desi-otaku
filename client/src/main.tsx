@@ -6,6 +6,7 @@ import { DevModeProvider } from './context/DevModeContext'
 import { CartProvider } from './context/CartContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { initializeAuth } from './utils/clearAuth'
+import SEOProvider from './components/SEOProvider'
 import './index.css'
 
 // Clear any bad auth data on startup
@@ -13,14 +14,16 @@ initializeAuth();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <DevModeProvider>
-        <BrowserRouter>
-          <CartProvider>
-            <App />
-          </CartProvider>
-        </BrowserRouter>
-      </DevModeProvider>
-    </ThemeProvider>
+    <SEOProvider>
+      <ThemeProvider>
+        <DevModeProvider>
+          <BrowserRouter>
+            <CartProvider>
+              <App />
+            </CartProvider>
+          </BrowserRouter>
+        </DevModeProvider>
+      </ThemeProvider>
+    </SEOProvider>
   </React.StrictMode>,
 )

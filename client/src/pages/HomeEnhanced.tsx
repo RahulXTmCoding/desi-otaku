@@ -21,6 +21,8 @@ import { addToWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { getDesigns } from '../admin/helper/designapicall';
 import RealTShirtPreview from '../components/RealTShirtPreview';
+import SEOHead from '../components/SEOHead';
+import { PAGE_SEO_DATA, BASE_URL, ORGANIZATION_STRUCTURED_DATA } from '../seo/SEOConfig';
 
 interface Product {
   _id: string;
@@ -427,6 +429,11 @@ const HomeEnhanced: React.FC = () => {
 
   return (
     <Base title="" description="">
+      <SEOHead 
+        pageData={PAGE_SEO_DATA.home}
+        canonicalUrl={BASE_URL}
+        structuredData={ORGANIZATION_STRUCTURED_DATA}
+      />
       {/* Promotional Banner */}
       {showBanner && (
         <PromotionalBanner
