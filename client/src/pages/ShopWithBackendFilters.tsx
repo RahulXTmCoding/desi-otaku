@@ -8,7 +8,8 @@ import {
   ChevronDown,
   ShoppingCart,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Loader
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { addItemToCart } from '../core/helper/cartHelper';
@@ -20,6 +21,7 @@ import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, mockCategories } from '../data/mockData';
 import ProductGridItem from '../components/ProductGridItem';
 import QuickViewModal from '../components/QuickViewModal';
+// Removed custom scrollbar import
 
 interface Product {
   _id: string;
@@ -153,6 +155,10 @@ const ShopWithBackendFilters: React.FC = () => {
 
   // Available sizes
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
+  
+  // Infinite scroll states
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
 
   // Update URL params whenever filters change (but not when syncing from URL)
   useEffect(() => {
@@ -202,7 +208,13 @@ const ShopWithBackendFilters: React.FC = () => {
   // Load products whenever filters change
   useEffect(() => {
     const debounceTimer = setTimeout(() => {
-      loadFilteredProducts();
+      // If page changed and we have products, append new ones (infinite scroll)
+      if (currentPage > 1 && products.length > 0) {
+        loadFilteredProducts(true);
+      } else {
+        // Otherwise, load fresh
+        loadFilteredProducts(false);
+      }
     }, 500); // Debounce for search input and price slider
 
     return () => clearTimeout(debounceTimer);
@@ -248,17 +260,28 @@ const ShopWithBackendFilters: React.FC = () => {
     }
   };
 
-  const loadFilteredProducts = async () => {
-    setLoading(true);
-    setError('');
+  const loadFilteredProducts = async (append = false) => {
+    if (append) {
+      setIsLoadingMore(true);
+    } else {
+      setLoading(true);
+      setError('');
+      setProducts([]); // Clear products when not appending
+    }
 
     if (isTestMode) {
       // Mock filtering for test mode
       setTimeout(() => {
-        setProducts(mockProducts);
+        if (append) {
+          setProducts(prev => [...prev, ...mockProducts]);
+        } else {
+          setProducts(mockProducts);
+        }
         setTotalPages(Math.ceil(mockProducts.length / productsPerPage));
         setTotalProducts(mockProducts.length);
         setLoading(false);
+        setIsLoadingMore(false);
+        setHasMore(false); // No infinite scroll in test mode
       }, 500);
       return;
     }
@@ -305,10 +328,15 @@ const ShopWithBackendFilters: React.FC = () => {
       if (response.error) {
         setError(response.error);
       } else {
-        setProducts(response.products || []);
+        if (append) {
+          setProducts(prev => [...prev, ...(response.products || [])]);
+        } else {
+          setProducts(response.products || []);
+        }
         if (response.pagination) {
           setTotalPages(response.pagination.totalPages);
           setTotalProducts(response.pagination.totalProducts);
+          setHasMore(currentPage < response.pagination.totalPages);
         }
       }
     } catch (err) {
@@ -316,8 +344,29 @@ const ShopWithBackendFilters: React.FC = () => {
       setError('Failed to load products');
     } finally {
       setLoading(false);
+      setIsLoadingMore(false);
     }
   };
+  
+  // Infinite scroll handler using window scroll
+  const handleScroll = useCallback(() => {
+    if (isLoadingMore || !hasMore || loading) return;
+    
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollHeight = document.documentElement.scrollHeight;
+    const clientHeight = window.innerHeight;
+    
+    // If user has scrolled to within 300px of the bottom
+    if (scrollTop + clientHeight >= scrollHeight - 300) {
+      setCurrentPage(prev => prev + 1);
+    }
+  }, [isLoadingMore, hasMore, loading]);
+  
+  // Add scroll event listener to window
+  useEffect(() => {
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [handleScroll]);
 
   const toggleTag = (tag: string) => {
     setSelectedTags(prev =>
@@ -347,12 +396,14 @@ const ShopWithBackendFilters: React.FC = () => {
     setSelectedTags([]);
     setSortBy('newest');
     setCurrentPage(1);
+    setHasMore(true);
     // Clear URL params
     setSearchParams(new URLSearchParams());
   };
 
   const handleFilterChange = (filterType: string, value: any) => {
     setCurrentPage(1); // Reset to first page when filters change
+    setHasMore(true); // Reset infinite scroll
     
     switch (filterType) {
       case 'search':
@@ -421,19 +472,11 @@ const ShopWithBackendFilters: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      {/* Header */}
-      {/* <div className="bg-gray-800 py-8">
-        <div className="w-[96%] md:w-[90%] mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-2">Shop All Products</h1>
-          <p className="text-gray-300">Discover our collection of anime and brand t-shirts</p>
-        </div>
-      </div> */}
-
       <div className="w-[96%] md:w-[90%] mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar */}
-          <div className={`lg:w-80 ${showFilters ? 'block' : 'hidden'}`}>
-            <div className="bg-gray-800 rounded-2xl p-6 sticky top-24">
+          {/* Filters Sidebar - Fixed position with its own scroll */}
+          <div className={`lg:w-80 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+            <div className="lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto bg-gray-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold flex items-center gap-2">
                   <Filter className="w-5 h-5" />
@@ -655,7 +698,7 @@ const ShopWithBackendFilters: React.FC = () => {
             </div>
           </div>
 
-          {/* Main Content */}
+          {/* Main Content - Uses page scroll */}
           <div className="flex-1">
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
@@ -757,7 +800,7 @@ const ShopWithBackendFilters: React.FC = () => {
               <div className="text-center py-12">
                 <p className="text-red-400 mb-4">{error}</p>
                 <button
-                  onClick={loadFilteredProducts}
+                  onClick={() => loadFilteredProducts()}
                   className="bg-yellow-400 text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-yellow-300"
                 >
                   Retry
@@ -778,8 +821,25 @@ const ShopWithBackendFilters: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
+                {/* Loading more indicator for infinite scroll */}
+                {isLoadingMore && (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="flex items-center gap-3">
+                      <Loader className="w-5 h-5 animate-spin text-yellow-400" />
+                      <span className="text-gray-400">Loading more products...</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* End of products message */}
+                {!hasMore && products.length > 0 && !isLoadingMore && (
+                  <div className="text-center py-8">
+                    <p className="text-gray-400">You've reached the end! That's all the products we have.</p>
+                  </div>
+                )}
+
+                {/* Pagination - Hidden when infinite scroll is active */}
+                {false && totalPages > 1 && (
                   <div className="mt-8 flex items-center justify-center gap-2">
                     <button
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
