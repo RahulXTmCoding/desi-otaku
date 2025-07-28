@@ -26,6 +26,7 @@ interface OrderHandlerProps {
   getFinalAmount: () => number;
   razorpayReady: boolean;
   clearCart: () => Promise<void>;
+  isBuyNow?: boolean;
 }
 
 export const useOrderHandler = ({
@@ -39,7 +40,8 @@ export const useOrderHandler = ({
   getTotalAmount,
   getFinalAmount,
   razorpayReady,
-  clearCart
+  clearCart,
+  isBuyNow = false
 }: OrderHandlerProps) => {
   const navigate = useNavigate();
   
@@ -95,7 +97,10 @@ export const useOrderHandler = ({
         throw new Error(orderResult.error);
       }
       
-      await clearCart();
+      // Only clear cart if it's not a Buy Now purchase
+      if (!isBuyNow) {
+        await clearCart();
+      }
       navigate('/order-confirmation-enhanced', { 
         state: { 
           orderId: orderResult._id,
@@ -308,7 +313,10 @@ export const useOrderHandler = ({
             // Coupon usage tracking can be done on backend if needed
             // Reward points have already been redeemed on the backend during order creation
             
-            await clearCart();
+            // Only clear cart if it's not a Buy Now purchase
+            if (!isBuyNow) {
+              await clearCart();
+            }
             
             // Navigate to enhanced confirmation page
             navigate('/order-confirmation-enhanced', { 

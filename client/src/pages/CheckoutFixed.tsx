@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ChevronLeft, MapPin, CreditCard, Package, Check } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { isAutheticated } from '../auth/helper';
@@ -77,7 +77,13 @@ StepProgress.displayName = 'StepProgress';
 
 const CheckoutFixed: React.FC = () => {
   const navigate = useNavigate();
-  const { cart, clearCart } = useCart();
+  const location = useLocation();
+  const { cart: regularCart, clearCart } = useCart();
+  
+  // Check for Buy Now item
+  const buyNowItem = location.state?.buyNowItem;
+  const cart = buyNowItem ? [buyNowItem] : regularCart;
+  
   const [activeStep, setActiveStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const auth = useMemo(() => isAutheticated(), []);
@@ -138,10 +144,10 @@ const CheckoutFixed: React.FC = () => {
 
   // Check cart items on mount
   useEffect(() => {
-    if (!cart || cart.length === 0) {
+    if (!buyNowItem && (!regularCart || regularCart.length === 0)) {
       navigate('/cart');
     }
-  }, [cart, navigate]);
+  }, [buyNowItem, regularCart, navigate]);
 
   // Load Razorpay script with cleanup
   useEffect(() => {
@@ -503,7 +509,8 @@ const CheckoutFixed: React.FC = () => {
     getTotalAmount,
     getFinalAmount,
     razorpayReady,
-    clearCart
+    clearCart: buyNowItem ? async () => {} : clearCart, // Don't clear cart for buy now
+    isBuyNow: !!buyNowItem
   });
 
   const handlePlaceOrderWithValidation = useCallback(async () => {

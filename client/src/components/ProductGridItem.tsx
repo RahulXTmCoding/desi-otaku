@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingCart, Eye, Trash2, Star, X, ChevronLeft, Plus, Minus } from 'lucide-react';
+import { Heart, ShoppingCart, Eye, Trash2, Star, X, ChevronLeft, Plus, Minus, Zap } from 'lucide-react';
 import { API } from '../backend';
 import { useCart } from '../context/CartContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
@@ -148,6 +148,31 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
     } catch (error) {
       console.error('Failed to add to cart:', error);
     }
+  };
+
+  const handleBuyNow = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!selectedSize) {
+      return;
+    }
+    
+    const buyNowItem = {
+      _id: `buy-now-${Date.now()}`,
+      product: product._id,
+      name: product.name,
+      price: product.price,
+      size: selectedSize,
+      color: 'Black',
+      quantity: quantity,
+      isCustom: false,
+      photoUrl: product.photoUrl || getImageUrl()
+    };
+    
+    navigate('/checkout', {
+      state: { buyNowItem }
+    });
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
@@ -413,18 +438,34 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             </div>
           </div>
 
-          {/* Add to Cart Button */}
-          <button
-            onClick={handleAddToCart}
-            disabled={!selectedSize}
-            className={`w-full py-3 rounded-lg font-semibold transition-all ${
-              selectedSize
-                ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
-                : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-            }`}
-          >
-            {selectedSize ? 'Add to Cart' : 'Select a Size'}
-          </button>
+          {/* Action Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleAddToCart}
+              disabled={!selectedSize}
+              className={`flex-1 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                selectedSize
+                  ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <ShoppingCart className="w-4 h-4" />
+              {selectedSize ? 'Add to Cart' : 'Select Size'}
+            </button>
+            
+            <button
+              onClick={handleBuyNow}
+              disabled={!selectedSize}
+              className={`flex-1 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+                selectedSize
+                  ? 'bg-green-500 hover:bg-green-600 text-white'
+                  : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+              }`}
+            >
+              <Zap className="w-4 h-4" />
+              Buy Now
+            </button>
+          </div>
         </div>
       </div>
     </div>

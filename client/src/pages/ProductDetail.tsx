@@ -12,7 +12,8 @@ import {
   Plus,
   Minus,
   Check,
-  Share2
+  Share2,
+  Zap
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { getProduct } from '../core/helper/coreapicalls';
@@ -348,6 +349,29 @@ const ProductDetail: React.FC = () => {
       console.error('Failed to add to cart:', error);
       alert('Failed to add to cart. Please try again.');
     }
+  };
+
+  const handleBuyNow = () => {
+    if (!product || !selectedSize) {
+      alert('Please select a size');
+      return;
+    }
+    
+    const buyNowItem = {
+      _id: `buy-now-${Date.now()}`,
+      product: product._id,
+      name: product.name,
+      price: product.price,
+      size: selectedSize,
+      color: selectedColor?.name || 'Black',
+      quantity: quantity,
+      isCustom: false,
+      photoUrl: (product as any).photoUrl || getProductImage(product)
+    };
+    
+    navigate('/checkout', {
+      state: { buyNowItem }
+    });
   };
 
   const nextImage = () => {
@@ -729,6 +753,36 @@ const ProductDetail: React.FC = () => {
                   : product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] === 0
                   ? 'Out of Stock'
                   : 'Add to Cart'}
+              </button>
+              <button
+                onClick={handleBuyNow}
+                disabled={!selectedSize || (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] === 0)}
+                className={`flex-1 py-4 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 ${
+                  selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
+                    ? ''
+                    : 'cursor-not-allowed'
+                }`}
+                style={{
+                  backgroundColor: selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
+                    ? '#10b981'
+                    : 'var(--color-surface)',
+                  color: selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
+                    ? 'white'
+                    : 'var(--color-textMuted)'
+                }}
+                onMouseEnter={(e) => {
+                  if (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0) {
+                    e.currentTarget.style.backgroundColor = '#059669';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0) {
+                    e.currentTarget.style.backgroundColor = '#10b981';
+                  }
+                }}
+              >
+                <Zap className="w-5 h-5" />
+                Buy Now
               </button>
               <button 
                 onClick={handleWishlistToggle}

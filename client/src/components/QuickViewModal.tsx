@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { X, ShoppingCart, Heart, Plus, Minus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ShoppingCart, Heart, Plus, Minus, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { API } from '../backend';
 import { useCart } from '../context/CartContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface Product {
   _id: string;
@@ -58,6 +58,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const { addToCart } = useCart();
+  const navigate = useNavigate();
 
   const authData = isAutheticated();
   const user = authData && authData.user;
@@ -157,6 +158,27 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
     } catch (error) {
       console.error('Failed to add to cart:', error);
     }
+  };
+
+  const handleBuyNow = () => {
+    if (!selectedSize || product.stock === 0) return;
+    
+    navigate('/checkout', {
+      state: {
+        buyNowItem: {
+          _id: `buy-now-${Date.now()}`,
+          product: product._id,
+          name: product.name,
+          price: product.price,
+          size: selectedSize,
+          color: 'Black',
+          quantity: quantity,
+          isCustom: false,
+          photoUrl: product.photoUrl
+        }
+      }
+    });
+    onClose();
   };
 
   const handleWishlistToggle = async () => {
@@ -315,29 +337,44 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
               </div>
 
               {/* Actions */}
-              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4">
-                <button
-                  onClick={handleAddToCart}
-                  disabled={!selectedSize || product.stock === 0}
-                  className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
-                    selectedSize && product.stock !== 0
-                      ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
-                      : 'bg-gray-700 text-gray-500 cursor-not-allowed'
-                  }`}
-                >
-                  <ShoppingCart className="w-4 sm:w-5 h-4 sm:h-5" />
-                  {product.stock === 0 ? 'Out of Stock' : selectedSize ? 'Add to Cart' : 'Select Size'}
-                </button>
+              <div className="flex flex-col gap-3 mb-4">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={!selectedSize || product.stock === 0}
+                    className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
+                      selectedSize && product.stock !== 0
+                        ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
+                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <ShoppingCart className="w-4 sm:w-5 h-4 sm:h-5" />
+                    {product.stock === 0 ? 'Out of Stock' : selectedSize ? 'Add to Cart' : 'Select Size'}
+                  </button>
+                  <button
+                    onClick={handleBuyNow}
+                    disabled={!selectedSize || product.stock === 0}
+                    className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
+                      selectedSize && product.stock !== 0
+                        ? 'bg-green-600 hover:bg-green-700 text-white'
+                        : 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <Zap className="w-4 sm:w-5 h-4 sm:h-5" />
+                    Buy Now
+                  </button>
+                </div>
                 <button
                   onClick={handleWishlistToggle}
                   disabled={isLoading}
-                  className={`w-full sm:w-auto p-2.5 sm:p-3 rounded-lg transition-colors ${
+                  className={`w-full p-2.5 sm:p-3 rounded-lg transition-colors ${
                     wishlistState 
                       ? 'bg-red-500 hover:bg-red-600' 
                       : 'bg-gray-700 hover:bg-gray-600'
-                  }`}
+                  } flex items-center justify-center gap-2`}
                 >
-                  <Heart className={`w-4 sm:w-5 h-4 sm:h-5 ${wishlistState ? 'fill-white' : ''} text-white mx-auto`} />
+                  <Heart className={`w-4 sm:w-5 h-4 sm:h-5 ${wishlistState ? 'fill-white' : ''} text-white`} />
+                  <span className="sm:hidden">Wishlist</span>
                 </button>
               </div>
 
