@@ -363,12 +363,12 @@ const ShopWithBackendFilters: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Header */}
-      <div className="bg-gray-800 py-8">
+      {/* <div className="bg-gray-800 py-8">
         <div className="w-[96%] md:w-[90%] mx-auto px-4 text-center">
           <h1 className="text-4xl font-bold mb-2">Shop All Products</h1>
           <p className="text-gray-300">Discover our collection of anime and brand t-shirts</p>
         </div>
-      </div>
+      </div> */}
 
       <div className="w-[96%] md:w-[90%] mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">

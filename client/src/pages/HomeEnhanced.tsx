@@ -438,9 +438,9 @@ const HomeEnhanced: React.FC = () => {
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
         {/* Promotional Coupon Banner */}
-        <div className="w-[96%] mx-auto mt-4">
+                {/* <div className="w-[96%] mx-auto mt-4">
           <PromotionalCouponBanner />
-        </div>
+        </div> */}
 
         {/* Hero Section */}
         <section className="relative px-6 py-20 overflow-hidden" style={{ backgroundColor: 'var(--color-surface)' }}>
@@ -487,7 +487,7 @@ const HomeEnhanced: React.FC = () => {
         {/* Most In Demand Categories */}
         <section className="py-16">
           <div className="w-[96%] mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">MOST IN DEMAND</h2>
+            <h2 className="text-3xl font-bold text-center mb-12">OUR COLLECTION</h2>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {visualCategories.map((category, index) => (
                 <CategoryCard
@@ -553,7 +553,7 @@ const HomeEnhanced: React.FC = () => {
         </section>
 
         {/* Trending Products */}
-        <section className="py-8" style={{ backgroundColor: 'var(--color-background)' }}>
+        {/* <section className="py-8" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="w-[96%] mx-auto">
             <ProductCarousel
               title="Trending Products"
@@ -563,7 +563,7 @@ const HomeEnhanced: React.FC = () => {
               onQuickView={handleQuickView}
             />
           </div>
-        </section>
+        </section> */}
 
         {/* About Us Section */}
         <section className="py-20" style={{ backgroundColor: 'var(--color-surface)' }}>

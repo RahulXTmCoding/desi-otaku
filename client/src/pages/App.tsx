@@ -10,6 +10,7 @@ import DevModeToggle from '../components/DevModeToggle';
 const HomeEnhanced = lazy(() => import('./HomeEnhanced'));
 const Home = lazy(() => import('../core/Home'));
 const ShopWithBackendFilters = lazy(() => import('../pages/ShopWithBackendFilters'));
+const About = lazy(() => import('./About'));
 const Contact = lazy(() => import('../pages/Contact'));
 const Customize = lazy(() => import('./Customize'));
 const Cart = lazy(() => import('./Cart'));
@@ -65,6 +66,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomeEnhanced />} />
             <Route path="/shop" element={<ShopWithBackendFilters />} />
+            <Route path="/about" element={<About />} />
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/customize" element={<Customize />} />

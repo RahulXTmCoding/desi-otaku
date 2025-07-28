@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { getWishlistCount } from '../core/helper/wishlistHelper';
 import CartDrawer from './CartDrawer';
 import ThemeSwitcher from './ThemeSwitcher';
+import ShoppingDropdown from './ShoppingDropdown';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -114,10 +115,22 @@ const Header: React.FC = () => {
                 <span className="relative z-10">Home</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/shop" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
-                <span className="relative z-10">Shop</span>
+              
+              {/* Shopping Dropdown */}
+              <ShoppingDropdown />
+              
+              {/* <Link to="/combo" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+                <span className="relative z-10">COMBO</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
+              
+              <Link to="/new-launch" className="relative group">
+                <div className="relative px-4 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
+                  ✨ NEW LAUNCH
+                  <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
+                </div>
+              </Link> */}
+              
               <Link to="/customize" className="relative group">
                 <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }} className="relative px-4 py-1.5 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
                   <Palette className="inline-block w-4 h-4 mr-1" />
@@ -228,7 +241,7 @@ const Header: React.FC = () => {
 
         {/* Menu Panel */}
         <div
-          className={`absolute left-0 top-0 h-full w-64 bg-gray-900 shadow-xl transform transition-transform duration-300 ${
+          className={`absolute left-0 top-0 h-full w-80 bg-gray-900 shadow-xl transform transition-transform duration-300 overflow-y-auto ${
             isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
@@ -313,20 +326,80 @@ const Header: React.FC = () => {
                 >
                   Home
                 </Link>
+                
+                {/* Mobile Shopping Sections */}
+                <div className="px-6 py-3">
+                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Shop by Products</h3>
+                  <div className="space-y-1">
+                    <Link to="/shop?category=printed-tshirt" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      Printed T-shirt
+                    </Link>
+                    <Link to="/shop?category=oversized-tshirt" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      Oversized T-shirt
+                    </Link>
+                    <Link to="/shop?category=hoodies" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      Hoodies
+                    </Link>
+                    <Link to="/shop?category=jackets" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      Jackets
+                    </Link>
+                    <Link to="/shop?category=accessories" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      Accessories
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="px-6 py-3 border-t border-gray-800">
+                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Shop by Anime</h3>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Link to="/shop?anime=naruto" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Naruto
+                    </Link>
+                    <Link to="/shop?anime=one-piece" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      One Piece
+                    </Link>
+                    <Link to="/shop?anime=dragon-ball" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Dragon Ball
+                    </Link>
+                    <Link to="/shop?anime=attack-on-titan" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Attack on Titan
+                    </Link>
+                    <Link to="/shop?anime=my-hero-academia" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      My Hero Academia
+                    </Link>
+                    <Link to="/shop?anime=demon-slayer" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Demon Slayer
+                    </Link>
+                  </div>
+                  <Link to="/shop" onClick={closeMobileMenu} className="block text-yellow-400 text-sm font-semibold hover:text-yellow-300 transition-colors py-2 mt-2">
+                    View All Products →
+                  </Link>
+                </div>
+
                 <Link
-                  to="/shop"
+                  to="/combo"
                   onClick={closeMobileMenu}
-                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors border-t border-gray-800"
                 >
-                  Shop
+                  COMBO
                 </Link>
+                
+                <Link
+                  to="/new-launch"
+                  onClick={closeMobileMenu}
+                  className="block px-6 py-3 text-green-400 hover:bg-gray-800 hover:text-green-300 transition-colors font-semibold"
+                >
+                  ✨ NEW LAUNCH
+                </Link>
+                
                 <Link
                   to="/customize"
                   onClick={closeMobileMenu}
                   className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
                 >
-                  Custom Design
+                  🎨 Custom Design
                 </Link>
+                
                 <Link
                   to="/contact"
                   onClick={closeMobileMenu}
