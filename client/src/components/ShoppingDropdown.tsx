@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronDown, Shirt, Package, Star, Zap, Sparkles, Heart, Shield, Crown, TrendingUp, Flame } from 'lucide-react';
 
 interface ShoppingDropdownProps {
@@ -9,11 +9,25 @@ interface ShoppingDropdownProps {
 const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
   const [isAnimeDropdownOpen, setIsAnimeDropdownOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const closeDropdowns = () => {
     setIsProductsDropdownOpen(false);
     setIsAnimeDropdownOpen(false);
     onLinkClick?.();
+  };
+
+  // Handle navigation with proper query parameter updates
+  const handleNavigation = (link: string) => {
+    closeDropdowns();
+    
+    // If we're already on the shop page, use replace to update the URL
+    if (location.pathname === '/shop' && link.startsWith('/shop')) {
+      navigate(link, { replace: true });
+    } else {
+      navigate(link);
+    }
   };
 
   // Enhanced product categories with icons and descriptions
@@ -126,11 +140,10 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
                   {/* Category Items */}
                   <div className="space-y-2">
                     {category.items.map((item, itemIndex) => (
-                      <Link
+                      <div
                         key={itemIndex}
-                        to={item.link}
-                        onClick={closeDropdowns}
-                        className="group/item flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                        onClick={() => handleNavigation(item.link)}
+                        className="group/item flex items-center justify-between px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 border border-transparent hover:border-gray-200 dark:hover:border-gray-700 cursor-pointer"
                       >
                         <div className="flex items-center gap-3">
                           <span className="text-xl">{item.icon}</span>
@@ -143,7 +156,7 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
                             {item.badge}
                           </span>
                         )}
-                      </Link>
+                      </div>
                     ))}
                   </div>
                 </div>
@@ -219,11 +232,10 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 {animeCategories.filter(anime => anime.popular).map((anime, index) => (
-                  <Link
+                  <div
                     key={index}
-                    to={anime.link}
-                    onClick={closeDropdowns}
-                    className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${anime.color || 'from-gray-100 to-gray-200'} p-4 transform hover:scale-105 transition-all duration-300 shadow-lg`}
+                    onClick={() => handleNavigation(anime.link)}
+                    className={`group relative overflow-hidden rounded-xl bg-gradient-to-br ${anime.color || 'from-gray-100 to-gray-200'} p-4 transform hover:scale-105 transition-all duration-300 shadow-lg cursor-pointer`}
                   >
                     <div className="relative z-10">
                       <div className="text-3xl mb-2">{anime.emoji}</div>
@@ -232,7 +244,7 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
                       </span>
                     </div>
                     <div className="absolute -bottom-2 -right-2 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-150 transition-transform duration-500"></div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>
@@ -245,17 +257,16 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {animeCategories.filter(anime => !anime.popular).map((anime, index) => (
-                  <Link
+                  <div
                     key={index}
-                    to={anime.link}
-                    onClick={closeDropdowns}
-                    className="group flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200"
+                    onClick={() => handleNavigation(anime.link)}
+                    className="group flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 cursor-pointer"
                   >
                     <span className="text-2xl group-hover:scale-110 transition-transform">{anime.emoji}</span>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-yellow-600 dark:group-hover:text-yellow-400 transition-colors">
                       {anime.name}
                     </span>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>

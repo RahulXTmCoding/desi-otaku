@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { 
   Search, 
   Filter,
@@ -78,6 +78,57 @@ const ShopWithBackendFilters: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
   const [showFilters, setShowFilters] = useState(searchParams.get('filters') !== 'hidden');
   
+  // Use ref to track if we're updating from URL
+  const isUpdatingFromURL = useRef(false);
+  
+  // Watch for URL changes and update state accordingly
+  useEffect(() => {
+    isUpdatingFromURL.current = true;
+    
+    // Extract values from URL params
+    const search = searchParams.get('search') || '';
+    const category = searchParams.get('category') || 'all';
+    const subcategory = searchParams.get('subcategory') || 'all';
+    const type = searchParams.get('type') || 'all';
+    const price = searchParams.get('price') || 'all';
+    const sizes = searchParams.get('sizes')?.split(',').filter(Boolean) || [];
+    const availability = searchParams.get('availability') || 'all';
+    const tags = searchParams.get('tags')?.split(',').filter(Boolean) || [];
+    const sort = searchParams.get('sort') || 'newest';
+    const page = parseInt(searchParams.get('page') || '1');
+    const filters = searchParams.get('filters') !== 'hidden';
+    const minPrice = parseInt(searchParams.get('minPrice') || '0');
+    const maxPrice = parseInt(searchParams.get('maxPrice') || '5000');
+    
+    // Check for anime parameter
+    const animeParam = searchParams.get('anime');
+    if (animeParam) {
+      setSearchQuery(animeParam.replace(/-/g, ' '));
+      setSelectedCategory('all');
+      setSelectedProductType('all');
+    } else {
+      // Update state only if values have changed
+      setSearchQuery(search);
+      setSelectedCategory(category);
+      setSelectedProductType(type);
+    }
+    
+    setSelectedSubcategory(subcategory);
+    setSelectedPriceRange(price);
+    setSelectedSizes(sizes);
+    setSelectedAvailability(availability);
+    setSelectedTags(tags);
+    setSortBy(sort);
+    setCurrentPage(page);
+    setShowFilters(filters);
+    setPriceRange([minPrice, maxPrice]);
+    
+    // Reset flag after React's render cycle
+    requestAnimationFrame(() => {
+      isUpdatingFromURL.current = false;
+    });
+  }, [searchParams]);
+  
   // Price slider states
   const [minPrice, setMinPrice] = useState(0);
   const [maxPrice, setMaxPrice] = useState(5000);
@@ -103,8 +154,10 @@ const ShopWithBackendFilters: React.FC = () => {
   // Available sizes
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
-  // Update URL params whenever filters change
+  // Update URL params whenever filters change (but not when syncing from URL)
   useEffect(() => {
+    if (isUpdatingFromURL.current) return; // Don't update URL when we're syncing from URL
+    
     const params = new URLSearchParams();
     
     if (searchQuery) params.set('search', searchQuery);
@@ -121,8 +174,14 @@ const ShopWithBackendFilters: React.FC = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (!showFilters) params.set('filters', 'hidden');
     
-    setSearchParams(params);
-  }, [searchQuery, selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, currentPage, showFilters, setSearchParams]);
+    // Only update if params are different from current URL
+    const currentParams = searchParams.toString();
+    const newParams = params.toString();
+    
+    if (currentParams !== newParams) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [searchQuery, selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, currentPage, showFilters, searchParams, setSearchParams]);
 
   // Load categories and product types on mount
   useEffect(() => {
