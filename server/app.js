@@ -28,6 +28,7 @@ const secureOrderRoutes = require("./routes/secureOrder");
 const productTypeRoutes = require("./routes/productType");
 const cartRoutes = require("./routes/cart");
 const rewardRoutes = require("./routes/reward");
+const invoiceRoutes = require("./routes/invoice");
 const { initializeSettings } = require("./controllers/settings");
 
 const app = express();
@@ -73,6 +74,10 @@ app.use("/api/secure-order", secureOrderRoutes);
 app.use("/api", productTypeRoutes);
 app.use("/api", cartRoutes);
 app.use("/api", rewardRoutes);
+app.use("/api/invoice", invoiceRoutes);
+
+// Serve static files (for invoice PDFs)
+app.use('/invoices', express.static(require('path').join(__dirname, 'public/invoices')));
 
 //Port
 const port = process.env.PORT || 8000;

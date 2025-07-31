@@ -2,6 +2,7 @@ const { Order } = require('../models/order');
 const User = require('../models/user');
 const { v4: uuidv4 } = require('uuid');
 const { createSecureAccess } = require('./secureOrder');
+const invoiceService = require('../services/invoiceService');
 
 // Create order for guest users
 exports.createGuestOrder = async (req, res) => {
@@ -246,6 +247,21 @@ exports.createGuestOrder = async (req, res) => {
       });
     }
     
+    // 📄 INVOICE: Auto-generate invoice for paid guest orders
+    // if (savedOrder.paymentStatus === 'Paid') {
+    //   try {
+    //     const invoice = await invoiceService.createInvoiceFromOrder(savedOrder);
+    //     console.log(`✅ Invoice generated automatically for guest order: ${invoice.invoiceNumber}`);
+        
+    //     // Add invoice info to response (optional)
+    //     savedOrder.invoiceGenerated = true;
+    //     savedOrder.invoiceNumber = invoice.invoiceNumber;
+    //   } catch (invoiceError) {
+    //     console.error('Invoice generation error for guest order (order still created):', invoiceError);
+    //     // Don't fail the order if invoice generation fails - can be retried later
+    //   }
+    // }
+
     console.log('Guest order created:', savedOrder._id);
 
     res.json({

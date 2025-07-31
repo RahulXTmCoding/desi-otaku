@@ -4,6 +4,7 @@ const emailService = require("../services/emailService");
 const { creditPoints, redeemPoints } = require("./reward");
 const RewardTransaction = require("../models/rewardTransaction");
 const { createSecureAccess } = require("./secureOrder");
+const invoiceService = require("../services/invoiceService");
 
 exports.getOrderById = (req, res, next, id) => {
   Order.findById(id)
@@ -500,6 +501,21 @@ exports.createOrder = async (req, res) => {
         console.error("Failed to credit reward points:", err);
       });
     }
+    
+    // 📄 INVOICE: Auto-generate invoice for paid orders
+    // if (savedOrder.paymentStatus === 'Paid') {
+    //   try {
+    //     const invoice = await invoiceService.createInvoiceFromOrder(savedOrder);
+    //     console.log(`✅ Invoice generated automatically: ${invoice.invoiceNumber}`);
+        
+    //     // Add invoice info to response (optional)
+    //     savedOrder.invoiceGenerated = true;
+    //     savedOrder.invoiceNumber = invoice.invoiceNumber;
+    //   } catch (invoiceError) {
+    //     console.error('Invoice generation error (order still created):', invoiceError);
+    //     // Don't fail the order if invoice generation fails - can be retried later
+    //   }
+    // }
     
     // If Shiprocket is configured, create shipment
     if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {
