@@ -80,10 +80,18 @@ const OrderConfirmationEnhanced: React.FC = () => {
   }
 
   useEffect(() => {
-    // Clear cart after successful order
-    clearCart().then(() => {
-      console.log('Cart cleared');
-    });
+    // Only clear cart if it was NOT a Buy Now purchase
+    // Buy Now purchases should preserve the original cart
+    const wasBuyNow = location.state?.isBuyNow || location.state?.buyNowItem;
+    
+    if (!wasBuyNow) {
+      // Clear cart after successful cart checkout (not Buy Now)
+      clearCart().then(() => {
+        console.log('Cart cleared after cart checkout');
+      });
+    } else {
+      console.log('Buy Now purchase detected - preserving original cart');
+    }
 
     // Celebration animation
     const timer = setTimeout(() => {

@@ -255,8 +255,33 @@ const CheckoutFixed: React.FC = () => {
           console.error('Failed to load user addresses:', error);
         }
       } else {
-        // Mark as loaded even for guest users to prevent re-runs
+        // Guest users - load addresses from localStorage
         addressesLoadedRef.current = true;
+        try {
+          const savedGuestAddresses = localStorage.getItem('guest_addresses');
+          if (savedGuestAddresses) {
+            const addresses = JSON.parse(savedGuestAddresses);
+            if (Array.isArray(addresses) && addresses.length > 0) {
+              setSavedAddresses(addresses);
+              const defaultAddr = addresses.find(addr => addr.isDefault) || addresses[0];
+              if (defaultAddr) {
+                setSelectedAddressId(defaultAddr._id || '');
+                setShippingInfo({
+                  fullName: defaultAddr.fullName,
+                  email: defaultAddr.email,
+                  phone: defaultAddr.phone,
+                  address: defaultAddr.address,
+                  city: defaultAddr.city,
+                  state: defaultAddr.state,
+                  pinCode: defaultAddr.pinCode,
+                  country: defaultAddr.country || 'India'
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Failed to load guest addresses from localStorage:', error);
+        }
       }
     };
 
@@ -351,23 +376,52 @@ const CheckoutFixed: React.FC = () => {
       return;
     }
 
-    // For guest users (not signed in), just use the address without saving to profile
+    // For guest users (not signed in), save to localStorage
     if (!isTestMode && (!auth || typeof auth === 'boolean' || !auth.user)) {
-      // Create a temporary address for guest checkout
-      const guestAddress: Address = {
-        _id: `guest-${Date.now()}`,
-        ...shippingInfoRef.current,
-        isDefault: true
-      };
+      setAddressLoading(true);
       
-      // Add to local state only
-      setSavedAddresses([guestAddress]);
-      setShowAddressForm(false);
-      setEditingAddressId(null);
-      handleSelectAddress(guestAddress);
+      try {
+        let updatedAddresses: Address[];
+        
+        if (editingAddressId) {
+          // Update existing guest address
+          updatedAddresses = savedAddresses.map(addr => 
+            addr._id === editingAddressId
+              ? { ...addr, ...shippingInfoRef.current }
+              : addr
+          );
+        } else {
+          // Add new guest address
+          const guestAddress: Address = {
+            _id: `guest-${Date.now()}`,
+            ...shippingInfoRef.current,
+            isDefault: savedAddresses.length === 0
+          };
+          updatedAddresses = [...savedAddresses, guestAddress];
+        }
+        
+        // Save to localStorage
+        localStorage.setItem('guest_addresses', JSON.stringify(updatedAddresses));
+        setSavedAddresses(updatedAddresses);
+        setShowAddressForm(false);
+        setEditingAddressId(null);
+        
+        // Select the saved/updated address
+        const targetAddress = editingAddressId
+          ? updatedAddresses.find(addr => addr._id === editingAddressId)
+          : updatedAddresses[updatedAddresses.length - 1];
+          
+        if (targetAddress) {
+          handleSelectAddress(targetAddress);
+        }
+        
+        console.log('Guest address saved to localStorage');
+      } catch (error: any) {
+        console.error('Failed to save guest address:', error);
+        alert('Failed to save address. Please try again.');
+      }
       
-      // Show info message
-      console.log('Guest checkout - address will not be saved to profile');
+      setAddressLoading(false);
       return;
     }
 
@@ -417,14 +471,21 @@ const CheckoutFixed: React.FC = () => {
   const handleDeleteAddress = useCallback(async (addressId: string) => {
     if (!confirm('Are you sure you want to delete this address?')) return;
 
-    // For guest addresses, just remove from local state
+    // For guest addresses, remove from localStorage and local state
     if (addressId.startsWith('guest-')) {
-      setSavedAddresses(prev => prev.filter(addr => addr._id !== addressId));
+      const updatedAddresses = savedAddresses.filter(addr => addr._id !== addressId);
+      setSavedAddresses(updatedAddresses);
+      
+      // Update localStorage
+      localStorage.setItem('guest_addresses', JSON.stringify(updatedAddresses));
+      
       if (selectedAddressId === addressId) {
         setSelectedAddressId('');
         // Reset form for new address
         handleAddNewAddress();
       }
+      
+      console.log('Guest address deleted from localStorage');
       return;
     }
 
@@ -453,15 +514,22 @@ const CheckoutFixed: React.FC = () => {
     }
     
     setAddressLoading(false);
-  }, [auth, isTestMode, selectedAddressId, handleSelectAddress, handleAddNewAddress]);
+  }, [auth, isTestMode, selectedAddressId, savedAddresses, handleSelectAddress, handleAddNewAddress]);
 
   const handleSetDefaultAddress = useCallback(async (addressId: string) => {
-    // For guest addresses, just update local state
+    // For guest addresses, update local state and localStorage
     if (addressId.startsWith('guest-')) {
-      setSavedAddresses(prev => prev.map(addr => ({
+      const updatedAddresses = savedAddresses.map(addr => ({
         ...addr,
         isDefault: addr._id === addressId
-      })));
+      }));
+      
+      setSavedAddresses(updatedAddresses);
+      
+      // Update localStorage
+      localStorage.setItem('guest_addresses', JSON.stringify(updatedAddresses));
+      
+      console.log('Guest default address updated in localStorage');
       return;
     }
 
@@ -484,7 +552,7 @@ const CheckoutFixed: React.FC = () => {
     }
     
     setAddressLoading(false);
-  }, [auth, isTestMode]);
+  }, [auth, isTestMode, savedAddresses]);
 
   const handleCancelAddressForm = useCallback(() => {
     setShowAddressForm(false);
@@ -572,12 +640,54 @@ const CheckoutFixed: React.FC = () => {
             />
             
             <button
-              onClick={() => {
-                if (validateShipping() && selectedShipping) {
-                  setActiveStep(2);
-                } else {
-                  alert('Please fill all details and select shipping method');
+              onClick={async () => {
+                if (!validateShipping()) {
+                  alert('Please fill all shipping details');
+                  return;
                 }
+                
+                if (!selectedShipping) {
+                  alert('Please select shipping method');
+                  return;
+                }
+                
+                // ✅ AUTO-SAVE: Save address for guest users before proceeding
+                if (!auth || typeof auth === 'boolean' || !auth.user) {
+                  try {
+                    // Auto-save guest address when proceeding
+                    const currentAddresses = JSON.parse(localStorage.getItem('guest_addresses') || '[]');
+                    
+                    // Check if current address already exists
+                    const existingAddressIndex = currentAddresses.findIndex((addr: Address) => 
+                      addr.fullName === shippingInfo.fullName &&
+                      addr.email === shippingInfo.email &&
+                      addr.phone === shippingInfo.phone &&
+                      addr.address === shippingInfo.address &&
+                      addr.pinCode === shippingInfo.pinCode
+                    );
+                    
+                    if (existingAddressIndex === -1) {
+                      // Address doesn't exist, add it
+                      const newAddress: Address = {
+                        _id: `guest-${Date.now()}`,
+                        ...shippingInfo,
+                        isDefault: currentAddresses.length === 0
+                      };
+                      
+                      const updatedAddresses = [...currentAddresses, newAddress];
+                      localStorage.setItem('guest_addresses', JSON.stringify(updatedAddresses));
+                      setSavedAddresses(updatedAddresses);
+                      setSelectedAddressId(newAddress._id!);
+                      
+                      console.log('✅ Guest address auto-saved for future use');
+                    }
+                  } catch (error) {
+                    console.error('Failed to auto-save guest address:', error);
+                    // Don't block checkout if auto-save fails
+                  }
+                }
+                
+                setActiveStep(2);
               }}
               className="mt-6 w-full bg-yellow-400 hover:bg-yellow-300 text-gray-900 py-3 px-8 rounded-lg font-bold"
             >

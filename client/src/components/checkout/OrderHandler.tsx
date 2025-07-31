@@ -106,7 +106,8 @@ export const useOrderHandler = ({
           orderId: orderResult._id,
           orderDetails: orderData,
           shippingInfo,
-          paymentMethod
+          paymentMethod,
+          isBuyNow // ✅ FIXED: Pass isBuyNow flag for test mode too
         }
       });
     } else if (paymentMethod === 'razorpay') {
@@ -114,7 +115,17 @@ export const useOrderHandler = ({
       let orderResponse;
       
       if (isGuest) {
-        // Guest checkout - use dedicated endpoint
+        // Guest checkout - use dedicated endpoint with secure format
+        const cartItems = cart.map(item => ({
+          product: item.product || item._id?.split('-')[0] || '',
+          name: item.name,
+          quantity: item.quantity,
+          size: item.size,
+          customization: item.customization,
+          isCustom: item.isCustom,
+          color: item.color
+        }));
+
         const response = await fetch(`${API}/razorpay/order/guest/create`, {
           method: 'POST',
           headers: {
@@ -122,7 +133,9 @@ export const useOrderHandler = ({
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            amount: totalAmount,
+            cartItems: cartItems,
+            couponCode: appliedDiscount.coupon?.code || null,
+            rewardPoints: null, // No reward points for guests
             currency: 'INR',
             receipt: `guest_${Date.now()}`,
             customerInfo: {
@@ -143,23 +156,44 @@ export const useOrderHandler = ({
         }
         orderResponse = data;
       } else {
-        // Authenticated user checkout
-        const userId = (auth as any).user._id;
-        const token = (auth as any).token;
-        
-        orderResponse = await createRazorpayOrder(
-          userId, 
-          token,
-          {
-            amount: totalAmount,
+        // Authenticated user checkout - use secure format
+        const cartItems = cart.map(item => ({
+          product: item.product || item._id?.split('-')[0] || '',
+          name: item.name,
+          quantity: item.quantity,
+          size: item.size,
+          customization: item.customization,
+          isCustom: item.isCustom,
+          color: item.color
+        }));
+
+        const response = await fetch(`${API}/razorpay/order/create`, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${(auth as any).token}`
+          },
+          body: JSON.stringify({
+            cartItems: cartItems,
+            couponCode: appliedDiscount.coupon?.code || null,
+            rewardPoints: appliedDiscount.rewardPoints?.points || null,
             currency: 'INR',
             receipt: `order_${Date.now()}`,
             notes: {
               customer_name: shippingInfo.fullName,
-              customer_email: shippingInfo.email
+              customer_email: shippingInfo.email,
+              items: cart.length,
+              shipping_method: selectedShipping?.courier_name || 'Standard'
             }
-          }
-        );
+          })
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create authenticated order');
+        }
+        orderResponse = data;
       }
       
       if (orderResponse.error) {
@@ -327,6 +361,7 @@ export const useOrderHandler = ({
                 paymentMethod,
                 paymentDetails: verifyResponse.payment,
                 isGuest,
+                isBuyNow, // ✅ FIXED: Pass isBuyNow flag to prevent cart clearing
                 createdAt: new Date().toISOString()
               }
             });

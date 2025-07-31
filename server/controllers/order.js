@@ -3,6 +3,7 @@ const shiprocketService = require("../services/shiprocket");
 const emailService = require("../services/emailService");
 const { creditPoints, redeemPoints } = require("./reward");
 const RewardTransaction = require("../models/rewardTransaction");
+const { createSecureAccess } = require("./secureOrder");
 
 exports.getOrderById = (req, res, next, id) => {
   Order.findById(id)
@@ -26,6 +27,68 @@ exports.getOrderById = (req, res, next, id) => {
 exports.createOrder = async (req, res) => {
   try {
     console.log('Creating order with data:', JSON.stringify(req.body.order, null, 2));
+    
+    // 🔒 SECURITY: Critical payment amount verification
+    if (req.payment && req.payment.id) {
+      const Razorpay = require('razorpay');
+      const razorpay = new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET
+      });
+      
+      try {
+        // Fetch payment details from Razorpay to verify amount
+        const paymentDetails = await razorpay.payments.fetch(req.payment.id);
+        
+        // Get server-calculated amount using the same secure function
+        const { calculateOrderAmountSecure } = require('./razorpay');
+        const cartItems = req.body.order.products.map(item => ({
+          product: item.product,
+          name: item.name,
+          quantity: item.count,
+          size: item.size,
+          customization: item.customization,
+          isCustom: item.isCustom
+        }));
+        
+        const serverAmount = await calculateOrderAmountSecure(
+          cartItems,
+          req.body.order.coupon?.code,
+          req.body.order.rewardPointsRedeemed,
+          req.profile
+        );
+        
+        const expectedAmountPaise = Math.round(serverAmount.total * 100);
+        const paidAmountPaise = paymentDetails.amount;
+        
+        console.log('🔒 Payment amount verification:', {
+          expected: expectedAmountPaise,
+          paid: paidAmountPaise,
+          difference: Math.abs(expectedAmountPaise - paidAmountPaise)
+        });
+        
+        // Allow small rounding differences (max 1 rupee)
+        if (Math.abs(expectedAmountPaise - paidAmountPaise) > 100) {
+          console.error('❌ PAYMENT AMOUNT MISMATCH:', {
+            expectedRupees: expectedAmountPaise / 100,
+            paidRupees: paidAmountPaise / 100,
+            orderId: req.body.order.transaction_id
+          });
+          
+          return res.status(400).json({
+            error: 'Payment amount verification failed. Order cancelled for security reasons.',
+            expected: expectedAmountPaise / 100,
+            paid: paidAmountPaise / 100
+          });
+        }
+        
+        console.log('✅ Payment amount verified successfully');
+        
+      } catch (paymentVerifyError) {
+        console.error('Payment verification error:', paymentVerifyError);
+        // Continue with order creation but log the error
+      }
+    }
     
     // Ensure user is set
     req.body.order.user = req.profile._id || req.profile;
@@ -339,6 +402,24 @@ exports.createOrder = async (req, res) => {
     // Save order first
     const savedOrder = await order.save();
     
+    // 🔒 SECURITY: Update audit log with order ID
+    if (req.paymentAudit) {
+      try {
+        req.paymentAudit.orderId = savedOrder._id;
+        req.paymentAudit.serverCalculatedAmount = recalculatedTotal;
+        await req.paymentAudit.addEvent('order_created_successfully', {
+          orderId: savedOrder._id,
+          finalAmount: recalculatedTotal,
+          discountsApplied: totalDiscount
+        });
+        await req.paymentAudit.save();
+        console.log('✅ Payment audit updated with order ID:', savedOrder._id);
+      } catch (auditError) {
+        console.error('Failed to update payment audit with order ID:', auditError);
+        // Don't fail the order creation if audit update fails
+      }
+    }
+    
     // Update reward transaction with actual order ID if points were redeemed
     if (req.body.order.rewardPointsRedeemed && req.body.order.rewardPointsRedeemed > 0 && req.profile && req.profile._id) {
       try {
@@ -362,10 +443,40 @@ exports.createOrder = async (req, res) => {
     // Populate user info for email and shipment
     await savedOrder.populate('user', 'email name');
     
-    // Send order confirmation email (don't wait for it)
-    emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(err => {
-      console.error("Failed to send order confirmation email:", err);
-    });
+    // Generate secure access tokens for order tracking
+    const customerEmail = savedOrder.user?.email;
+    let magicLink = null;
+    let pin = null;
+    
+    if (customerEmail) {
+      try {
+        const secureAccess = await createSecureAccess(savedOrder._id, customerEmail);
+        if (secureAccess.success) {
+        magicLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/track/${Buffer.from(secureAccess.token).toString('base64url')}`;
+          pin = secureAccess.pin;
+          console.log(`Generated secure access tokens for order ${savedOrder._id}`);
+        }
+      } catch (err) {
+        console.error('Failed to create secure access tokens:', err);
+        // Don't fail the order creation if secure access creation fails
+      }
+    }
+    
+    // Send combined order confirmation + tracking email (don't wait for it)
+    if (magicLink && pin) {
+      emailService.sendOrderConfirmationWithTracking(savedOrder, savedOrder.user, magicLink, pin).catch(err => {
+        console.error("Failed to send combined confirmation+tracking email:", err);
+        // Fallback to regular confirmation email
+        emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(fallbackErr => {
+          console.error("Failed to send fallback order confirmation email:", fallbackErr);
+        });
+      });
+    } else {
+      // Fallback to regular confirmation if secure access failed
+      emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(err => {
+        console.error("Failed to send order confirmation email:", err);
+      });
+    }
     
     // Track coupon usage if a coupon was applied
     if (req.body.order.coupon && req.body.order.coupon.code) {

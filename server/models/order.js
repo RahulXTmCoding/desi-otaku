@@ -176,6 +176,34 @@ const OrderSchema = new Schema(
       name: String,
       email: String,
       phone: String
+    },
+
+    // Secure access for order tracking
+    orderAccess: {
+      token: {
+        type: String,
+        required: false
+      },
+      pin: {
+        type: String,
+        required: false
+      },
+      tokenExpiry: {
+        type: Date,
+        required: false
+      },
+      accessCount: {
+        type: Number,
+        default: 0
+      },
+      lastAccessedAt: {
+        type: Date,
+        required: false
+      },
+      lastAccessIP: {
+        type: String,
+        required: false
+      }
     }
   },
   { timestamps: true }
@@ -205,6 +233,10 @@ OrderSchema.index({ "shipping.courier": 1, status: 1 });
 
 // Compound index for analytics date range queries
 OrderSchema.index({ createdAt: 1, amount: 1 });
+
+// For secure order access
+OrderSchema.index({ "orderAccess.token": 1 });
+OrderSchema.index({ "orderAccess.pin": 1, "guestInfo.email": 1 });
 
 const Order = mongoose.model("Order", OrderSchema);
 

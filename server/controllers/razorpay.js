@@ -19,21 +19,34 @@ const getRazorpayInstance = () => {
   return razorpay;
 };
 
-// Create order
+// Create order with server-side amount validation
 exports.createRazorpayOrder = async (req, res) => {
   try {
-    const { amount, currency = 'INR', receipt, notes } = req.body;
+    const { cartItems, couponCode, rewardPoints, currency = 'INR', receipt, notes } = req.body;
     
-    if (!amount) {
-      return res.status(400).json({ error: 'Amount is required' });
+    if (!cartItems || !Array.isArray(cartItems)) {
+      return res.status(400).json({ error: 'Cart items are required' });
+    }
+
+    // 🔒 SECURITY: Server-side amount calculation - NEVER trust client
+    const serverAmount = await calculateOrderAmountSecure(cartItems, couponCode, rewardPoints, req.user);
+    
+    if (serverAmount.error) {
+      return res.status(400).json({ error: serverAmount.error });
     }
 
     const options = {
-      amount: Math.round(amount * 100), // Razorpay expects amount in paise
+      amount: Math.round(serverAmount.total * 100), // Use server-calculated amount
       currency,
       receipt: receipt || `receipt_${Date.now()}`,
-      notes: notes || {},
-      payment_capture: 1 // Auto capture payment
+      notes: {
+        ...notes,
+        calculated_amount: serverAmount.total,
+        items_count: cartItems.length,
+        user_id: req.user?._id || 'guest',
+        security_hash: generateSecurityHash(serverAmount, req.user)
+      },
+      payment_capture: 1
     };
 
     // Get Razorpay instance
@@ -76,21 +89,37 @@ exports.createRazorpayOrder = async (req, res) => {
   }
 };
 
-// Create order for guest users (no authentication required)
+// Create order for guest users with enhanced security
 exports.createGuestRazorpayOrder = async (req, res) => {
   try {
-    const { amount, currency = 'INR', receipt, notes, customerInfo } = req.body;
+    const { cartItems, couponCode, rewardPoints, currency = 'INR', receipt, notes, customerInfo } = req.body;
     
-    if (!amount) {
-      return res.status(400).json({ error: 'Amount is required' });
+    if (!cartItems || !Array.isArray(cartItems)) {
+      return res.status(400).json({ error: 'Cart items are required' });
     }
 
     if (!customerInfo || !customerInfo.email) {
       return res.status(400).json({ error: 'Customer email is required for guest checkout' });
     }
 
+    // 🔒 SECURITY: Rate limiting for guest orders
+    const guestRateLimit = await checkGuestRateLimit(req.ip, customerInfo.email);
+    if (!guestRateLimit.allowed) {
+      return res.status(429).json({ 
+        error: 'Too many orders. Please try again later.',
+        retryAfter: guestRateLimit.retryAfter 
+      });
+    }
+
+    // 🔒 SECURITY: Server-side amount calculation for guests
+    const serverAmount = await calculateOrderAmountSecure(cartItems, couponCode, null, null); // No reward points for guests
+    
+    if (serverAmount.error) {
+      return res.status(400).json({ error: serverAmount.error });
+    }
+
     const options = {
-      amount: Math.round(amount * 100), // Razorpay expects amount in paise
+      amount: Math.round(serverAmount.total * 100), // Use server-calculated amount
       currency,
       receipt: receipt || `guest_${Date.now()}`,
       notes: {
@@ -98,9 +127,13 @@ exports.createGuestRazorpayOrder = async (req, res) => {
         customer_email: customerInfo.email,
         customer_name: customerInfo.name || 'Guest User',
         customer_phone: customerInfo.phone || '',
-        guest_checkout: true
+        guest_checkout: true,
+        calculated_amount: serverAmount.total,
+        items_count: cartItems.length,
+        client_ip: req.ip,
+        security_hash: generateSecurityHash(serverAmount, null)
       },
-      payment_capture: 1 // Auto capture payment
+      payment_capture: 1
     };
 
     // Get Razorpay instance
@@ -448,4 +481,169 @@ exports.createTestOrder = async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Failed to create test order' });
   }
+};
+
+// 🔒 SECURITY HELPER FUNCTIONS
+
+// Secure server-side amount calculation
+const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, user) => {
+  try {
+    const Product = require('../models/product');
+    const Design = require('../models/design');
+    const Coupon = require('../models/coupon');
+    
+    let subtotal = 0;
+    const validatedItems = [];
+    
+    // Validate each cart item server-side
+    for (const item of cartItems) {
+      let validatedItem = {
+        productId: item.product || item.productId,
+        name: item.name,
+        quantity: parseInt(item.quantity) || 1,
+        size: item.size || 'M'
+      };
+      
+      // Validate product exists and get current price
+      if (item.product && item.product !== 'custom') {
+        const product = await Product.findById(item.product);
+        if (!product || product.isDeleted) {
+          return { error: `Product not found: ${item.name}` };
+        }
+        
+        // Use server price, not client price
+        validatedItem.price = product.price;
+        validatedItem.name = product.name; // Use server name
+      } else {
+        // Custom product validation
+        const basePrice = 549; // Base custom t-shirt price
+        let designPrice = 0;
+        
+        if (item.customization) {
+          if (item.customization.frontDesign && item.customization.frontDesign.designId) {
+            const frontDesign = await Design.findById(item.customization.frontDesign.designId);
+            designPrice += frontDesign ? frontDesign.price : 150;
+          }
+          if (item.customization.backDesign && item.customization.backDesign.designId) {
+            const backDesign = await Design.findById(item.customization.backDesign.designId);
+            designPrice += backDesign ? backDesign.price : 150;
+          }
+        } else {
+          designPrice = 110; // Default design fee
+        }
+        
+        validatedItem.price = basePrice + designPrice;
+      }
+      
+      validatedItems.push(validatedItem);
+      subtotal += validatedItem.price * validatedItem.quantity;
+    }
+    
+    // Calculate shipping
+    let shippingCost = 0;
+    if (subtotal < 999) {
+      shippingCost = 79;
+    }
+    
+    let total = subtotal + shippingCost;
+    
+    // Validate and apply coupon discount
+    let couponDiscount = 0;
+    if (couponCode) {
+      const coupon = await Coupon.findOne({
+        code: couponCode.toUpperCase(),
+        isActive: true
+      });
+      
+      if (coupon && coupon.isValid()) {
+        if (total >= coupon.minimumPurchase) {
+          if (coupon.discountType === 'percentage') {
+            couponDiscount = Math.floor((total * coupon.discountValue) / 100);
+            if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
+              couponDiscount = coupon.maxDiscount;
+            }
+          } else {
+            couponDiscount = coupon.discountValue;
+          }
+        }
+      }
+    }
+    
+    // Validate reward points (only for authenticated users)
+    let rewardDiscount = 0;
+    if (rewardPoints && user && user._id) {
+      const User = require('../models/user');
+      const userDoc = await User.findById(user._id);
+      if (userDoc && userDoc.rewardPoints >= rewardPoints) {
+        rewardDiscount = rewardPoints; // 1 point = ₹1
+      }
+    }
+    
+    total = total - couponDiscount - rewardDiscount;
+    
+    // Ensure total is not negative
+    if (total < 0) total = 0;
+    
+    return {
+      subtotal,
+      shippingCost,
+      couponDiscount,
+      rewardDiscount,
+      total,
+      validatedItems
+    };
+    
+  } catch (error) {
+    console.error('Secure amount calculation error:', error);
+    return { error: 'Failed to calculate order amount' };
+  }
+};
+
+// Generate security hash for verification
+const generateSecurityHash = (amountData, user) => {
+  const hashInput = [
+    amountData.total,
+    amountData.subtotal,
+    amountData.shippingCost,
+    user?._id || 'guest',
+    Date.now()
+  ].join('|');
+  
+  return crypto.createHash('sha256').update(hashInput).digest('hex').substring(0, 16);
+};
+
+// Rate limiting for guest orders
+const guestRateLimitStore = new Map();
+
+const checkGuestRateLimit = async (ip, email) => {
+  const key = `${ip}:${email}`;
+  const now = Date.now();
+  const windowMs = 60 * 60 * 1000; // 1 hour
+  const maxAttempts = 10; // ✅ INCREASED: Max 10 orders per hour per IP+email (better for testing)
+  
+  const attempts = guestRateLimitStore.get(key) || [];
+  
+  // Remove old attempts
+  const validAttempts = attempts.filter(time => now - time < windowMs);
+  
+  if (validAttempts.length >= maxAttempts) {
+    return {
+      allowed: false,
+      retryAfter: Math.ceil((validAttempts[0] + windowMs - now) / 1000)
+    };
+  }
+  
+  // Add current attempt
+  validAttempts.push(now);
+  guestRateLimitStore.set(key, validAttempts);
+  
+  return { allowed: true };
+};
+
+// Export security functions for use in other modules
+module.exports = {
+  ...module.exports,
+  calculateOrderAmountSecure,
+  generateSecurityHash,
+  checkGuestRateLimit
 };
