@@ -155,8 +155,7 @@ const HomeEnhanced: React.FC = () => {
           ...product,
           originalPrice: index % 3 === 0 ? product.price * 1.5 : undefined,
           isNew: index < 5,
-          sold: Math.floor(Math.random() * 100),
-          rating: 4 + Math.random()
+          sold: Math.floor(Math.random() * 100)
         }));
         
         setNewProducts(productsWithVariations.slice(0, 8));
@@ -176,8 +175,7 @@ const HomeEnhanced: React.FC = () => {
           setNewProducts(newData.products.map((p: Product, i: number) => ({ 
             ...p, 
             isNew: i < 5,
-            originalPrice: p.price * 1.2,
-            rating: 4.5
+            originalPrice: p.price * 1.2
           })));
         }
         if (trendingData && trendingData.products) {

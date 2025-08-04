@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Shield, Mail, Eye, EyeOff, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import { API } from '../backend';
+import { 
+  calculateCouponDiscountAmount, 
+  getCouponDiscountText, 
+  calculateTotalSavings, 
+  formatPrice 
+} from '../utils/orderUtils';
 
 interface Order {
   _id: string;
@@ -25,17 +31,24 @@ interface Order {
     estimatedDelivery?: string;
     shippingCost?: number;
   };
-  aovDiscount?: {
+  quantityDiscount?: {
     amount: number;
     percentage: number;
     totalQuantity: number;
+    tier?: {
+      minQuantity: number;
+      maxQuantity: number;
+      discount: number;
+    };
+    message?: string;
   };
   coupon?: {
     code: string;
-    discount?: number;
+    discountType?: string;
     discountValue?: number;
   };
   rewardPointsRedeemed?: number;
+  rewardPointsDiscount?: number;
   user?: {
     name: string;
     email: string;
@@ -339,33 +352,49 @@ const OrderTracking: React.FC = () => {
                   </div>
                 )}
                 
-                {order.aovDiscount && (
+                {order.quantityDiscount && order.quantityDiscount.amount > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-yellow-400">Quantity Discount ({order.aovDiscount.percentage}% off for {order.aovDiscount.totalQuantity} items):</span>
-                    <span className="text-yellow-400">-₹{order.aovDiscount.amount.toLocaleString('en-IN')}</span>
+                    <span className="text-yellow-400">Quantity Discount ({order.quantityDiscount.percentage}% off for {order.quantityDiscount.totalQuantity} items):</span>
+                    <span className="text-yellow-400">-₹{order.quantityDiscount.amount.toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 
-                {order.coupon && (
-                  <div className="flex justify-between items-center">
-                    <span className="text-green-400">Coupon Discount ({order.coupon.code}):</span>
-                    <span className="text-green-400">-₹{(order.coupon.discountValue || order.coupon.discount).toLocaleString('en-IN')}</span>
-                  </div>
-                )}
+                {(() => {
+                  const subtotal = order.originalAmount || order.amount;
+                  const couponDiscountAmount = calculateCouponDiscountAmount(order.coupon, subtotal);
+                  
+                  return order.coupon && couponDiscountAmount > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-green-400">{getCouponDiscountText(order.coupon)}:</span>
+                      <span className="text-green-400">-₹{formatPrice(couponDiscountAmount)}</span>
+                    </div>
+                  );
+                })()}
                 
-                {order.rewardPointsRedeemed > 0 && (
+                {order.rewardPointsDiscount > 0 && (
                   <div className="flex justify-between items-center">
                     <span className="text-purple-400">Reward Points ({order.rewardPointsRedeemed} points):</span>
-                    <span className="text-purple-400">-₹{order.rewardPointsRedeemed.toLocaleString('en-IN')}</span>
+                    <span className="text-purple-400">-₹{formatPrice(order.rewardPointsDiscount)}</span>
                   </div>
                 )}
                 
-                {(order.discount || 0) > 0 && (
-                  <div className="flex justify-between items-center pt-2 border-t border-gray-700">
-                    <span className="text-green-400 font-semibold">Total Savings:</span>
-                    <span className="text-green-400 font-semibold">-₹{order.discount.toLocaleString('en-IN')}</span>
-                  </div>
-                )}
+                {/* Calculate and show total savings */}
+                {(() => {
+                  const subtotal = order.originalAmount || order.amount;
+                  const totalSavings = calculateTotalSavings(
+                    order.quantityDiscount, 
+                    order.coupon, 
+                    order.rewardPointsDiscount || 0, 
+                    subtotal
+                  );
+                  
+                  return totalSavings > 0 && (
+                    <div className="flex justify-between items-center pt-2 border-t border-gray-700">
+                      <span className="text-green-400 font-semibold">Total Savings:</span>
+                      <span className="text-green-400 font-semibold">-₹{formatPrice(totalSavings)}</span>
+                    </div>
+                  );
+                })()}
                 
                 <div className="flex justify-between items-center pt-3 border-t border-gray-600">
                   <span className="text-lg font-semibold text-white">Final Total:</span>

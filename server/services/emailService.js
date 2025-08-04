@@ -348,30 +348,67 @@ class EmailService {
                   <td style="padding: 12px; text-align: right; color: #10B981;">₹0</td>
                 </tr>
                 `}
-                ${order.aovDiscount ? `
+                ${order.quantityDiscount && order.quantityDiscount.amount > 0 ? `
                 <tr>
-                  <td style="padding: 12px; text-align: right; color: #FCD34D;">Quantity Discount (${order.aovDiscount.percentage}% off for ${order.aovDiscount.totalQuantity} items):</td>
-                  <td style="padding: 12px; text-align: right; color: #FCD34D;">-₹${order.aovDiscount.amount}</td>
+                  <td style="padding: 12px; text-align: right; color: #FCD34D;">Quantity Discount (${order.quantityDiscount.percentage}% off for ${order.quantityDiscount.totalQuantity} items):</td>
+                  <td style="padding: 12px; text-align: right; color: #FCD34D;">-₹${order.quantityDiscount.amount}</td>
                 </tr>
                 ` : ''}
-                ${order.coupon ? `
+                ${(() => {
+                  if (!order.coupon || !order.coupon.discountValue) return '';
+                  
+                  const subtotal = order.originalAmount || order.amount;
+                  let couponDiscountAmount = 0;
+                  
+                  if (order.coupon.discountType === 'percentage') {
+                    couponDiscountAmount = Math.floor((subtotal * order.coupon.discountValue) / 100);
+                  } else {
+                    couponDiscountAmount = order.coupon.discountValue;
+                  }
+                  
+                  if (couponDiscountAmount <= 0) return '';
+                  
+                  const discountText = order.coupon.discountType === 'percentage' 
+                    ? `Coupon Discount (${order.coupon.code} - ${order.coupon.discountValue}% off)`
+                    : `Coupon Discount (${order.coupon.code})`;
+                  
+                  return `
                 <tr>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">Coupon Discount (${order.coupon.code}):</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">-₹${order.coupon.discountValue || order.coupon.discount}</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">${discountText}:</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">-₹${couponDiscountAmount}</td>
                 </tr>
-                ` : ''}
-                ${order.rewardPointsRedeemed > 0 ? `
+                  `;
+                })()}
+                ${order.rewardPointsDiscount > 0 ? `
                 <tr>
                   <td style="padding: 12px; text-align: right; color: #8B5CF6;">Reward Points (${order.rewardPointsRedeemed} points):</td>
-                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">-₹${order.rewardPointsRedeemed}</td>
+                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">-₹${order.rewardPointsDiscount}</td>
                 </tr>
                 ` : ''}
-                ${(order.discount || 0) > 0 ? `
+                ${(() => {
+                  const quantitySavings = (order.quantityDiscount?.amount || 0);
+                  
+                  // Calculate coupon savings correctly
+                  let couponSavings = 0;
+                  if (order.coupon && order.coupon.discountValue) {
+                    const subtotal = order.originalAmount || order.amount;
+                    if (order.coupon.discountType === 'percentage') {
+                      couponSavings = Math.floor((subtotal * order.coupon.discountValue) / 100);
+                    } else {
+                      couponSavings = order.coupon.discountValue;
+                    }
+                  }
+                  
+                  const rewardSavings = (order.rewardPointsDiscount || 0);
+                  const totalSavings = quantitySavings + couponSavings + rewardSavings;
+                  
+                  return totalSavings > 0 ? `
                 <tr style="border-top: 2px solid #6B7280;">
                   <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">Total Savings:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">-₹${order.discount}</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">-₹${totalSavings}</td>
                 </tr>
-                ` : ''}
+                  ` : '';
+                })()}
                 <tr style="background-color: #FCD34D; color: #1F2937;">
                   <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">Final Total:</td>
                   <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">₹${order.amount}</td>
@@ -896,15 +933,91 @@ class EmailService {
               </thead>
               <tbody>
                 ${orderItemsHtml}
-                ${order.shipping?.shippingCost ? `
+              </tbody>
+            </table>
+            
+            <h3 class="highlight">Order Summary:</h3>
+            <table style="background-color: #374151; border-radius: 8px; overflow: hidden;">
+              <tbody>
                 <tr>
-                  <td colspan="2" style="padding: 10px; text-align: right;">Shipping:</td>
-                  <td style="padding: 10px; text-align: right;">₹${order.shipping.shippingCost}</td>
+                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Subtotal:</td>
+                  <td style="padding: 12px; text-align: right; font-weight: bold;">₹${order.originalAmount || order.amount}</td>
+                </tr>
+                ${order.shipping?.shippingCost > 0 ? `
+                <tr>
+                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Shipping:</td>
+                  <td style="padding: 12px; text-align: right;">₹${order.shipping.shippingCost}</td>
+                </tr>
+                ` : `
+                <tr>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">Free Shipping:</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">₹0</td>
+                </tr>
+                `}
+                ${order.quantityDiscount && order.quantityDiscount.amount > 0 ? `
+                <tr>
+                  <td style="padding: 12px; text-align: right; color: #FCD34D;">Quantity Discount (${order.quantityDiscount.percentage}% off for ${order.quantityDiscount.totalQuantity} items):</td>
+                  <td style="padding: 12px; text-align: right; color: #FCD34D;">-₹${order.quantityDiscount.amount}</td>
                 </tr>
                 ` : ''}
+                ${(() => {
+                  if (!order.coupon || !order.coupon.discountValue) return '';
+                  
+                  const subtotal = order.originalAmount || order.amount;
+                  let couponDiscountAmount = 0;
+                  
+                  if (order.coupon.discountType === 'percentage') {
+                    couponDiscountAmount = Math.floor((subtotal * order.coupon.discountValue) / 100);
+                  } else {
+                    couponDiscountAmount = order.coupon.discountValue;
+                  }
+                  
+                  if (couponDiscountAmount <= 0) return '';
+                  
+                  const discountText = order.coupon.discountType === 'percentage' 
+                    ? `Coupon Discount (${order.coupon.code} - ${order.coupon.discountValue}% off)`
+                    : `Coupon Discount (${order.coupon.code})`;
+                  
+                  return `
                 <tr>
-                  <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold; font-size: 18px;">Total:</td>
-                  <td style="padding: 10px; text-align: right; font-weight: bold; font-size: 18px; color: #FCD34D;">₹${order.amount}</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">${discountText}:</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">-₹${couponDiscountAmount}</td>
+                </tr>
+                  `;
+                })()}
+                ${order.rewardPointsDiscount > 0 ? `
+                <tr>
+                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">Reward Points (${order.rewardPointsRedeemed} points):</td>
+                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">-₹${order.rewardPointsDiscount}</td>
+                </tr>
+                ` : ''}
+                ${(() => {
+                  const quantitySavings = (order.quantityDiscount?.amount || 0);
+                  
+                  // Calculate coupon savings correctly
+                  let couponSavings = 0;
+                  if (order.coupon && order.coupon.discountValue) {
+                    const subtotal = order.originalAmount || order.amount;
+                    if (order.coupon.discountType === 'percentage') {
+                      couponSavings = Math.floor((subtotal * order.coupon.discountValue) / 100);
+                    } else {
+                      couponSavings = order.coupon.discountValue;
+                    }
+                  }
+                  
+                  const rewardSavings = (order.rewardPointsDiscount || 0);
+                  const totalSavings = quantitySavings + couponSavings + rewardSavings;
+                  
+                  return totalSavings > 0 ? `
+                <tr style="border-top: 2px solid #6B7280;">
+                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">Total Savings:</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">-₹${totalSavings}</td>
+                </tr>
+                  ` : '';
+                })()}
+                <tr style="background-color: #FCD34D; color: #1F2937;">
+                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">Final Total:</td>
+                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">₹${order.amount}</td>
                 </tr>
               </tbody>
             </table>
@@ -1024,15 +1137,91 @@ class EmailService {
               </thead>
               <tbody>
                 ${orderItemsHtml}
-                ${order.shipping?.shippingCost ? `
+              </tbody>
+            </table>
+            
+            <h3 class="highlight">Order Summary:</h3>
+            <table style="background-color: #374151; border-radius: 8px; overflow: hidden;">
+              <tbody>
                 <tr>
-                  <td colspan="2" style="padding: 10px; text-align: right;">Shipping:</td>
-                  <td style="padding: 10px; text-align: right;">₹${order.shipping.shippingCost}</td>
+                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Subtotal:</td>
+                  <td style="padding: 12px; text-align: right; font-weight: bold;">₹${order.originalAmount || order.amount}</td>
+                </tr>
+                ${order.shipping?.shippingCost > 0 ? `
+                <tr>
+                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Shipping:</td>
+                  <td style="padding: 12px; text-align: right;">₹${order.shipping.shippingCost}</td>
+                </tr>
+                ` : `
+                <tr>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">Free Shipping:</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">₹0</td>
+                </tr>
+                `}
+                ${order.quantityDiscount && order.quantityDiscount.amount > 0 ? `
+                <tr>
+                  <td style="padding: 12px; text-align: right; color: #FCD34D;">Quantity Discount (${order.quantityDiscount.percentage}% off for ${order.quantityDiscount.totalQuantity} items):</td>
+                  <td style="padding: 12px; text-align: right; color: #FCD34D;">-₹${order.quantityDiscount.amount}</td>
                 </tr>
                 ` : ''}
+                ${(() => {
+                  if (!order.coupon || !order.coupon.discountValue) return '';
+                  
+                  const subtotal = order.originalAmount || order.amount;
+                  let couponDiscountAmount = 0;
+                  
+                  if (order.coupon.discountType === 'percentage') {
+                    couponDiscountAmount = Math.floor((subtotal * order.coupon.discountValue) / 100);
+                  } else {
+                    couponDiscountAmount = order.coupon.discountValue;
+                  }
+                  
+                  if (couponDiscountAmount <= 0) return '';
+                  
+                  const discountText = order.coupon.discountType === 'percentage' 
+                    ? `Coupon Discount (${order.coupon.code} - ${order.coupon.discountValue}% off)`
+                    : `Coupon Discount (${order.coupon.code})`;
+                  
+                  return `
                 <tr>
-                  <td colspan="2" style="padding: 10px; text-align: right; font-weight: bold; font-size: 18px;">Total:</td>
-                  <td style="padding: 10px; text-align: right; font-weight: bold; font-size: 18px; color: #FCD34D;">₹${order.amount}</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">${discountText}:</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981;">-₹${couponDiscountAmount}</td>
+                </tr>
+                  `;
+                })()}
+                ${order.rewardPointsDiscount > 0 ? `
+                <tr>
+                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">Reward Points (${order.rewardPointsRedeemed} points):</td>
+                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">-₹${order.rewardPointsDiscount}</td>
+                </tr>
+                ` : ''}
+                ${(() => {
+                  const quantitySavings = (order.quantityDiscount?.amount || 0);
+                  
+                  // Calculate coupon savings correctly
+                  let couponSavings = 0;
+                  if (order.coupon && order.coupon.discountValue) {
+                    const subtotal = order.originalAmount || order.amount;
+                    if (order.coupon.discountType === 'percentage') {
+                      couponSavings = Math.floor((subtotal * order.coupon.discountValue) / 100);
+                    } else {
+                      couponSavings = order.coupon.discountValue;
+                    }
+                  }
+                  
+                  const rewardSavings = (order.rewardPointsDiscount || 0);
+                  const totalSavings = quantitySavings + couponSavings + rewardSavings;
+                  
+                  return totalSavings > 0 ? `
+                <tr style="border-top: 2px solid #6B7280;">
+                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">Total Savings:</td>
+                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">-₹${totalSavings}</td>
+                </tr>
+                  ` : '';
+                })()}
+                <tr style="background-color: #FCD34D; color: #1F2937;">
+                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">Final Total:</td>
+                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">₹${order.amount}</td>
                 </tr>
               </tbody>
             </table>

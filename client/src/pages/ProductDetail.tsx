@@ -545,50 +545,86 @@ const ProductDetail: React.FC = () => {
           <div>
             <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
             
-            {/* Rating and Reviews */}
-            <div className="flex items-center gap-4 mb-6">
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-5 h-5 ${
-                      i < (product.rating || 4)
-                        ? 'fill-yellow-400 text-yellow-400'
-                        : 'text-gray-600'
-                    }`}
-                  />
-                ))}
-                <span className="ml-2 font-semibold">{product.rating || 4.5}</span>
-              </div>
-              {product.sold > 5 && (
-                <span className="text-gray-400">({product.sold} sold)</span>
-              )}
-              <button 
-                onClick={() => {
-                  const shareData = {
-                    title: product.name,
-                    text: `Check out this awesome ${product.name}!`,
-                    url: window.location.href
-                  };
-                  
-                  if (navigator.share) {
-                    navigator.share(shareData).catch(() => {
-                      // Fallback to copying link
+            {/* Rating and Reviews - Only show if product has actual reviews */}
+            {product.rating && product.rating > 0 && (
+              <div className="flex items-center gap-4 mb-6">
+                <div className="flex items-center">
+                  {[...Array(5)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className={`w-5 h-5 ${
+                        i < product.rating!
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-gray-600'
+                      }`}
+                    />
+                  ))}
+                  <span className="ml-2 font-semibold">{product.rating}</span>
+                </div>
+                {product.sold > 5 && (
+                  <span className="text-gray-400">({product.sold} sold)</span>
+                )}
+                <button 
+                  onClick={() => {
+                    const shareData = {
+                      title: product.name,
+                      text: `Check out this awesome ${product.name}!`,
+                      url: window.location.href
+                    };
+                    
+                    if (navigator.share) {
+                      navigator.share(shareData).catch(() => {
+                        // Fallback to copying link
+                        navigator.clipboard.writeText(window.location.href);
+                        alert('Link copied to clipboard!');
+                      });
+                    } else {
+                      // Fallback for browsers that don't support Web Share API
                       navigator.clipboard.writeText(window.location.href);
                       alert('Link copied to clipboard!');
-                    });
-                  } else {
-                    // Fallback for browsers that don't support Web Share API
-                    navigator.clipboard.writeText(window.location.href);
-                    alert('Link copied to clipboard!');
-                  }
-                }}
-                className="flex items-center gap-2 text-gray-400 hover:text-yellow-400"
-              >
-                <Share2 className="w-4 h-4" />
-                Share
-              </button>
-            </div>
+                    }
+                  }}
+                  className="flex items-center gap-2 text-gray-400 hover:text-yellow-400"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </button>
+              </div>
+            )}
+            
+            {/* Share button when no ratings */}
+            {(!product.rating || product.rating === 0) && (
+              <div className="flex items-center gap-4 mb-6">
+                {product.sold > 5 && (
+                  <span className="text-gray-400">({product.sold} sold)</span>
+                )}
+                <button 
+                  onClick={() => {
+                    const shareData = {
+                      title: product.name,
+                      text: `Check out this awesome ${product.name}!`,
+                      url: window.location.href
+                    };
+                    
+                    if (navigator.share) {
+                      navigator.share(shareData).catch(() => {
+                        // Fallback to copying link
+                        navigator.clipboard.writeText(window.location.href);
+                        alert('Link copied to clipboard!');
+                      });
+                    } else {
+                      // Fallback for browsers that don't support Web Share API
+                      navigator.clipboard.writeText(window.location.href);
+                      alert('Link copied to clipboard!');
+                    }
+                  }}
+                  className="flex items-center gap-2 text-gray-400 hover:text-yellow-400"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Share
+                </button>
+              </div>
+            )}
 
             {/* Price */}
             <div className="flex items-center gap-4 mb-6">

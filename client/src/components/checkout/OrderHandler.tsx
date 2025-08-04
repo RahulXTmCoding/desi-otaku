@@ -173,29 +173,34 @@ export const useOrderHandler = ({
           color: item.color
         }));
 
-        const response = await fetch(`${API}/razorpay/order/create`, {
+        const response = await fetch(`${API}/razorpay/order/create/${(auth as any).user._id}`, {
           method: 'POST',
           headers: {
             Accept: 'application/json',
             'Content-Type': 'application/json',
             Authorization: `Bearer ${(auth as any).token}`
           },
-          body: JSON.stringify({
-            cartItems: cartItems,
-            couponCode: appliedDiscount.coupon?.code || null,
-            rewardPoints: appliedDiscount.rewardPoints?.points || null,
-            currency: 'INR',
-            receipt: `order_${Date.now()}`,
-            notes: {
-              customer_name: shippingInfo.fullName,
-              customer_email: shippingInfo.email,
-              items: cart.length,
-              shipping_method: selectedShipping?.courier_name || 'Standard'
-            },
-            // ✅ CRITICAL FIX: Send frontend calculated amount to ensure exact match
-            frontendAmount: totalAmount,
-            shippingCost: selectedShipping?.rate || 0
-          })
+            body: JSON.stringify({
+              cartItems: cartItems,
+              couponCode: appliedDiscount.coupon?.code || null,
+              rewardPoints: appliedDiscount.rewardPoints?.points || null,
+              currency: 'INR',
+              receipt: `order_${Date.now()}`,
+              customerInfo: {
+                name: shippingInfo.fullName,
+                email: shippingInfo.email,
+                phone: shippingInfo.phone
+              },
+              notes: {
+                customer_name: shippingInfo.fullName,
+                customer_email: shippingInfo.email,
+                items: cart.length,
+                shipping_method: selectedShipping?.courier_name || 'Standard'
+              },
+              // ✅ CRITICAL FIX: Let backend calculate amount (same as guest flow)
+              frontendAmount: totalAmount,
+              shippingCost: selectedShipping?.rate || 0
+            })
         });
         
         const data = await response.json();
@@ -273,11 +278,11 @@ export const useOrderHandler = ({
                 serverCouponDiscount = calculationData.couponDiscount || serverCouponDiscount;
                 
                 // ✅ CRITICAL: Get AOV discount from backend calculation
-                if (calculationData.aovDiscount !== undefined) {
-                  serverQuantityDiscount = calculationData.aovDiscount;
+                if (calculationData.quantityDiscount !== undefined) {
+                  serverQuantityDiscount = calculationData.quantityDiscount;
                 } else {
                   // Fallback: calculate from total discounts
-                  const totalDiscountFromBackend = serverSubtotal - calculationData.total - (calculationData.shippingCost || 0);
+                  const totalDiscountFromBackend = serverSubtotal + (calculationData.shippingCost || 0) - calculationData.total;
                   serverQuantityDiscount = Math.max(0, totalDiscountFromBackend - serverCouponDiscount);
                 }
                 
@@ -420,13 +425,23 @@ export const useOrderHandler = ({
                   
                 } else {
                   // Authenticated user verification and order creation
-                  const verifyResponse = await verifyRazorpayPayment(
-                    (auth as any).user._id,
-                    (auth as any).token,
-                    paymentData
-                  );
+                  const verifyResponse = await fetch(`${API}/razorpay/payment/verify/${(auth as any).user._id}`, {
+                    method: 'POST',
+                    headers: {
+                      Accept: 'application/json',
+                      'Content-Type': 'application/json',
+                      Authorization: `Bearer ${(auth as any).token}`
+                    },
+                    body: JSON.stringify(paymentData)
+                  });
                   
-                  if (!verifyResponse.verified && !verifyResponse.success) {
+                  const verifyData = await verifyResponse.json();
+                  if (!verifyResponse.ok || (!verifyData.verified && !verifyData.success)) {
+                    console.error('Payment verification failed:', verifyData.error);
+                    return;
+                  }
+                  
+                  if (!verifyData.verified && !verifyData.success) {
                     console.error('Payment verification failed');
                     return;
                   }

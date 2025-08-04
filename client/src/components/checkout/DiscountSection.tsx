@@ -30,14 +30,16 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
   const [rewardPointsToRedeem, setRewardPointsToRedeem] = useState(0);
   const [rewardLoading, setRewardLoading] = useState(false);
   const [showRewardInput, setShowRewardInput] = useState(false);
+  const [rewardBalanceLoaded, setRewardBalanceLoaded] = useState(false);
   
   const auth = isAutheticated();
   const isGuest = !auth || typeof auth === 'boolean' || !auth.user;
 
-  // Load reward balance for authenticated users
+  // Load reward balance for authenticated users (with protection against infinite calls)
   useEffect(() => {
-    if (!isGuest && auth && typeof auth !== 'boolean') {
+    if (!isGuest && auth && typeof auth !== 'boolean' && !rewardBalanceLoaded) {
       setRewardLoading(true);
+      setRewardBalanceLoaded(true);
       getRewardBalance(auth.user._id, auth.token)
         .then(data => {
           if (!data.error) {
@@ -47,7 +49,7 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
         .catch(console.error)
         .finally(() => setRewardLoading(false));
     }
-  }, [isGuest, auth]);
+  }, [isGuest, rewardBalanceLoaded, auth && typeof auth !== 'boolean' ? auth.user._id : null]);
 
   // Check for auto-apply coupons
   useEffect(() => {

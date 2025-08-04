@@ -35,14 +35,18 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   
-  // Desktop: 4 items, Tablet: 2 items, Mobile: 1 item
+  // Desktop: 4 items, Medium: 3 items, Tablet: 2 items, Mobile: 1 item
   const itemsPerView = {
     desktop: 4,
+    medium: 3,
     tablet: 2,
     mobile: 1
   };
 
+  // Calculate max index based on the largest view (desktop = 4 items)
   const maxIndex = Math.max(0, products.length - itemsPerView.desktop);
+  // For medium screens (3 items), adjust navigation
+  const mediumMaxIndex = Math.max(0, products.length - itemsPerView.medium);
 
   const handlePrevious = () => {
     setCurrentIndex(Math.max(0, currentIndex - 1));
@@ -56,7 +60,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
     return (
       <div className="mb-12">
         <h2 className="text-2xl font-bold mb-6">{title}</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
             <div key={i} className="bg-gray-800 rounded-xl p-4 animate-pulse">
               <div className="h-64 bg-gray-700 rounded-lg mb-4"></div>
@@ -86,7 +90,7 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {products.map((product) => (
             <ProductGridItem 
               key={product._id}
@@ -143,10 +147,23 @@ const ProductCarousel: React.FC<ProductCarouselProps> = ({
         {/* Products Container */}
         <div className="mx-16"> {/* Margin for nav buttons */}
           
-          {/* Desktop View (4 items) - Only show exactly 4 cards */}
-          <div className="hidden lg:block overflow-hidden">
+          {/* Desktop View (4 items) - Only show exactly 4 cards on xl+ screens */}
+          <div className="hidden xl:block overflow-hidden">
             <div className="grid grid-cols-4 gap-6">
               {products.slice(currentIndex, currentIndex + 4).map((product) => (
+                <ProductGridItem 
+                  key={product._id}
+                  product={product}
+                  onQuickView={onQuickView}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Medium View (3 items) - Show 3 cards on lg to xl screens (1024px-1280px) */}
+          <div className="hidden lg:block xl:hidden overflow-hidden">
+            <div className="grid grid-cols-3 gap-6">
+              {products.slice(currentIndex, currentIndex + 3).map((product) => (
                 <ProductGridItem 
                   key={product._id}
                   product={product}

@@ -65,17 +65,17 @@ const Header: React.FC = () => {
           </div>
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
+              <span className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
                 AnimeShirt
               </span>
-              <Sparkles className="w-5 h-5 text-yellow-400 animate-pulse" />
+              <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-400 animate-pulse" />
             </div>
-            <p className="text-xs text-gray-400 -mt-1">Custom Anime Designs</p>
+            <p className="text-xs text-gray-400 -mt-1 hidden lg:block">Custom Anime Designs</p>
           </div>
         </Link>
 
         {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
+        <div className="hidden md:flex items-center space-x-2 lg:space-x-4 xl:space-x-6 2xl:space-x-8">
           {auth && auth.user && auth.user.role === 1 ? (
             // Admin Navigation
             <>
@@ -132,9 +132,10 @@ const Header: React.FC = () => {
               </Link> */}
               
               <Link to="/customize" className="relative group">
-                <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }} className="relative px-4 py-1.5 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
+                <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }} className="relative px-3 lg:px-4 py-1.5 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
                   <Palette className="inline-block w-4 h-4 mr-1" />
-                  Custom Design
+                  <span className="hidden lg:inline">Custom Design</span>
+                  <span className="lg:hidden">Custom</span>
                   <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </div>
               </Link>

@@ -295,11 +295,11 @@ exports.createOrder = async (req, res) => {
       // Continue without quantity discount if calculation fails
     }
     
-    // Apply quantity discount to total before calculating other discounts
-    recalculatedTotal = recalculatedTotal - quantityDiscount;
-    
-    // Handle coupon validation and discount calculation
+    // ✅ CRITICAL FIX: Handle coupon validation and discount calculation BEFORE AOV discount
+    // This ensures coupon is calculated on original subtotal, matching payment calculation exactly
     let couponDiscount = 0;
+    const originalSubtotalForCoupon = recalculatedTotal - shippingCost; // Get subtotal before any discounts
+    
     if (req.body.order.coupon && req.body.order.coupon.code) {
       console.log(`Validating coupon: ${req.body.order.coupon.code}`);
       
@@ -325,8 +325,8 @@ exports.createOrder = async (req, res) => {
         });
       }
 
-      // Check minimum purchase
-      if (recalculatedTotal < coupon.minimumPurchase) {
+      // ✅ CRITICAL FIX: Check minimum purchase against original subtotal (before discounts)
+      if (originalSubtotalForCoupon < coupon.minimumPurchase) {
         return res.status(400).json({
           error: `Minimum purchase of ₹${coupon.minimumPurchase} required`
         });
@@ -359,9 +359,9 @@ exports.createOrder = async (req, res) => {
         }
       }
       
-      // Calculate coupon discount using the server-validated coupon
+      // ✅ CRITICAL FIX: Calculate coupon discount on ORIGINAL SUBTOTAL (matching payment calculation)
       if (coupon.discountType === 'percentage') {
-        couponDiscount = Math.floor((recalculatedTotal * coupon.discountValue) / 100);
+        couponDiscount = Math.floor((originalSubtotalForCoupon * coupon.discountValue) / 100);
         // Apply max discount if specified
         if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
           couponDiscount = coupon.maxDiscount;
@@ -371,6 +371,9 @@ exports.createOrder = async (req, res) => {
         couponDiscount = coupon.discountValue;
       }
       
+      // Ensure discount doesn't exceed original subtotal
+      couponDiscount = Math.min(couponDiscount, originalSubtotalForCoupon);
+      
       // Update coupon info with server-validated data
       req.body.order.coupon = {
         code: coupon.code,
@@ -378,11 +381,14 @@ exports.createOrder = async (req, res) => {
         discountValue: couponDiscount
       };
       
-      console.log(`Applied coupon discount: ₹${couponDiscount}`);
+      console.log(`Applied coupon discount: ₹${couponDiscount} (calculated on original subtotal: ₹${originalSubtotalForCoupon})`);
     } else {
       // Remove coupon info if no valid coupon
       delete req.body.order.coupon;
     }
+    
+    // Apply quantity discount to total AFTER coupon calculation
+    recalculatedTotal = recalculatedTotal - quantityDiscount;
     
     // Handle reward points redemption (only for authenticated users)
     let rewardPointsDiscount = 0;

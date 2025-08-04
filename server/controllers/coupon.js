@@ -1,5 +1,5 @@
 const Coupon = require("../models/coupon");
-const Order = require("../models/order");
+const { Order } = require("../models/order");
 const { validationResult } = require("express-validator");
 
 // Create a new coupon (Admin only)
@@ -279,7 +279,6 @@ exports.getBestAutoApplyCoupon = async (req, res) => {
 
       // Check first-time only restriction
       if (coupon.firstTimeOnly && userId) {
-        const Order = require("../models/order");
         const previousOrders = await Order.countDocuments({ 
           user: userId,
           status: { $ne: "cancelled" }
