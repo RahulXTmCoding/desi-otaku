@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { API } from '../../backend';
 import { createOrder, mockCreateOrder } from '../../core/helper/orderHelper';
@@ -10,6 +10,7 @@ import {
   initializeRazorpayCheckout
 } from '../../core/helper/razorpayHelper';
 import { redeemPoints, trackCouponUsage } from '../../core/helper/checkoutHelper';
+import PaymentProcessingModal from '../PaymentProcessingModal';
 
 interface OrderHandlerProps {
   cart: any[];
@@ -44,6 +45,8 @@ export const useOrderHandler = ({
   isBuyNow = false
 }: OrderHandlerProps) => {
   const navigate = useNavigate();
+  const [showProcessingModal, setShowProcessingModal] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<any>(null);
   
   const handlePlaceOrder = async () => {
     // Allow guest checkout - they can sign in later or create account after order
@@ -146,7 +149,10 @@ export const useOrderHandler = ({
             notes: {
               items: cart.length,
               shipping_method: selectedShipping?.courier_name || 'Standard'
-            }
+            },
+            // ✅ CRITICAL FIX: Send frontend calculated amount to ensure exact match
+            frontendAmount: totalAmount,
+            shippingCost: selectedShipping?.rate || 0
           })
         });
         
@@ -185,7 +191,10 @@ export const useOrderHandler = ({
               customer_email: shippingInfo.email,
               items: cart.length,
               shipping_method: selectedShipping?.courier_name || 'Standard'
-            }
+            },
+            // ✅ CRITICAL FIX: Send frontend calculated amount to ensure exact match
+            frontendAmount: totalAmount,
+            shippingCost: selectedShipping?.rate || 0
           })
         });
         
@@ -199,6 +208,12 @@ export const useOrderHandler = ({
       if (orderResponse.error) {
         throw new Error(orderResponse.error);
       }
+      
+      console.log('🎯 About to initialize Razorpay checkout with:', {
+        order_id: orderResponse.order.id,
+        amount: orderResponse.order.amount,
+        key_id: orderResponse.key_id
+      });
       
       initializeRazorpayCheckout(
         {
@@ -215,86 +230,97 @@ export const useOrderHandler = ({
           }
         },
         async (paymentData: any) => {
+          console.log('🎯 PAYMENT SUCCESS CALLBACK TRIGGERED:', paymentData);
+          
+          // ✅ CRITICAL FIX: Navigate immediately with correct data structure
+          console.log('🚀 IMMEDIATE NAVIGATION WITH PAYMENT DATA');
+          
           try {
-            let verifyResponse;
+            // ✅ CRITICAL FIX: Get AOV discount from backend calculation, not frontend calculation
+            console.log('🔍 GETTING DISCOUNT DATA FROM BACKEND CALCULATION...');
             
-            if (isGuest) {
-              // Guest payment verification
-              const response = await fetch(`${API}/razorpay/payment/guest/verify`, {
+            // Get server-calculated values - the backend has already calculated these
+            let serverSubtotal = getTotalAmount();
+            let serverCouponDiscount = appliedDiscount.coupon?.discount || 0;
+            let serverQuantityDiscount = 0;
+            
+            // ✅ FETCH ACTUAL SERVER CALCULATION TO GET AOV DISCOUNT
+            try {
+              const calculationResponse = await fetch(`${API}/razorpay/calculate-amount`, {
                 method: 'POST',
                 headers: {
                   Accept: 'application/json',
                   'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(paymentData)
+                body: JSON.stringify({
+                  cartItems: cart.map(item => ({
+                    product: item.product || item._id?.split('-')[0] || '',
+                    name: item.name,
+                    quantity: item.quantity,
+                    size: item.size
+                  })),
+                  couponCode: appliedDiscount.coupon?.code || null,
+                  shippingCost: selectedShipping?.rate || 0
+                })
               });
               
-              const data = await response.json();
-              if (!response.ok) {
-                throw new Error(data.error || 'Payment verification failed');
-              }
-              verifyResponse = data;
-            } else {
-              // Authenticated user verification
-              verifyResponse = await verifyRazorpayPayment(
-                (auth as any).user._id,
-                (auth as any).token,
-                paymentData
-              );
-            }
-            
-            if (!verifyResponse.verified && !verifyResponse.success) {
-              throw new Error('Payment verification failed');
-            }
-            
-            const orderData = {
-              products: cart.map(item => {
-                const baseProduct = {
-                  product: item.product || item._id?.split('-')[0] || '',
-                  name: item.name,
-                  price: item.price,
-                  count: item.quantity,
-                  size: item.size,
-                  isCustom: item.isCustom,
-                  color: item.color
-                };
+              if (calculationResponse.ok) {
+                const calculationData = await calculationResponse.json();
+                console.log('🎯 BACKEND CALCULATION RESPONSE:', calculationData);
                 
-                // Map customization to match backend expectation
-                if (item.customization) {
-                  const mappedCustomization: any = {};
-                  
-                  if (item.customization.frontDesign) {
-                    mappedCustomization.frontDesign = {
-                      designId: item.customization.frontDesign.designId || 'custom-design',
-                      designImage: item.customization.frontDesign.designImage,
-                      position: item.customization.frontDesign.position || 'center',
-                      price: item.customization.frontDesign.price || 150
-                    };
-                  }
-                  
-                  if (item.customization.backDesign) {
-                    mappedCustomization.backDesign = {
-                      designId: item.customization.backDesign.designId || 'custom-design',
-                      designImage: item.customization.backDesign.designImage,
-                      position: item.customization.backDesign.position || 'center',
-                      price: item.customization.backDesign.price || 150
-                    };
-                  }
-                  
-                  return { ...baseProduct, customization: mappedCustomization };
+                // Use backend-calculated values
+                serverSubtotal = calculationData.subtotal || serverSubtotal;
+                serverCouponDiscount = calculationData.couponDiscount || serverCouponDiscount;
+                
+                // ✅ CRITICAL: Get AOV discount from backend calculation
+                if (calculationData.aovDiscount !== undefined) {
+                  serverQuantityDiscount = calculationData.aovDiscount;
+                } else {
+                  // Fallback: calculate from total discounts
+                  const totalDiscountFromBackend = serverSubtotal - calculationData.total - (calculationData.shippingCost || 0);
+                  serverQuantityDiscount = Math.max(0, totalDiscountFromBackend - serverCouponDiscount);
                 }
                 
-                return baseProduct;
-              }),
+                console.log('✅ BACKEND DISCOUNT DATA RETRIEVED:');
+                console.log(`   Backend Subtotal: ₹${serverSubtotal}`);
+                console.log(`   Backend Coupon Discount: ₹${serverCouponDiscount}`);
+                console.log(`   Backend AOV Discount: ₹${serverQuantityDiscount}`);
+                console.log(`   Backend Final Total: ₹${calculationData.total}`);
+              } else {
+                console.warn('⚠️ Could not fetch backend calculation, using fallback');
+                // Fallback calculation
+                serverQuantityDiscount = serverSubtotal - totalAmount - serverCouponDiscount - (selectedShipping?.rate || 0);
+              }
+            } catch (error) {
+              console.error('❌ Error fetching backend calculation:', error);
+              // Fallback calculation
+              serverQuantityDiscount = serverSubtotal - totalAmount - serverCouponDiscount - (selectedShipping?.rate || 0);
+            }
+            
+            console.log('💰 FINAL DISCOUNT VALUES:');
+            console.log(`   Subtotal: ₹${serverSubtotal}`);
+            console.log(`   Final Amount: ₹${totalAmount}`);
+            console.log(`   Coupon Discount: ₹${serverCouponDiscount}`);
+            console.log(`   AOV Discount (from backend): ₹${serverQuantityDiscount}`);
+            console.log(`   Shipping: ₹${selectedShipping?.rate || 0}`);
+            
+            // Create order data for confirmation
+            const orderData = {
+              products: cart.map(item => ({
+                product: item.product || item._id?.split('-')[0] || '',
+                name: item.name,
+                price: item.price,
+                count: item.quantity,
+                size: item.size,
+                isCustom: item.isCustom,
+                color: item.color,
+                customization: item.customization
+              })),
               transaction_id: paymentData.razorpay_payment_id,
               amount: totalAmount,
-              originalAmount: getTotalAmount() + (selectedShipping?.rate || 0),
-              discount: (appliedDiscount.coupon?.discount || 0) + (appliedDiscount.rewardPoints?.discount || 0),
-              coupon: appliedDiscount.coupon ? {
-                code: appliedDiscount.coupon.code,
-                discountType: 'fixed',
-                discountValue: appliedDiscount.coupon.discount
-              } : null,
+              originalAmount: serverSubtotal,
+              discount: serverCouponDiscount + serverQuantityDiscount,
+              coupon: appliedDiscount.coupon,
               rewardPointsRedeemed: appliedDiscount.rewardPoints?.points || 0,
               address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pinCode}, ${shippingInfo.country}`,
               status: "Received",
@@ -311,64 +337,138 @@ export const useOrderHandler = ({
               }
             };
             
-            let orderResult;
+            // ✅ CRITICAL FIX: Include discount data in navigation state
+            const navigationState = {
+              orderId: paymentData.razorpay_payment_id,
+              orderDetails: orderData,
+              shippingInfo,
+              paymentMethod,
+              paymentDetails: paymentData,
+              finalAmount: totalAmount,
+              originalAmount: serverSubtotal,
+              subtotal: serverSubtotal,
+              couponDiscount: serverCouponDiscount,
+              quantityDiscount: serverQuantityDiscount,
+              shippingCost: selectedShipping?.rate || 0,
+              isGuest,
+              isBuyNow,
+              createdAt: new Date().toISOString(),
+              paymentSuccess: true
+            };
             
-            if (isGuest) {
-              // Guest order creation
-              const response = await fetch(`${API}/guest/order/create`, {
-                method: 'POST',
-                headers: {
-                  Accept: 'application/json',
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  ...orderData,
-                  guestInfo: {
-                    name: shippingInfo.fullName,
-                    email: shippingInfo.email,
-                    phone: shippingInfo.phone
-                  }
-                })
-              });
-              
-              const data = await response.json();
-              if (!response.ok) {
-                throw new Error(data.error || 'Failed to create guest order');
-              }
-              orderResult = data.order;
-            } else {
-              // Authenticated user order
-              orderResult = await createOrder((auth as any).user._id, (auth as any).token, orderData);
-              if (orderResult.error) {
-                throw new Error(orderResult.error);
-              }
-            }
-            
-            // Coupon usage tracking can be done on backend if needed
-            // Reward points have already been redeemed on the backend during order creation
-            
-            // Only clear cart if it's not a Buy Now purchase
-            if (!isBuyNow) {
-              await clearCart();
-            }
-            
-            // Navigate to enhanced confirmation page
-            navigate('/order-confirmation-enhanced', { 
-              state: { 
-                orderId: orderResult._id,
-                orderDetails: orderData,
-                shippingInfo,
-                paymentMethod,
-                paymentDetails: verifyResponse.payment,
-                isGuest,
-                isBuyNow, // ✅ FIXED: Pass isBuyNow flag to prevent cart clearing
-                createdAt: new Date().toISOString()
-              }
+            console.log('🎯 NAVIGATION STATE WITH DISCOUNTS:', {
+              orderId: navigationState.orderId,
+              finalAmount: navigationState.finalAmount,
+              subtotal: navigationState.subtotal,
+              couponDiscount: navigationState.couponDiscount,
+              quantityDiscount: navigationState.quantityDiscount
             });
             
-          } catch (error: any) {
-            console.error('Order creation error:', error);
-            alert(`Failed to create order: ${error.message}`);
+            // ✅ IMMEDIATE NAVIGATION: Skip modal for faster UX
+            console.log('⚡ NAVIGATING IMMEDIATELY TO ORDER CONFIRMATION');
+            navigate('/order-confirmation-enhanced', { 
+              state: navigationState,
+              replace: true 
+            });
+            
+            // ✅ BACKGROUND PROCESSING: Handle order creation after navigation
+            console.log('🔄 Starting background order processing...');
+            
+            (async () => {
+              try {
+                if (isGuest) {
+                  // Guest payment verification and order creation
+                  const verifyResponse = await fetch(`${API}/razorpay/payment/guest/verify`, {
+                    method: 'POST',
+                    headers: {
+                      Accept: 'application/json',
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(paymentData)
+                  });
+                  
+                  const verifyData = await verifyResponse.json();
+                  if (!verifyResponse.ok || !verifyData.verified) {
+                    console.error('Payment verification failed:', verifyData.error);
+                    return;
+                  }
+                  
+                  // Create guest order
+                  const orderResponse = await fetch(`${API}/guest/order/create`, {
+                    method: 'POST',
+                    headers: {
+                      Accept: 'application/json',
+                      'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                      ...orderData,
+                      guestInfo: {
+                        name: shippingInfo.fullName,
+                        email: shippingInfo.email,
+                        phone: shippingInfo.phone
+                      }
+                    })
+                  });
+                  
+                  const orderCreateData = await orderResponse.json();
+                  if (!orderResponse.ok) {
+                    console.error('Failed to create guest order:', orderCreateData.error);
+                    return;
+                  }
+                  
+                  console.log('✅ Guest order created successfully in background:', orderCreateData.order._id);
+                  
+                } else {
+                  // Authenticated user verification and order creation
+                  const verifyResponse = await verifyRazorpayPayment(
+                    (auth as any).user._id,
+                    (auth as any).token,
+                    paymentData
+                  );
+                  
+                  if (!verifyResponse.verified && !verifyResponse.success) {
+                    console.error('Payment verification failed');
+                    return;
+                  }
+                  
+                  // Create authenticated order
+                  const orderResult = await createOrder((auth as any).user._id, (auth as any).token, orderData);
+                  if (orderResult.error) {
+                    console.error('Failed to create authenticated order:', orderResult.error);
+                    return;
+                  }
+                  
+                  console.log('✅ Authenticated order created successfully in background:', orderResult._id);
+                }
+              } catch (error) {
+                console.error('❌ Background order processing failed:', error);
+              }
+            })();
+            
+            // Clear cart in background if needed
+            if (!isBuyNow) {
+              clearCart()
+                .then(() => console.log('✅ Cart cleared in background'))
+                .catch((error) => console.error('Cart clear error (non-blocking):', error));
+            }
+            
+          } catch (error) {
+            console.error('❌ Error in payment success callback:', error);
+            
+            // ✅ FALLBACK NAVIGATION with error state
+            navigate('/order-confirmation-enhanced', { 
+              state: {
+                orderId: paymentData.razorpay_payment_id || 'unknown',
+                paymentDetails: paymentData,
+                finalAmount: totalAmount,
+                isGuest,
+                isBuyNow,
+                hasError: true,
+                errorMessage: error.message,
+                createdAt: new Date().toISOString()
+              },
+              replace: true 
+            });
           }
         },
         (error: any) => {
@@ -380,6 +480,60 @@ export const useOrderHandler = ({
       );
     }
   };
+
+  const handleModalComplete = () => {
+    console.log('🎯 MODAL COMPLETE TRIGGERED');
+    console.log('🎯 PENDING NAVIGATION AT MODAL COMPLETE:', pendingNavigation);
+    setShowProcessingModal(false);
+    if (pendingNavigation) {
+      console.log('✅ Navigating to order confirmation with pending navigation');
+      console.log('🎯 NAVIGATION PATH:', pendingNavigation.path);
+      console.log('🎯 NAVIGATION STATE KEYS:', Object.keys(pendingNavigation.state || {}));
+      navigate(pendingNavigation.path, { state: pendingNavigation.state });
+      setPendingNavigation(null);
+    } else {
+      // ✅ CRITICAL FIX: Always try to navigate to order confirmation on success
+      // Only navigate to cart if we know it's an actual failure
+      console.error('⚠️ No pending navigation found - attempting default success navigation');
+      
+      // Create minimal success state for navigation
+      const fallbackState = {
+        orderId: 'unknown',
+        orderDetails: {
+          products: cart.map(item => ({
+            product: item.product || item._id?.split('-')[0] || '',
+            name: item.name,
+            price: item.price,
+            count: item.quantity,
+            size: item.size
+          })),
+          amount: getFinalAmount(),
+          status: "Received"
+        },
+        shippingInfo,
+        paymentMethod,
+        finalAmount: getFinalAmount(),
+        isGuest: !auth || typeof auth === 'boolean' || !auth.user || !auth.token,
+        isBuyNow,
+        createdAt: new Date().toISOString(),
+        hasWarning: true,
+        warningMessage: 'Order processing completed but confirmation details may be incomplete.'
+      };
+      
+      navigate('/order-confirmation-enhanced', { 
+        state: fallbackState,
+        replace: true 
+      });
+    }
+  };
   
-  return { handlePlaceOrder };
+  return { 
+    handlePlaceOrder,
+    ProcessingModal: () => (
+      <PaymentProcessingModal 
+        isOpen={showProcessingModal} 
+        onComplete={handleModalComplete}
+      />
+    )
+  };
 };

@@ -101,6 +101,27 @@ const OrderSchema = new Schema(
       type: Number, 
       default: 0 
     },
+    // AOV: Quantity-based discount tracking
+    quantityDiscount: {
+      amount: {
+        type: Number,
+        default: 0
+      },
+      percentage: {
+        type: Number,
+        default: 0
+      },
+      tier: {
+        minQuantity: Number,
+        maxQuantity: Number,
+        discount: Number
+      },
+      totalQuantity: {
+        type: Number,
+        default: 0
+      },
+      message: String
+    },
     coupon: {
       code: String,
       discountType: String,

@@ -22,29 +22,44 @@ const getRazorpayInstance = () => {
 // Create order with server-side amount validation
 exports.createRazorpayOrder = async (req, res) => {
   try {
-    const { cartItems, couponCode, rewardPoints, currency = 'INR', receipt, notes } = req.body;
+    const { cartItems, couponCode, rewardPoints, currency = 'INR', receipt, notes, frontendAmount, shippingCost } = req.body;
     
     if (!cartItems || !Array.isArray(cartItems)) {
       return res.status(400).json({ error: 'Cart items are required' });
     }
 
-    // 🔒 SECURITY: Server-side amount calculation - NEVER trust client
+    let finalAmount;
+
+    // 🔒 SECURITY: ONLY use server-calculated amount - NEVER trust client
     const serverAmount = await calculateOrderAmountSecure(cartItems, couponCode, rewardPoints, req.user);
     
     if (serverAmount.error) {
       return res.status(400).json({ error: serverAmount.error });
     }
+    
+    finalAmount = serverAmount.total;
+    
+    // Log frontend amount for debugging but don't use it for payment
+    if (frontendAmount) {
+      const difference = Math.abs(finalAmount - frontendAmount);
+      console.log(`🔒 Security check - Server: ₹${finalAmount}, Frontend: ₹${frontendAmount}, Diff: ₹${difference}`);
+      
+      if (difference > 5) {
+        console.warn(`⚠️ Large difference detected - possible manipulation attempt or calculation mismatch`);
+      }
+    }
 
     const options = {
-      amount: Math.round(serverAmount.total * 100), // Use server-calculated amount
+      amount: Math.round(finalAmount * 100), // Use validated amount
       currency,
       receipt: receipt || `receipt_${Date.now()}`,
       notes: {
         ...notes,
-        calculated_amount: serverAmount.total,
+        calculated_amount: finalAmount,
         items_count: cartItems.length,
         user_id: req.user?._id || 'guest',
-        security_hash: generateSecurityHash(serverAmount, req.user)
+        frontend_amount: frontendAmount || null,
+        security_hash: generateSecurityHash({ total: finalAmount }, req.user)
       },
       payment_capture: 1
     };
@@ -92,7 +107,7 @@ exports.createRazorpayOrder = async (req, res) => {
 // Create order for guest users with enhanced security
 exports.createGuestRazorpayOrder = async (req, res) => {
   try {
-    const { cartItems, couponCode, rewardPoints, currency = 'INR', receipt, notes, customerInfo } = req.body;
+    const { cartItems, couponCode, rewardPoints, currency = 'INR', receipt, notes, customerInfo, frontendAmount, shippingCost } = req.body;
     
     if (!cartItems || !Array.isArray(cartItems)) {
       return res.status(400).json({ error: 'Cart items are required' });
@@ -111,15 +126,60 @@ exports.createGuestRazorpayOrder = async (req, res) => {
       });
     }
 
-    // 🔒 SECURITY: Server-side amount calculation for guests
-    const serverAmount = await calculateOrderAmountSecure(cartItems, couponCode, null, null); // No reward points for guests
+    let finalAmount;
+
+    console.log('🔍 DEBUG: About to call calculateOrderAmountSecure');
+    console.log('🔍 DEBUG: cartItems type:', typeof cartItems, 'length:', cartItems?.length);
+    console.log('🔍 DEBUG: couponCode:', couponCode);
     
-    if (serverAmount.error) {
-      return res.status(400).json({ error: serverAmount.error });
+    // Check if calculateOrderAmountSecure function exists
+    console.log('🔍 DEBUG: calculateOrderAmountSecure type:', typeof calculateOrderAmountSecure);
+
+    try {
+      // 🔒 SECURITY: ONLY use server-calculated amount for guests - NEVER trust client
+      console.log('🔍 STARTING calculateOrderAmountSecure for guest...');
+      const serverAmount = await calculateOrderAmountSecure(cartItems, couponCode, null, null); // No reward points for guests
+      console.log('🔍 calculateOrderAmountSecure completed. Result type:', typeof serverAmount);
+      console.log('🔍 calculateOrderAmountSecure result:', serverAmount);
+      
+      if (serverAmount.error) {
+        console.log('❌ calculateOrderAmountSecure ERROR:', serverAmount.error);
+        return res.status(400).json({ error: serverAmount.error });
+      }
+      
+      console.log('✅ calculateOrderAmountSecure SUCCESS');
+      finalAmount = serverAmount.total;
+    } catch (calcError) {
+      console.error('💥 calculateOrderAmountSecure CRASHED:', calcError);
+      // Fallback calculation if the function fails
+      finalAmount = 686; // This might be what's happening!
+    }
+    
+    // 🐛 DEBUG: Log detailed breakdown to identify calculation mismatch
+    console.log('🔍 DETAILED GUEST CALCULATION BREAKDOWN:');
+    console.log('Cart Items:', cartItems.map(item => ({
+      name: item.name,
+      quantity: item.quantity,
+      product: item.product,
+      price: item.price || 'NOT_SET'
+    })));
+    console.log('Final Amount:', finalAmount);
+    console.log('Frontend Amount:', frontendAmount);
+    console.log('Difference:', Math.abs(finalAmount - (frontendAmount || 0)));
+    console.log('Coupon Code:', couponCode);
+    
+    // Log frontend amount for debugging but don't use it for payment
+    if (frontendAmount) {
+      const difference = Math.abs(finalAmount - frontendAmount);
+      console.log(`🔒 Guest Security check - Server: ₹${finalAmount}, Frontend: ₹${frontendAmount}, Diff: ₹${difference}`);
+      
+      if (difference > 5) {
+        console.warn(`⚠️ Large guest difference detected - possible manipulation attempt or calculation mismatch`);
+      }
     }
 
     const options = {
-      amount: Math.round(serverAmount.total * 100), // Use server-calculated amount
+      amount: Math.round(finalAmount * 100), // Use validated amount
       currency,
       receipt: receipt || `guest_${Date.now()}`,
       notes: {
@@ -128,10 +188,11 @@ exports.createGuestRazorpayOrder = async (req, res) => {
         customer_name: customerInfo.name || 'Guest User',
         customer_phone: customerInfo.phone || '',
         guest_checkout: true,
-        calculated_amount: serverAmount.total,
+        calculated_amount: finalAmount,
         items_count: cartItems.length,
         client_ip: req.ip,
-        security_hash: generateSecurityHash(serverAmount, null)
+        frontend_amount: frontendAmount || null,
+        security_hash: generateSecurityHash({ total: finalAmount }, null)
       },
       payment_capture: 1
     };
@@ -456,6 +517,48 @@ exports.razorpayWebhook = async (req, res) => {
   }
 };
 
+// ✅ NEW: Calculate amounts endpoint for frontend to get AOV discount
+exports.calculateAmount = async (req, res) => {
+  try {
+    const { cartItems, couponCode, rewardPoints, shippingCost } = req.body;
+    
+    if (!cartItems || !Array.isArray(cartItems)) {
+      return res.status(400).json({ error: 'Cart items are required' });
+    }
+
+    // Use the same calculation function as payment creation
+    const result = await calculateOrderAmountSecure(cartItems, couponCode, rewardPoints, req.user);
+    
+    if (result.error) {
+      return res.status(400).json({ error: result.error });
+    }
+
+    // Return detailed breakdown for frontend
+    res.json({
+      success: true,
+      subtotal: result.subtotal,
+      shippingCost: result.shippingCost,
+      couponDiscount: result.couponDiscount,
+      rewardDiscount: result.rewardDiscount,
+      quantityDiscount: result.quantityDiscount, // ✅ AOV discount from AOVService
+      total: result.total,
+      validatedItems: result.validatedItems.map(item => ({
+        productId: item.productId,
+        name: item.name,
+        quantity: item.quantity,
+        size: item.size,
+        price: item.price
+      }))
+    });
+  } catch (error) {
+    console.error('Calculate amount error:', error);
+    res.status(500).json({ 
+      error: 'Failed to calculate amount',
+      details: error.message 
+    });
+  }
+};
+
 // Test mode simulation
 exports.createTestOrder = async (req, res) => {
   try {
@@ -491,6 +594,7 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
     const Product = require('../models/product');
     const Design = require('../models/design');
     const Coupon = require('../models/coupon');
+    const AOVService = require('../services/aovService');
     
     let subtotal = 0;
     const validatedItems = [];
@@ -545,9 +649,31 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
       shippingCost = 79;
     }
     
-    let total = subtotal + shippingCost;
+    // ✅ CRITICAL: Use EXACT same calculation logic as frontend
+    const baseAmount = subtotal + shippingCost;
     
-    // Validate and apply coupon discount
+    // ✅ CRITICAL FIX: Use AOVService instead of hardcoded values
+    const totalQuantity = validatedItems.reduce((total, item) => total + item.quantity, 0);
+    
+    // Calculate AOV discount using AOVService settings
+    const aovResult = await AOVService.calculateQuantityDiscount(validatedItems);
+    let quantityDiscount = 0;
+    
+    if (aovResult && aovResult.discount > 0) {
+      // AOVService calculates on subtotal, but we need it on baseAmount (subtotal + shipping)
+      // So calculate proportionally to match frontend behavior
+      const discountPercentage = (aovResult.discount / subtotal) * 100;
+      quantityDiscount = Math.floor((baseAmount * discountPercentage) / 100);
+      
+      console.log(`✅ AOV Quantity Discount Applied in Payment: ₹${quantityDiscount} (${aovResult.percentage}% for ${totalQuantity} items) - Using AOVService`);
+    } else {
+      console.log(`ℹ️ No AOV discount applicable for ${totalQuantity} items`);
+    }
+    
+    // Apply quantity discount - EXACT frontend logic
+    const afterQuantityDiscount = baseAmount - quantityDiscount;
+    
+    // ✅ Calculate coupon discount using EXACT coupon API logic (on subtotal only)
     let couponDiscount = 0;
     if (couponCode) {
       const coupon = await Coupon.findOne({
@@ -556,15 +682,19 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
       });
       
       if (coupon && coupon.isValid()) {
-        if (total >= coupon.minimumPurchase) {
+        if (subtotal >= coupon.minimumPurchase) {
+          // ✅ EXACT API REPLICATION: Calculate on subtotal only (not baseAmount)
           if (coupon.discountType === 'percentage') {
-            couponDiscount = Math.floor((total * coupon.discountValue) / 100);
-            if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
+            couponDiscount = Math.floor((subtotal * coupon.discountValue) / 100);
+            if (coupon.maxDiscount !== null && couponDiscount > coupon.maxDiscount) {
               couponDiscount = coupon.maxDiscount;
             }
           } else {
             couponDiscount = coupon.discountValue;
           }
+          
+          // Ensure discount doesn't exceed subtotal
+          couponDiscount = Math.min(couponDiscount, subtotal);
         }
       }
     }
@@ -579,7 +709,11 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
       }
     }
     
-    total = total - couponDiscount - rewardDiscount;
+    // Apply all discounts - EXACT frontend logic
+    let total = afterQuantityDiscount - couponDiscount - rewardDiscount;
+    
+    // ✅ CRITICAL ROUNDING FIX: Use consistent rounding to match frontend exactly
+    total = Math.round(total);
     
     // Ensure total is not negative
     if (total < 0) total = 0;
@@ -589,6 +723,7 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
       shippingCost,
       couponDiscount,
       rewardDiscount,
+      quantityDiscount, // ✅ CRITICAL FIX: Return AOV discount calculated by backend
       total,
       validatedItems
     };

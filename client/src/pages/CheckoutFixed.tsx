@@ -18,6 +18,7 @@ import {
 } from '../core/helper/addressHelper';
 import { useDevMode } from '../context/DevModeContext';
 import { useOrderHandler } from '../components/checkout/OrderHandler';
+import { API } from '../backend';
 
 // Import optimized components
 import AddressSectionEnhanced from '../components/checkout/AddressSectionEnhanced';
@@ -25,6 +26,7 @@ import ShippingMethodEnhanced from '../components/checkout/ShippingMethodEnhance
 import OrderReview from '../components/checkout/OrderReview';
 import PaymentSection from '../components/checkout/PaymentSection';
 import DiscountSection from '../components/checkout/DiscountSection';
+import ShippingProgressTracker from '../components/ShippingProgressTracker';
 
 // Step progress component
 const StepProgress = React.memo(({ activeStep }: { activeStep: number }) => {
@@ -123,9 +125,11 @@ const CheckoutFixed: React.FC = () => {
   const [appliedDiscount, setAppliedDiscount] = useState<{
     coupon: { code: string; discount: number; description: string } | null;
     rewardPoints: { points: number; discount: number } | null;
+    quantity: { discount: number; percentage: number; description: string } | null;
   }>({
     coupon: null,
-    rewardPoints: null
+    rewardPoints: null,
+    quantity: null
   });
   
   const [paymentData, setPaymentData] = useState<{
@@ -306,13 +310,59 @@ const CheckoutFixed: React.FC = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   }, [cart]);
 
+  // ✅ CRITICAL FIX: Add AOV quantity discount calculation to match backend EXACTLY with CONSISTENT ROUNDING
   const getFinalAmount = useCallback(() => {
     const subtotal = getTotalAmount();
     const shipping = selectedShipping?.rate || 0;
+    
+    // Calculate quantity-based discount (AOV) - EXACT backend match with SAME rounding
+    const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
+    let quantityDiscount = 0;
+    let percentage = 0;
+    
+    // 🎯 FIXED: Match backend AOV tiers exactly - including 2-item tier!
+    if (totalQuantity >= 2) {
+      const baseAmount = subtotal + shipping;
+      if (totalQuantity >= 5) {
+        percentage = 20;
+        quantityDiscount = Math.floor(baseAmount * 0.20); // 20% for 5+ items
+      } else if (totalQuantity >= 3) {
+        percentage = 15;
+        quantityDiscount = Math.floor(baseAmount * 0.15); // 15% for 3-4 items
+      } else if (totalQuantity >= 2) {
+        percentage = 5;
+        quantityDiscount = Math.floor(baseAmount * 0.05); // 5% for 2 items
+      }
+    }
+    
+    // Apply discounts in order: quantity discount first, then others
+    const afterQuantityDiscount = (subtotal + shipping) - quantityDiscount;
+    
+    // ✅ CRITICAL ROUNDING FIX: Don't round coupon discount - it's already correctly calculated by backend API
     const couponDiscount = appliedDiscount.coupon?.discount || 0;
     const rewardDiscount = appliedDiscount.rewardPoints?.discount || 0;
-    return subtotal + shipping - couponDiscount - rewardDiscount;
-  }, [getTotalAmount, selectedShipping, appliedDiscount]);
+    
+    const finalAmount = afterQuantityDiscount - couponDiscount - rewardDiscount;
+    
+    // ✅ CRITICAL ROUNDING FIX: Use consistent rounding to match backend exactly
+    const roundedFinalAmount = Math.round(finalAmount);
+    
+    // Store quantity discount for display
+    if (quantityDiscount > 0 && (!appliedDiscount.quantity || appliedDiscount.quantity.discount !== quantityDiscount)) {
+      setAppliedDiscount(prev => ({
+        ...prev,
+        quantity: {
+          discount: quantityDiscount,
+          percentage,
+          description: `${percentage}% off for ${totalQuantity} items`
+        }
+      }));
+    } else if (quantityDiscount === 0 && appliedDiscount.quantity) {
+      setAppliedDiscount(prev => ({ ...prev, quantity: null }));
+    }
+    
+    return Math.max(0, roundedFinalAmount);
+  }, [getTotalAmount, selectedShipping, appliedDiscount, cart]);
 
   const validateShipping = useCallback(() => {
     const required = ['fullName', 'email', 'phone', 'address', 'city', 'state', 'pinCode'];
@@ -566,7 +616,7 @@ const CheckoutFixed: React.FC = () => {
   }, [savedAddresses, selectedAddressId, handleSelectAddress]);
 
   // Use the extracted order handler
-  const { handlePlaceOrder } = useOrderHandler({
+  const { handlePlaceOrder, ProcessingModal } = useOrderHandler({
     cart,
     auth,
     isTestMode,
@@ -710,11 +760,17 @@ const CheckoutFixed: React.FC = () => {
               getTotalAmount={getTotalAmount}
             />
             
+            {/* Free Shipping Progress Tracker */}
+            <ShippingProgressTracker 
+              cartTotal={getTotalAmount()} 
+              className="mb-6"
+            />
+            
             {/* Add Discount Section */}
             <DiscountSection
               subtotal={getTotalAmount()}
               shippingCost={selectedShipping?.rate || 0}
-              onDiscountChange={setAppliedDiscount}
+              onDiscountChange={(discount) => setAppliedDiscount(prev => ({ ...prev, ...discount }))}
               isTestMode={isTestMode}
             />
             
@@ -730,6 +786,12 @@ const CheckoutFixed: React.FC = () => {
                   <span>Shipping</span>
                   <span>₹{selectedShipping?.rate || 0}</span>
                 </div>
+                {appliedDiscount.quantity && (
+                  <div className="flex justify-between text-yellow-400">
+                    <span>Quantity Discount ({appliedDiscount.quantity.percentage}%)</span>
+                    <span>-₹{appliedDiscount.quantity.discount}</span>
+                  </div>
+                )}
                 {appliedDiscount.coupon && (
                   <div className="flex justify-between text-green-400">
                     <span>Coupon Discount</span>
@@ -849,6 +911,9 @@ const CheckoutFixed: React.FC = () => {
           {renderStepContent}
         </div>
       </div>
+      
+      {/* 🎯 UX FIX: Payment Processing Modal */}
+      <ProcessingModal />
     </div>
   );
 };

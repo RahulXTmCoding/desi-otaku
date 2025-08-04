@@ -2,13 +2,15 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { isAutheticated } from "../auth/helper";
 import { API } from "../backend";
-import { Loader, Package, Truck, CreditCard, MapPin, ChevronLeft, ExternalLink } from "lucide-react";
+import { Loader, Package, Truck, CreditCard, MapPin, ChevronLeft, ExternalLink, Download, Loader2 } from "lucide-react";
 import CartTShirtPreview from "../components/CartTShirtPreview";
 
 const OrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [downloadError, setDownloadError] = useState("");
   const { orderId } = useParams();
   const auth = useMemo(() => isAutheticated(), []);
   const renderCount = useRef(0);
@@ -71,6 +73,40 @@ const OrderDetail = () => {
 
     fetchOrderDetail();
   }, [auth, orderId]);
+
+  // ✅ FIX: Add download invoice functionality for user order detail page
+  const handleDownloadInvoice = async () => {
+    if (!order?._id) {
+      setDownloadError('Order ID not available');
+      return;
+    }
+    
+    setDownloadingInvoice(true);
+    setDownloadError('');
+    
+    try {
+      const response = await fetch(`${API}/invoice/order/${order._id}/download`);
+      
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `invoice-${order._id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      } else {
+        throw new Error('Invoice not ready yet. Please try again in a few minutes.');
+      }
+    } catch (error: any) {
+      console.error('Download invoice error:', error);
+      setDownloadError(error.message || 'Failed to download invoice. Please try again.');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -319,22 +355,53 @@ const OrderDetail = () => {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-400">Subtotal</span>
-                    <span className="text-white font-medium">₹{order.subtotal || order.amount - (order.shipping?.shippingCost || 0)}</span>
+                    <span className="text-white font-medium">₹{(order.originalAmount || order.subtotal || order.amount).toLocaleString('en-IN')}</span>
                   </div>
-                  {order.discount > 0 && (
+                  
+                  {order.shipping?.shippingCost > 0 ? (
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Discount</span>
-                      <span className="text-green-400 font-medium">-₹{order.discount}</span>
+                      <span className="text-gray-400">Shipping</span>
+                      <span className="text-white font-medium">₹{order.shipping.shippingCost.toLocaleString('en-IN')}</span>
+                    </div>
+                  ) : (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-400">Free Shipping</span>
+                      <span className="text-green-400 font-medium">₹0</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Shipping</span>
-                    <span className="text-white font-medium">₹{order.shipping?.shippingCost || 0}</span>
-                  </div>
+                  
+                  {order.aovDiscount && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-yellow-400">Quantity Discount ({order.aovDiscount.percentage}% off for {order.aovDiscount.totalQuantity} items)</span>
+                      <span className="text-yellow-400 font-medium">-₹{order.aovDiscount.amount.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  
+                  {order.coupon && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-400">Coupon Discount ({order.coupon.code})</span>
+                      <span className="text-green-400 font-medium">-₹{(order.coupon.discountValue || order.coupon.discount).toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  
+                  {order.rewardPointsRedeemed > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-purple-400">Reward Points ({order.rewardPointsRedeemed} points)</span>
+                      <span className="text-purple-400 font-medium">-₹{order.rewardPointsRedeemed.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  
+                  {(order.discount || 0) > 0 && (
+                    <div className="flex justify-between text-sm pt-2 border-t border-gray-600">
+                      <span className="text-green-400 font-semibold">Total Savings</span>
+                      <span className="text-green-400 font-semibold">-₹{order.discount.toLocaleString('en-IN')}</span>
+                    </div>
+                  )}
+                  
                   <div className="border-t border-gray-600 my-3"></div>
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-semibold text-white">Total Paid</span>
-                    <span className="text-2xl font-bold text-yellow-400">₹{order.amount || 0}</span>
+                    <span className="text-2xl font-bold text-yellow-400">₹{(order.amount || 0).toLocaleString('en-IN')}</span>
                   </div>
                   {order.transaction_id && (
                     <div className="mt-4 pt-4 border-t border-gray-600">
@@ -342,6 +409,29 @@ const OrderDetail = () => {
                       <p className="text-xs font-mono text-gray-300 break-all bg-gray-800 p-2 rounded">{order.transaction_id}</p>
                     </div>
                   )}
+                  
+                  {/* ✅ FIX: Download Invoice Button for User Order Detail */}
+                  <div className="mt-4 pt-4 border-t border-gray-600">
+                    <div className="flex flex-col items-center">
+                      <button 
+                        onClick={handleDownloadInvoice}
+                        disabled={downloadingInvoice}
+                        className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 px-4 py-3 rounded-lg font-bold transition-colors"
+                      >
+                        {downloadingInvoice ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <Download className="w-5 h-5" />
+                        )}
+                        {downloadingInvoice ? 'Downloading...' : 'Download Invoice'}
+                      </button>
+                      {downloadError && (
+                        <p className="text-red-400 text-sm mt-2 text-center">
+                          {downloadError}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 

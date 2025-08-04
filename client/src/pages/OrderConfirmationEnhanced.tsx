@@ -10,10 +10,12 @@ import {
   Download,
   UserPlus,
   Shield,
-  Star
+  Star,
+  Loader2
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { isAutheticated, signup, authenticate } from '../auth/helper';
+import { API } from '../backend';
 
 const OrderConfirmationEnhanced: React.FC = () => {
   // Immediate test to see if component loads
@@ -51,6 +53,8 @@ const OrderConfirmationEnhanced: React.FC = () => {
   const [accountCreated, setAccountCreated] = useState(false);
   const [accountExists, setAccountExists] = useState(false);
   const [accountCreationLoading, setAccountCreationLoading] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState(false);
+  const [downloadError, setDownloadError] = useState('');
   
   // Get order details from order state data
   const orderDetails = orderStateData?.orderDetails;
@@ -80,6 +84,12 @@ const OrderConfirmationEnhanced: React.FC = () => {
   }
 
   useEffect(() => {
+    // ✅ FIX: Store order data in sessionStorage as backup
+    if (orderStateData) {
+      sessionStorage.setItem('orderConfirmation', JSON.stringify(orderStateData));
+      console.log('✅ Order data stored in sessionStorage as backup');
+    }
+    
     // Only clear cart if it was NOT a Buy Now purchase
     // Buy Now purchases should preserve the original cart
     const wasBuyNow = location.state?.isBuyNow || location.state?.buyNowItem;
@@ -200,9 +210,82 @@ const OrderConfirmationEnhanced: React.FC = () => {
   const estimatedDelivery = new Date();
   estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
 
-  // Calculate order total
-  const orderTotal = orderDetails?.amount || 1797;
-  const itemCount = orderDetails?.products?.length || 3;
+  // ✅ CRITICAL DEBUG: Check all possible data sources
+  console.log('🔍 FULL OrderStateData structure:', JSON.stringify(orderStateData, null, 2));
+  console.log('🔍 OrderDetails structure:', JSON.stringify(orderDetails, null, 2));
+  
+  const finalAmount = orderStateData?.finalAmount || orderDetails?.amount || 0;
+  const itemCount = orderStateData?.itemCount || orderDetails?.products?.length || 0;
+  
+  // ✅ CRITICAL FIX: Use new data structure from payment flow
+  const shippingCost = orderStateData?.shippingCost || orderDetails?.shipping?.shippingCost || 0;
+  const subtotal = orderStateData?.subtotal || orderStateData?.originalAmount || finalAmount;
+  
+  // ✅ FIXED: Get discounts directly from navigation state
+  const couponDiscount = orderStateData?.couponDiscount || orderDetails?.discount || orderDetails?.coupon?.discount || 0;
+  const quantityDiscount = orderStateData?.quantityDiscount || 0;
+  const rewardPointsUsed = orderDetails?.rewardPointsRedeemed || 0;
+  
+  // ✅ CRITICAL DEBUG: Log all possible data sources
+  console.log('📊 Order Confirmation Data Analysis:');
+  console.log(`   Available fields in orderStateData:`, Object.keys(orderStateData || {}));
+  console.log(`   finalAmount: ₹${finalAmount} (from: ${orderStateData?.finalAmount ? 'orderStateData.finalAmount' : 'orderDetails.amount'})`);
+  console.log(`   subtotal: ₹${subtotal} (from: ${orderStateData?.subtotal ? 'orderStateData.subtotal' : orderStateData?.originalAmount ? 'orderStateData.originalAmount' : 'calculated'})`);
+  console.log(`   shippingCost: ₹${shippingCost} (from: ${orderStateData?.shippingCost ? 'orderStateData.shippingCost' : 'default/calculated'})`);
+  console.log(`   couponDiscount: ₹${couponDiscount} (from: ${orderStateData?.couponDiscount ? 'orderStateData.couponDiscount' : 'default'})`);
+  console.log(`   quantityDiscount: ₹${quantityDiscount} (from: ${orderStateData?.quantityDiscount ? 'orderStateData.quantityDiscount' : orderStateData?.aovDiscount ? 'orderStateData.aovDiscount' : 'default'})`);
+  
+  // ✅ FIXED: Handle HTML invoice response correctly
+  const handleDownloadInvoice = async () => {
+    if (!orderNumber) {
+      setDownloadError('Order number not available');
+      return;
+    }
+    
+    setDownloadingInvoice(true);
+    setDownloadError('');
+    
+    try {
+      const response = await fetch(`${API}/invoice/order/${orderNumber}/download`);
+      
+      if (response.ok) {
+        const contentType = response.headers.get('Content-Type');
+        
+        if (contentType?.includes('text/html')) {
+          // ✅ HTML invoice - open in new tab
+          const invoiceUrl = `${API}/invoice/order/${orderNumber}/download`;
+          window.open(invoiceUrl, '_blank', 'width=800,height=900,scrollbars=yes,resizable=yes');
+        } else if (contentType?.includes('application/pdf')) {
+          // ✅ PDF invoice - download as file
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `invoice-${orderNumber}.pdf`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          window.URL.revokeObjectURL(url);
+        } else {
+          // ✅ JSON response with invoice data
+          const data = await response.json();
+          if (data.downloadUnavailable) {
+            alert(`${data.message}\n\nInvoice Number: ${data.invoice.invoiceNumber}\nCustomer: ${data.invoice.customer.name}\nAmount: ₹${data.invoice.amounts.grandTotal}`);
+          } else {
+            throw new Error('Unexpected response format');
+          }
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Invoice not ready yet. Please try again in a few minutes.');
+      }
+    } catch (error: any) {
+      console.error('Download invoice error:', error);
+      setDownloadError(error.message || 'Failed to download invoice. Please try again.');
+    } finally {
+      setDownloadingInvoice(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white py-12">
@@ -323,10 +406,25 @@ const OrderConfirmationEnhanced: React.FC = () => {
                 {copied && <span className="text-green-400 text-sm">Copied!</span>}
               </div>
             </div>
-            <button className="mt-4 md:mt-0 flex items-center gap-2 bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded-lg transition-colors">
-              <Download className="w-4 h-4" />
-              Download Invoice
-            </button>
+            <div className="flex flex-col items-end">
+              <button 
+                onClick={handleDownloadInvoice}
+                disabled={downloadingInvoice}
+                className="flex items-center gap-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg transition-colors"
+              >
+                {downloadingInvoice ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                {downloadingInvoice ? 'Downloading...' : 'Download Invoice'}
+              </button>
+              {downloadError && (
+                <p className="text-red-400 text-sm mt-2 max-w-xs text-right">
+                  {downloadError}
+                </p>
+              )}
+            </div>
           </div>
 
           {/* Order Summary */}
@@ -343,12 +441,49 @@ const OrderConfirmationEnhanced: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Subtotal:</span>
-                  <span>₹{orderTotal}</span>
+                  <span>₹{subtotal.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Shipping:</span>
-                  <span className="text-green-400">{orderTotal >= 1000 ? 'FREE' : '₹60'}</span>
-                </div>
+                
+                {shippingCost > 0 ? (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Shipping:</span>
+                    <span>₹{shippingCost.toLocaleString('en-IN')}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-gray-400">Shipping:</span>
+                    <span className="text-green-400">FREE</span>
+                  </div>
+                )}
+                
+                {quantityDiscount > 0 && (
+                  <div className="flex justify-between text-yellow-400">
+                    <span>Quantity Discount ({orderStateData?.aovDiscount?.percentage || ''}% off for {itemCount} items):</span>
+                    <span>-₹{quantityDiscount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between text-green-400">
+                    <span>Coupon Discount ({orderStateData?.orderDetails?.coupon?.code || orderDetails?.coupon?.code || 'Applied'}):</span>
+                    <span>-₹{couponDiscount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                
+                {rewardPointsUsed > 0 && (
+                  <div className="flex justify-between text-purple-400">
+                    <span>Reward Points ({rewardPointsUsed} points):</span>
+                    <span>-₹{rewardPointsUsed.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                
+                {(quantityDiscount > 0 || couponDiscount > 0 || rewardPointsUsed > 0) && (
+                  <div className="flex justify-between text-green-400 font-semibold pt-1 border-t border-gray-600">
+                    <span>Total Savings:</span>
+                    <span>-₹{(quantityDiscount + couponDiscount + rewardPointsUsed).toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between">
                   <span className="text-gray-400">Tax:</span>
                   <span>₹0</span>
@@ -356,7 +491,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
                 <hr className="border-gray-600 my-2" />
                 <div className="flex justify-between font-bold text-base">
                   <span>Total Paid:</span>
-                  <span className="text-yellow-400">₹{orderTotal}</span>
+                  <span className="text-yellow-400">₹{finalAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
             </div>

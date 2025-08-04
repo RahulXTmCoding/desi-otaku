@@ -568,18 +568,82 @@ exports.getFilteredProducts = async (req, res) => {
       ];
     }
 
-    // Category and subcategory filter
+    // Category and subcategory filter with proper ObjectId handling
     if (subcategory) {
       // If subcategory is specified, filter by subcategory
-      filter.subcategory = subcategory;
+      const mongoose = require("mongoose");
+      if (mongoose.Types.ObjectId.isValid(subcategory)) {
+        filter.subcategory = mongoose.Types.ObjectId(subcategory);
+      } else {
+        // If not a valid ObjectId, try to find category by name/slug
+        try {
+          const Category = require("../models/category");
+          const categoryDoc = await Category.findOne({ 
+            $or: [
+              { name: { $regex: new RegExp(subcategory, 'i') } },
+              { slug: subcategory }
+            ],
+            isActive: true 
+          });
+          if (categoryDoc) {
+            filter.subcategory = categoryDoc._id;
+          } else {
+            // Category not found, return empty results gracefully
+            filter._id = null;
+            return res.json({
+              products: [],
+              pagination: {
+                currentPage: parseInt(page),
+                totalPages: 0,
+                totalProducts: 0,
+                hasMore: false
+              }
+            });
+          }
+        } catch (err) {
+          console.error('Error finding subcategory:', err);
+          filter._id = null; // This will return no results
+        }
+      }
     } else if (category && category !== 'all') {
       // If only category is specified, get all products in that category AND its subcategories
       try {
         const Category = require("../models/category");
+        const mongoose = require("mongoose");
+        let categoryId = null;
+        
+        // Check if category is a valid ObjectId
+        if (mongoose.Types.ObjectId.isValid(category)) {
+          categoryId = mongoose.Types.ObjectId(category);
+        } else {
+          // Try to find category by name or slug
+          const categoryDoc = await Category.findOne({ 
+            $or: [
+              { name: { $regex: new RegExp(category, 'i') } },
+              { slug: category }
+            ],
+            isActive: true 
+          });
+          
+          if (categoryDoc) {
+            categoryId = categoryDoc._id;
+          } else {
+            // Category not found, return empty results gracefully
+            return res.json({
+              products: [],
+              pagination: {
+                currentPage: parseInt(page),
+                totalPages: 0,
+                totalProducts: 0,
+                hasMore: false
+              }
+            });
+          }
+        }
         
         // Get all subcategories of this category
         const subcategories = await Category.find({ 
-          parentCategory: category,
+          parentCategory: categoryId,
           isActive: true 
         }).select('_id');
         
@@ -588,17 +652,25 @@ exports.getFilteredProducts = async (req, res) => {
         // Filter products by main category OR any of its subcategories
         if (subcategoryIds.length > 0) {
           filter.$or = [
-            { category: category },
+            { category: categoryId },
             { subcategory: { $in: subcategoryIds } }
           ];
         } else {
           // No subcategories, just filter by category
-          filter.category = category;
+          filter.category = categoryId;
         }
       } catch (err) {
         console.error('Error getting subcategories:', err);
-        // Fallback to simple category filter
-        filter.category = category;
+        // Return empty results gracefully instead of crashing
+        return res.json({
+          products: [],
+          pagination: {
+            currentPage: parseInt(page),
+            totalPages: 0,
+            totalProducts: 0,
+            hasMore: false
+          }
+        });
       }
     }
 

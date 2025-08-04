@@ -83,21 +83,25 @@ const invoiceSchema = new mongoose.Schema({
     }
   }],
   
-  // Amount calculations
+  // Amount calculations (GST-inclusive pricing model)
   amounts: {
-    subtotal: { type: Number, required: true },
-    shippingCost: { type: Number, default: 0 },
-    discount: { type: Number, default: 0 },
+    grossAmount: { type: Number, required: true }, // Higher MRP-like price
+    discount: { type: Number, default: 0 }, // Discount amount
     discountDescription: String,
+    otherCharges: { type: Number, default: 0 }, // Additional charges
     
-    // Tax breakdown (for GST compliance)
-    taxableAmount: { type: Number, required: true },
+    // GST breakdown (reverse calculated from final price)
+    taxableAmount: { type: Number, required: true }, // Amount before GST
     cgst: { type: Number, default: 0 }, // Central GST
     sgst: { type: Number, default: 0 }, // State GST  
     igst: { type: Number, default: 0 }, // Integrated GST
     totalTax: { type: Number, default: 0 },
     
-    grandTotal: { type: Number, required: true }
+    grandTotal: { type: Number, required: true }, // Final price (GST inclusive)
+    
+    // Legacy fields for backward compatibility
+    subtotal: { type: Number },
+    shippingCost: { type: Number, default: 0 }
   },
   
   // Tax details
@@ -175,29 +179,57 @@ invoiceSchema.statics.generateInvoiceNumber = async function() {
   return { invoiceNumber, financialYear };
 };
 
-// Calculate GST based on customer and seller location
-invoiceSchema.methods.calculateGST = function() {
-  // Basic GST calculation (18% for textiles)
-  const gstRate = 18;
-  const taxableAmount = this.amounts.subtotal + this.amounts.shippingCost - this.amounts.discount;
+// Calculate GST using reverse calculation (GST-inclusive pricing)
+invoiceSchema.methods.calculateGSTInclusive = function() {
+  const gstRate = 12; // 12% for textiles (6% CGST + 6% SGST)
+  const finalPrice = this.amounts.grandTotal; // This is the hook price (e.g., ₹1199)
   
-  // For now, assume intra-state supply (CGST + SGST)
-  // In production, implement proper state-wise logic
   if (this.tax.isGstApplicable) {
+    // Reverse calculation: Start with final price and work backwards
+    // Formula: taxableAmount = finalPrice / (1 + gstRate/100)
+    const taxableAmount = Math.round(finalPrice / (1 + gstRate / 100));
+    
+    // Calculate individual GST components
+    const halfGstRate = gstRate / 2; // 6% each for CGST and SGST
+    const cgstAmount = Math.round((taxableAmount * halfGstRate) / 100);
+    const sgstAmount = Math.round((taxableAmount * halfGstRate) / 100);
+    
+    // Set tax details
     this.tax.gstRate = gstRate;
-    this.amounts.cgst = Math.round((taxableAmount * gstRate / 2) / 100);
-    this.amounts.sgst = Math.round((taxableAmount * gstRate / 2) / 100);
-    this.amounts.igst = 0;
-    this.amounts.totalTax = this.amounts.cgst + this.amounts.sgst;
+    this.amounts.taxableAmount = taxableAmount;
+    this.amounts.cgst = cgstAmount;
+    this.amounts.sgst = sgstAmount;
+    this.amounts.igst = 0; // For intra-state supply
+    this.amounts.totalTax = cgstAmount + sgstAmount;
+    
+    // Create attractive pricing display
+    if (!this.amounts.grossAmount) {
+      // Set higher gross amount (like MRP) for marketing appeal
+      this.amounts.grossAmount = Math.round(finalPrice * 1.5); // 50% higher than final price
+      this.amounts.discount = this.amounts.grossAmount - finalPrice;
+      this.amounts.discountDescription = this.amounts.discountDescription || 'Special Discount';
+    }
+    
   } else {
+    // No GST applicable
+    this.amounts.taxableAmount = finalPrice;
     this.amounts.cgst = 0;
     this.amounts.sgst = 0;
     this.amounts.igst = 0;
     this.amounts.totalTax = 0;
+    
+    // Still show attractive pricing without GST
+    if (!this.amounts.grossAmount) {
+      this.amounts.grossAmount = Math.round(finalPrice * 1.3);
+      this.amounts.discount = this.amounts.grossAmount - finalPrice;
+      this.amounts.discountDescription = this.amounts.discountDescription || 'Launch Offer';
+    }
   }
-  
-  this.amounts.taxableAmount = taxableAmount;
-  this.amounts.grandTotal = taxableAmount + this.amounts.totalTax;
+};
+
+// Legacy method for backward compatibility
+invoiceSchema.methods.calculateGST = function() {
+  return this.calculateGSTInclusive();
 };
 
 // Indexes for better performance

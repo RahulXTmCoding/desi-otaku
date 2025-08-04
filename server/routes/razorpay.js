@@ -9,7 +9,8 @@ const {
   verifyGuestRazorpayPayment,
   getRazorpayPayment,
   razorpayWebhook,
-  createTestOrder
+  createTestOrder,
+  calculateAmount
 } = require('../controllers/razorpay');
 
 // Create order - requires authentication
@@ -17,6 +18,9 @@ router.post('/order/create/:userId', isSignedIn, isAuthenticated, createRazorpay
 
 // Guest order creation - no auth required
 router.post('/order/guest/create', createGuestRazorpayOrder);
+
+// ✅ NEW: Calculate amounts endpoint - no auth required for public access
+router.post('/calculate-amount', calculateAmount);
 
 // Test mode order creation - no auth required
 router.post('/order/test', createTestOrder);

@@ -72,34 +72,71 @@ exports.creditPoints = async (userId, orderId, orderAmount) => {
       return { success: false, message: "Rewards system is disabled" };
     }
 
-    // Calculate points (1% of order value, rounded down)
-    const pointsToAdd = Math.floor(orderAmount * 0.01);
+    // Calculate base points (1% of order value, rounded down)
+    const basePoints = Math.floor(orderAmount * 0.01);
     
-    if (pointsToAdd === 0) {
+    if (basePoints === 0) {
       return { success: true, points: 0 };
+    }
+
+    // 🎯 AOV: Apply loyalty multipliers for enhanced point earning
+    let finalPoints = basePoints;
+    let multiplierApplied = 1;
+    let multiplierMessage = "";
+    
+    try {
+      const AOVService = require("../services/aovService");
+      const multiplierResult = await AOVService.calculateLoyaltyMultiplier(orderAmount);
+      
+      if (multiplierResult && multiplierResult.multiplier > 1) {
+        finalPoints = Math.floor(basePoints * multiplierResult.multiplier);
+        multiplierApplied = multiplierResult.multiplier;
+        multiplierMessage = multiplierResult.message;
+        
+        console.log(`✅ AOV Loyalty Multiplier Applied: ${multiplierApplied}X (${basePoints} base points → ${finalPoints} total points)`);
+      }
+    } catch (aovError) {
+      console.error('AOV loyalty multiplier calculation error:', aovError);
+      // Continue with base points if AOV service fails
     }
 
     // Update user's points
     const user = await User.findByIdAndUpdate(
       userId,
-      { $inc: { rewardPoints: pointsToAdd } },
+      { $inc: { rewardPoints: finalPoints } },
       { new: true }
     );
 
-    // Create transaction record
+    // Create transaction record with multiplier details
+    const description = multiplierApplied > 1 
+      ? `Earned ${finalPoints} points for order #${orderId} (${basePoints} base + ${finalPoints - basePoints} bonus from ${multiplierApplied}X multiplier)`
+      : `Earned ${finalPoints} points for order #${orderId}`;
+
     await RewardTransaction.create({
       user: userId,
       type: "earned",
-      amount: pointsToAdd,
+      amount: finalPoints,
       balance: user.rewardPoints,
-      description: `Earned ${pointsToAdd} points for order #${orderId}`,
+      description: description,
       orderId: orderId,
       metadata: {
-        orderAmount: orderAmount
+        orderAmount: orderAmount,
+        basePoints: basePoints,
+        multiplierApplied: multiplierApplied,
+        bonusPoints: finalPoints - basePoints,
+        multiplierMessage: multiplierMessage
       }
     });
 
-    return { success: true, points: pointsToAdd, newBalance: user.rewardPoints };
+    return { 
+      success: true, 
+      points: finalPoints,
+      basePoints: basePoints,
+      bonusPoints: finalPoints - basePoints,
+      multiplierApplied: multiplierApplied,
+      multiplierMessage: multiplierMessage,
+      newBalance: user.rewardPoints 
+    };
   } catch (error) {
     console.error("Credit points error:", error);
     return { success: false, error: error.message };

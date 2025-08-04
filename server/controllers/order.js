@@ -5,6 +5,8 @@ const { creditPoints, redeemPoints } = require("./reward");
 const RewardTransaction = require("../models/rewardTransaction");
 const { createSecureAccess } = require("./secureOrder");
 const invoiceService = require("../services/invoiceService");
+const telegramService = require("../services/telegramService");
+const AOVService = require("../services/aovService");
 
 exports.getOrderById = (req, res, next, id) => {
   Order.findById(id)
@@ -262,6 +264,40 @@ exports.createOrder = async (req, res) => {
     // Store original amount before discounts
     req.body.order.originalAmount = recalculatedTotal;
     
+    // 🎯 AOV: Calculate quantity-based discount BEFORE other discounts
+    let quantityDiscount = 0;
+    let quantityDiscountInfo = null;
+    try {
+      const cartItems = validatedProducts.map(item => ({
+        product: item.product,
+        name: item.name,
+        price: item.price,
+        quantity: item.count
+      }));
+      
+      const quantityDiscountResult = await AOVService.calculateQuantityDiscount(cartItems);
+      if (quantityDiscountResult && quantityDiscountResult.discount > 0) {
+        quantityDiscount = quantityDiscountResult.discount;
+        quantityDiscountInfo = quantityDiscountResult;
+        console.log(`✅ AOV Quantity Discount Applied: ₹${quantityDiscount} (${quantityDiscountResult.percentage}% for ${quantityDiscountResult.totalQuantity} items)`);
+        
+        // Store quantity discount info in order
+        req.body.order.quantityDiscount = {
+          amount: quantityDiscount,
+          percentage: quantityDiscountResult.percentage,
+          tier: quantityDiscountResult.tier,
+          totalQuantity: quantityDiscountResult.totalQuantity,
+          message: quantityDiscountResult.message
+        };
+      }
+    } catch (aovError) {
+      console.error('AOV quantity discount calculation error:', aovError);
+      // Continue without quantity discount if calculation fails
+    }
+    
+    // Apply quantity discount to total before calculating other discounts
+    recalculatedTotal = recalculatedTotal - quantityDiscount;
+    
     // Handle coupon validation and discount calculation
     let couponDiscount = 0;
     if (req.body.order.coupon && req.body.order.coupon.code) {
@@ -516,6 +552,19 @@ exports.createOrder = async (req, res) => {
     //     // Don't fail the order if invoice generation fails - can be retried later
     //   }
     // }
+    
+    // 📱 TELEGRAM: Send instant order notification to admin
+    telegramService.sendNewOrderNotification(savedOrder, savedOrder.user).catch(err => {
+      console.error("Failed to send Telegram notification:", err);
+      // Don't fail the order if Telegram notification fails
+    });
+    
+    // 🔥 High-value order alert
+    if (savedOrder.amount > 2000) {
+      telegramService.sendHighValueOrderAlert(savedOrder).catch(err => {
+        console.error("Failed to send high-value order alert:", err);
+      });
+    }
     
     // If Shiprocket is configured, create shipment
     if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {
@@ -818,6 +867,13 @@ exports.updateStatus = async (req, res) => {
           console.error("Failed to send status update email:", err);
         });
       }
+    }
+
+    // 📱 TELEGRAM: Send status update notification to admin
+    if (oldStatus !== req.body.status) {
+      telegramService.sendOrderStatusUpdate(order, oldStatus, req.body.status).catch(err => {
+        console.error("Failed to send Telegram status update notification:", err);
+      });
     }
 
     res.json(order);

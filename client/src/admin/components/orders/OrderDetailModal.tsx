@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Package, Truck, Clock, Printer, Copy } from 'lucide-react';
+import { X, User, Package, Truck, Clock, Printer, Copy, Download } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
 import { useReactToPrint } from 'react-to-print';
@@ -131,10 +131,57 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
                   <p className="font-bold">₹{item.price * item.count}</p>
                 </div>
               ))}
-              <div className="pt-4 border-t border-gray-700">
-                <div className="flex justify-between items-center">
-                  <p className="text-lg font-semibold">Total Amount</p>
-                  <p className="text-2xl font-bold text-yellow-400">₹{order.amount}</p>
+              <div className="pt-4 border-t border-gray-700 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <p className="text-gray-400">Subtotal</p>
+                  <p className="font-medium">₹{(order.originalAmount || order.amount).toLocaleString('en-IN')}</p>
+                </div>
+                
+                {order.shipping?.shippingCost > 0 ? (
+                  <div className="flex justify-between text-sm">
+                    <p className="text-gray-400">Shipping</p>
+                    <p className="font-medium">₹{order.shipping.shippingCost.toLocaleString('en-IN')}</p>
+                  </div>
+                ) : (
+                  <div className="flex justify-between text-sm">
+                    <p className="text-green-400">Free Shipping</p>
+                    <p className="text-green-400 font-medium">₹0</p>
+                  </div>
+                )}
+                
+                {order.aovDiscount && (
+                  <div className="flex justify-between text-sm">
+                    <p className="text-yellow-400">Quantity Discount ({order.aovDiscount.percentage}% off for {order.aovDiscount.totalQuantity} items)</p>
+                    <p className="text-yellow-400 font-medium">-₹{order.aovDiscount.amount.toLocaleString('en-IN')}</p>
+                  </div>
+                )}
+                
+                {order.coupon && (
+                  <div className="flex justify-between text-sm">
+                    <p className="text-green-400">Coupon Discount ({order.coupon.code})</p>
+                    <p className="text-green-400 font-medium">-₹{(order.coupon.discountValue || order.coupon.discount).toLocaleString('en-IN')}</p>
+                  </div>
+                )}
+                
+                {order.rewardPointsRedeemed > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <p className="text-purple-400">Reward Points ({order.rewardPointsRedeemed} points)</p>
+                    <p className="text-purple-400 font-medium">-₹{order.rewardPointsRedeemed.toLocaleString('en-IN')}</p>
+                  </div>
+                )}
+                
+                {(order.discount || 0) > 0 && (
+                  <div className="flex justify-between text-sm pt-2 border-t border-gray-600">
+                    <p className="text-green-400 font-semibold">Total Savings</p>
+                    <p className="text-green-400 font-semibold">-₹{order.discount.toLocaleString('en-IN')}</p>
+                  </div>
+                )}
+                
+                <div className="pt-2 border-t border-gray-600">
+                  <div className="flex justify-between items-center">
+                    <p className="text-lg font-semibold">Total Amount</p>
+                    <p className="text-2xl font-bold text-yellow-400">₹{order.amount.toLocaleString('en-IN')}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -205,6 +252,30 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
             >
               <Printer className="w-5 h-5" />
               Print Invoice
+            </button>
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch(`${API}/invoice/order/${order._id}/download`);
+                  if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `invoice-${order._id}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                  }
+                } catch (error) {
+                  console.error('Download error:', error);
+                }
+              }}
+              className="px-6 py-3 bg-yellow-400 hover:bg-yellow-300 text-gray-900 rounded-lg transition-colors flex items-center gap-2"
+            >
+              <Download className="w-5 h-5" />
+              Download Invoice
             </button>
             <button
               onClick={copyOrderId}

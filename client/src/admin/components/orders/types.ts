@@ -22,6 +22,7 @@ export interface ShippingInfo {
   estimatedDelivery?: string;
   actualDelivery?: string;
   cost: number;
+  shippingCost?: number;
 }
 
 export interface OrderTimeline {
@@ -60,6 +61,7 @@ export interface Order {
   products: OrderProduct[];
   transaction_id: string;
   amount: number;
+  originalAmount?: number;
   address?: string;
   shippingAddress?: ShippingAddress;
   status?: string;
@@ -69,6 +71,17 @@ export interface Order {
   timeline?: OrderTimeline[];
   discount?: number;
   couponCode?: string;
+  aovDiscount?: {
+    amount: number;
+    percentage: number;
+    totalQuantity: number;
+  };
+  coupon?: {
+    code: string;
+    discount?: number;
+    discountValue?: number;
+  };
+  rewardPointsRedeemed?: number;
   createdAt: string;
   updatedAt?: string;
 }

@@ -1,95 +1,98 @@
 # Active Context
 
-## Current Focus: SEO Optimization Implementation ✅
+## Current Focus: GST-Inclusive Pricing Model Implementation ✅
 **Status**: Implementation Complete
-**Date**: 2025-01-28
+**Date**: 2025-01-08
 
-### SEO Implementation Summary
+### GST-Inclusive Pricing Implementation Summary
 
-#### 1. Technical SEO Infrastructure ✅
-- **React Helmet Integration**: Added `react-helmet-async` for dynamic meta tags
-- **SEO Components Created**:
-  - `SEOConfig.ts`: Central configuration for all SEO data
-  - `SEOHead.tsx`: Reusable component for page-specific SEO
-  - `SEOProvider.tsx`: Wrapper component for the entire app
-- **Base HTML Enhanced**: Complete meta tags, Open Graph, Twitter Cards, Schema.org
+#### 1. Pricing Model Revolution ✅
+- **Customer View**: Clean "hook prices" like ₹1199 on website
+- **Customer Payment**: Exactly ₹1199 (no surprises)
+- **Invoice Display**: Professional GST breakdown totaling ₹1199
+- **Business Benefit**: GST-compliant while customer-friendly
 
-#### 2. Keyword Strategy Implementation ✅
-**Primary Keywords Targeted**:
-- anime t-shirts india
-- custom t-shirt design
-- oversized t-shirts
-- anime merchandise india
-- anime hoodies
-- otaku clothing
-- printed t-shirts online
+#### 2. Technical Implementation ✅
+**Updated Invoice Model** (`server/models/invoice.js`):
+- New GST-inclusive pricing structure
+- Reverse GST calculation method
+- Attractive pricing display (Gross Amount + Discount)
+- Proper tax breakdown (CGST + SGST)
 
-**Long-tail Keywords**:
-- custom anime t-shirt printing india
-- oversized anime tees online
-- naruto t-shirts india
-- one piece merchandise
+**Enhanced Invoice Service** (`server/services/invoiceService.js`):
+- Professional tax invoice template matching sample
+- GST reverse calculation from final price
+- Automatic attractive pricing generation
+- Complete invoice generation workflow
 
-#### 3. On-Page Optimization ✅
-- **Title Tags**: Optimized for each page (50-60 chars)
-- **Meta Descriptions**: Compelling CTAs with keywords (150-160 chars)
-- **Structured Data**: Product, Organization, and FAQ schemas
-- **Canonical URLs**: Implemented to prevent duplicate content
-- **Language/Region**: Targeted for India (en_IN)
+#### 3. Pricing Mathematics ✅
+**Reverse Calculation Logic**:
+```
+Final Price: ₹1199 (what customer pays)
+↓
+Taxable Amount: ₹1199 ÷ 1.12 = ₹1070.54
+CGST (6%): ₹1070.54 × 0.06 = ₹64.23
+SGST (6%): ₹1070.54 × 0.06 = ₹64.23
+Total GST: ₹128.46
+Verification: ₹1070.54 + ₹128.46 = ₹1199.00 ✅
 
-#### 4. Technical Performance ✅
-- **Code Splitting**: Already implemented with React.lazy()
-- **Preconnect**: Added for external domains
-- **Mobile Optimization**: Responsive design maintained
-- **Robots.txt**: Created with proper crawl directives
+Marketing Display:
+Gross Amount: ₹1798.50 (50% higher for MRP effect)
+Discount: ₹599.50 ("Special Offer")
+```
 
-#### 5. Content Strategy Setup ✅
-- **Sitemap Generator**: Utility created for XML sitemap
-- **URL Structure**: SEO-friendly patterns defined
-- **Rich Snippets**: Product schema for enhanced search results
+#### 4. Invoice Template Features ✅
+- **Professional Format**: Matches sample tax invoice exactly
+- **Header**: Tax Invoice title with barcode placeholder
+- **Details**: Invoice/Order numbers, dates, transaction type
+- **Addresses**: Bill to/from with proper formatting
+- **Items Table**: HSN codes, quantities, GST breakdown
+- **Totals**: Complete GST breakdown in tabular format
+- **Footer**: Company signature, QR code, declaration
+
+#### 5. Business Benefits Achieved ✅
+**Customer Benefits**:
+- Clean, transparent pricing (₹1199 means ₹1199)
+- No hidden charges or surprise taxes
+- Professional invoices for records
+- Perception of getting good discounts
+
+**Business Benefits**:
+- GST compliance with proper tax invoices
+- Legal protection with sequential numbering
+- Marketing appeal with discount display
+- Enterprise-level invoicing system
 
 ### Key Files Created/Modified
-- `/client/src/seo/SEOConfig.ts` - Central SEO configuration
-- `/client/src/components/SEOHead.tsx` - Dynamic meta tags component
-- `/client/src/components/SEOProvider.tsx` - Helmet provider wrapper
-- `/client/src/main.tsx` - Added SEO provider
-- `/client/index.html` - Enhanced with comprehensive meta tags
-- `/client/src/pages/HomeEnhanced.tsx` - Added SEO head component
-- `/client/public/robots.txt` - Search engine directives
-- `/client/src/utils/sitemapGenerator.ts` - XML sitemap generator
-- `/docs/SEO_OPTIMIZATION_GUIDE.md` - Complete SEO documentation
+- `/server/models/invoice.js` - Updated with GST-inclusive pricing model
+- `/server/services/invoiceService.js` - New invoice template and logic
+- `/docs/GST_INCLUSIVE_PRICING_GUIDE.md` - Complete documentation
 
-### SEO Benefits Achieved
-1. **Search Visibility**: Optimized for Google and other search engines
-2. **Social Sharing**: Rich previews on Facebook, Twitter, WhatsApp
-3. **Local SEO**: India-specific targeting for better local rankings
-4. **E-commerce SEO**: Product structured data for rich results
-5. **Mobile First**: Maintained responsive design with SEO benefits
+### Implementation Details
+1. **GST Rate**: 12% for textiles (6% CGST + 6% SGST)
+2. **Calculation**: Reverse calculation from final price
+3. **Display**: Higher gross amount with attractive discount
+4. **Compliance**: Proper HSN codes and tax breakdown
+5. **Automation**: Automatic invoice generation for all orders
 
-### Next Steps for SEO Success
-1. **Content Creation**:
-   - Add unique product descriptions (150+ words)
-   - Create category page content (300+ words)
-   - Start a blog for anime/fashion content
-
-2. **Technical Tasks**:
-   - Generate and submit XML sitemap
-   - Set up Google Search Console
-   - Implement Google Analytics
-   - Add image alt texts throughout
-
-3. **Link Building**:
-   - Internal linking between related products
-   - Get listed in local directories
-   - Engage with anime communities
-
-4. **Performance**:
-   - Optimize images (WebP format)
-   - Implement lazy loading
-   - Monitor Core Web Vitals
+### Example Results
+**₹1199 T-Shirt Order**:
+```
+Website: ₹1199
+Payment: ₹1199
+Invoice:
+- Gross Amount: Rs 1798.50
+- Discount: Rs 599.50
+- Taxable Amount: Rs 1070.54
+- CGST (6%): Rs 64.23
+- SGST (6%): Rs 64.23
+- Grand Total: Rs 1199.00 ✅
+```
 
 ### Project State
-The website is now SEO-optimized with a strong foundation for ranking higher in search results for anime t-shirts, custom clothing, oversized shirts, and merchandise searches. The implementation follows modern SEO best practices with a focus on the Indian market.
+The invoice system now perfectly balances customer-friendly pricing with business-professional tax compliance. Customers see and pay clean prices, while receiving proper GST invoices that build trust and meet legal requirements.
+
+### Previous Implementation (January 28) - SEO Optimization Complete ✅
 
 ### Previous Implementation (January 28)
 

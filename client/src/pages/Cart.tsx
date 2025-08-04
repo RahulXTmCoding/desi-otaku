@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Loader2 } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Loader2, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
 import { getMockProductImage } from '../data/mockData';
@@ -13,6 +13,12 @@ const Cart: React.FC = () => {
   const { cart, loading, error, updateQuantity, removeFromCart, clearCart, getTotal, getItemCount } = useCart();
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
+  const [quantityDiscount, setQuantityDiscount] = useState<{
+    discount: number;
+    percentage: number;
+    tier: any;
+    message: string;
+  } | null>(null);
 
   const getProductImage = (item: any) => {
     if (isTestMode) {
@@ -115,9 +121,52 @@ const Cart: React.FC = () => {
     }
   };
 
+  // Calculate quantity discounts
+  useEffect(() => {
+    const calculateQuantityDiscount = async () => {
+      if (cart.length === 0) {
+        setQuantityDiscount(null);
+        return;
+      }
+
+      try {
+        const cartItems = cart.map(item => ({
+          product: item.product,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity
+        }));
+
+        const response = await fetch(`${API}/aov/quantity-discount`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ cartItems })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.discount > 0) {
+            setQuantityDiscount(data);
+          } else {
+            setQuantityDiscount(null);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to calculate quantity discount:', error);
+        setQuantityDiscount(null);
+      }
+    };
+
+    calculateQuantityDiscount();
+  }, [cart]);
+
   const cartTotal = getTotal();
-  const shipping = cartTotal > 0 && cartTotal < 999 ? 79 : 0;
-  const finalTotal = cartTotal + shipping;
+  const quantityDiscountAmount = quantityDiscount?.discount || 0;
+  const discountedSubtotal = cartTotal - quantityDiscountAmount;
+  const shipping = discountedSubtotal > 0 && discountedSubtotal < 999 ? 79 : 0;
+  const finalTotal = discountedSubtotal + shipping;
 
   if (loading) {
     return (
@@ -301,6 +350,18 @@ const Cart: React.FC = () => {
                   <span>Subtotal ({getItemCount()} items)</span>
                   <span>₹{cartTotal}</span>
                 </div>
+                
+                {/* Quantity Discount Display */}
+                {quantityDiscount && (
+                  <div className="flex justify-between text-green-400">
+                    <span className="flex items-center gap-1">
+                      <Tag className="w-4 h-4" />
+                      Bulk Discount ({quantityDiscount.percentage}%)
+                    </span>
+                    <span>-₹{quantityDiscountAmount}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between text-gray-300">
                   <span>Shipping</span>
                   <span className={shipping === 0 ? 'text-green-400' : ''}>
@@ -309,9 +370,20 @@ const Cart: React.FC = () => {
                 </div>
                 {shipping > 0 && (
                   <p className="text-xs text-yellow-400">
-                    Add ₹{999 - cartTotal} more for free shipping!
+                    Add ₹{999 - discountedSubtotal} more for free shipping!
                   </p>
                 )}
+                
+                {/* Bulk Discount Message */}
+                {quantityDiscount && (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                    <p className="text-green-400 text-sm font-medium flex items-center gap-2">
+                      <Tag className="w-4 h-4" />
+                      {quantityDiscount.message}
+                    </p>
+                  </div>
+                )}
+                
                 <hr className="border-gray-700" />
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>

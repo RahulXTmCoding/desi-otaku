@@ -29,7 +29,9 @@ const productTypeRoutes = require("./routes/productType");
 const cartRoutes = require("./routes/cart");
 const rewardRoutes = require("./routes/reward");
 const invoiceRoutes = require("./routes/invoice");
+const aovRoutes = require("./routes/aov");
 const { initializeSettings } = require("./controllers/settings");
+const AOVService = require("./services/aovService");
 
 const app = express();
 
@@ -44,6 +46,8 @@ mongoose
     console.log("DB CONNECTED");
     // Initialize default settings
     initializeSettings();
+    // Initialize AOV settings
+    AOVService.initializeAOVSettings();
   });
 
 //Middlewares
@@ -75,6 +79,7 @@ app.use("/api", productTypeRoutes);
 app.use("/api", cartRoutes);
 app.use("/api", rewardRoutes);
 app.use("/api/invoice", invoiceRoutes);
+app.use("/api/aov", aovRoutes);
 
 // Serve static files (for invoice PDFs)
 app.use('/invoices', express.static(require('path').join(__dirname, 'public/invoices')));

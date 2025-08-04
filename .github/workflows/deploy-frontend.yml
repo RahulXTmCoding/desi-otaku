@@ -3,13 +3,8 @@ name: Deploy Frontend to Vercel
 on:
   push:
     branches: [ main ]
-    paths:
-      - 'client/**'
-      - '.github/workflows/deploy-frontend.yml'
   pull_request:
     branches: [ main ]
-    paths:
-      - 'client/**'
 
 env:
   VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}

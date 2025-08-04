@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Heart, ShoppingCart, Eye, Trash2, Star, X, ChevronLeft, Plus, Minus, Zap } from 'lucide-react';
+import { Heart, ShoppingCart, Eye, Trash2, Star, X, ChevronLeft, Plus, Minus, Zap, Tag } from 'lucide-react';
 import { API } from '../backend';
 import { useCart } from '../context/CartContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
@@ -11,6 +11,9 @@ interface Product {
   name: string;
   description?: string;
   price: number;
+  mrp?: number;
+  discount?: number;
+  discountPercentage?: number;
   photoUrl?: string;
   stock?: number;
   totalStock?: number;
@@ -68,6 +71,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
   const [isFlipped, setIsFlipped] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
+  const [quantityTiers, setQuantityTiers] = useState<any[]>([]);
   const { addToCart } = useCart();
 
   const authData = isAutheticated();
@@ -75,6 +79,23 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
   const token = authData && authData.token;
 
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
+
+  // Fetch quantity discount tiers on mount
+  useEffect(() => {
+    const fetchQuantityTiers = async () => {
+      try {
+        const response = await fetch(`${API}/aov/quantity-discounts`);
+        if (response.ok) {
+          const data = await response.json();
+          setQuantityTiers(data.tiers || []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch quantity tiers:', error);
+      }
+    };
+    
+    fetchQuantityTiers();
+  }, []);
 
   // Generate image URL with fallback
   const getImageUrl = () => {
@@ -357,11 +378,53 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             
             {/* Price and Stock */}
             <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-yellow-400">₹{product.price}</span>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl font-bold text-yellow-400">₹{product.price}</span>
+                  {product.mrp && product.mrp > product.price && (
+                    <>
+                      <span className="text-sm text-gray-400 line-through">₹{product.mrp}</span>
+                      <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+                        {product.discountPercentage || Math.round(((product.mrp - product.price) / product.mrp) * 100)}% OFF
+                      </span>
+                    </>
+                  )}
+                </div>
+                {product.mrp && product.mrp > product.price && (
+                  <span className="text-xs text-green-400">
+                    Save ₹{product.discount || (product.mrp - product.price)}
+                  </span>
+                )}
+              </div>
               {product.stock !== undefined && product.stock > 0 && product.stock < 10 && (
                 <span className="text-orange-400 text-sm">Only {product.stock} left!</span>
               )}
             </div>
+
+            {/* Quantity Discount Badge */}
+            {quantityTiers.length > 0 && (
+              <div className="mt-3 p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                <div className="flex items-center gap-1 mb-1">
+                  <Tag className="w-3 h-3 text-blue-400" />
+                  <span className="text-xs font-medium text-blue-400">Bulk Discounts</span>
+                </div>
+                <div className="flex flex-wrap gap-1">
+                  {quantityTiers.slice(0, 2).map((tier, index) => (
+                    <span
+                      key={index}
+                      className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded"
+                    >
+                      {tier.minQuantity}+ items: {tier.discount}% off
+                    </span>
+                  ))}
+                  {quantityTiers.length > 2 && (
+                    <span className="text-xs text-blue-400">
+                      +{quantityTiers.length - 2} more
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

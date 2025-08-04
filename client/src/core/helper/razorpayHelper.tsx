@@ -84,6 +84,15 @@ export const mockRazorpayPayment = (amount: number) => {
 
 // Initialize Razorpay checkout
 export const initializeRazorpayCheckout = (options: any, onSuccess: Function, onError: Function) => {
+  console.log('🎯 initializeRazorpayCheckout called with options:', options);
+  
+  // Check if Razorpay script is loaded
+  if (typeof (window as any).Razorpay === 'undefined') {
+    console.error('❌ Razorpay script not loaded!');
+    onError({ error: 'Razorpay script not loaded. Please refresh and try again.' });
+    return;
+  }
+  
   const {
     order_id,
     amount,
@@ -113,28 +122,61 @@ export const initializeRazorpayCheckout = (options: any, onSuccess: Function, on
     },
     modal: {
       ondismiss: () => {
+        console.log('🎯 Razorpay modal dismissed by user');
         onError({ error: 'Payment cancelled by user' });
       },
       ...modal
     },
     handler: function(response: any) {
-      // Payment successful
-      onSuccess(response);
+      // ✅ CRITICAL: Add debugging for payment success
+      console.log('🎯🎯🎯 RAZORPAY SUCCESS HANDLER TRIGGERED 🎯🎯🎯');
+      console.log('🎯 PAYMENT RESPONSE:', JSON.stringify(response, null, 2));
+      console.log('🎯 About to call onSuccess callback...');
+      console.log('🎯 onSuccess function type:', typeof onSuccess);
+      
+      try {
+        console.log('🎯 Calling onSuccess now...');
+        onSuccess(response);
+        console.log('✅ onSuccess callback completed successfully');
+      } catch (error) {
+        console.error('❌ CRITICAL ERROR in onSuccess callback:', error);
+        console.error('❌ Error stack:', error.stack);
+        alert(`CRITICAL ERROR in success callback: ${error.message}`);
+        
+        // Try to force navigation as fallback
+        try {
+          window.location.href = '/order-confirmation-enhanced';
+        } catch (navError) {
+          console.error('❌ Even fallback navigation failed:', navError);
+        }
+      }
     }
   };
 
-  const razorpay = new (window as any).Razorpay(razorpayOptions);
-  razorpay.on('payment.failed', function(response: any) {
-    onError({
-      error: response.error.description,
-      code: response.error.code,
-      source: response.error.source,
-      step: response.error.step,
-      reason: response.error.reason
-    });
-  });
+  console.log('🎯 Creating Razorpay instance with options:', razorpayOptions);
 
-  razorpay.open();
+  try {
+    const razorpay = new (window as any).Razorpay(razorpayOptions);
+    
+    razorpay.on('payment.failed', function(response: any) {
+      console.log('🎯 Payment failed:', response);
+      onError({
+        error: response.error.description,
+        code: response.error.code,
+        source: response.error.source,
+        step: response.error.step,
+        reason: response.error.reason
+      });
+    });
+
+    console.log('🎯 Opening Razorpay checkout...');
+    razorpay.open();
+    console.log('✅ Razorpay checkout opened successfully');
+    
+  } catch (error) {
+    console.error('❌ Error creating/opening Razorpay:', error);
+    onError({ error: `Razorpay initialization failed: ${error.message}` });
+  }
 };
 
 // Payment method icons mapper

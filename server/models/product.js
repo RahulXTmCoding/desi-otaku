@@ -16,10 +16,25 @@ const productSchema = new Schema(
       trim: true,
       maxlength: 2500,
     },
+    // Pricing structure for GST-inclusive model
     price: {
       type: Number,
       required: true,
       trim: true,
+    },
+    mrp: {
+      type: Number,
+      required: false,
+      trim: true,
+    },
+    // Auto-calculated fields
+    discount: {
+      type: Number,
+      default: 0
+    },
+    discountPercentage: {
+      type: Number,
+      default: 0
     },
     category: {
       type: ObjectId,
@@ -155,7 +170,7 @@ productSchema.index({ createdAt: -1 });
 productSchema.index({ sold: -1 });
 productSchema.index({ totalStock: 1 });
 
-// Pre-save hook to calculate total stock
+// Pre-save hook to calculate total stock and pricing
 productSchema.pre('save', function(next) {
   // Calculate total stock from size inventory
   let total = 0;
@@ -165,6 +180,16 @@ productSchema.pre('save', function(next) {
     }
   }
   this.totalStock = total;
+  
+  // Auto-calculate discount if MRP is provided
+  if (this.mrp && this.mrp > 0 && this.price && this.price > 0) {
+    this.discount = this.mrp - this.price;
+    this.discountPercentage = Math.round((this.discount / this.mrp) * 100);
+  } else {
+    this.discount = 0;
+    this.discountPercentage = 0;
+  }
+  
   next();
 });
 
@@ -200,6 +225,36 @@ productSchema.methods.decreaseStock = function(size, quantity) {
 productSchema.methods.getPrimaryImage = function() {
   const primaryImage = this.images.find(img => img.isPrimary);
   return primaryImage || this.images[0] || null;
+};
+
+// Pricing methods for GST-inclusive model
+productSchema.methods.getGrossAmount = function() {
+  // Use actual MRP if set, otherwise generate one
+  return this.mrp || (this.price * 1.5);
+};
+
+productSchema.methods.getDiscountAmount = function() {
+  return this.discount || (this.getGrossAmount() - this.price);
+};
+
+productSchema.methods.getDiscountPercentage = function() {
+  const grossAmount = this.getGrossAmount();
+  return grossAmount > 0 ? Math.round((this.getDiscountAmount() / grossAmount) * 100) : 0;
+};
+
+productSchema.methods.getPricingDisplay = function() {
+  return {
+    price: this.price,
+    mrp: this.mrp,
+    grossAmount: this.getGrossAmount(),
+    discount: this.getDiscountAmount(),
+    discountPercentage: this.getDiscountPercentage(),
+    savings: this.mrp ? (this.mrp - this.price) : 0
+  };
+};
+
+productSchema.methods.isDiscounted = function() {
+  return this.mrp && this.mrp > this.price;
 };
 
 module.exports = mongoose.model("Product", productSchema);

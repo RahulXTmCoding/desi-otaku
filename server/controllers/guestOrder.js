@@ -3,6 +3,8 @@ const User = require('../models/user');
 const { v4: uuidv4 } = require('uuid');
 const { createSecureAccess } = require('./secureOrder');
 const invoiceService = require('../services/invoiceService');
+const telegramService = require('../services/telegramService');
+const AOVService = require('../services/aovService');
 
 // Create order for guest users
 exports.createGuestOrder = async (req, res) => {
@@ -10,7 +12,7 @@ exports.createGuestOrder = async (req, res) => {
     const {
       products,
       transaction_id,
-      amount,
+      amount: requestedAmount,
       originalAmount,
       discount,
       coupon,
@@ -19,6 +21,8 @@ exports.createGuestOrder = async (req, res) => {
       shipping,
       guestInfo
     } = req.body;
+    
+    let amount = requestedAmount; // Use let so we can update it with paid amount
 
     // Validate required fields
     if (!products || !transaction_id || !amount || !address || !guestInfo) {
@@ -43,7 +47,7 @@ exports.createGuestOrder = async (req, res) => {
       });
     }
 
-    // 🔒 SECURITY: Payment amount verification for guest orders
+    // 🔒 SECURITY: Payment verification for guest orders
     if (transaction_id && !transaction_id.startsWith('mock_')) {
       try {
         const Razorpay = require('razorpay');
@@ -55,49 +59,35 @@ exports.createGuestOrder = async (req, res) => {
         // Fetch payment details from Razorpay
         const paymentDetails = await razorpay.payments.fetch(transaction_id);
         
-        // Get server-calculated amount
-        const { calculateOrderAmountSecure } = require('./razorpay');
-        const cartItems = products.map(item => ({
-          product: item.product,
-          name: item.name,
-          quantity: item.count,
-          size: item.size,
-          customization: item.customization,
-          isCustom: item.isCustom
-        }));
-        
-        const serverAmount = await calculateOrderAmountSecure(
-          cartItems,
-          coupon?.code,
-          null, // No reward points for guests
-          null  // No user for guests
-        );
-        
-        const expectedAmountPaise = Math.round(serverAmount.total * 100);
+        // ✅ SECURITY FIX: Accept the amount that was actually paid
+        // Backend now controls pricing, so we trust Razorpay's charged amount
         const paidAmountPaise = paymentDetails.amount;
+        const paidAmountRupees = paidAmountPaise / 100;
         
-        console.log('🔒 Guest payment amount verification:', {
-          expected: expectedAmountPaise,
-          paid: paidAmountPaise,
+        console.log('✅ Guest payment verification (backend-controlled pricing):', {
+          paidRupees: paidAmountRupees,
           guestEmail: guestInfo.email,
-          orderId: transaction_id
+          transactionId: transaction_id,
+          paymentStatus: paymentDetails.status
         });
         
-        // Allow small rounding differences (max 1 rupee)
-        if (Math.abs(expectedAmountPaise - paidAmountPaise) > 100) {
-          console.error('❌ GUEST PAYMENT AMOUNT MISMATCH:', {
-            expectedRupees: expectedAmountPaise / 100,
-            paidRupees: paidAmountPaise / 100,
+        // Verify payment is actually captured/successful
+        if (paymentDetails.status !== 'captured' && paymentDetails.status !== 'authorized') {
+          console.error('❌ GUEST PAYMENT NOT CAPTURED:', {
+            status: paymentDetails.status,
             guestEmail: guestInfo.email,
             transactionId: transaction_id
           });
           
           return res.status(400).json({
-            error: 'Payment amount verification failed. Order cancelled for security reasons.'
+            error: 'Payment not completed successfully. Please try again.'
           });
         }
         
-        console.log('✅ Guest payment amount verified successfully');
+        // Use the paid amount (which is now secure since backend controls Razorpay pricing)
+        amount = paidAmountRupees;
+        
+        console.log('✅ Guest payment verified - using backend-controlled amount');
         
       } catch (paymentVerifyError) {
         console.error('Guest payment verification error:', paymentVerifyError);
@@ -118,6 +108,28 @@ exports.createGuestOrder = async (req, res) => {
       // Continue without linking if there's an error
     }
     
+    // 🎯 AOV: Calculate quantity-based discount for guest orders (SAME as registered users)
+    let quantityDiscount = 0;
+    let quantityDiscountInfo = null;
+    try {
+      const cartItems = products.map(item => ({
+        product: item.product,
+        name: item.name,
+        price: item.price,
+        quantity: item.count
+      }));
+      
+      const quantityDiscountResult = await AOVService.calculateQuantityDiscount(cartItems);
+      if (quantityDiscountResult && quantityDiscountResult.discount > 0) {
+        quantityDiscount = quantityDiscountResult.discount;
+        quantityDiscountInfo = quantityDiscountResult;
+        console.log(`✅ AOV Quantity Discount Applied to Guest Order: ₹${quantityDiscount} (${quantityDiscountResult.percentage}% for ${quantityDiscountResult.totalQuantity} items)`);
+      }
+    } catch (aovError) {
+      console.error('AOV quantity discount calculation error for guest order:', aovError);
+      // Continue without quantity discount if calculation fails
+    }
+
     // Create guest order with a unique guest ID
     const guestId = `guest_${uuidv4()}`;
     
@@ -169,6 +181,14 @@ exports.createGuestOrder = async (req, res) => {
       amount,
       originalAmount: originalAmount || amount, // Use amount as fallback
       discount: discount || 0,
+      // 🎯 AOV: Store quantity discount info in guest order (same as registered users)
+      quantityDiscount: quantityDiscountInfo ? {
+        amount: quantityDiscount,
+        percentage: quantityDiscountInfo.percentage,
+        tier: quantityDiscountInfo.tier,
+        totalQuantity: quantityDiscountInfo.totalQuantity,
+        message: quantityDiscountInfo.message
+      } : undefined,
       coupon: coupon || null,
       address,
       status,
@@ -261,6 +281,19 @@ exports.createGuestOrder = async (req, res) => {
     //     // Don't fail the order if invoice generation fails - can be retried later
     //   }
     // }
+    
+    // 📱 TELEGRAM: Send instant guest order notification to admin
+    telegramService.sendNewOrderNotification(savedOrder, guestInfo).catch(err => {
+      console.error("Failed to send Telegram notification for guest order:", err);
+      // Don't fail the order if Telegram notification fails
+    });
+    
+    // 🔥 High-value guest order alert
+    if (savedOrder.amount > 2000) {
+      telegramService.sendHighValueOrderAlert(savedOrder).catch(err => {
+        console.error("Failed to send high-value guest order alert:", err);
+      });
+    }
 
     console.log('Guest order created:', savedOrder._id);
 

@@ -125,7 +125,8 @@ couponSchema.methods.calculateDiscount = function(subtotal) {
 
   let discount = 0;
   if (this.discountType === "percentage") {
-    discount = (subtotal * this.discountValue) / 100;
+    // ✅ CRITICAL ROUNDING FIX: Use Math.floor() to match payment calculation exactly
+    discount = Math.floor((subtotal * this.discountValue) / 100);
     if (this.maxDiscount !== null && discount > this.maxDiscount) {
       discount = this.maxDiscount;
     }

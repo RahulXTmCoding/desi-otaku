@@ -14,6 +14,8 @@ interface Order {
     customization?: any;
   }>;
   amount: number;
+  originalAmount?: number;
+  discount?: number;
   status: string;
   createdAt: string;
   address: string;
@@ -21,7 +23,19 @@ interface Order {
     courier?: string;
     trackingId?: string;
     estimatedDelivery?: string;
+    shippingCost?: number;
   };
+  aovDiscount?: {
+    amount: number;
+    percentage: number;
+    totalQuantity: number;
+  };
+  coupon?: {
+    code: string;
+    discount?: number;
+    discountValue?: number;
+  };
+  rewardPointsRedeemed?: number;
   user?: {
     name: string;
     email: string;
@@ -306,9 +320,57 @@ const OrderTracking: React.FC = () => {
                 </div>
               ))}
               
-              <div className="flex justify-between items-center pt-4 border-t border-gray-600">
-                <span className="text-lg font-semibold text-white">Total</span>
-                <span className="text-xl font-bold text-yellow-400">₹{order.amount.toLocaleString('en-IN')}</span>
+              {/* Order Summary with Discounts */}
+              <div className="pt-4 border-t border-gray-600 space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400">Subtotal:</span>
+                  <span className="text-white">₹{(order.originalAmount || order.amount).toLocaleString('en-IN')}</span>
+                </div>
+                
+                {order.shipping?.shippingCost > 0 ? (
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400">Shipping:</span>
+                    <span className="text-white">₹{order.shipping.shippingCost.toLocaleString('en-IN')}</span>
+                  </div>
+                ) : (
+                  <div className="flex justify-between items-center">
+                    <span className="text-green-400">Free Shipping:</span>
+                    <span className="text-green-400">₹0</span>
+                  </div>
+                )}
+                
+                {order.aovDiscount && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-yellow-400">Quantity Discount ({order.aovDiscount.percentage}% off for {order.aovDiscount.totalQuantity} items):</span>
+                    <span className="text-yellow-400">-₹{order.aovDiscount.amount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                
+                {order.coupon && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-green-400">Coupon Discount ({order.coupon.code}):</span>
+                    <span className="text-green-400">-₹{(order.coupon.discountValue || order.coupon.discount).toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                
+                {order.rewardPointsRedeemed > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-purple-400">Reward Points ({order.rewardPointsRedeemed} points):</span>
+                    <span className="text-purple-400">-₹{order.rewardPointsRedeemed.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                
+                {(order.discount || 0) > 0 && (
+                  <div className="flex justify-between items-center pt-2 border-t border-gray-700">
+                    <span className="text-green-400 font-semibold">Total Savings:</span>
+                    <span className="text-green-400 font-semibold">-₹{order.discount.toLocaleString('en-IN')}</span>
+                  </div>
+                )}
+                
+                <div className="flex justify-between items-center pt-3 border-t border-gray-600">
+                  <span className="text-lg font-semibold text-white">Final Total:</span>
+                  <span className="text-xl font-bold text-yellow-400">₹{order.amount.toLocaleString('en-IN')}</span>
+                </div>
               </div>
             </div>
           </div>

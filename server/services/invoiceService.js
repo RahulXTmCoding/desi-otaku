@@ -1,4 +1,4 @@
-const puppeteer = require('puppeteer');
+const pdf = require('html-pdf');
 const fs = require('fs').promises;
 const path = require('path');
 const Invoice = require('../models/invoice');
@@ -17,10 +17,14 @@ class InvoiceService {
     }
   }
 
-  // Generate HTML template for invoice
+  // Generate HTML template for invoice (GST-inclusive format)
   generateInvoiceHTML(invoice) {
-    const formatCurrency = (amount) => `₹${amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
-    const formatDate = (date) => new Date(date).toLocaleDateString('en-IN');
+    const formatCurrency = (amount) => `Rs ${amount.toFixed(2)}`;
+    const formatDate = (date) => new Date(date).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short', 
+      year: 'numeric'
+    });
 
     return `
     <!DOCTYPE html>
@@ -28,7 +32,7 @@ class InvoiceService {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Invoice ${invoice.invoiceNumber}</title>
+      <title>Tax Invoice ${invoice.invoiceNumber}</title>
       <style>
         * {
           margin: 0;
@@ -37,184 +41,163 @@ class InvoiceService {
         }
         
         body {
-          font-family: 'Arial', sans-serif;
-          font-size: 12px;
-          line-height: 1.4;
-          color: #333;
+          font-family: Arial, sans-serif;
+          font-size: 11px;
+          line-height: 1.3;
+          color: #000;
           background: #fff;
         }
         
         .invoice-container {
           max-width: 800px;
-          margin: 20px auto;
-          padding: 20px;
+          margin: 0 auto;
+          padding: 15px;
           background: white;
-          border: 1px solid #ddd;
+          border: 1px solid #000;
         }
         
         .invoice-header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 30px;
-          padding-bottom: 20px;
-          border-bottom: 2px solid #FCD34D;
+          margin-bottom: 20px;
+          border-bottom: 1px solid #000;
+          padding-bottom: 10px;
         }
         
-        .company-info h1 {
-          color: #1F2937;
-          font-size: 24px;
+        .invoice-title {
+          font-size: 18px;
           font-weight: bold;
-          margin-bottom: 5px;
+          color: #000;
         }
         
-        .company-info p {
-          color: #6B7280;
-          margin-bottom: 3px;
+        .barcode-section {
+          text-align: right;
+          font-family: monospace;
+          font-size: 24px;
+          line-height: 1;
         }
         
         .invoice-details {
-          text-align: right;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 15px;
+          font-size: 10px;
         }
         
-        .invoice-details h2 {
-          color: #DC2626;
-          font-size: 28px;
-          margin-bottom: 10px;
+        .invoice-info {
+          display: grid;
+          grid-template-columns: auto 1fr;
+          gap: 5px 10px;
         }
         
-        .invoice-meta {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 30px;
+        .label {
+          font-weight: bold;
         }
         
-        .billing-section {
-          width: 48%;
+        .company-details {
+          margin-bottom: 15px;
+          font-size: 10px;
+        }
+        
+        .address-section {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 15px;
+          font-size: 10px;
         }
         
         .section-title {
           font-weight: bold;
-          color: #1F2937;
-          margin-bottom: 10px;
-          padding-bottom: 5px;
-          border-bottom: 1px solid #E5E7EB;
-        }
-        
-        .address-block p {
-          margin-bottom: 3px;
+          margin-bottom: 5px;
         }
         
         .items-table {
           width: 100%;
           border-collapse: collapse;
-          margin-bottom: 30px;
+          margin-bottom: 15px;
+          font-size: 10px;
         }
         
-        .items-table th {
-          background-color: #F9FAFB;
-          border: 1px solid #E5E7EB;
-          padding: 12px 8px;
-          text-align: left;
-          font-weight: bold;
-          color: #374151;
-        }
-        
+        .items-table th,
         .items-table td {
-          border: 1px solid #E5E7EB;
-          padding: 10px 8px;
+          border: 1px solid #000;
+          padding: 5px;
+          text-align: left;
           vertical-align: top;
         }
         
-        .items-table .text-right {
-          text-align: right;
-        }
-        
-        .items-table .text-center {
+        .items-table th {
+          background-color: #f0f0f0;
+          font-weight: bold;
           text-align: center;
         }
         
-        .totals-section {
-          margin-left: auto;
-          width: 300px;
-          margin-bottom: 30px;
-        }
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
         
         .totals-table {
-          width: 100%;
+          margin-left: auto;
+          width: 400px;
           border-collapse: collapse;
+          font-size: 10px;
         }
         
         .totals-table td {
-          padding: 8px 12px;
-          border-bottom: 1px solid #E5E7EB;
+          padding: 3px 8px;
+          border: 1px solid #000;
         }
         
-        .totals-table .total-label {
+        .total-label {
           font-weight: bold;
+          text-align: left;
+          background-color: #f0f0f0;
+        }
+        
+        .total-amount {
           text-align: right;
-          width: 60%;
-        }
-        
-        .totals-table .total-amount {
-          text-align: right;
-          width: 40%;
-        }
-        
-        .grand-total {
-          background-color: #FEF3C7;
-          font-weight: bold;
-          font-size: 14px;
-          color: #92400E;
-        }
-        
-        .tax-breakdown {
-          background-color: #F0FDF4;
+          width: 120px;
         }
         
         .footer-section {
-          margin-top: 40px;
-          padding-top: 20px;
-          border-top: 1px solid #E5E7EB;
+          margin-top: 20px;
+          font-size: 10px;
         }
         
-        .payment-info {
-          margin-bottom: 20px;
+        .declaration {
+          margin-top: 15px;
+          font-size: 9px;
+          border-top: 1px solid #000;
+          padding-top: 10px;
         }
         
-        .terms {
-          font-size: 11px;
-          color: #6B7280;
-          line-height: 1.5;
-        }
-        
-        .stamp-section {
-          text-align: right;
-          margin-top: 30px;
-        }
-        
-        .digital-stamp {
-          display: inline-block;
-          border: 2px solid #DC2626;
-          padding: 15px;
-          color: #DC2626;
+        .company-name {
           font-weight: bold;
-          text-align: center;
+          margin-bottom: 10px;
         }
         
-        .thank-you {
-          text-align: center;
-          margin-top: 30px;
-          font-size: 14px;
-          color: #059669;
-          font-weight: bold;
+        .signature-section {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 20px;
+        }
+        
+        .qr-placeholder {
+          width: 80px;
+          height: 80px;
+          border: 1px solid #000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 8px;
         }
         
         @media print {
           .invoice-container {
             margin: 0;
             border: none;
-            padding: 15px;
           }
         }
       </style>
@@ -223,161 +206,157 @@ class InvoiceService {
       <div class="invoice-container">
         <!-- Header -->
         <div class="invoice-header">
-          <div class="company-info">
-            <h1>${invoice.company.name}</h1>
-            <p>📧 ${invoice.company.email}</p>
-            <p>📞 ${invoice.company.phone}</p>
-            <p>🌐 ${invoice.company.website}</p>
-            <p>📍 ${invoice.company.address}</p>
-            ${invoice.company.gstNumber ? `<p><strong>GST No:</strong> ${invoice.company.gstNumber}</p>` : ''}
+          <div class="invoice-title">Tax Invoice</div>
+          <div class="barcode-section">||||| |||| | || ||| || ||<br>83921986969</div>
+        </div>
+
+        <!-- Invoice Details -->
+        <div class="invoice-details">
+          <div class="invoice-info">
+            <span class="label">Invoice Number:</span>
+            <span>${invoice.invoiceNumber}</span>
+            <span class="label">Order Number:</span>
+            <span>${invoice.orderId}</span>
+            <span class="label">Nature of Transaction:</span>
+            <span>Intra-State</span>
+            <span class="label">Place of Supply:</span>
+            <span>${invoice.billingAddress.state}</span>
           </div>
-          <div class="invoice-details">
-            <h2>INVOICE</h2>
-            <p><strong>Invoice No:</strong> ${invoice.invoiceNumber}</p>
-            <p><strong>Date:</strong> ${formatDate(invoice.invoiceDate)}</p>
-            <p><strong>Order ID:</strong> ${invoice.orderId}</p>
+          <div class="invoice-info">
+            <span class="label">PacketID:</span>
+            <span>83921986969</span>
+            <span class="label">Invoice Date:</span>
+            <span>${formatDate(invoice.invoiceDate)}</span>
+            <span class="label">Order Date:</span>
+            <span>${formatDate(invoice.invoiceDate)}</span>
+            <span class="label">Nature of Supply:</span>
+            <span>Goods</span>
           </div>
         </div>
 
-        <!-- Billing Information -->
-        <div class="invoice-meta">
-          <div class="billing-section">
-            <div class="section-title">Bill To:</div>
-            <div class="address-block">
-              <p><strong>${invoice.billingAddress.fullName}</strong></p>
-              <p>${invoice.billingAddress.address}</p>
-              <p>${invoice.billingAddress.city}, ${invoice.billingAddress.state}</p>
-              <p>${invoice.billingAddress.pinCode}, ${invoice.billingAddress.country}</p>
-              <p>📧 ${invoice.customer.email}</p>
-              ${invoice.customer.phone ? `<p>📞 ${invoice.customer.phone}</p>` : ''}
-            </div>
+        <!-- Addresses -->
+        <div class="address-section">
+          <div>
+            <div class="section-title">Bill to / Ship to:</div>
+            <div>${invoice.billingAddress.fullName}</div>
+            <div>${invoice.billingAddress.address}</div>
+            <div>${invoice.billingAddress.city} - ${invoice.billingAddress.pinCode} ${invoice.billingAddress.state}, India</div>
+            <div style="margin-top: 5px;"><span class="label">Customer Type:</span> Unregistered</div>
           </div>
-          
-          ${invoice.shippingAddress && invoice.shippingAddress.address ? `
-          <div class="billing-section">
-            <div class="section-title">Ship To:</div>
-            <div class="address-block">
-              <p><strong>${invoice.shippingAddress.fullName}</strong></p>
-              <p>${invoice.shippingAddress.address}</p>
-              <p>${invoice.shippingAddress.city}, ${invoice.shippingAddress.state}</p>
-              <p>${invoice.shippingAddress.pinCode}, ${invoice.shippingAddress.country}</p>
-            </div>
+          <div>
+            <div class="section-title">Bill From: / Ship From:</div>
+            <div>${invoice.company.name}</div>
+            <div>${invoice.company.address}</div>
+            ${invoice.company.gstNumber ? `<div><span class="label">GSTIN Number:</span> ${invoice.company.gstNumber}</div>` : ''}
           </div>
-          ` : ''}
         </div>
 
         <!-- Items Table -->
         <table class="items-table">
           <thead>
             <tr>
-              <th style="width: 5%">#</th>
-              <th style="width: 35%">Item Description</th>
-              <th style="width: 12%">HSN Code</th>
-              <th style="width: 8%" class="text-center">Qty</th>
-              <th style="width: 15%" class="text-right">Unit Price</th>
-              <th style="width: 15%" class="text-right">Total</th>
+              <th>Qty</th>
+              <th>Gross Amount</th>
+              <th>Discount</th>
+              <th>Other Charges</th>
+              <th>Taxable Amount</th>
+              <th>CGST</th>
+              <th>SGST/ UGST</th>
+              <th>IGST</th>
+              <th>Cess Total Amount</th>
             </tr>
           </thead>
           <tbody>
-            ${invoice.items.map((item, index) => `
-              <tr>
-                <td class="text-center">${index + 1}</td>
-                <td>
-                  <strong>${item.name}</strong>
-                  ${item.description ? `<br><small>${item.description}</small>` : ''}
-                  ${item.isCustom && item.customization ? `
-                    <br><small style="color: #059669;">🎨 Custom Design:</small>
-                    ${item.customization.frontDesign ? `<br><small>• Front Design (+₹${item.customization.frontDesign.price})</small>` : ''}
-                    ${item.customization.backDesign ? `<br><small>• Back Design (+₹${item.customization.backDesign.price})</small>` : ''}
-                  ` : ''}
-                </td>
-                <td class="text-center">${item.hsnCode}</td>
-                <td class="text-center">${item.quantity}</td>
-                <td class="text-right">${formatCurrency(item.unitPrice)}</td>
-                <td class="text-right">${formatCurrency(item.totalPrice)}</td>
-              </tr>
-            `).join('')}
+            ${(() => {
+              // ✅ CRITICAL FIX: Calculate discounted per-item amounts that sum to grand total
+              const originalItemsTotal = invoice.items.reduce((sum, item) => sum + item.totalPrice, 0);
+              const finalTotal = invoice.amounts.grandTotal;
+              const totalDiscountApplied = originalItemsTotal - finalTotal;
+              
+              console.log(`📊 Invoice Items Math Check:`);
+              console.log(`   Original Items Total: ₹${originalItemsTotal}`);
+              console.log(`   Final Grand Total: ₹${finalTotal}`);
+              console.log(`   Total Discount Applied: ₹${totalDiscountApplied}`);
+              
+              return invoice.items.map((item, index) => {
+                // Calculate item's proportion of original total
+                const itemProportion = item.totalPrice / originalItemsTotal;
+                
+                // Apply discounts proportionally to get actual paid amount per item
+                const itemDiscountShare = totalDiscountApplied * itemProportion;
+                const actualItemPaid = item.totalPrice - itemDiscountShare;
+                
+                // Distribute invoice totals proportionally based on what was actually paid
+                const paidProportion = actualItemPaid / finalTotal;
+                
+                const itemGrossAmount = (invoice.amounts.grossAmount || 0) * paidProportion;
+                const itemDiscount = (invoice.amounts.discount || 0) * paidProportion;
+                const itemOtherCharges = (invoice.amounts.otherCharges || 0) * paidProportion;
+                const itemTaxableAmount = (invoice.amounts.taxableAmount || 0) * paidProportion;
+                const itemCGST = (invoice.amounts.cgst || 0) * paidProportion;
+                const itemSGST = (invoice.amounts.sgst || 0) * paidProportion;
+                const itemIGST = (invoice.amounts.igst || 0) * paidProportion;
+                
+                console.log(`   ${item.name}: ₹${item.totalPrice} → ₹${actualItemPaid.toFixed(2)} (discount: ₹${itemDiscountShare.toFixed(2)})`);
+                
+                return `
+                <tr>
+                  <td colspan="9" style="font-weight: bold; background-color: #f0f0f0;">
+                    ${item.name} - ${item.description || 'Standard'}<br>
+                    HSN: ${item.hsnCode}, ${invoice.tax.gstRate}% CGST, ${(invoice.tax.gstRate/2)}% SGST/UGST,
+                  </td>
+                </tr>
+                <tr>
+                  <td class="text-center">${item.quantity}</td>
+                  <td class="text-right">${formatCurrency(itemGrossAmount)}</td>
+                  <td class="text-right">${formatCurrency(itemDiscount)}</td>
+                  <td class="text-right">${formatCurrency(itemOtherCharges)}</td>
+                  <td class="text-right">${formatCurrency(itemTaxableAmount)}</td>
+                  <td class="text-right">${formatCurrency(itemCGST)}</td>
+                  <td class="text-right">${formatCurrency(itemSGST)}</td>
+                  <td class="text-right">${formatCurrency(itemIGST)}</td>
+                  <td class="text-right">${formatCurrency(actualItemPaid)}</td>
+                </tr>`;
+              }).join('');
+            })()}
+            <tr style="font-weight: bold; background-color: #f0f0f0;">
+              <td class="text-center">TOTAL</td>
+              <td class="text-right">${formatCurrency(invoice.amounts.grossAmount)}</td>
+              <td class="text-right">${formatCurrency(invoice.amounts.discount)}</td>
+              <td class="text-right">${formatCurrency(invoice.amounts.otherCharges)}</td>
+              <td class="text-right">${formatCurrency(invoice.amounts.taxableAmount)}</td>
+              <td class="text-right">${formatCurrency(invoice.amounts.cgst)}</td>
+              <td class="text-right">${formatCurrency(invoice.amounts.sgst)}</td>
+              <td class="text-right">${formatCurrency(invoice.amounts.igst)}</td>
+              <td class="text-right">${formatCurrency(invoice.amounts.grandTotal)}</td>
+            </tr>
           </tbody>
         </table>
 
-        <!-- Totals Section -->
-        <div class="totals-section">
-          <table class="totals-table">
-            <tr>
-              <td class="total-label">Subtotal:</td>
-              <td class="total-amount">${formatCurrency(invoice.amounts.subtotal)}</td>
-            </tr>
-            ${invoice.amounts.shippingCost > 0 ? `
-            <tr>
-              <td class="total-label">Shipping:</td>
-              <td class="total-amount">${formatCurrency(invoice.amounts.shippingCost)}</td>
-            </tr>
-            ` : ''}
-            ${invoice.amounts.discount > 0 ? `
-            <tr>
-              <td class="total-label">Discount:</td>
-              <td class="total-amount">-${formatCurrency(invoice.amounts.discount)}</td>
-            </tr>
-            ` : ''}
-            <tr>
-              <td class="total-label">Taxable Amount:</td>
-              <td class="total-amount">${formatCurrency(invoice.amounts.taxableAmount)}</td>
-            </tr>
-            ${invoice.tax.isGstApplicable ? `
-            <tr class="tax-breakdown">
-              <td class="total-label">CGST (${invoice.tax.gstRate/2}%):</td>
-              <td class="total-amount">${formatCurrency(invoice.amounts.cgst)}</td>
-            </tr>
-            <tr class="tax-breakdown">
-              <td class="total-label">SGST (${invoice.tax.gstRate/2}%):</td>
-              <td class="total-amount">${formatCurrency(invoice.amounts.sgst)}</td>
-            </tr>
-            ${invoice.amounts.igst > 0 ? `
-            <tr class="tax-breakdown">
-              <td class="total-label">IGST (${invoice.tax.gstRate}%):</td>
-              <td class="total-amount">${formatCurrency(invoice.amounts.igst)}</td>
-            </tr>
-            ` : ''}
-            ` : ''}
-            <tr class="grand-total">
-              <td class="total-label">Grand Total:</td>
-              <td class="total-amount">${formatCurrency(invoice.amounts.grandTotal)}</td>
-            </tr>
-          </table>
-        </div>
-
-        <!-- Footer Section -->
+        <!-- Footer -->
         <div class="footer-section">
-          <div class="payment-info">
-            <div class="section-title">Payment Information</div>
-            <p><strong>Payment Method:</strong> ${invoice.payment.method.toUpperCase()}</p>
-            ${invoice.payment.transactionId ? `<p><strong>Transaction ID:</strong> ${invoice.payment.transactionId}</p>` : ''}
-            <p><strong>Payment Status:</strong> <span style="color: #059669; font-weight: bold;">${invoice.payment.status}</span></p>
-            <p><strong>Amount Paid:</strong> ${formatCurrency(invoice.payment.paidAmount)}</p>
-          </div>
-
-          ${invoice.notes ? `
-          <div style="margin-bottom: 20px;">
-            <div class="section-title">Notes</div>
-            <p>${invoice.notes}</p>
-          </div>
-          ` : ''}
-
-          <div class="terms">
-            <div class="section-title">Terms & Conditions</div>
-            <p>${invoice.terms}</p>
-          </div>
-
-          <div class="stamp-section">
-            <div class="digital-stamp">
-              ${invoice.company.name}<br>
-              <small>Digitally Generated Invoice</small><br>
-              <small>${formatDate(new Date())}</small>
+          <div class="company-name">${invoice.company.name}</div>
+          
+          <div class="signature-section">
+            <div style="width: 200px;">
+              <div style="margin-top: 40px; border-top: 1px solid #000; text-align: center; padding-top: 5px;">
+                Authorized Signatory
+              </div>
+            </div>
+            <div class="qr-placeholder">
+              QR Code
             </div>
           </div>
 
-          <div class="thank-you">
-            🙏 Thank you for your business! 🙏
+          <div class="declaration">
+            <div class="label">DECLARATION</div>
+            <div>The goods sold as part of this shipment are intended for end-user consumption and are not for retail sale</div>
+            <div style="text-align: right; margin-top: 10px;">
+              <div class="label">Purchase made on</div>
+            </div>
+            <div style="margin-top: 10px; font-size: 8px;">
+              <div class="label">Reg. Address:</div> ${invoice.company.name}, ${invoice.company.address}
+            </div>
           </div>
         </div>
       </div>
@@ -386,74 +365,89 @@ class InvoiceService {
     `;
   }
 
-  // Generate PDF from HTML
+  // Generate PDF from HTML using html-pdf (more reliable than Puppeteer)
   async generatePDF(invoice) {
     const html = this.generateInvoiceHTML(invoice);
     const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
     const filePath = path.join(this.invoicesDir, fileName);
 
-    let browser;
-    try {
-      // Launch puppeteer with minimal options for server environment
-      browser = await puppeteer.launch({
-        headless: 'new',
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-gpu',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process'
-        ]
-      });
-
-      const page = await browser.newPage();
-      await page.setContent(html, { 
-        waitUntil: 'networkidle0',
-        timeout: 30000 
-      });
-
-      // Generate PDF with proper formatting
-      const pdfBuffer = await page.pdf({
+    return new Promise((resolve, reject) => {
+      console.log(`🔄 Generating PDF for invoice ${invoice.invoiceNumber} using html-pdf`);
+      
+      // html-pdf options for better rendering
+      const options = {
         format: 'A4',
-        margin: {
+        border: {
           top: '10mm',
           right: '10mm',
           bottom: '10mm',
           left: '10mm'
         },
-        printBackground: true,
-        preferCSSPageSize: true
-      });
-
-      // Save PDF to file
-      await fs.writeFile(filePath, pdfBuffer);
-
-      // Update invoice with file information
-      invoice.files.pdfPath = filePath;
-      invoice.files.pdfUrl = `/invoices/${fileName}`;
-      await invoice.save();
-
-      console.log(`✅ Invoice PDF generated: ${fileName}`);
-      return {
-        success: true,
-        filePath,
-        fileName,
-        pdfUrl: invoice.files.pdfUrl
+        header: {
+          height: '0mm'
+        },
+        footer: {
+          height: '0mm'
+        },
+        timeout: 30000,
+        type: 'pdf',
+        quality: '75',
+        httpHeaders: {
+          'User-Agent': 'Invoice Generator'
+        },
+        renderDelay: 1000
       };
 
-    } catch (error) {
-      console.error('PDF generation error:', error);
-      throw new Error(`Failed to generate PDF: ${error.message}`);
-    } finally {
-      if (browser) {
-        await browser.close();
-      }
-    }
+      pdf.create(html, options).toFile(filePath, async (err, result) => {
+        if (err) {
+          console.error(`❌ html-pdf generation error:`, err.message);
+          
+          // ✅ FALLBACK: Create invoice without PDF if generation fails
+          console.log(`⚠️ PDF generation failed, creating invoice without PDF`);
+          
+          try {
+            // Update invoice without PDF
+            invoice.files.pdfPath = null;
+            invoice.files.pdfUrl = null;
+            invoice.status = 'Draft'; // Mark as draft since PDF failed
+            await invoice.save();
+
+            // Return success but without PDF
+            resolve({
+              success: true,
+              filePath: null,
+              fileName: null,
+              pdfUrl: null,
+              warning: 'Invoice created without PDF due to generation issues'
+            });
+          } catch (dbError) {
+            reject(new Error(`Failed to save invoice without PDF: ${dbError.message}`));
+          }
+          return;
+        }
+
+        try {
+          // Update invoice with file information
+          invoice.files.pdfPath = filePath;
+          invoice.files.pdfUrl = `/invoices/${fileName}`;
+          await invoice.save();
+
+          console.log(`✅ Invoice PDF generated successfully: ${fileName}`);
+          resolve({
+            success: true,
+            filePath,
+            fileName,
+            pdfUrl: invoice.files.pdfUrl
+          });
+        } catch (dbError) {
+          console.error('Failed to update invoice with PDF info:', dbError);
+          reject(new Error(`PDF generated but failed to update database: ${dbError.message}`));
+        }
+      });
+    });
   }
 
-  // Create invoice from order
+  // Create invoice from order (GST-inclusive pricing with product MRP)
   async createInvoiceFromOrder(order) {
     try {
       // Generate unique invoice number
@@ -478,40 +472,74 @@ class InvoiceService {
         country: addressParts[3] || 'India'
       };
 
-      // Process invoice items
-      const items = order.products.map(product => {
-        const item = {
-          name: product.name,
-          description: product.size ? `Size: ${product.size}` : '',
-          hsnCode: '61091000', // HSN code for T-shirts
-          quantity: product.count,
-          unitPrice: product.price,
-          totalPrice: product.price * product.count,
-          isCustom: product.isCustom || false
-        };
+      // Fetch actual product details for accurate pricing
+      const Product = require('../models/product');
+      let totalGrossAmount = 0;
+      let totalActualDiscount = 0;
 
-        // Add customization details if present
-        if (product.customization) {
-          item.customization = product.customization;
-          if (product.customization.frontDesign) {
-            item.description += product.customization.frontDesign.price ? 
-              `, Front Design (+₹${product.customization.frontDesign.price})` : '';
+      // Process invoice items with actual product data
+      const items = await Promise.all(
+        order.products.map(async (orderProduct) => {
+          const item = {
+            name: orderProduct.name,
+            description: orderProduct.size ? `Size: ${orderProduct.size}` : '',
+            hsnCode: '61091000', // HSN code for T-shirts
+            quantity: orderProduct.count,
+            unitPrice: orderProduct.price,
+            totalPrice: orderProduct.price * orderProduct.count,
+            isCustom: orderProduct.isCustom || false
+          };
+
+          // Try to fetch actual product for MRP data
+          try {
+            const product = await Product.findById(orderProduct._id);
+            if (product) {
+              const pricing = product.getPricingDisplay();
+              const itemGrossAmount = pricing.grossAmount * orderProduct.count;
+              const itemDiscount = (pricing.grossAmount - orderProduct.price) * orderProduct.count;
+              
+              totalGrossAmount += itemGrossAmount;
+              totalActualDiscount += itemDiscount;
+            } else {
+              // Fallback if product not found
+              const fallbackGross = orderProduct.price * 1.5 * orderProduct.count;
+              totalGrossAmount += fallbackGross;
+              totalActualDiscount += (fallbackGross - (orderProduct.price * orderProduct.count));
+            }
+          } catch (err) {
+            console.log('Could not fetch product details, using fallback pricing');
+            const fallbackGross = orderProduct.price * 1.5 * orderProduct.count;
+            totalGrossAmount += fallbackGross;
+            totalActualDiscount += (fallbackGross - (orderProduct.price * orderProduct.count));
           }
-          if (product.customization.backDesign) {
-            item.description += product.customization.backDesign.price ? 
-              `, Back Design (+₹${product.customization.backDesign.price})` : '';
+
+          // Add customization details if present
+          if (orderProduct.customization) {
+            item.customization = orderProduct.customization;
+            if (orderProduct.customization.frontDesign) {
+              item.description += orderProduct.customization.frontDesign.price ? 
+                `, Front Design (+₹${orderProduct.customization.frontDesign.price})` : '';
+            }
+            if (orderProduct.customization.backDesign) {
+              item.description += orderProduct.customization.backDesign.price ? 
+                `, Back Design (+₹${orderProduct.customization.backDesign.price})` : '';
+            }
           }
-        }
 
-        return item;
-      });
+          return item;
+        })
+      );
 
-      // Calculate amounts
-      const subtotal = order.originalAmount || order.amount;
-      const shippingCost = order.shipping?.shippingCost || 0;
-      const discount = order.discount || 0;
+      // GST-inclusive pricing: Final price is the "hook price" (e.g., ₹549)
+      const finalPrice = order.amount; // This is what customer sees and pays
+      const couponDiscount = order.discount || 0;
 
-      // Create invoice
+      // Use actual product MRP data for attractive display
+      const grossAmount = Math.round(totalGrossAmount);
+      const productDiscount = Math.round(totalActualDiscount);
+      const finalDiscount = Math.round(grossAmount - finalPrice);
+
+      // Create invoice with GST-inclusive pricing structure
       const invoice = new Invoice({
         invoiceNumber,
         financialYear,
@@ -521,35 +549,49 @@ class InvoiceService {
         shippingAddress: billingAddress, // Same as billing for now
         items,
         amounts: {
-          subtotal,
-          shippingCost,
-          discount,
-          discountDescription: order.coupon?.code ? `Coupon: ${order.coupon.code}` : '',
-          taxableAmount: subtotal + shippingCost - discount,
-          grandTotal: order.amount
+          // Use actual product MRP data
+          grossAmount: grossAmount,
+          discount: finalDiscount,
+          grandTotal: finalPrice,
+          otherCharges: 0,
+          discountDescription: order.coupon?.code ? 
+            `${Math.round((productDiscount/grossAmount)*100)}% Off + Coupon: ${order.coupon.code}` : 
+            `${Math.round((finalDiscount/grossAmount)*100)}% Off - Special Offer`,
+          
+          // Legacy fields for compatibility
+          subtotal: order.originalAmount || order.amount,
+          shippingCost: order.shipping?.shippingCost || 0
         },
         tax: {
-          isGstApplicable: false, // Enable when GST registration obtained
-          gstRate: 0,
+          isGstApplicable: true, // Enable GST by default for proper invoice display
+          gstRate: 12, // 12% for textiles (6% CGST + 6% SGST)
           placeOfSupply: billingAddress.state
         },
         payment: {
-          method: 'razorpay',
+          method: order.paymentMethod || 'razorpay',
           transactionId: order.transaction_id,
           status: order.paymentStatus === 'Paid' ? 'Paid' : 'Pending',
-          paidAmount: order.amount,
+          paidAmount: finalPrice,
           paymentDate: order.createdAt
         }
       });
 
-      // Calculate GST if applicable
-      invoice.calculateGST();
+      // Calculate GST using reverse calculation (starts with final price)
+      invoice.calculateGSTInclusive();
 
       // Save invoice
       await invoice.save();
 
       // Generate PDF
       await this.generatePDF(invoice);
+
+      console.log(`✅ GST-inclusive invoice created: ${invoice.invoiceNumber}`);
+      console.log(`   Final Price: ₹${finalPrice}`);
+      console.log(`   Gross Amount: ₹${invoice.amounts.grossAmount} (from product MRP)`);
+      console.log(`   Discount: ₹${invoice.amounts.discount} (${Math.round((finalDiscount/grossAmount)*100)}%)`);
+      console.log(`   Taxable Amount: ₹${invoice.amounts.taxableAmount}`);
+      console.log(`   CGST: ₹${invoice.amounts.cgst}`);
+      console.log(`   SGST: ₹${invoice.amounts.sgst}`);
 
       return invoice;
 
