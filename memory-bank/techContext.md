@@ -38,9 +38,30 @@
 - **Database**: MongoDB Atlas
 - **CI/CD**: GitHub Actions
 
-### Recent Implementations (January 20, 2025)
+### Recent Implementations (January 8, 2025)
 
-#### Checkout Discount Integration
+#### Comprehensive Discount Display System
+- **AOVService Centralization**: Replaced hardcoded discount values with database-driven service
+- **Backend Architecture Overhaul**: 
+  - `server/controllers/razorpay.js`: AOVService integration
+  - `server/services/aovService.js`: Centralized discount calculation logic
+  - `server/routes/razorpay.js`: New `/calculate-amount` endpoint for frontend access
+- **Email System Enhancement**: Complete breakdown in `server/services/emailService.js`
+- **Frontend Display Updates**: All order-related pages show detailed discount breakdown
+- **TypeScript Interface Standardization**: Added discount fields to all order interfaces
+- **Color-Coded UI**: Consistent color scheme (yellow=AOV, green=coupons, purple=rewards)
+
+#### Technical Achievements
+- **Data Flow Integration**: AOVService → Payment → Storage → Display → Email
+- **Indian Number Formatting**: Proper ₹1,23,456 format across all components
+- **Enterprise Architecture**: Configurable, scalable discount management
+- **Email Templates**: Professional breakdown with all discount types
+- **API Endpoints**: `/api/razorpay/calculate-amount` for frontend calculations
+- **Database Settings**: AOV tiers stored in MongoDB Settings collection
+
+#### Previous Implementation (January 20, 2025)
+
+##### Checkout Discount Integration
 - **DiscountSection Component**: Coupon and reward points application UI
 - **OrderHandler Hook**: Extracted order placement logic for better separation
 - **Backend Validation**: All discount calculations moved server-side

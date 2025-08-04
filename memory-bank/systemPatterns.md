@@ -249,6 +249,395 @@ const PromotionalBanner = () => {
 };
 ```
 
+## Comprehensive Discount Display Patterns (New - 2025-01-08)
+
+### Centralized Discount Architecture Pattern
+**Critical Pattern**: Replace all hardcoded discount values with centralized, configurable service
+
+```typescript
+// server/services/aovService.js - Single source of truth
+class AOVService {
+  static async getAOVSettings() {
+    return await Settings.findOne({ key: 'aov_discount_tiers' }) || {
+      value: {
+        tier1: { minQuantity: 2, discountPercentage: 10 },
+        tier2: { minQuantity: 3, discountPercentage: 15 },
+        tier3: { minQuantity: 5, discountPercentage: 20 }
+      }
+    };
+  }
+  
+  static async calculateDiscount(totalQuantity, subtotal) {
+    const settings = await this.getAOVSettings();
+    const tiers = settings.value;
+    
+    // Find highest applicable tier
+    let applicableTier = null;
+    if (totalQuantity >= tiers.tier3.minQuantity) {
+      applicableTier = tiers.tier3;
+    } else if (totalQuantity >= tiers.tier2.minQuantity) {
+      applicableTier = tiers.tier2;
+    } else if (totalQuantity >= tiers.tier1.minQuantity) {
+      applicableTier = tiers.tier1;
+    }
+    
+    return applicableTier ? {
+      applicable: true,
+      percentage: applicableTier.discountPercentage,
+      amount: Math.round(subtotal * (applicableTier.discountPercentage / 100))
+    } : { applicable: false, percentage: 0, amount: 0 };
+  }
+}
+```
+
+### Backend Integration Pattern
+**BEFORE**: Hardcoded values scattered across controllers
+```typescript
+// ❌ OLD - Hardcoded in razorpay.js
+let quantityDiscount = 0;
+if (totalQuantity >= 5) {
+  quantityDiscount = Math.round(subtotal * 0.20); // 20% hardcoded
+} else if (totalQuantity >= 3) {
+  quantityDiscount = Math.round(subtotal * 0.15); // 15% hardcoded
+}
+```
+
+**AFTER**: Centralized service integration
+```typescript
+// ✅ NEW - Service-driven in razorpay.js
+const aovResult = await AOVService.calculateDiscount(totalQuantity, subtotal);
+const quantityDiscount = aovResult.amount;
+
+// Return complete discount data
+return {
+  success: true,
+  finalAmount,
+  subtotal,
+  quantityDiscount,
+  aovDiscount: aovResult.applicable ? {
+    amount: aovResult.amount,
+    percentage: aovResult.percentage,
+    totalQuantity
+  } : null
+};
+```
+
+### Discount Data Flow Pattern
+```
+Frontend Request
+      ↓
+calculateOrderAmountSecure() 
+      ↓
+AOVService.calculateDiscount()
+      ↓
+MongoDB Settings Collection
+      ↓
+Return Complete Discount Object
+      ↓
+Store in Order Document
+      ↓
+Display Across All UI Components
+      ↓
+Include in Email Templates
+```
+
+### Enhanced Email Template Pattern
+```typescript
+// server/services/emailService.js - Comprehensive breakdown
+const generateOrderSummaryHTML = (order) => {
+  const {
+    products,
+    originalAmount,
+    amount,
+    shipping,
+    aovDiscount,
+    coupon,
+    rewardPointsRedeemed,
+    discount
+  } = order;
+  
+  return `
+    <div class="order-summary">
+      <h3>Order Summary</h3>
+      
+      <!-- Subtotal -->
+      <div class="summary-line">
+        <span>Subtotal (${products.length} items):</span>
+        <span>₹${(originalAmount || amount).toLocaleString('en-IN')}</span>
+      </div>
+      
+      <!-- Shipping -->
+      ${shipping?.shippingCost > 0 ? `
+        <div class="summary-line">
+          <span>Shipping:</span>
+          <span>₹${shipping.shippingCost.toLocaleString('en-IN')}</span>
+        </div>
+      ` : `
+        <div class="summary-line" style="color: #10B981;">
+          <span>Free Shipping:</span>
+          <span>₹0</span>
+        </div>
+      `}
+      
+      <!-- AOV Discount -->
+      ${aovDiscount ? `
+        <div class="summary-line" style="color: #F59E0B;">
+          <span>Quantity Discount (${aovDiscount.percentage}% off for ${aovDiscount.totalQuantity} items):</span>
+          <span>-₹${aovDiscount.amount.toLocaleString('en-IN')}</span>
+        </div>
+      ` : ''}
+      
+      <!-- Coupon Discount -->
+      ${coupon ? `
+        <div class="summary-line" style="color: #10B981;">
+          <span>Coupon Discount (${coupon.code}):</span>
+          <span>-₹${(coupon.discountValue || coupon.discount).toLocaleString('en-IN')}</span>
+        </div>
+      ` : ''}
+      
+      <!-- Reward Points -->
+      ${rewardPointsRedeemed > 0 ? `
+        <div class="summary-line" style="color: #8B5CF6;">
+          <span>Reward Points (${rewardPointsRedeemed} points):</span>
+          <span>-₹${rewardPointsRedeemed.toLocaleString('en-IN')}</span>
+        </div>
+      ` : ''}
+      
+      <!-- Total Savings -->
+      ${discount > 0 ? `
+        <div class="summary-line total-savings" style="color: #10B981; font-weight: bold; border-top: 1px solid #E5E7EB; padding-top: 10px;">
+          <span>Total Savings:</span>
+          <span>-₹${discount.toLocaleString('en-IN')}</span>
+        </div>
+      ` : ''}
+      
+      <!-- Final Total -->
+      <div class="summary-line final-total" style="font-weight: bold; font-size: 1.2em; border-top: 2px solid #374151; padding-top: 15px;">
+        <span>Final Total:</span>
+        <span style="color: #F59E0B;">₹${amount.toLocaleString('en-IN')}</span>
+      </div>
+    </div>
+  `;
+};
+```
+
+### Frontend TypeScript Interface Pattern
+```typescript
+// Standardized across all components
+interface OrderWithDiscounts {
+  _id: string;
+  products: OrderProduct[];
+  amount: number;
+  originalAmount?: number;
+  discount?: number;
+  status: string;
+  createdAt: string;
+  address: string;
+  
+  // Shipping information
+  shipping?: {
+    courier?: string;
+    trackingId?: string;
+    estimatedDelivery?: string;
+    shippingCost?: number;
+  };
+  
+  // Detailed discount breakdown
+  aovDiscount?: {
+    amount: number;
+    percentage: number;
+    totalQuantity: number;
+  };
+  
+  coupon?: {
+    code: string;
+    discount?: number;
+    discountValue?: number;
+  };
+  
+  rewardPointsRedeemed?: number;
+  
+  // Customer information
+  user?: {
+    name: string;
+    email: string;
+  };
+  guestInfo?: {
+    name: string;
+    email: string;
+  };
+}
+```
+
+### Consistent UI Display Pattern
+```typescript
+// Reusable order summary component pattern
+const OrderSummaryBreakdown = ({ order }: { order: OrderWithDiscounts }) => {
+  const {
+    originalAmount,
+    amount,
+    shipping,
+    aovDiscount,
+    coupon,
+    rewardPointsRedeemed,
+    discount
+  } = order;
+  
+  return (
+    <div className="order-summary space-y-3">
+      {/* Subtotal */}
+      <div className="flex justify-between text-sm">
+        <span className="text-gray-400">Subtotal:</span>
+        <span className="text-white font-medium">
+          ₹{(originalAmount || amount).toLocaleString('en-IN')}
+        </span>
+      </div>
+      
+      {/* Shipping */}
+      {shipping?.shippingCost > 0 ? (
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-400">Shipping:</span>
+          <span className="text-white font-medium">
+            ₹{shipping.shippingCost.toLocaleString('en-IN')}
+          </span>
+        </div>
+      ) : (
+        <div className="flex justify-between text-sm">
+          <span className="text-green-400">Free Shipping:</span>
+          <span className="text-green-400 font-medium">₹0</span>
+        </div>
+      )}
+      
+      {/* AOV Discount */}
+      {aovDiscount && (
+        <div className="flex justify-between text-sm">
+          <span className="text-yellow-400">
+            Quantity Discount ({aovDiscount.percentage}% off for {aovDiscount.totalQuantity} items):
+          </span>
+          <span className="text-yellow-400 font-medium">
+            -₹{aovDiscount.amount.toLocaleString('en-IN')}
+          </span>
+        </div>
+      )}
+      
+      {/* Coupon Discount */}
+      {coupon && (
+        <div className="flex justify-between text-sm">
+          <span className="text-green-400">
+            Coupon Discount ({coupon.code}):
+          </span>
+          <span className="text-green-400 font-medium">
+            -₹{(coupon.discountValue || coupon.discount).toLocaleString('en-IN')}
+          </span>
+        </div>
+      )}
+      
+      {/* Reward Points */}
+      {rewardPointsRedeemed > 0 && (
+        <div className="flex justify-between text-sm">
+          <span className="text-purple-400">
+            Reward Points ({rewardPointsRedeemed} points):
+          </span>
+          <span className="text-purple-400 font-medium">
+            -₹{rewardPointsRedeemed.toLocaleString('en-IN')}
+          </span>
+        </div>
+      )}
+      
+      {/* Total Savings */}
+      {discount > 0 && (
+        <div className="flex justify-between text-sm pt-2 border-t border-gray-600">
+          <span className="text-green-400 font-semibold">Total Savings:</span>
+          <span className="text-green-400 font-semibold">
+            -₹{discount.toLocaleString('en-IN')}
+          </span>
+        </div>
+      )}
+      
+      {/* Final Total */}
+      <div className="pt-2 border-t border-gray-600">
+        <div className="flex justify-between items-center">
+          <span className="text-lg font-semibold text-white">Final Total:</span>
+          <span className="text-xl font-bold text-yellow-400">
+            ₹{amount.toLocaleString('en-IN')}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+### Color-Coded Discount Pattern
+```typescript
+// Consistent color scheme across all components
+const DiscountColors = {
+  aov: 'text-yellow-400',      // AOV/Quantity discounts
+  coupon: 'text-green-400',    // Coupon discounts
+  rewards: 'text-purple-400',  // Reward point redemption
+  shipping: 'text-green-400',  // Free shipping
+  savings: 'text-green-400',   // Total savings summary
+  total: 'text-yellow-400'     // Final total amount
+};
+```
+
+### API Endpoint Pattern for Frontend Access
+```typescript
+// server/routes/razorpay.js - New endpoint for frontend calculations
+router.post('/calculate-amount', async (req, res) => {
+  try {
+    const { products, couponCode, rewardPointsRedeemed, userId } = req.body;
+    
+    // Calculate with full discount breakdown
+    const calculation = await calculateOrderAmountSecure(
+      products,
+      couponCode,
+      rewardPointsRedeemed,
+      userId
+    );
+    
+    res.json({
+      success: true,
+      ...calculation,
+      breakdown: {
+        subtotal: calculation.subtotal,
+        quantityDiscount: calculation.quantityDiscount,
+        couponDiscount: calculation.couponDiscount,
+        rewardDiscount: calculation.rewardPointsRedeemed,
+        shippingCost: calculation.shippingCost,
+        finalAmount: calculation.finalAmount
+      }
+    });
+  } catch (error) {
+    res.status(400).json({ success: false, error: error.message });
+  }
+});
+```
+
+### Files Modified in This Pattern Implementation
+**Backend Core**:
+- `server/controllers/razorpay.js` - AOVService integration
+- `server/services/aovService.js` - Centralized discount logic
+- `server/routes/razorpay.js` - New calculation endpoint
+- `server/services/emailService.js` - Enhanced email templates
+
+**Frontend Display**:
+- `client/src/pages/OrderTracking.tsx` - Secure tracking with discounts
+- `client/src/user/OrderDetail.tsx` - User dashboard order view
+- `client/src/admin/components/orders/OrderDetailModal.tsx` - Admin order view
+- `client/src/admin/components/orders/types.ts` - TypeScript interfaces
+- `client/src/pages/OrderConfirmationEnhanced.tsx` - Post-purchase view
+
+### Benefits of This Pattern
+1. **Centralized Configuration**: All discount rules in one place
+2. **Database-Driven**: Settings stored in MongoDB for admin control
+3. **Consistent Display**: Same breakdown across all touchpoints
+4. **Email Transparency**: Professional invoices with complete breakdowns
+5. **TypeScript Safety**: Standardized interfaces prevent errors
+6. **Color-Coded UX**: Visual hierarchy for different discount types
+7. **Scalable Architecture**: Easy to add new discount types
+8. **Admin Visibility**: Complete financial transparency in admin dashboard
+
 ## Secure Reward Points Patterns (New)
 
 ### Points Transaction Model
