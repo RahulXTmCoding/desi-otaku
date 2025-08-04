@@ -178,7 +178,7 @@ exports.redeemPoints = async (userId, points, orderId) => {
       orderId: orderId
     });
 
-    // Calculate discount (1 point = ₹0.5)
+    // Calculate discount (1 point = ₹0.5) - CONSISTENT WITH FRONTEND
     const discountAmount = points * 0.5;
 
     return { 

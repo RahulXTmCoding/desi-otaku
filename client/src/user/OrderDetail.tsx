@@ -387,7 +387,7 @@ const OrderDetail = () => {
                   {order.rewardPointsRedeemed > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-purple-400">Reward Points ({order.rewardPointsRedeemed} points)</span>
-                      <span className="text-purple-400 font-medium">-₹{order.rewardPointsRedeemed.toLocaleString('en-IN')}</span>
+                      <span className="text-purple-400 font-medium">-₹{(order.rewardPointsDiscount || (order.rewardPointsRedeemed * 0.5)).toLocaleString('en-IN')}</span>
                     </div>
                   )}
                   
@@ -395,7 +395,7 @@ const OrderDetail = () => {
                     const totalSavings = 
                       (order.quantityDiscount?.amount || 0) + 
                       (order.coupon?.discountValue || 0) + 
-                      (order.rewardPointsRedeemed || 0);
+                      (order.rewardPointsDiscount || (order.rewardPointsRedeemed ? order.rewardPointsRedeemed * 0.5 : 0));
                     
                     return totalSavings > 0 && (
                       <div className="flex justify-between text-sm pt-2 border-t border-gray-600">

@@ -144,11 +144,11 @@ exports.validateCoupon = async (req, res) => {
       });
     }
 
-    // Check first time only restriction
+    // ✅ CRITICAL FIX: Use consistent status check with order.js
     if (coupon.firstTimeOnly && userId) {
       const previousOrders = await Order.countDocuments({ 
         user: userId,
-        status: { $ne: "cancelled" }
+        status: { $ne: "Cancelled" }  // ✅ Fixed case sensitivity
       });
       if (previousOrders > 0) {
         return res.status(400).json({
@@ -162,7 +162,7 @@ exports.validateCoupon = async (req, res) => {
       const userUsageCount = await Order.countDocuments({
         user: userId,
         "coupon.code": coupon.code,
-        status: { $ne: "cancelled" }
+        status: { $ne: "Cancelled" }  // ✅ Fixed case sensitivity
       });
       if (userUsageCount >= coupon.userLimit) {
         return res.status(400).json({
@@ -281,7 +281,7 @@ exports.getBestAutoApplyCoupon = async (req, res) => {
       if (coupon.firstTimeOnly && userId) {
         const previousOrders = await Order.countDocuments({ 
           user: userId,
-          status: { $ne: "cancelled" }
+          status: { $ne: "Cancelled" }  // ✅ Fixed case sensitivity
         });
         if (previousOrders > 0) continue;
       }
@@ -314,6 +314,84 @@ exports.getBestAutoApplyCoupon = async (req, res) => {
     return res.status(500).json({
       error: "Failed to find auto-apply coupon"
     });
+  }
+};
+
+// ✅ CRITICAL FIX: Shared coupon validation function to ensure consistency
+exports.validateCouponForOrder = async (couponCode, subtotal, userId = null) => {
+  try {
+    if (!couponCode) {
+      return { valid: false, error: "Coupon code is required" };
+    }
+
+    const coupon = await Coupon.findOne({ 
+      code: couponCode.toUpperCase(),
+      isActive: true
+    });
+
+    if (!coupon) {
+      return { valid: false, error: "Invalid coupon code" };
+    }
+
+    // Check if coupon is valid
+    if (!coupon.isValid()) {
+      return { valid: false, error: "Coupon has expired or reached usage limit" };
+    }
+
+    // Check minimum purchase
+    if (subtotal < coupon.minimumPurchase) {
+      return { 
+        valid: false, 
+        error: `Minimum purchase of ₹${coupon.minimumPurchase} required` 
+      };
+    }
+
+    // ✅ CRITICAL FIX: Use consistent status check (Cancelled with capital C)
+    if (coupon.firstTimeOnly && userId) {
+      const previousOrders = await Order.countDocuments({ 
+        user: userId,
+        status: { $ne: "Cancelled" }  // ✅ Consistent with order.js
+      });
+      if (previousOrders > 0) {
+        return { 
+          valid: false, 
+          error: "This coupon is only valid for first-time customers" 
+        };
+      }
+    }
+
+    // Check user usage limit
+    if (userId && coupon.userLimit) {
+      const userUsageCount = await Order.countDocuments({
+        user: userId,
+        "coupon.code": coupon.code,
+        status: { $ne: "Cancelled" }  // ✅ Consistent status check
+      });
+      if (userUsageCount >= coupon.userLimit) {
+        return { 
+          valid: false, 
+          error: "You have already used this coupon maximum times" 
+        };
+      }
+    }
+
+    // Calculate discount
+    const discount = coupon.calculateDiscount(subtotal);
+
+    return {
+      valid: true,
+      coupon: {
+        code: coupon.code,
+        description: coupon.description,
+        discountType: coupon.discountType,
+        discountValue: coupon.discountValue,
+        discount: discount,
+        minimumPurchase: coupon.minimumPurchase
+      }
+    };
+  } catch (err) {
+    console.error("Coupon validation error:", err);
+    return { valid: false, error: "Failed to validate coupon" };
   }
 };
 

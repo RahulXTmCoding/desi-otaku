@@ -19,70 +19,158 @@ const getRazorpayInstance = () => {
   return razorpay;
 };
 
-// Create order with server-side amount validation
-exports.createRazorpayOrder = async (req, res) => {
+// ✅ UNIFIED: Single endpoint for both guest and authenticated users
+exports.createUnifiedRazorpayOrder = async (req, res) => {
   try {
-    const { cartItems, couponCode, rewardPoints, currency = 'INR', receipt, notes, frontendAmount, shippingCost } = req.body;
+    const { 
+      cartItems, 
+      couponCode, 
+      rewardPoints, 
+      currency = 'INR', 
+      receipt, 
+      notes, 
+      customerInfo, 
+      frontendAmount, 
+      shippingCost 
+    } = req.body;
     
     if (!cartItems || !Array.isArray(cartItems)) {
       return res.status(400).json({ error: 'Cart items are required' });
     }
 
-    let finalAmount;
+    // ✅ AUTO-DETECT USER TYPE
+    const isAuthenticated = !!(req.user || req.headers.authorization);
+    const userType = isAuthenticated ? 'authenticated' : 'guest';
+    
+    console.log('🎯 UNIFIED RAZORPAY ORDER:', {
+      userType,
+      cartItems: cartItems.length,
+      couponCode,
+      rewardPoints: isAuthenticated ? rewardPoints : null,
+      frontendAmount,
+      hasUser: !!req.user,
+      hasAuth: !!req.headers.authorization,
+      customerInfo: customerInfo ? 'provided' : 'none'
+    });
 
-    // 🔒 SECURITY: ONLY use server-calculated amount - NEVER trust client
-    const serverAmount = await calculateOrderAmountSecure(cartItems, couponCode, rewardPoints, req.user);
+    // ✅ LOAD USER IF AUTHENTICATED BUT NOT ALREADY LOADED
+    if (isAuthenticated && !req.user) {
+      try {
+        const User = require('../models/user');
+        const userId = req.params.userId;
+        if (userId) {
+          const user = await User.findById(userId);
+          if (user) {
+            req.user = user;
+            console.log('✅ User loaded:', user._id, 'Reward Points:', user.rewardPoints);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error loading user:', error.message);
+      }
+    }
+
+    // ✅ GUEST-SPECIFIC VALIDATIONS
+    if (!isAuthenticated) {
+      if (!customerInfo || !customerInfo.email) {
+        return res.status(400).json({ error: 'Customer email is required for guest checkout' });
+      }
+
+      // Rate limiting for guest orders
+      const guestRateLimit = await checkGuestRateLimit(req.ip, customerInfo.email);
+      if (!guestRateLimit.allowed) {
+        return res.status(429).json({ 
+          error: 'Too many orders. Please try again later.',
+          retryAfter: guestRateLimit.retryAfter 
+        });
+      }
+    }
+
+    // ✅ UNIFIED CALCULATION - Same logic for both user types
+    const serverAmount = await calculateOrderAmountSecure(
+      cartItems, 
+      couponCode, 
+      isAuthenticated ? rewardPoints : null, // Only authenticated users can use reward points
+      req.user || null
+    );
     
     if (serverAmount.error) {
       return res.status(400).json({ error: serverAmount.error });
     }
     
-    finalAmount = serverAmount.total;
+    const finalAmount = serverAmount.total;
     
-    // Log frontend amount for debugging but don't use it for payment
+    // ✅ SECURITY: Log frontend vs backend amount comparison
     if (frontendAmount) {
       const difference = Math.abs(finalAmount - frontendAmount);
-      console.log(`🔒 Security check - Server: ₹${finalAmount}, Frontend: ₹${frontendAmount}, Diff: ₹${difference}`);
+      console.log(`🔒 ${userType.toUpperCase()} Security check - Server: ₹${finalAmount}, Frontend: ₹${frontendAmount}, Diff: ₹${difference}`);
       
       if (difference > 5) {
-        console.warn(`⚠️ Large difference detected - possible manipulation attempt or calculation mismatch`);
+        console.warn(`⚠️ Large difference detected for ${userType} - possible manipulation attempt or calculation mismatch`);
       }
     }
+
+    // ✅ DYNAMIC RECEIPT AND NOTES BASED ON USER TYPE
+    const dynamicReceipt = isAuthenticated 
+      ? receipt || `order_${Date.now()}`
+      : receipt || `guest_${Date.now()}`;
+
+    const dynamicNotes = {
+      ...notes,
+      user_type: userType,
+      calculated_amount: finalAmount,
+      items_count: cartItems.length,
+      frontend_amount: frontendAmount || null,
+      security_hash: generateSecurityHash({ total: finalAmount }, req.user),
+      // Authenticated user specific notes
+      ...(isAuthenticated && {
+        user_id: req.user?._id || 'unknown',
+        reward_points_used: rewardPoints || 0
+      }),
+      // Guest user specific notes
+      ...(!isAuthenticated && {
+        customer_email: customerInfo.email,
+        customer_name: customerInfo.name || 'Guest User',
+        customer_phone: customerInfo.phone || '',
+        guest_checkout: true,
+        client_ip: req.ip
+      })
+    };
 
     const options = {
       amount: Math.round(finalAmount * 100), // Use validated amount
       currency,
-      receipt: receipt || `receipt_${Date.now()}`,
-      notes: {
-        ...notes,
-        calculated_amount: finalAmount,
-        items_count: cartItems.length,
-        user_id: req.user?._id || 'guest',
-        frontend_amount: frontendAmount || null,
-        security_hash: generateSecurityHash({ total: finalAmount }, req.user)
-      },
+      receipt: dynamicReceipt,
+      notes: dynamicNotes,
       payment_capture: 1
     };
 
     // Get Razorpay instance
     const razorpayInstance = getRazorpayInstance();
     
-    // In test mode or if Razorpay not configured, return mock order
+    // ✅ UNIFIED MOCK MODE HANDLING
     if (!razorpayInstance) {
-      console.log('Using mock Razorpay order (no valid credentials)');
+      console.log(`Using mock Razorpay order for ${userType} (no valid credentials)`);
       return res.json({
         success: true,
         order: {
-          id: `order_test_${Date.now()}`,
+          id: `order_${userType}_test_${Date.now()}`,
           amount: options.amount,
           currency: options.currency,
           receipt: options.receipt
         },
-        key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_dummy'
+        key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_dummy',
+        userType // For debugging
       });
     }
     
-    console.log('Creating Razorpay order with options:', options);
+    console.log(`Creating ${userType} Razorpay order with options:`, {
+      amount: options.amount,
+      currency: options.currency,
+      receipt: options.receipt,
+      user_type: userType
+    });
+    
     const order = await razorpayInstance.orders.create(options);
     
     res.json({
@@ -93,10 +181,12 @@ exports.createRazorpayOrder = async (req, res) => {
         currency: order.currency,
         receipt: order.receipt
       },
-      key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_dummy'
+      key_id: process.env.RAZORPAY_KEY_ID,
+      userType // For debugging
     });
+    
   } catch (error) {
-    console.error('Razorpay order creation error:', error);
+    console.error('Unified Razorpay order creation error:', error);
     res.status(500).json({ 
       error: 'Failed to create payment order',
       details: error.message 
@@ -104,137 +194,15 @@ exports.createRazorpayOrder = async (req, res) => {
   }
 };
 
-// Create order for guest users with enhanced security
+// ✅ LEGACY: Keep old endpoints for backward compatibility
+exports.createRazorpayOrder = async (req, res) => {
+  console.log('🔄 Legacy authenticated endpoint called, redirecting to unified...');
+  return exports.createUnifiedRazorpayOrder(req, res);
+};
+
 exports.createGuestRazorpayOrder = async (req, res) => {
-  try {
-    const { cartItems, couponCode, rewardPoints, currency = 'INR', receipt, notes, customerInfo, frontendAmount, shippingCost } = req.body;
-    
-    if (!cartItems || !Array.isArray(cartItems)) {
-      return res.status(400).json({ error: 'Cart items are required' });
-    }
-
-    if (!customerInfo || !customerInfo.email) {
-      return res.status(400).json({ error: 'Customer email is required for guest checkout' });
-    }
-
-    // 🔒 SECURITY: Rate limiting for guest orders
-    const guestRateLimit = await checkGuestRateLimit(req.ip, customerInfo.email);
-    if (!guestRateLimit.allowed) {
-      return res.status(429).json({ 
-        error: 'Too many orders. Please try again later.',
-        retryAfter: guestRateLimit.retryAfter 
-      });
-    }
-
-    let finalAmount;
-
-    console.log('🔍 DEBUG: About to call calculateOrderAmountSecure');
-    console.log('🔍 DEBUG: cartItems type:', typeof cartItems, 'length:', cartItems?.length);
-    console.log('🔍 DEBUG: couponCode:', couponCode);
-    
-    // Check if calculateOrderAmountSecure function exists
-    console.log('🔍 DEBUG: calculateOrderAmountSecure type:', typeof calculateOrderAmountSecure);
-
-    try {
-      // 🔒 SECURITY: ONLY use server-calculated amount for guests - NEVER trust client
-      console.log('🔍 STARTING calculateOrderAmountSecure for guest...');
-      const serverAmount = await calculateOrderAmountSecure(cartItems, couponCode, null, null); // No reward points for guests
-      console.log('🔍 calculateOrderAmountSecure completed. Result type:', typeof serverAmount);
-      console.log('🔍 calculateOrderAmountSecure result:', serverAmount);
-      
-      if (serverAmount.error) {
-        console.log('❌ calculateOrderAmountSecure ERROR:', serverAmount.error);
-        return res.status(400).json({ error: serverAmount.error });
-      }
-      
-      console.log('✅ calculateOrderAmountSecure SUCCESS');
-      finalAmount = serverAmount.total;
-    } catch (calcError) {
-      console.error('💥 calculateOrderAmountSecure CRASHED:', calcError);
-      // Fallback calculation if the function fails
-      finalAmount = 686; // This might be what's happening!
-    }
-    
-    // 🐛 DEBUG: Log detailed breakdown to identify calculation mismatch
-    console.log('🔍 DETAILED GUEST CALCULATION BREAKDOWN:');
-    console.log('Cart Items:', cartItems.map(item => ({
-      name: item.name,
-      quantity: item.quantity,
-      product: item.product,
-      price: item.price || 'NOT_SET'
-    })));
-    console.log('Final Amount:', finalAmount);
-    console.log('Frontend Amount:', frontendAmount);
-    console.log('Difference:', Math.abs(finalAmount - (frontendAmount || 0)));
-    console.log('Coupon Code:', couponCode);
-    
-    // Log frontend amount for debugging but don't use it for payment
-    if (frontendAmount) {
-      const difference = Math.abs(finalAmount - frontendAmount);
-      console.log(`🔒 Guest Security check - Server: ₹${finalAmount}, Frontend: ₹${frontendAmount}, Diff: ₹${difference}`);
-      
-      if (difference > 5) {
-        console.warn(`⚠️ Large guest difference detected - possible manipulation attempt or calculation mismatch`);
-      }
-    }
-
-    const options = {
-      amount: Math.round(finalAmount * 100), // Use validated amount
-      currency,
-      receipt: receipt || `guest_${Date.now()}`,
-      notes: {
-        ...notes,
-        customer_email: customerInfo.email,
-        customer_name: customerInfo.name || 'Guest User',
-        customer_phone: customerInfo.phone || '',
-        guest_checkout: true,
-        calculated_amount: finalAmount,
-        items_count: cartItems.length,
-        client_ip: req.ip,
-        frontend_amount: frontendAmount || null,
-        security_hash: generateSecurityHash({ total: finalAmount }, null)
-      },
-      payment_capture: 1
-    };
-
-    // Get Razorpay instance
-    const razorpayInstance = getRazorpayInstance();
-    
-    // In test mode or if Razorpay not configured, return mock order
-    if (!razorpayInstance) {
-      console.log('Using mock Razorpay order for guest (no valid credentials)');
-      return res.json({
-        success: true,
-        order: {
-          id: `order_guest_test_${Date.now()}`,
-          amount: options.amount,
-          currency: options.currency,
-          receipt: options.receipt
-        },
-        key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_dummy'
-      });
-    }
-    
-    console.log('Creating guest Razorpay order with options:', options);
-    const order = await razorpayInstance.orders.create(options);
-    
-    res.json({
-      success: true,
-      order: {
-        id: order.id,
-        amount: order.amount,
-        currency: order.currency,
-        receipt: order.receipt
-      },
-      key_id: process.env.RAZORPAY_KEY_ID
-    });
-  } catch (error) {
-    console.error('Guest Razorpay order creation error:', error);
-    res.status(500).json({ 
-      error: 'Failed to create guest payment order',
-      details: error.message 
-    });
-  }
+  console.log('🔄 Legacy guest endpoint called, redirecting to unified...');
+  return exports.createUnifiedRazorpayOrder(req, res);
 };
 
 // Verify payment signature
@@ -705,7 +673,7 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
       const User = require('../models/user');
       const userDoc = await User.findById(user._id);
       if (userDoc && userDoc.rewardPoints >= rewardPoints) {
-        rewardDiscount = rewardPoints; // 1 point = ₹1
+        rewardDiscount = rewardPoints * 0.5; // 1 point = ₹0.5 (consistent with frontend)
       }
     }
     

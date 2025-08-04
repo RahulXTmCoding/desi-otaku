@@ -533,6 +533,8 @@ class InvoiceService {
       // GST-inclusive pricing: Final price is the "hook price" (e.g., ₹549)
       const finalPrice = order.amount; // This is what customer sees and pays
       const couponDiscount = order.discount || 0;
+      const rewardPointsDiscount = order.rewardPointsDiscount || 0;
+      const rewardPointsRedeemed = order.rewardPointsRedeemed || 0;
 
       // Use actual product MRP data for attractive display
       const grossAmount = Math.round(totalGrossAmount);

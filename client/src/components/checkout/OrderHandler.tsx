@@ -117,98 +117,72 @@ export const useOrderHandler = ({
       // Razorpay implementation for both authenticated and guest users
       let orderResponse;
       
-      if (isGuest) {
-        // Guest checkout - use dedicated endpoint with secure format
-        const cartItems = cart.map(item => ({
-          product: item.product || item._id?.split('-')[0] || '',
-          name: item.name,
-          quantity: item.quantity,
-          size: item.size,
-          customization: item.customization,
-          isCustom: item.isCustom,
-          color: item.color
-        }));
+      // ✅ UNIFIED API CALL - Single endpoint for both guest and authenticated users
+      const cartItems = cart.map(item => ({
+        product: item.product || item._id?.split('-')[0] || '',
+        name: item.name,
+        quantity: item.quantity,
+        size: item.size,
+        customization: item.customization,
+        isCustom: item.isCustom,
+        color: item.color
+      }));
 
-        const response = await fetch(`${API}/razorpay/order/guest/create`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            cartItems: cartItems,
-            couponCode: appliedDiscount.coupon?.code || null,
-            rewardPoints: null, // No reward points for guests
-            currency: 'INR',
-            receipt: `guest_${Date.now()}`,
-            customerInfo: {
-              name: shippingInfo.fullName,
-              email: shippingInfo.email,
-              phone: shippingInfo.phone
-            },
-            notes: {
-              items: cart.length,
-              shipping_method: selectedShipping?.courier_name || 'Standard'
-            },
-            // ✅ CRITICAL FIX: Send frontend calculated amount to ensure exact match
-            frontendAmount: totalAmount,
-            shippingCost: selectedShipping?.rate || 0
-          })
-        });
-        
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to create guest order');
-        }
-        orderResponse = data;
-      } else {
-        // Authenticated user checkout - use secure format
-        const cartItems = cart.map(item => ({
-          product: item.product || item._id?.split('-')[0] || '',
-          name: item.name,
-          quantity: item.quantity,
-          size: item.size,
-          customization: item.customization,
-          isCustom: item.isCustom,
-          color: item.color
-        }));
+      console.log('🎯 CREATING UNIFIED RAZORPAY ORDER:', {
+        userType: isGuest ? 'guest' : 'authenticated',
+        cartItems: cartItems.length,
+        couponCode: appliedDiscount.coupon?.code,
+        rewardPoints: isGuest ? null : appliedDiscount.rewardPoints?.points,
+        frontendAmount: totalAmount,
+        shippingCost: selectedShipping?.rate
+      });
 
-        const response = await fetch(`${API}/razorpay/order/create/${(auth as any).user._id}`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${(auth as any).token}`
-          },
-            body: JSON.stringify({
-              cartItems: cartItems,
-              couponCode: appliedDiscount.coupon?.code || null,
-              rewardPoints: appliedDiscount.rewardPoints?.points || null,
-              currency: 'INR',
-              receipt: `order_${Date.now()}`,
-              customerInfo: {
-                name: shippingInfo.fullName,
-                email: shippingInfo.email,
-                phone: shippingInfo.phone
-              },
-              notes: {
-                customer_name: shippingInfo.fullName,
-                customer_email: shippingInfo.email,
-                items: cart.length,
-                shipping_method: selectedShipping?.courier_name || 'Standard'
-              },
-              // ✅ CRITICAL FIX: Let backend calculate amount (same as guest flow)
-              frontendAmount: totalAmount,
-              shippingCost: selectedShipping?.rate || 0
-            })
-        });
-        
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to create authenticated order');
-        }
-        orderResponse = data;
+      // ✅ SINGLE API CALL - Auto-detects user type based on auth header
+      const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      };
+
+      // Add auth header if user is authenticated
+      if (!isGuest && (auth as any).token) {
+        headers.Authorization = `Bearer ${(auth as any).token}`;
       }
+
+      const response = await fetch(`${API}/razorpay/order/create`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          cartItems: cartItems,
+          couponCode: appliedDiscount.coupon?.code || null,
+          rewardPoints: isGuest ? null : (appliedDiscount.rewardPoints?.points || null),
+          currency: 'INR',
+          receipt: isGuest ? `guest_${Date.now()}` : `order_${Date.now()}`,
+          customerInfo: {
+            name: shippingInfo.fullName,
+            email: shippingInfo.email,
+            phone: shippingInfo.phone
+          },
+          notes: {
+            items: cart.length,
+            shipping_method: selectedShipping?.courier_name || 'Standard',
+            ...(isGuest ? {} : {
+              customer_name: shippingInfo.fullName,
+              customer_email: shippingInfo.email,
+              reward_points_applied: appliedDiscount.rewardPoints?.points || 0,
+              reward_discount_applied: appliedDiscount.rewardPoints?.discount || 0
+            })
+          },
+          // ✅ Send frontend amount for verification (backend will use its own calculation)
+          frontendAmount: totalAmount,
+          shippingCost: selectedShipping?.rate || 0
+        })
+      });
+      
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create order');
+      }
+      orderResponse = data;
       
       if (orderResponse.error) {
         throw new Error(orderResponse.error);
@@ -237,79 +211,11 @@ export const useOrderHandler = ({
         async (paymentData: any) => {
           console.log('🎯 PAYMENT SUCCESS CALLBACK TRIGGERED:', paymentData);
           
-          // ✅ CRITICAL FIX: Navigate immediately with correct data structure
-          console.log('🚀 IMMEDIATE NAVIGATION WITH PAYMENT DATA');
+          // ✅ CRITICAL FIX: Wait for order creation to complete BEFORE navigating
+          console.log('🔄 PROCESSING ORDER CREATION...');
           
           try {
-            // ✅ CRITICAL FIX: Get AOV discount from backend calculation, not frontend calculation
-            console.log('🔍 GETTING DISCOUNT DATA FROM BACKEND CALCULATION...');
-            
-            // Get server-calculated values - the backend has already calculated these
-            let serverSubtotal = getTotalAmount();
-            let serverCouponDiscount = appliedDiscount.coupon?.discount || 0;
-            let serverQuantityDiscount = 0;
-            
-            // ✅ FETCH ACTUAL SERVER CALCULATION TO GET AOV DISCOUNT
-            try {
-              const calculationResponse = await fetch(`${API}/razorpay/calculate-amount`, {
-                method: 'POST',
-                headers: {
-                  Accept: 'application/json',
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  cartItems: cart.map(item => ({
-                    product: item.product || item._id?.split('-')[0] || '',
-                    name: item.name,
-                    quantity: item.quantity,
-                    size: item.size
-                  })),
-                  couponCode: appliedDiscount.coupon?.code || null,
-                  shippingCost: selectedShipping?.rate || 0
-                })
-              });
-              
-              if (calculationResponse.ok) {
-                const calculationData = await calculationResponse.json();
-                console.log('🎯 BACKEND CALCULATION RESPONSE:', calculationData);
-                
-                // Use backend-calculated values
-                serverSubtotal = calculationData.subtotal || serverSubtotal;
-                serverCouponDiscount = calculationData.couponDiscount || serverCouponDiscount;
-                
-                // ✅ CRITICAL: Get AOV discount from backend calculation
-                if (calculationData.quantityDiscount !== undefined) {
-                  serverQuantityDiscount = calculationData.quantityDiscount;
-                } else {
-                  // Fallback: calculate from total discounts
-                  const totalDiscountFromBackend = serverSubtotal + (calculationData.shippingCost || 0) - calculationData.total;
-                  serverQuantityDiscount = Math.max(0, totalDiscountFromBackend - serverCouponDiscount);
-                }
-                
-                console.log('✅ BACKEND DISCOUNT DATA RETRIEVED:');
-                console.log(`   Backend Subtotal: ₹${serverSubtotal}`);
-                console.log(`   Backend Coupon Discount: ₹${serverCouponDiscount}`);
-                console.log(`   Backend AOV Discount: ₹${serverQuantityDiscount}`);
-                console.log(`   Backend Final Total: ₹${calculationData.total}`);
-              } else {
-                console.warn('⚠️ Could not fetch backend calculation, using fallback');
-                // Fallback calculation
-                serverQuantityDiscount = serverSubtotal - totalAmount - serverCouponDiscount - (selectedShipping?.rate || 0);
-              }
-            } catch (error) {
-              console.error('❌ Error fetching backend calculation:', error);
-              // Fallback calculation
-              serverQuantityDiscount = serverSubtotal - totalAmount - serverCouponDiscount - (selectedShipping?.rate || 0);
-            }
-            
-            console.log('💰 FINAL DISCOUNT VALUES:');
-            console.log(`   Subtotal: ₹${serverSubtotal}`);
-            console.log(`   Final Amount: ₹${totalAmount}`);
-            console.log(`   Coupon Discount: ₹${serverCouponDiscount}`);
-            console.log(`   AOV Discount (from backend): ₹${serverQuantityDiscount}`);
-            console.log(`   Shipping: ₹${selectedShipping?.rate || 0}`);
-            
-            // Create order data for confirmation
+            // Create order data for backend
             const orderData = {
               products: cart.map(item => ({
                 product: item.product || item._id?.split('-')[0] || '',
@@ -323,8 +229,6 @@ export const useOrderHandler = ({
               })),
               transaction_id: paymentData.razorpay_payment_id,
               amount: totalAmount,
-              originalAmount: serverSubtotal,
-              discount: serverCouponDiscount + serverQuantityDiscount,
               coupon: appliedDiscount.coupon,
               rewardPointsRedeemed: appliedDiscount.rewardPoints?.points || 0,
               address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pinCode}, ${shippingInfo.country}`,
@@ -342,148 +246,144 @@ export const useOrderHandler = ({
               }
             };
             
-            // ✅ CRITICAL FIX: Include discount data in navigation state
+            let orderResult;
+            
+            if (isGuest) {
+              console.log('👤 Creating guest order...');
+              
+              // Step 1: Verify payment
+              const verifyResponse = await fetch(`${API}/razorpay/payment/guest/verify`, {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(paymentData)
+              });
+              
+              const verifyData = await verifyResponse.json();
+              if (!verifyResponse.ok || !verifyData.verified) {
+                throw new Error(`Payment verification failed: ${verifyData.error || 'Unknown error'}`);
+              }
+              
+              console.log('✅ Guest payment verified');
+              
+              // Step 2: Create order
+              const orderResponse = await fetch(`${API}/guest/order/create`, {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  ...orderData,
+                  guestInfo: {
+                    name: shippingInfo.fullName,
+                    email: shippingInfo.email,
+                    phone: shippingInfo.phone
+                  }
+                })
+              });
+              
+              const orderCreateData = await orderResponse.json();
+              if (!orderResponse.ok) {
+                throw new Error(`Guest order creation failed: ${orderCreateData.error || orderCreateData.err || 'Unknown error'}`);
+              }
+              
+              orderResult = orderCreateData.order || orderCreateData;
+              console.log('✅ Guest order created successfully:', orderResult._id);
+              
+            } else {
+              console.log('🔐 Creating authenticated user order...');
+              
+              // Step 1: Verify payment
+              const verifyResponse = await fetch(`${API}/razorpay/payment/verify/${(auth as any).user._id}`, {
+                method: 'POST',
+                headers: {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/json',
+                  Authorization: `Bearer ${(auth as any).token}`
+                },
+                body: JSON.stringify(paymentData)
+              });
+              
+              const verifyData = await verifyResponse.json();
+              if (!verifyResponse.ok || (!verifyData.verified && !verifyData.success)) {
+                throw new Error(`Payment verification failed: ${verifyData.error || 'Unknown error'}`);
+              }
+              
+              console.log('✅ Authenticated payment verified');
+              
+              // Step 2: Create order
+              const createOrderResult = await createOrder((auth as any).user._id, (auth as any).token, orderData);
+              if (createOrderResult.error || createOrderResult.err) {
+                throw new Error(`Order creation failed: ${createOrderResult.error || createOrderResult.err || 'Unknown error'}`);
+              }
+              
+              orderResult = createOrderResult;
+              console.log('✅ Authenticated order created successfully:', orderResult._id);
+            }
+            
+            // ✅ SUCCESS: Order created successfully, now navigate
+            console.log('🎉 ORDER CREATION SUCCESSFUL - NAVIGATING TO CONFIRMATION');
+            
+            // ✅ FIXED: Get final discount data from the created order or calculate it
+            const serverSubtotal = orderResult.originalAmount || getTotalAmount();
+            const serverCouponDiscount = appliedDiscount.coupon ? appliedDiscount.coupon.discount : 0; // ✅ Only set if coupon exists
+            const serverQuantityDiscount = orderResult.quantityDiscount?.amount || 0;
+            
             const navigationState = {
-              orderId: paymentData.razorpay_payment_id,
-              orderDetails: orderData,
+              orderId: orderResult._id || paymentData.razorpay_payment_id,
+              orderDetails: orderResult,
               shippingInfo,
               paymentMethod,
               paymentDetails: paymentData,
               finalAmount: totalAmount,
               originalAmount: serverSubtotal,
               subtotal: serverSubtotal,
-              couponDiscount: serverCouponDiscount,
+              // ✅ FIXED: Only pass coupon discount if coupon was actually applied
+              couponDiscount: appliedDiscount.coupon ? serverCouponDiscount : 0,
               quantityDiscount: serverQuantityDiscount,
+              rewardPointsUsed: appliedDiscount.rewardPoints?.points || 0,
+              rewardDiscount: appliedDiscount.rewardPoints?.discount || 0,
               shippingCost: selectedShipping?.rate || 0,
+              // ✅ FIXED: Pass applied discount info for proper display
+              appliedCoupon: appliedDiscount.coupon,
+              appliedRewardPoints: appliedDiscount.rewardPoints,
               isGuest,
               isBuyNow,
               createdAt: new Date().toISOString(),
-              paymentSuccess: true
+              paymentSuccess: true,
+              orderCreated: true
             };
             
-            console.log('🎯 NAVIGATION STATE WITH DISCOUNTS:', {
+            console.log('🎯 FINAL NAVIGATION STATE:', {
               orderId: navigationState.orderId,
               finalAmount: navigationState.finalAmount,
-              subtotal: navigationState.subtotal,
-              couponDiscount: navigationState.couponDiscount,
-              quantityDiscount: navigationState.quantityDiscount
+              rewardPointsUsed: navigationState.rewardPointsUsed,
+              rewardDiscount: navigationState.rewardDiscount
             });
             
-            // ✅ IMMEDIATE NAVIGATION: Skip modal for faster UX
-            console.log('⚡ NAVIGATING IMMEDIATELY TO ORDER CONFIRMATION');
             navigate('/order-confirmation-enhanced', { 
               state: navigationState,
               replace: true 
             });
             
-            // ✅ BACKGROUND PROCESSING: Handle order creation after navigation
-            console.log('🔄 Starting background order processing...');
-            
-            (async () => {
-              try {
-                if (isGuest) {
-                  // Guest payment verification and order creation
-                  const verifyResponse = await fetch(`${API}/razorpay/payment/guest/verify`, {
-                    method: 'POST',
-                    headers: {
-                      Accept: 'application/json',
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(paymentData)
-                  });
-                  
-                  const verifyData = await verifyResponse.json();
-                  if (!verifyResponse.ok || !verifyData.verified) {
-                    console.error('Payment verification failed:', verifyData.error);
-                    return;
-                  }
-                  
-                  // Create guest order
-                  const orderResponse = await fetch(`${API}/guest/order/create`, {
-                    method: 'POST',
-                    headers: {
-                      Accept: 'application/json',
-                      'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                      ...orderData,
-                      guestInfo: {
-                        name: shippingInfo.fullName,
-                        email: shippingInfo.email,
-                        phone: shippingInfo.phone
-                      }
-                    })
-                  });
-                  
-                  const orderCreateData = await orderResponse.json();
-                  if (!orderResponse.ok) {
-                    console.error('Failed to create guest order:', orderCreateData.error);
-                    return;
-                  }
-                  
-                  console.log('✅ Guest order created successfully in background:', orderCreateData.order._id);
-                  
-                } else {
-                  // Authenticated user verification and order creation
-                  const verifyResponse = await fetch(`${API}/razorpay/payment/verify/${(auth as any).user._id}`, {
-                    method: 'POST',
-                    headers: {
-                      Accept: 'application/json',
-                      'Content-Type': 'application/json',
-                      Authorization: `Bearer ${(auth as any).token}`
-                    },
-                    body: JSON.stringify(paymentData)
-                  });
-                  
-                  const verifyData = await verifyResponse.json();
-                  if (!verifyResponse.ok || (!verifyData.verified && !verifyData.success)) {
-                    console.error('Payment verification failed:', verifyData.error);
-                    return;
-                  }
-                  
-                  if (!verifyData.verified && !verifyData.success) {
-                    console.error('Payment verification failed');
-                    return;
-                  }
-                  
-                  // Create authenticated order
-                  const orderResult = await createOrder((auth as any).user._id, (auth as any).token, orderData);
-                  if (orderResult.error) {
-                    console.error('Failed to create authenticated order:', orderResult.error);
-                    return;
-                  }
-                  
-                  console.log('✅ Authenticated order created successfully in background:', orderResult._id);
-                }
-              } catch (error) {
-                console.error('❌ Background order processing failed:', error);
-              }
-            })();
-            
-            // Clear cart in background if needed
+            // Clear cart after successful navigation
             if (!isBuyNow) {
               clearCart()
-                .then(() => console.log('✅ Cart cleared in background'))
+                .then(() => console.log('✅ Cart cleared after successful order'))
                 .catch((error) => console.error('Cart clear error (non-blocking):', error));
             }
             
-          } catch (error) {
-            console.error('❌ Error in payment success callback:', error);
+          } catch (error: any) {
+            console.error('❌ ORDER CREATION FAILED:', error);
             
-            // ✅ FALLBACK NAVIGATION with error state
-            navigate('/order-confirmation-enhanced', { 
-              state: {
-                orderId: paymentData.razorpay_payment_id || 'unknown',
-                paymentDetails: paymentData,
-                finalAmount: totalAmount,
-                isGuest,
-                isBuyNow,
-                hasError: true,
-                errorMessage: error.message,
-                createdAt: new Date().toISOString()
-              },
-              replace: true 
-            });
+            // ✅ SHOW ERROR INSTEAD OF NAVIGATING TO SUCCESS PAGE
+            alert(`Order creation failed: ${error.message}\n\nYour payment was successful, but we couldn't create your order. Please contact customer support with your payment ID: ${paymentData.razorpay_payment_id}`);
+            
+            // Don't navigate to success page if order creation failed
+            // User stays on checkout page to retry or contact support
           }
         },
         (error: any) => {

@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const invoiceService = require('../services/invoiceService');
 const Invoice = require('../models/invoice');
 const { Order } = require('../models/order');
@@ -9,19 +10,60 @@ exports.createInvoiceFromOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
     
-    // Find the order
-    const order = await Order.findById(orderId)
-      .populate('user', 'name email phone');
+    console.log(`🔄 Creating invoice for order: ${orderId}`);
     
+    // ✅ ROBUST ORDER LOOKUP: Try different ID formats
+    let order = null;
+    
+    // Try as direct order ID first
+    if (mongoose.Types.ObjectId.isValid(orderId)) {
+      order = await Order.findById(orderId).populate('user', 'name email phone');
+      console.log(`   Direct order lookup: ${order ? 'found' : 'not found'}`);
+    }
+    
+    // If not found and looks like payment ID, try finding by transaction_id
+    if (!order && orderId.startsWith('pay_')) {
+      order = await Order.findOne({ transaction_id: orderId }).populate('user', 'name email phone');
+      console.log(`   Payment ID lookup: ${order ? 'found' : 'not found'}`);
+    }
+    
+    // If still not found, try finding recent orders and log for debugging
     if (!order) {
+      console.log(`❌ Order not found for ID: ${orderId}`);
+      
+      // Debug: Show recent orders
+      const recentOrders = await Order.find({}).sort({ createdAt: -1 }).limit(5).select('_id transaction_id createdAt');
+      console.log('Recent orders for debugging:', recentOrders.map(o => ({
+        id: o._id.toString(),
+        paymentId: o.transaction_id,
+        created: o.createdAt
+      })));
+      
       return res.status(404).json({
-        error: 'Order not found'
+        error: 'Order not found',
+        debug: {
+          searchedId: orderId,
+          isValidObjectId: mongoose.Types.ObjectId.isValid(orderId),
+          looksLikePaymentId: orderId.startsWith('pay_'),
+          recentOrderIds: recentOrders.map(o => o._id.toString())
+        }
       });
-    }c
+    }
+    
+    console.log(`✅ Order found: ${order._id}`);
+    console.log(`   Order structure:`, {
+      hasUser: !!order.user,
+      hasGuestInfo: !!order.guestInfo,
+      products: order.products?.length || 0,
+      amount: order.amount,
+      address: order.address ? 'present' : 'missing',
+      paymentStatus: order.paymentStatus
+    });
     
     // Check if invoice already exists
     const existingInvoice = await Invoice.findOne({ orderId: order._id });
     if (existingInvoice) {
+      console.log(`⚠️ Invoice already exists: ${existingInvoice.invoiceNumber}`);
       return res.status(400).json({
         error: 'Invoice already exists for this order',
         invoiceId: existingInvoice._id,
@@ -29,8 +71,11 @@ exports.createInvoiceFromOrder = async (req, res) => {
       });
     }
     
-    // Create invoice
+    // Create invoice with enhanced error handling
+    console.log(`🔄 Creating invoice with invoiceService...`);
     const invoice = await invoiceService.createInvoiceFromOrder(order);
+    
+    console.log(`✅ Invoice created successfully: ${invoice.invoiceNumber}`);
     
     res.json({
       success: true,
@@ -46,10 +91,17 @@ exports.createInvoiceFromOrder = async (req, res) => {
     });
     
   } catch (error) {
-    console.error('Create invoice error:', error);
+    console.error('❌ Create invoice error:', error);
+    console.error('Error stack:', error.stack);
+    
     res.status(500).json({
       error: 'Failed to create invoice',
-      details: error.message
+      details: error.message,
+      debug: {
+        orderId: req.params.orderId,
+        errorType: error.constructor.name,
+        errorMessage: error.message
+      }
     });
   }
 };
@@ -475,75 +527,53 @@ exports.downloadInvoiceByOrderId = async (req, res) => {
   try {
     const { orderId } = req.params;
     let invoice = null;
+    let order = null;
     
-    // ✅ FIX: Check if orderId looks like a payment ID FIRST to avoid ObjectId cast error
+    console.log(`🔄 Downloading invoice for ID: ${orderId}`);
+    
+    // ✅ FIXED: Check if it's a payment ID first to avoid casting errors
     if (orderId.startsWith('pay_')) {
-      console.log('Order ID looks like payment ID, searching by transaction_id...');
-      console.log('Searching for order with transaction_id:', orderId);
-      
-      // ✅ DEBUG: Check more orders to see what transaction_ids exist
-      const allOrders = await Order.find({}).select('transaction_id _id createdAt').sort({ createdAt: -1 }).limit(20);
-      console.log('Recent 20 orders in database:', allOrders.map(o => ({ 
-        id: o._id, 
-        transaction_id: o.transaction_id,
-        created: o.createdAt 
-      })));
-      
-      // ✅ ENHANCED SEARCH: Try to find by partial payment ID or similar
-      const similarOrders = await Order.find({
-        transaction_id: { $regex: 'pay_R0W', $options: 'i' }
-      }).select('transaction_id _id');
-      console.log('Orders with similar payment ID:', similarOrders);
-      
-      let order = await Order.findOne({ transaction_id: orderId });
-      
-      // ✅ TIMING FIX: If order not found, wait and retry (order might still be creating)
-      if (!order) {
-        console.log('Order not found immediately, waiting 2 seconds and retrying...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        order = await Order.findOne({ transaction_id: orderId });
-      }
+      console.log('   Detected payment ID, looking up order...');
+      order = await Order.findOne({ transaction_id: orderId });
       
       if (order) {
-        console.log('✅ Found order by payment ID:', order._id);
+        console.log(`   Found order ${order._id} for payment ID`);
         invoice = await Invoice.findOne({ orderId: order._id });
-        console.log('Invoice found for order:', invoice ? invoice._id : 'No invoice found');
         
         // If no invoice exists, try to create one
         if (!invoice) {
-          console.log('No invoice found, creating one...');
-          try {
-            const populatedOrder = await Order.findById(order._id)
-              .populate('user', 'name email phone');
-            invoice = await invoiceService.createInvoiceFromOrder(populatedOrder);
-            console.log('✅ Invoice created successfully:', invoice.invoiceNumber);
-          } catch (createError) {
-            console.error('Failed to create invoice:', createError);
-            return res.status(500).json({
-              error: 'Invoice not found and could not be created',
-              details: createError.message
-            });
-          }
+          console.log('   No invoice found, creating one...');
+          const populatedOrder = await Order.findById(order._id).populate('user', 'name email phone');
+          invoice = await invoiceService.createInvoiceFromOrder(populatedOrder);
         }
       } else {
-        console.log('❌ No order found with transaction_id:', orderId);
-        console.log('This might be a timing issue - order may still be creating');
-        return res.status(404).json({
-          error: 'Order not found for this payment ID. If you just completed payment, please wait a moment and try again.',
-          details: 'Order may still be processing'
-        });
+        console.log('   No order found for payment ID');
+      }
+    } else if (mongoose.Types.ObjectId.isValid(orderId)) {
+      // It's a valid ObjectId, try finding invoice directly
+      console.log('   Detected ObjectId, looking up invoice directly...');
+      invoice = await Invoice.findOne({ orderId });
+      
+      if (!invoice) {
+        console.log('   No invoice found, looking up order...');
+        order = await Order.findById(orderId);
+        
+        if (order) {
+          console.log(`   Found order, creating invoice...`);
+          const populatedOrder = await Order.findById(order._id).populate('user', 'name email phone');
+          invoice = await invoiceService.createInvoiceFromOrder(populatedOrder);
+        }
       }
     } else {
-      // Only try to find by orderId if it's not a payment ID (should be valid ObjectId)
-      try {
-        invoice = await Invoice.findOne({ orderId });
-      } catch (castError) {
-        console.log('Invalid ObjectId format for orderId:', orderId);
-        return res.status(400).json({
-          error: 'Invalid order ID format',
-          details: 'Order ID must be a valid ObjectId or payment ID'
-        });
-      }
+      console.log('   Invalid ID format - not payment ID or ObjectId');
+      return res.status(400).json({
+        error: 'Invalid order ID format',
+        debug: {
+          providedId: orderId,
+          isPaymentId: orderId.startsWith('pay_'),
+          isValidObjectId: mongoose.Types.ObjectId.isValid(orderId)
+        }
+      });
     }
     
     if (!invoice) {
@@ -552,126 +582,37 @@ exports.downloadInvoiceByOrderId = async (req, res) => {
       });
     }
     
-    // ✅ ENHANCED: Try to generate PDF first, fallback to HTML
+    // Check if PDF exists, if not try to generate it
     if (!invoice.files.pdfPath || !invoice.files.pdfUrl) {
-      console.log('📄 PDF not available, attempting to generate...');
-      try {
-        const invoiceService = require('../services/invoiceService');
-        const pdfResult = await invoiceService.generatePDF(invoice);
-        
-        if (pdfResult.warning) {
-          // PDF generation failed, send HTML instead
-          console.log('⚠️ PDF generation failed, sending HTML download');
-          
-          const invoiceHTML = invoiceService.generateInvoiceHTML(invoice);
-          const fileName = `invoice-${invoice.invoiceNumber}.html`;
-          
-          res.setHeader('Content-Type', 'text/html; charset=utf-8');
-          res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-          res.setHeader('Cache-Control', 'no-cache');
-          
-          const printableHTML = `
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="UTF-8">
-            <title>Invoice ${invoice.invoiceNumber}</title>
-            <style>
-              @media screen {
-                body { 
-                  margin: 20px;
-                  background: #f5f5f5;
-                }
-                .print-instruction {
-                  background: #007bff;
-                  color: white;
-                  padding: 15px;
-                  margin-bottom: 20px;
-                  border-radius: 5px;
-                  text-align: center;
-                  font-family: Arial, sans-serif;
-                }
-                .print-button {
-                  background: #28a745;
-                  color: white;
-                  padding: 10px 20px;
-                  border: none;
-                  border-radius: 5px;
-                  cursor: pointer;
-                  font-size: 16px;
-                  margin: 10px;
-                }
-              }
-              @media print {
-                .print-instruction { display: none; }
-                body { margin: 0; background: white; }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="print-instruction">
-              <h3>📄 Invoice ${invoice.invoiceNumber}</h3>
-              <p>Click the button below to print this invoice, or use Ctrl+P (Cmd+P on Mac)</p>
-              <button class="print-button" onclick="window.print()">🖨️ Print Invoice</button>
-              <button class="print-button" onclick="window.close()">✖️ Close</button>
-            </div>
-            ${invoiceHTML}
-            <script>
-              // Auto-open print dialog
-              window.onload = function() {
-                setTimeout(function() {
-                  window.print();
-                }, 1000);
-              };
-            </script>
-          </body>
-          </html>`;
-          
-          return res.send(printableHTML);
-        }
-        
-        // PDF generated successfully, continue to serve it
-        console.log('✅ PDF generated successfully, serving PDF file');
-        
-      } catch (error) {
-        console.error('Failed to generate PDF:', error);
-        // Fall back to HTML
-        const invoiceService = require('../services/invoiceService');
-        const invoiceHTML = invoiceService.generateInvoiceHTML(invoice);
-        const fileName = `invoice-${invoice.invoiceNumber}.html`;
-        
-        res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-        res.setHeader('Cache-Control', 'no-cache');
-        
-        return res.send(invoiceHTML);
-      }
+      console.log('PDF not available, generating...');
+      await invoiceService.generatePDF(invoice);
     }
     
-    // Check if PDF file exists
+    // Check if PDF file exists on filesystem
     try {
       await fs.access(invoice.files.pdfPath);
     } catch (error) {
-      return res.status(404).json({
-        error: 'Invoice PDF file not found on server'
-      });
+      // PDF file doesn't exist, fallback to HTML
+      console.log('PDF file not found, serving HTML version');
+      const invoiceHTML = invoiceService.generateInvoiceHTML(invoice);
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.setHeader('Content-Disposition', `inline; filename="invoice-${invoice.invoiceNumber}.html"`);
+      return res.send(invoiceHTML);
     }
     
-    // ✅ SERVE ACTUAL PDF FILE
-    console.log('📄 Serving PDF file for download');
+    // Serve the PDF file
     const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
     
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader('Cache-Control', 'no-cache');
     
-    // Stream the PDF file
     const fileBuffer = await fs.readFile(invoice.files.pdfPath);
-    console.log('✅ PDF file sent successfully');
     res.send(fileBuffer);
     
   } catch (error) {
-    console.error('Download invoice by order ID error:', error);
+    console.error('Download invoice error:', error);
     res.status(500).json({
       error: 'Failed to download invoice',
       details: error.message

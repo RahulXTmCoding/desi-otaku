@@ -66,13 +66,6 @@ const OrderReview: React.FC<OrderReviewProps> = memo(({
         {/* Delivery Method */}
         <DeliveryMethodCard selectedShipping={selectedShipping} />
       </div>
-
-      {/* Order Summary */}
-      <OrderSummaryCard
-        cartItems={cartItems}
-        selectedShipping={selectedShipping}
-        getTotalAmount={getTotalAmount}
-      />
     </>
   );
 });

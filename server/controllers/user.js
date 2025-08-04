@@ -223,31 +223,60 @@ exports.pushOrderInPurchaseList = (req, res, next) => {
   }
   
   req.body.order.products.forEach((product) => {
-    purchases.push({
-      _id: product.product || product._id, // Handle both formats
-      name: product.name,
-      description: product.description || '',
-      category: product.category || 'general',
-      quantity: product.count || product.quantity || 1,
-      amount: req.body.order.amount,
-      transaction_id: req.body.order.transaction_id,
-    });
+    // ✅ CRITICAL FIX: Extract only the ObjectId, not the full populated object
+    let productId = null;
+    
+    if (product.product) {
+      // Handle populated product object
+      if (typeof product.product === 'object' && product.product._id) {
+        productId = product.product._id; // Extract ObjectId from populated object
+      } else {
+        productId = product.product; // Already an ObjectId string
+      }
+    } else if (product._id) {
+      // Handle direct product ID
+      if (typeof product._id === 'object' && product._id._id) {
+        productId = product._id._id; // Extract from nested object
+      } else {
+        productId = product._id;
+      }
+    }
+    
+    // Only add to purchases if we have a valid product ID
+    if (productId && productId !== 'custom') {
+      purchases.push({
+        _id: productId, // ✅ Store only ObjectId string, not full object
+        name: product.name,
+        description: product.description || '',
+        category: product.category || 'general',
+        quantity: product.count || product.quantity || 1,
+        amount: req.body.order.amount,
+        transaction_id: req.body.order.transaction_id,
+      });
+    }
   });
   
-  //store this in DB
-  User.findOneAndUpdate(
-    { _id: req.profile._id },
-    { $push: { purchases: purchases } },
-    { new: true },
-    (err, purchases) => {
-      if (err) {
-        console.error("Error saving purchase list:", err);
-        // Don't fail the order if purchase list fails
-        return next();
+  // Only update if there are valid purchases to add
+  if (purchases.length > 0) {
+    //store this in DB
+    User.findOneAndUpdate(
+      { _id: req.profile._id },
+      { $push: { purchases: purchases } },
+      { new: true },
+      (err, purchases) => {
+        if (err) {
+          console.error("Error saving purchase list:", err);
+          // Don't fail the order if purchase list fails
+          return next();
+        }
+        console.log(`✅ Successfully added ${purchases.length} items to purchase list`);
+        next();
       }
-      next();
-    }
-  );
+    );
+  } else {
+    console.log("No valid products to add to purchase list");
+    next();
+  }
 };
 
 // Get all saved addresses for a user

@@ -313,17 +313,54 @@ const CheckoutFixed: React.FC = () => {
   // ✅ CRITICAL FIX: Use backend calculation for authenticated users (same as guest flow)
   const [backendCalculatedAmount, setBackendCalculatedAmount] = useState<number | null>(null);
   const [backendCalculationLoading, setBackendCalculationLoading] = useState(false);
+  
+  // ✅ PREVENT INFINITE LOOPS: Track request parameters to avoid duplicate calls
+  const lastCalculationParams = useRef<string>('');
+  const calculationInProgress = useRef<boolean>(false);
 
   // Fetch backend calculation for authenticated users
   useEffect(() => {
     if (!isTestMode && auth && typeof auth !== 'boolean' && auth.user && cart.length > 0 && selectedShipping) {
+      
+      // ✅ CREATE STABLE PARAMETER HASH to prevent duplicate requests
+      const currentParams = JSON.stringify({
+        cartLength: cart.length,
+        cartItems: cart.map(item => `${item.product || item._id}-${item.quantity}-${item.size}`).join(','),
+        couponCode: appliedDiscount.coupon?.code || null,
+        rewardPoints: appliedDiscount.rewardPoints?.points || null,
+        shippingRate: selectedShipping?.rate || 0,
+        userId: auth.user._id
+      });
+      
+      // ✅ PREVENT DUPLICATE CALLS: Skip if same parameters
+      if (currentParams === lastCalculationParams.current) {
+        console.log('🔄 Skipping duplicate backend calculation request');
+        return;
+      }
+      
+      // ✅ PREVENT REQUEST IN PROGRESS: Skip if already calculating
+      if (calculationInProgress.current) {
+        console.log('🔄 Skipping - calculation already in progress');
+        return;
+      }
+      
+      lastCalculationParams.current = currentParams;
+      calculationInProgress.current = true;
       setBackendCalculationLoading(true);
+      
+      console.log('🔍 TRIGGERING BACKEND CALCULATION WITH:', {
+        cartItems: cart.length,
+        couponCode: appliedDiscount.coupon?.code,
+        rewardPoints: appliedDiscount.rewardPoints?.points,
+        shippingCost: selectedShipping?.rate
+      });
       
       fetch(`${API}/razorpay/calculate-amount`, {
         method: 'POST',
         headers: {
           Accept: 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${(auth as any).token}`
         },
         body: JSON.stringify({
           cartItems: cart.map(item => ({
@@ -339,56 +376,115 @@ const CheckoutFixed: React.FC = () => {
       })
       .then(response => response.json())
       .then(data => {
+        console.log('✅ BACKEND CALCULATION RESPONSE:', data);
         if (data.success && !data.error) {
+          console.log(`🎯 BACKEND CALCULATED TOTAL: ₹${data.total} (with ${appliedDiscount.rewardPoints?.points || 0} reward points)`);
           setBackendCalculatedAmount(data.total);
           
-          // Update quantity discount display from backend calculation
+          // ✅ PREVENT LOOP: Only update quantity discount if it actually changed
           if (data.quantityDiscount > 0) {
             const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
             const percentage = Math.round((data.quantityDiscount / (data.subtotal + data.shippingCost)) * 100);
             
-            setAppliedDiscount(prev => ({
-              ...prev,
-              quantity: {
-                discount: data.quantityDiscount,
-                percentage,
-                description: `${percentage}% off for ${totalQuantity} items`
-              }
-            }));
-          } else {
+            // Check if quantity discount actually changed before updating
+            const newQuantityDiscount = {
+              discount: data.quantityDiscount,
+              percentage,
+              description: `${percentage}% off for ${totalQuantity} items`
+            };
+            
+            if (!appliedDiscount.quantity || 
+                appliedDiscount.quantity.discount !== newQuantityDiscount.discount ||
+                appliedDiscount.quantity.percentage !== newQuantityDiscount.percentage) {
+              setAppliedDiscount(prev => ({
+                ...prev,
+                quantity: newQuantityDiscount
+              }));
+            }
+          } else if (appliedDiscount.quantity) {
+            // Only clear if there was a discount before
             setAppliedDiscount(prev => ({ ...prev, quantity: null }));
           }
+        } else {
+          console.error('❌ Backend calculation failed:', data.error);
         }
       })
-      .catch(console.error)
-      .finally(() => setBackendCalculationLoading(false));
+      .catch(error => {
+        console.error('❌ Backend calculation request failed:', error);
+      })
+      .finally(() => {
+        setBackendCalculationLoading(false);
+        calculationInProgress.current = false;
+      });
     }
-  }, [isTestMode, auth && typeof auth !== 'boolean' ? auth.user._id : null, cart, selectedShipping?.rate, appliedDiscount.coupon?.code, appliedDiscount.rewardPoints?.points]);
+  }, [
+    isTestMode, 
+    auth && typeof auth !== 'boolean' ? auth.user._id : null, 
+    // ✅ USE STABLE DEPENDENCIES: Create stable references to prevent loops
+    cart.length, // Just track length, not the whole array
+    cart.map(item => `${item.product || item._id}-${item.quantity}-${item.size}`).join(','), // Stable cart signature
+    selectedShipping?.rate, 
+    appliedDiscount.coupon?.code, 
+    appliedDiscount.rewardPoints?.points
+  ]);
 
-  // ✅ FALLBACK: Frontend calculation for test mode and guests
+  // ✅ FIXED: Use backend API for AOV calculation instead of hardcoded values
+  const [frontendAovDiscount, setFrontendAovDiscount] = useState({ discount: 0, percentage: 0 });
+  const [aovCalculationLoading, setAovCalculationLoading] = useState(false);
+  
+  // Fetch AOV discount from backend for consistent calculation
+  useEffect(() => {
+    if (cart.length > 0 && selectedShipping) {
+      setAovCalculationLoading(true);
+      
+      fetch(`${API}/razorpay/calculate-amount`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json'
+          // No auth header for AOV calculation - works for guests too
+        },
+        body: JSON.stringify({
+          cartItems: cart.map(item => ({
+            product: item.product || item._id?.split('-')[0] || '',
+            name: item.name,
+            quantity: item.quantity,
+            size: item.size
+          })),
+          couponCode: null, // Just get AOV discount, no other discounts
+          rewardPoints: null,
+          shippingCost: selectedShipping?.rate || 0
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.quantityDiscount > 0) {
+          const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
+          const percentage = Math.round((data.quantityDiscount / (data.subtotal + data.shippingCost)) * 100);
+          setFrontendAovDiscount({ discount: data.quantityDiscount, percentage });
+          console.log(`✅ Frontend AOV from server: ${percentage}% (₹${data.quantityDiscount}) for ${totalQuantity} items`);
+        } else {
+          setFrontendAovDiscount({ discount: 0, percentage: 0 });
+        }
+      })
+      .catch(error => {
+        console.error('Failed to get AOV from server:', error);
+        setFrontendAovDiscount({ discount: 0, percentage: 0 });
+      })
+      .finally(() => {
+        setAovCalculationLoading(false);
+      });
+    }
+  }, [cart.length, cart.map(item => `${item.quantity}`).join(','), selectedShipping?.rate]);
+
   const getFrontendCalculatedAmount = useCallback(() => {
     const subtotal = getTotalAmount();
     const shipping = selectedShipping?.rate || 0;
-    
-    // Calculate quantity-based discount (AOV) - EXACT backend match with SAME rounding
     const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
-    let quantityDiscount = 0;
-    let percentage = 0;
     
-    // 🎯 FIXED: Match backend AOV tiers exactly - including 2-item tier!
-    if (totalQuantity >= 2) {
-      const baseAmount = subtotal + shipping;
-      if (totalQuantity >= 5) {
-        percentage = 20;
-        quantityDiscount = Math.floor(baseAmount * 0.20); // 20% for 5+ items
-      } else if (totalQuantity >= 3) {
-        percentage = 15;
-        quantityDiscount = Math.floor(baseAmount * 0.15); // 15% for 3-4 items
-      } else if (totalQuantity >= 2) {
-        percentage = 5;
-        quantityDiscount = Math.floor(baseAmount * 0.05); // 5% for 2 items
-      }
-    }
+    // ✅ Use server-calculated AOV discount
+    const quantityDiscount = frontendAovDiscount.discount;
+    const percentage = frontendAovDiscount.percentage;
     
     // Apply discounts in order: quantity discount first, then others
     const afterQuantityDiscount = (subtotal + shipping) - quantityDiscount;
@@ -421,11 +517,27 @@ const CheckoutFixed: React.FC = () => {
 
   // ✅ FINAL AMOUNT: Use backend calculation for authenticated users, frontend for others
   const getFinalAmount = useCallback(() => {
+    const frontendAmount = getFrontendCalculatedAmount();
+    
+    console.log('🎯 GET FINAL AMOUNT DEBUG:', {
+      isTestMode,
+      isAuthenticated: !!(auth && typeof auth !== 'boolean' && auth.user),
+      backendCalculatedAmount,
+      frontendAmount,
+      rewardPoints: appliedDiscount.rewardPoints?.points || 0,
+      rewardDiscount: appliedDiscount.rewardPoints?.discount || 0,
+      subtotal: getTotalAmount(),
+      shipping: selectedShipping?.rate || 0
+    });
+    
     if (!isTestMode && auth && typeof auth !== 'boolean' && auth.user && backendCalculatedAmount !== null) {
+      console.log(`✅ USING BACKEND AMOUNT: ₹${backendCalculatedAmount}`);
       return backendCalculatedAmount;
     }
-    return getFrontendCalculatedAmount();
-  }, [isTestMode, auth && typeof auth !== 'boolean' ? auth.user._id : null, backendCalculatedAmount, getFrontendCalculatedAmount]);
+    
+    console.log(`✅ USING FRONTEND AMOUNT: ₹${frontendAmount}`);
+    return frontendAmount;
+  }, [isTestMode, auth && typeof auth !== 'boolean' ? auth.user._id : null, backendCalculatedAmount, getFrontendCalculatedAmount, appliedDiscount, getTotalAmount, selectedShipping]);
 
   const validateShipping = useCallback(() => {
     const required = ['fullName', 'email', 'phone', 'address', 'city', 'state', 'pinCode'];

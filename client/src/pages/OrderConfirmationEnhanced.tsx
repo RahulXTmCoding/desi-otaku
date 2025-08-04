@@ -217,14 +217,32 @@ const OrderConfirmationEnhanced: React.FC = () => {
   const finalAmount = orderStateData?.finalAmount || orderDetails?.amount || 0;
   const itemCount = orderStateData?.itemCount || orderDetails?.products?.length || 0;
   
-  // ✅ CRITICAL FIX: Use new data structure from payment flow
+  // ✅ FIXED: Calculate correct subtotal - sum of all products before discounts
   const shippingCost = orderStateData?.shippingCost || orderDetails?.shipping?.shippingCost || 0;
-  const subtotal = orderStateData?.subtotal || orderStateData?.originalAmount || finalAmount;
   
-  // ✅ FIXED: Get discounts directly from navigation state
-  const couponDiscount = orderStateData?.couponDiscount || orderDetails?.discount || orderDetails?.coupon?.discount || 0;
+  // ✅ FIXED: Get discounts first (needed for subtotal calculation)
+  const couponDiscount = orderStateData?.couponDiscount || (orderDetails?.coupon?.code ? (orderDetails?.discount || orderDetails?.coupon?.discount || 0) : 0);
   const quantityDiscount = orderStateData?.quantityDiscount || 0;
-  const rewardPointsUsed = orderDetails?.rewardPointsRedeemed || 0;
+  const rewardPointsUsed = orderStateData?.rewardPointsUsed || orderDetails?.rewardPointsRedeemed || 0;
+  const rewardDiscount = orderStateData?.rewardDiscount || (rewardPointsUsed * 0.5) || 0;
+  
+  // Calculate actual subtotal from products
+  let calculatedSubtotal = 0;
+  if (orderDetails?.products && Array.isArray(orderDetails.products)) {
+    calculatedSubtotal = orderDetails.products.reduce((sum, product) => {
+      const price = product.price || 0;
+      const count = product.count || product.quantity || 1;
+      return sum + (price * count);
+    }, 0);
+  } else if (orderStateData?.originalAmount) {
+    // If no product details, use originalAmount (should be subtotal + shipping before discounts)
+    calculatedSubtotal = orderStateData.originalAmount - shippingCost;
+  } else {
+    // Last fallback - calculate from final amount + discounts
+    calculatedSubtotal = finalAmount + (quantityDiscount || 0) + (couponDiscount || 0) + (rewardDiscount || 0) - shippingCost;
+  }
+  
+  const subtotal = Math.max(0, calculatedSubtotal);
   
   // ✅ CRITICAL DEBUG: Log all possible data sources
   console.log('📊 Order Confirmation Data Analysis:');
@@ -235,7 +253,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
   console.log(`   couponDiscount: ₹${couponDiscount} (from: ${orderStateData?.couponDiscount ? 'orderStateData.couponDiscount' : 'default'})`);
   console.log(`   quantityDiscount: ₹${quantityDiscount} (from: ${orderStateData?.quantityDiscount ? 'orderStateData.quantityDiscount' : orderStateData?.aovDiscount ? 'orderStateData.aovDiscount' : 'default'})`);
   
-  // ✅ FIXED: Handle HTML invoice response correctly
+  // ✅ FIXED: Try multiple approaches to download invoice
   const handleDownloadInvoice = async () => {
     if (!orderNumber) {
       setDownloadError('Order number not available');
@@ -245,15 +263,53 @@ const OrderConfirmationEnhanced: React.FC = () => {
     setDownloadingInvoice(true);
     setDownloadError('');
     
+    console.log('🎯 Attempting to download invoice for:', {
+      orderNumber,
+      paymentId: orderStateData?.paymentDetails?.razorpay_payment_id,
+      actualOrderId: orderStateData?.orderDetails?._id
+    });
+    
     try {
-      const response = await fetch(`${API}/invoice/order/${orderNumber}/download`);
+      // ✅ Strategy 1: Try with the order ID we have
+      let response = await fetch(`${API}/invoice/order/${orderNumber}/download`);
+      
+      // ✅ Strategy 2: If that fails, try with payment ID
+      if (!response.ok && orderStateData?.paymentDetails?.razorpay_payment_id) {
+        console.log('🔄 Trying with payment ID...');
+        response = await fetch(`${API}/invoice/order/${orderStateData.paymentDetails.razorpay_payment_id}/download`);
+      }
+      
+      // ✅ Strategy 3: If that fails, try to create invoice first
+      if (!response.ok && response.status === 404) {
+        console.log('🔄 Invoice not found, trying to create it first...');
+        const createResponse = await fetch(`${API}/invoice/order/${orderNumber}/create`, {
+          method: 'POST'
+        });
+        
+        if (createResponse.ok) {
+          console.log('✅ Invoice created, now downloading...');
+          response = await fetch(`${API}/invoice/order/${orderNumber}/download`);
+        } else {
+          // Try creating with payment ID
+          if (orderStateData?.paymentDetails?.razorpay_payment_id) {
+            const createWithPaymentResponse = await fetch(`${API}/invoice/order/${orderStateData.paymentDetails.razorpay_payment_id}/create`, {
+              method: 'POST'
+            });
+            
+            if (createWithPaymentResponse.ok) {
+              console.log('✅ Invoice created with payment ID, now downloading...');
+              response = await fetch(`${API}/invoice/order/${orderStateData.paymentDetails.razorpay_payment_id}/download`);
+            }
+          }
+        }
+      }
       
       if (response.ok) {
         const contentType = response.headers.get('Content-Type');
         
         if (contentType?.includes('text/html')) {
           // ✅ HTML invoice - open in new tab
-          const invoiceUrl = `${API}/invoice/order/${orderNumber}/download`;
+          const invoiceUrl = response.url;
           window.open(invoiceUrl, '_blank', 'width=800,height=900,scrollbars=yes,resizable=yes');
         } else if (contentType?.includes('application/pdf')) {
           // ✅ PDF invoice - download as file
@@ -277,11 +333,30 @@ const OrderConfirmationEnhanced: React.FC = () => {
         }
       } else {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Invoice not ready yet. Please try again in a few minutes.');
+        
+        // ✅ Better error messages
+        if (response.status === 404) {
+          throw new Error('Invoice not found. This might be because the order is still being processed. Please try again in a few minutes.');
+        } else {
+          throw new Error(errorData.error || `Invoice download failed (${response.status}). Please try again.`);
+        }
       }
     } catch (error: any) {
       console.error('Download invoice error:', error);
       setDownloadError(error.message || 'Failed to download invoice. Please try again.');
+      
+      // ✅ Fallback: Show order details if invoice fails
+      setTimeout(() => {
+        if (confirm('Invoice download failed. Would you like to see order details instead?')) {
+          console.log('Order Details:', {
+            orderNumber,
+            amount: finalAmount,
+            items: itemCount,
+            customer: shippingInfo?.email
+          });
+          alert(`Order Details:\n\nOrder ID: ${orderNumber}\nTotal Amount: ₹${finalAmount}\nItems: ${itemCount}\nEmail: ${shippingInfo?.email}\n\nPlease save this information for your records.`);
+        }
+      }, 1000);
     } finally {
       setDownloadingInvoice(false);
     }
@@ -473,14 +548,14 @@ const OrderConfirmationEnhanced: React.FC = () => {
                 {rewardPointsUsed > 0 && (
                   <div className="flex justify-between text-purple-400">
                     <span>Reward Points ({rewardPointsUsed} points):</span>
-                    <span>-₹{rewardPointsUsed.toLocaleString('en-IN')}</span>
+                    <span>-₹{(rewardPointsUsed * 0.5).toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 
                 {(quantityDiscount > 0 || couponDiscount > 0 || rewardPointsUsed > 0) && (
                   <div className="flex justify-between text-green-400 font-semibold pt-1 border-t border-gray-600">
                     <span>Total Savings:</span>
-                    <span>-₹{(quantityDiscount + couponDiscount + rewardPointsUsed).toLocaleString('en-IN')}</span>
+                    <span>-₹{(quantityDiscount + couponDiscount + (rewardPointsUsed * 0.5)).toLocaleString('en-IN')}</span>
                   </div>
                 )}
                 

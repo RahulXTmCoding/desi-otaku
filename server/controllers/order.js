@@ -295,93 +295,39 @@ exports.createOrder = async (req, res) => {
       // Continue without quantity discount if calculation fails
     }
     
-    // ✅ CRITICAL FIX: Handle coupon validation and discount calculation BEFORE AOV discount
-    // This ensures coupon is calculated on original subtotal, matching payment calculation exactly
+    // ✅ CRITICAL FIX: Use shared coupon validation function for consistency
     let couponDiscount = 0;
     const originalSubtotalForCoupon = recalculatedTotal - shippingCost; // Get subtotal before any discounts
     
     if (req.body.order.coupon && req.body.order.coupon.code) {
       console.log(`Validating coupon: ${req.body.order.coupon.code}`);
       
-      // Import Coupon model for validation
-      const Coupon = require("../models/coupon");
+      // Use shared validation function to ensure consistency with checkout
+      const { validateCouponForOrder } = require("./coupon");
+      const validationResult = await validateCouponForOrder(
+        req.body.order.coupon.code,
+        originalSubtotalForCoupon,
+        req.profile?._id
+      );
       
-      // Validate coupon on server side
-      const coupon = await Coupon.findOne({ 
-        code: req.body.order.coupon.code.toUpperCase(),
-        isActive: true
-      });
-
-      if (!coupon) {
+      if (!validationResult.valid) {
         return res.status(400).json({
-          error: "Invalid coupon code"
+          error: validationResult.error
         });
-      }
-
-      // Check if coupon is valid
-      if (!coupon.isValid()) {
-        return res.status(400).json({
-          error: "Coupon has expired or reached usage limit"
-        });
-      }
-
-      // ✅ CRITICAL FIX: Check minimum purchase against original subtotal (before discounts)
-      if (originalSubtotalForCoupon < coupon.minimumPurchase) {
-        return res.status(400).json({
-          error: `Minimum purchase of ₹${coupon.minimumPurchase} required`
-        });
-      }
-
-      // Check first time only restriction
-      if (coupon.firstTimeOnly && req.profile && req.profile._id) {
-        const previousOrders = await Order.countDocuments({ 
-          user: req.profile._id,
-          status: { $ne: "Cancelled" }
-        });
-        if (previousOrders > 0) {
-          return res.status(400).json({
-            error: "This coupon is only valid for first-time customers"
-          });
-        }
-      }
-
-      // Check user usage limit
-      if (req.profile && req.profile._id && coupon.userLimit) {
-        const userUsageCount = await Order.countDocuments({
-          user: req.profile._id,
-          "coupon.code": coupon.code,
-          status: { $ne: "Cancelled" }
-        });
-        if (userUsageCount >= coupon.userLimit) {
-          return res.status(400).json({
-            error: "You have already used this coupon maximum times"
-          });
-        }
       }
       
-      // ✅ CRITICAL FIX: Calculate coupon discount on ORIGINAL SUBTOTAL (matching payment calculation)
-      if (coupon.discountType === 'percentage') {
-        couponDiscount = Math.floor((originalSubtotalForCoupon * coupon.discountValue) / 100);
-        // Apply max discount if specified
-        if (coupon.maxDiscount && couponDiscount > coupon.maxDiscount) {
-          couponDiscount = coupon.maxDiscount;
-        }
-      } else {
-        // Fixed discount
-        couponDiscount = coupon.discountValue;
-      }
-      
-      // Ensure discount doesn't exceed original subtotal
-      couponDiscount = Math.min(couponDiscount, originalSubtotalForCoupon);
+      // Extract validated coupon data
+      const validatedCoupon = validationResult.coupon;
+      couponDiscount = validatedCoupon.discount;
       
       // Update coupon info with server-validated data
       req.body.order.coupon = {
-        code: coupon.code,
-        discountType: coupon.discountType,
+        code: validatedCoupon.code,
+        discountType: validatedCoupon.discountType,
         discountValue: couponDiscount
       };
       
-      console.log(`Applied coupon discount: ₹${couponDiscount} (calculated on original subtotal: ₹${originalSubtotalForCoupon})`);
+      console.log(`✅ Applied coupon discount: ₹${couponDiscount} (validated consistently with checkout)`);
     } else {
       // Remove coupon info if no valid coupon
       delete req.body.order.coupon;
@@ -392,24 +338,33 @@ exports.createOrder = async (req, res) => {
     
     // Handle reward points redemption (only for authenticated users)
     let rewardPointsDiscount = 0;
+    let rewardRedemptionPending = false;
+    
     if (req.body.order.rewardPointsRedeemed && req.body.order.rewardPointsRedeemed > 0 && req.profile && req.profile._id) {
       console.log(`Processing reward points redemption: ${req.body.order.rewardPointsRedeemed} points`);
       
-      const redeemResult = await redeemPoints(
-        req.profile._id,
-        req.body.order.rewardPointsRedeemed,
-        'pending' // Will be updated with actual order ID after save
-      );
+      // ✅ CRITICAL FIX: Don't create reward transaction yet, just validate and calculate
+      const User = require("../models/user");
+      const user = await User.findById(req.profile._id);
       
-      if (!redeemResult.success) {
+      if (!user || user.rewardPoints < req.body.order.rewardPointsRedeemed) {
         return res.status(400).json({
-          error: redeemResult.message || "Failed to redeem reward points"
+          error: "Insufficient reward points"
         });
       }
       
-      rewardPointsDiscount = redeemResult.discountAmount;
+      if (req.body.order.rewardPointsRedeemed > 50) {
+        return res.status(400).json({
+          error: "Maximum 50 points can be redeemed per order"
+        });
+      }
+      
+      // Calculate discount amount (1 point = ₹0.5)
+      rewardPointsDiscount = req.body.order.rewardPointsRedeemed * 0.5;
       req.body.order.rewardPointsDiscount = rewardPointsDiscount;
-      console.log(`Applied reward points discount: ₹${rewardPointsDiscount}`);
+      rewardRedemptionPending = true; // Mark for processing after order creation
+      
+      console.log(`Validated reward points redemption: ${req.body.order.rewardPointsRedeemed} points = ₹${rewardPointsDiscount} discount`);
     }
     
     // Apply total discount
@@ -463,23 +418,26 @@ exports.createOrder = async (req, res) => {
       }
     }
     
-    // Update reward transaction with actual order ID if points were redeemed
-    if (req.body.order.rewardPointsRedeemed && req.body.order.rewardPointsRedeemed > 0 && req.profile && req.profile._id) {
+    // ✅ CRITICAL FIX: Process reward points redemption AFTER order is created
+    if (rewardRedemptionPending && req.body.order.rewardPointsRedeemed > 0 && req.profile && req.profile._id) {
       try {
-        await RewardTransaction.findOneAndUpdate(
-          { 
-            user: req.profile._id, 
-            orderId: 'pending',
-            type: 'redeemed'
-          },
-          { 
-            orderId: savedOrder._id,
-            description: `Redeemed ${req.body.order.rewardPointsRedeemed} points for order #${savedOrder._id}`
-          },
-          { sort: { createdAt: -1 } } // Get the most recent pending transaction
+        console.log(`Processing reward points redemption with actual order ID: ${savedOrder._id}`);
+        
+        const redeemResult = await redeemPoints(
+          req.profile._id,
+          req.body.order.rewardPointsRedeemed,
+          savedOrder._id // Use actual order ID
         );
-      } catch (err) {
-        console.error('Failed to update reward transaction with order ID:', err);
+        
+        if (redeemResult.success) {
+          console.log(`✅ Successfully redeemed ${req.body.order.rewardPointsRedeemed} points for order ${savedOrder._id}`);
+        } else {
+          console.error(`❌ Failed to redeem points after order creation: ${redeemResult.message}`);
+          // Order is already created, so don't fail - just log the error
+        }
+      } catch (rewardError) {
+        console.error('Failed to process reward points after order creation:', rewardError);
+        // Order is already created, so don't fail - just log the error
       }
     }
     
