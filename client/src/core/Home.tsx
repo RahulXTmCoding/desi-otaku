@@ -250,7 +250,7 @@ const Home: React.FC = () => {
       return getMockProductImage(product._id);
     }
     if (product._id) {
-      return `${API}/product/photo/${product._id}`;
+      return `${API}/product/image/${product._id}`;
     }
     return '/api/placeholder/300/350';
   };

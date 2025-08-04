@@ -69,9 +69,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       // Try without index for older products
       else if (item.product._id) {
         // First try the old photo endpoint for legacy products
-        return `${API}/product/photo/${item.product._id}`;
+        return `${API}/product/image/${item.product._id}`;
       }
-    }
+      }
     
     // Check if product has photoUrl (legacy URL-based images)
     if (item.photoUrl) {
@@ -89,7 +89,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       if (item.image.startsWith('/api')) {
         return item.image;
       }
-      return `${API}/product/photo/${item.image}`;
+      return `${API}/product/image/${item.image}`;
     }
     
     // If we have a product ID in the product field, use it

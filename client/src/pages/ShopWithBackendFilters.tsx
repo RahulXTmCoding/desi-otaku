@@ -443,7 +443,7 @@ const ShopWithBackendFilters: React.FC = () => {
 
   const getProductImage = (product: Product) => {
     if (product._id) {
-      return `${API}/product/photo/${product._id}`;
+      return `${API}/product/image/${product._id}`;
     }
     return '/api/placeholder/300/350';
   };

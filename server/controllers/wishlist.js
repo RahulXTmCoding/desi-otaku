@@ -8,7 +8,7 @@ exports.getWishlist = async (req, res) => {
       .populate({
         path: 'products.product',
         match: { isDeleted: { $ne: true } }, // Exclude soft-deleted products
-        select: 'name price description stock category photoUrl',
+        select: 'name price description stock category photoUrl mrp discount discountPercentage sizeStock sizeAvailability totalStock rating reviews',
         populate: {
           path: 'category',
           select: 'name'
@@ -30,7 +30,7 @@ exports.getWishlist = async (req, res) => {
         ...item.toObject(),
         product: {
           ...item.product.toObject(),
-          photoUrl: item.product.photoUrl || `/api/product/photo/${item.product._id}`
+          photoUrl: item.product.photoUrl || `/api/product/image/${item.product._id}`
         }
       }))
     };

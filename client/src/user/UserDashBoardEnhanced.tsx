@@ -81,6 +81,30 @@ interface WishlistItem {
     description: string;
     photoUrl?: string;
     stock: number;
+    mrp?: number;
+    discount?: number;
+    discountPercentage?: number;
+    sizeStock?: {
+      S: number;
+      M: number;
+      L: number;
+      XL: number;
+      XXL: number;
+    };
+    sizeAvailability?: {
+      S: boolean;
+      M: boolean;
+      L: boolean;
+      XL: boolean;
+      XXL: boolean;
+    };
+    totalStock?: number;
+    rating?: number;
+    reviews?: number;
+    category?: {
+      _id: string;
+      name: string;
+    };
   };
   addedAt: string;
 }
@@ -165,7 +189,27 @@ const UserDashBoardEnhanced = () => {
           if (!wishlistData.error) {
             // Handle both 'products' and 'items' response formats
             const items = wishlistData.items || wishlistData.products || [];
-            setWishlist(items);
+            
+            // Ensure each product has proper image URL and complete data
+            const itemsWithImages = items.map((item: WishlistItem) => {
+              const product = item.product;
+              
+              return {
+                ...item,
+                product: {
+                  ...product,
+                  photoUrl: product.photoUrl || `${API}/product/image/${product._id}`,
+                  // Ensure all required fields exist
+                  price: product.price || 0,
+                  name: product.name || 'Unknown Product',
+                  stock: product.stock || 0,
+                  sizeAvailability: product.sizeAvailability || {},
+                  sizeStock: product.sizeStock || {}
+                }
+              };
+            });
+            
+            setWishlist(itemsWithImages);
           }
         }
       }
@@ -230,7 +274,7 @@ const UserDashBoardEnhanced = () => {
       color: 'Default',
       quantity: 1,
       isCustom: false,
-      photoUrl: product.photoUrl || `${API}/product/photo/${product._id}`
+      photoUrl: product.photoUrl || `${API}/product/image/${product._id}`
     };
     
     try {
@@ -709,7 +753,7 @@ const UserDashBoardEnhanced = () => {
         <div className="grid lg:grid-cols-4 gap-8">
           {/* Enhanced Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-gradient-to-br from-gray-800 to-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50 sticky top-24">
+            <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg sticky top-24">
               {/* User Avatar & Info */}
               <div className="text-center mb-8">
                 <div className="relative inline-block">
@@ -746,7 +790,7 @@ const UserDashBoardEnhanced = () => {
                   </button>
                 ))}
                 
-                <div className="pt-4 mt-4 border-t border-gray-700/50">
+                <div className="pt-4 mt-4 border-t border-gray-700">
                   <button
                     onClick={handleSignout}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-red-500/10 text-red-400 transition-all group"
@@ -770,29 +814,29 @@ const UserDashBoardEnhanced = () => {
                   {stats.map((stat, index) => (
                     <div
                       key={index}
-                      className={`bg-gray-800/50 backdrop-blur rounded-xl p-6 border ${stat.borderColor} hover:scale-105 transition-transform duration-200`}
+                      className={`bg-gray-800 backdrop-blur rounded-xl p-6 border ${stat.borderColor} hover:scale-105 transition-transform duration-200 shadow-lg`}
                     >
                       <div className="flex items-center justify-between mb-4">
-                        <div className={`p-3 ${stat.bgColor} rounded-lg`}>
+                        <div className={`p-3 ${stat.bgColor} rounded-lg shadow-md`}>
                           <stat.icon className={`w-6 h-6 ${stat.color}`} />
                         </div>
-                        <span className="text-3xl font-bold">{stat.value}</span>
+                        <span className="text-3xl font-bold text-white">{stat.value}</span>
                       </div>
-                      <p className="text-gray-400 text-sm">{stat.label}</p>
+                      <p className="text-gray-300 text-sm font-medium">{stat.label}</p>
                     </div>
                   ))}
                 </div>
 
                 {/* Recent Orders */}
-                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50">
+                <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg">
                   <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold flex items-center gap-2">
+                    <h3 className="text-xl font-bold flex items-center gap-2 text-white">
                       <Clock className="w-5 h-5 text-yellow-400" />
                       Recent Orders
                     </h3>
                     <button
                       onClick={() => setActiveTab('orders')}
-                      className="text-yellow-400 text-sm hover:text-yellow-300 flex items-center gap-1"
+                      className="text-yellow-400 text-sm hover:text-yellow-300 flex items-center gap-1 font-medium"
                     >
                       View All
                       <ChevronRight className="w-4 h-4" />
@@ -848,9 +892,9 @@ const UserDashBoardEnhanced = () => {
 
             {/* Orders Tab */}
             {activeTab === 'orders' && (
-              <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50">
+              <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
                     <Package className="w-6 h-6 text-blue-400" />
                     Order History
                   </h2>
@@ -883,13 +927,13 @@ const UserDashBoardEnhanced = () => {
 
             {/* Wishlist Tab */}
             {activeTab === 'wishlist' && (
-              <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50">
+              <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
                     <Heart className="w-6 h-6 text-red-400" />
                     My Wishlist
                   </h2>
-                  <span className="text-sm text-gray-400">{wishlist.length} items</span>
+                  <span className="text-sm text-gray-300 font-medium">{wishlist.length} items</span>
                 </div>
                 
                 {loading ? (
@@ -908,16 +952,18 @@ const UserDashBoardEnhanced = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 320px))', maxWidth: '1200px', justifyContent: 'start' }}>
                     {wishlist.map((item) => (
-                      <ProductGridItem
-                        key={item._id || item.product._id}
-                        product={item.product}
-                        showWishlistButton={false}
-                        showRemoveButton={true}
-                        onRemove={handleRemoveFromWishlist}
-                        isInWishlist={true}
-                      />
+                      <div key={item._id || item.product._id} className="min-w-0">
+                        <ProductGridItem
+                          product={item.product}
+                          showWishlistButton={false}
+                          showRemoveButton={true}
+                          onRemove={handleRemoveFromWishlist}
+                          isInWishlist={true}
+                          className="h-full"
+                        />
+                      </div>
                     ))}
                   </div>
                 )}
@@ -926,9 +972,9 @@ const UserDashBoardEnhanced = () => {
 
             {/* Addresses Tab */}
             {activeTab === 'addresses' && (
-              <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50">
+              <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
                     <MapPin className="w-6 h-6 text-green-400" />
                     Saved Addresses
                   </h2>
@@ -1027,9 +1073,9 @@ const UserDashBoardEnhanced = () => {
 
             {/* Rewards Tab */}
             {activeTab === 'rewards' && (
-              <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50">
+              <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold flex items-center gap-2">
+                  <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
                     <Gift className="w-6 h-6 text-purple-400" />
                     Reward Points
                   </h2>
@@ -1041,8 +1087,8 @@ const UserDashBoardEnhanced = () => {
             {/* Settings Tab */}
             {activeTab === 'settings' && (
               <div className="space-y-6">
-                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50">
-                  <h2 className="text-xl font-bold mb-6">Profile Settings</h2>
+                <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg">
+                  <h2 className="text-xl font-bold mb-6 text-white">Profile Settings</h2>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -1098,8 +1144,8 @@ const UserDashBoardEnhanced = () => {
                   </button>
                 </div>
 
-                <div className="bg-gray-800/50 backdrop-blur rounded-2xl p-6 border border-gray-700/50">
-                  <h2 className="text-xl font-bold mb-6">Change Password</h2>
+                <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg">
+                  <h2 className="text-xl font-bold mb-6 text-white">Change Password</h2>
                   <div className="space-y-4 max-w-md">
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">

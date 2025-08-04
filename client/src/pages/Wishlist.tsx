@@ -6,6 +6,7 @@ import { getWishlist, removeFromWishlist, clearWishlist } from '../core/helper/w
 import { addItemToCart } from '../core/helper/cartHelper';
 import Base from '../core/Base';
 import ProductGridItem from '../components/ProductGridItem';
+import { API } from '../backend';
 
 const Wishlist = () => {
   const [wishlist, setWishlist] = useState<any>(null);
@@ -71,28 +72,64 @@ const Wishlist = () => {
     }
   };
 
-  const handleAddToCart = (product: any) => {
+  const handleAddToCart = async (product: any) => {
+    if (!userId || !token) return;
+    
     setAddingToCart(product._id);
-    addItemToCart(product, () => {
+    
+    const cartItem = {
+      productId: product._id,
+      name: product.name,
+      price: product.price,
+      size: 'M',
+      color: 'Default',
+      quantity: 1,
+      isCustom: false,
+      photoUrl: product.photoUrl || `${API}/product/image/${product._id}`
+    };
+    
+    try {
+      const result = await addItemToCart(userId, token, cartItem);
+      if (!result.error) {
+        // Success feedback could be added here
+      }
+    } catch (err) {
+      console.error('Error adding to cart:', err);
+    } finally {
       setAddingToCart(null);
-    });
+    }
   };
 
-  const handleAddAllToCart = () => {
-    if (!wishlist || !wishlist.products) return;
+  const handleAddAllToCart = async () => {
+    if (!wishlist || !wishlist.products || !userId || !token) return;
 
-    wishlist.products.forEach((item: any) => {
+    for (const item of wishlist.products) {
       if (item.product && item.product.stock > 0) {
-        addItemToCart(item.product, () => {});
+        const cartItem = {
+          productId: item.product._id,
+          name: item.product.name,
+          price: item.product.price,
+          size: 'M',
+          color: 'Default',
+          quantity: 1,
+          isCustom: false,
+          photoUrl: item.product.photoUrl || `${API}/product/image/${item.product._id}`
+        };
+        
+        try {
+          await addItemToCart(userId, token, cartItem);
+        } catch (err) {
+          console.error('Error adding to cart:', err);
+        }
       }
-    });
+    }
 
     alert('All available items added to cart!');
   };
 
   const getImageUrl = (product: any) => {
     if (product.photoUrl) return product.photoUrl;
-    return `/api/product/photo/${product._id}`;
+    return `${API}/product/image/${product._id}`;
   };
 
   if (!auth) {
@@ -127,13 +164,6 @@ const Wishlist = () => {
           
           {wishlist?.products?.length > 0 && (
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-              <button
-                onClick={handleAddAllToCart}
-                className="px-4 sm:px-6 py-2 sm:py-3 bg-yellow-400 text-gray-900 rounded-full hover:bg-yellow-300 transition-colors flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                Add All to Cart
-              </button>
               <button
                 onClick={handleClearWishlist}
                 className="px-4 sm:px-6 py-2 sm:py-3 bg-gray-700 text-white rounded-full hover:bg-gray-600 transition-colors text-sm sm:text-base"
@@ -171,7 +201,7 @@ const Wishlist = () => {
 
         {/* Wishlist Grid */}
         {!loading && wishlist?.products?.length > 0 && (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6">
+          <div className="grid gap-6" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 320px))', maxWidth: '1200px', justifyContent: 'start' }}>
             {wishlist.products.map((item: any) => {
               const product = item.product;
               if (!product) return null;

@@ -10,9 +10,9 @@ const OrderCard = ({ order }) => {
     if (item.product?.photoUrl) {
       return item.product.photoUrl;
     } else if (item.product?._id) {
-      return `${API}/product/photo/${item.product._id}`;
+      return `${API}/product/image/${item.product._id}`;
     } else if (typeof item.product === 'string') {
-      return `${API}/product/photo/${item.product}`;
+      return `${API}/product/image/${item.product}`;
     }
     
     return null;

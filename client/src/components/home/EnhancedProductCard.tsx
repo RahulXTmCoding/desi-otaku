@@ -38,7 +38,7 @@ const EnhancedProductCard: React.FC<EnhancedProductCardProps> = ({
     : 0;
 
   const getProductImage = () => {
-    return `${API}/product/photo/${product._id}`;
+    return `${API}/product/image/${product._id}`;
   };
 
   return (
