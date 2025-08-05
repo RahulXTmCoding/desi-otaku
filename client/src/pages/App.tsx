@@ -21,6 +21,8 @@ const ProductDetail = lazy(() => import('./ProductDetail'));
 const Wishlist = lazy(() => import('./Wishlist'));
 const Signup = lazy(() => import('../user/Signup'));
 const Signin = lazy(() => import('../user/Signin'));
+const ForgotPassword = lazy(() => import('./ForgotPassword'));
+const ResetPassword = lazy(() => import('./ResetPassword'));
 const UserDashBoardEnhanced = lazy(() => import('../user/UserDashBoardEnhanced'));
 const OrderDetail = lazy(() => import('../user/OrderDetail'));
 const UserProfile = lazy(() => import('../user/UserProfile'));
@@ -78,6 +80,8 @@ export default function App() {
             <Route path="/order-confirmation-enhanced" element={<OrderConfirmationEnhanced />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/signin" element={<Signin />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/mockup-studio" element={<MockupStudio />} />
             <Route path="/track-order" element={<OrderTracking />} />
             <Route path="/track/:token" element={<OrderTracking />} />

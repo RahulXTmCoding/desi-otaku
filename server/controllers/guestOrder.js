@@ -95,16 +95,39 @@ exports.createGuestOrder = async (req, res) => {
       }
     }
 
-    // Check if user exists with this email
+    // Check if user exists with this email, or create auto-account
     let userId = null;
+    let autoAccountCreated = false;
     try {
-      const existingUser = await User.findOne({ email: guestInfo.email });
+      let existingUser = await User.findOne({ email: guestInfo.email });
       if (existingUser) {
         userId = existingUser._id;
         console.log('Found existing user for guest order:', guestInfo.email);
+      } else {
+        // Auto-create account for guest user to enable order tracking
+        console.log('Creating auto-account for guest user:', guestInfo.email);
+        
+        // Generate a secure random password (user will reset it via email)
+        const crypto = require('crypto');
+        const tempPassword = crypto.randomBytes(32).toString('hex');
+        
+        const newUser = new User({
+          name: guestInfo.name,
+          email: guestInfo.email,
+          password: tempPassword, // Will be hashed by the model
+          role: 0, // Regular user
+          // Mark as auto-created so we know to send welcome email
+          autoCreated: true
+        });
+        
+        const savedUser = await newUser.save();
+        userId = savedUser._id;
+        autoAccountCreated = true;
+        
+        console.log('✅ Auto-account created for guest user:', guestInfo.email);
       }
     } catch (error) {
-      console.log('Error checking for existing user:', error);
+      console.log('Error handling user account for guest order:', error);
       // Continue without linking if there's an error
     }
     
@@ -244,27 +267,60 @@ exports.createGuestOrder = async (req, res) => {
       // Don't fail the order creation if secure access creation fails
     }
     
-    // Send combined order confirmation + tracking email for guest (don't wait for it)
+    // Send appropriate emails based on account creation status
     const emailService = require('../services/emailService');
-    if (magicLink && pin) {
-      // Send combined confirmation + tracking email
-      emailService.sendOrderConfirmationWithTracking(savedOrder, guestInfo, magicLink, pin)
+    
+    if (autoAccountCreated) {
+      // 🎉 NEW ACCOUNT: Send welcome email with password setup instructions
+      console.log('Sending welcome email with password setup for auto-created account');
+      
+      const userInfo = {
+        name: guestInfo.name,
+        email: guestInfo.email,
+        _id: userId
+      };
+      
+      emailService.sendAutoAccountCreationEmail(userInfo, savedOrder)
         .then(() => {
-          console.log('✅ Combined confirmation+tracking email sent successfully');
+          console.log('✅ Welcome email with password setup sent successfully');
         })
         .catch(err => {
-          console.error("❌ Failed to send combined confirmation+tracking email for guest:", err);
-          // Fallback to regular confirmation email only if the combined email fails
-          emailService.sendOrderConfirmation(savedOrder, guestInfo).catch(fallbackErr => {
-            console.error("❌ Failed to send fallback order confirmation email for guest:", fallbackErr);
-          });
+          console.error("❌ Failed to send welcome email with password setup:", err);
         });
+        
+      // Also send order confirmation
+      if (magicLink && pin) {
+        emailService.sendOrderConfirmationWithTracking(savedOrder, guestInfo, magicLink, pin)
+          .then(() => {
+            console.log('✅ Order confirmation+tracking email sent successfully');
+          })
+          .catch(err => {
+            console.error("❌ Failed to send order confirmation+tracking email:", err);
+          });
+      }
+      
     } else {
-      // Fallback to regular confirmation if secure access failed
-      console.log('⚠️ Secure access tokens not generated, sending regular confirmation email');
-      emailService.sendOrderConfirmation(savedOrder, guestInfo).catch(err => {
-        console.error("❌ Failed to send guest order confirmation email:", err);
-      });
+      // 📦 EXISTING USER: Send regular order confirmation
+      if (magicLink && pin) {
+        // Send combined confirmation + tracking email
+        emailService.sendOrderConfirmationWithTracking(savedOrder, guestInfo, magicLink, pin)
+          .then(() => {
+            console.log('✅ Combined confirmation+tracking email sent successfully');
+          })
+          .catch(err => {
+            console.error("❌ Failed to send combined confirmation+tracking email for guest:", err);
+            // Fallback to regular confirmation email only if the combined email fails
+            emailService.sendOrderConfirmation(savedOrder, guestInfo).catch(fallbackErr => {
+              console.error("❌ Failed to send fallback order confirmation email for guest:", fallbackErr);
+            });
+          });
+      } else {
+        // Fallback to regular confirmation if secure access failed
+        console.log('⚠️ Secure access tokens not generated, sending regular confirmation email');
+        emailService.sendOrderConfirmation(savedOrder, guestInfo).catch(err => {
+          console.error("❌ Failed to send guest order confirmation email:", err);
+        });
+      }
     }
     
     // 📄 INVOICE: Auto-generate invoice for paid guest orders

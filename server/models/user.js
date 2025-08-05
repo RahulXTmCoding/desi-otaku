@@ -147,6 +147,12 @@ var userSchema = new Schema(
       min: 0
     },
     
+    // Auto-created flag for guest user accounts
+    autoCreated: {
+      type: Boolean,
+      default: false,
+    },
+    
     // Account status
     isActive: {
       type: Boolean,
