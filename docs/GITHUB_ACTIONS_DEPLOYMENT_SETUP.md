@@ -85,7 +85,6 @@ Add these three secrets:
 Name: VERCEL_TOKEN
 Value: vercel_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 ```
-
 ### Secret 2: VERCEL_ORG_ID  
 ```
 Name: VERCEL_ORG_ID
@@ -124,6 +123,8 @@ Don't forget to set the API URL in Vercel:
 1. **Verify secrets are set correctly:**
    - Go to GitHub repo → Settings → Secrets and variables → Actions
    - All three secrets should be listed
+
+
 
 2. **Check token validity:**
    ```bash
