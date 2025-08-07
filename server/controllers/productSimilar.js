@@ -1,15 +1,14 @@
 const Product = require('../models/product');
 
-// Get similar products based on various criteria
+// Get similar products using optimized staged approach
 exports.getSimilarProducts = async (req, res) => {
   try {
     const { productId } = req.params;
     const limit = parseInt(req.query.limit) || 4;
     
-    // Get the current product details
+    // Get current product with only needed fields
     const currentProduct = await Product.findById(productId)
-      .populate('category')
-      .populate('productType')
+      .select('category productType price tags')
       .lean();
     
     if (!currentProduct) {
@@ -17,194 +16,132 @@ exports.getSimilarProducts = async (req, res) => {
         error: 'Product not found'
       });
     }
+
+    let similarProducts = [];
+    const usedIds = [currentProduct._id];
     
-    // Calculate similarity scores for products using aggregation pipeline
-    const pipeline = [
-      {
-        $match: {
-          _id: { $ne: currentProduct._id },
-          isActive: true,
-          deleted: false,
-          stock: { $gt: 0 } // Only show in-stock products
-        }
-      },
-      {
-        $addFields: {
-          similarityScore: {
-            $add: [
-              // Same category: 50 points
-              {
-                $cond: {
-                  if: { $eq: ['$category', currentProduct.category._id] },
-                  then: 50,
-                  else: 0
-                }
-              },
-              // Same product type: 30 points
-              {
-                $cond: {
-                  if: {
-                    $eq: [
-                      '$productType',
-                      currentProduct.productType ? currentProduct.productType._id : null
-                    ]
-                  },
-                  then: 30,
-                  else: 0
-                }
-              },
-              // Similar price range (within 20%): 20 points
-              {
-                $cond: {
-                  if: {
-                    $and: [
-                      { $gte: ['$price', currentProduct.price * 0.8] },
-                      { $lte: ['$price', currentProduct.price * 1.2] }
-                    ]
-                  },
-                  then: 20,
-                  else: 0
-                }
-              },
-              // Matching tags: 10 points per tag (max 30)
-              {
-                $min: [
-                  {
-                    $multiply: [
-                      {
-                        $size: {
-                          $ifNull: [
-                            {
-                              $setIntersection: [
-                                { $ifNull: ['$tags', []] },
-                                { $ifNull: [currentProduct.tags, []] }
-                              ]
-                            },
-                            []
-                          ]
-                        }
-                      },
-                      10
-                    ]
-                  },
-                  30
-                ]
-              },
-              // Name similarity (contains similar words): up to 20 points
-              {
-                $let: {
-                  vars: {
-                    currentWords: {
-                      $split: [{ $toLower: currentProduct.name }, ' ']
-                    },
-                    productWords: {
-                      $split: [{ $toLower: '$name' }, ' ']
-                    }
-                  },
-                  in: {
-                    $min: [
-                      {
-                        $multiply: [
-                          {
-                            $size: {
-                              $setIntersection: ['$$currentWords', '$$productWords']
-                            }
-                          },
-                          5
-                        ]
-                      },
-                      20
-                    ]
-                  }
-                }
-              }
-            ]
-          }
-        }
-      },
-      // Sort by similarity score (descending) and then by popularity (sold count)
-      {
-        $sort: {
-          similarityScore: -1,
-          sold: -1,
-          createdAt: -1
-        }
-      },
-      // Limit results
-      { $limit: limit },
-      // Populate category and productType
-      {
-        $lookup: {
-          from: 'categories',
-          localField: 'category',
-          foreignField: '_id',
-          as: 'category'
-        }
-      },
-      {
-        $unwind: {
-          path: '$category',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      {
-        $lookup: {
-          from: 'producttypes',
-          localField: 'productType',
-          foreignField: '_id',
-          as: 'productType'
-        }
-      },
-      {
-        $unwind: {
-          path: '$productType',
-          preserveNullAndEmptyArrays: true
-        }
-      },
-      // Project only necessary fields for performance
-      {
-        $project: {
-          name: 1,
-          price: 1,
-          description: 1,
-          category: 1,
-          productType: 1,
-          stock: 1,
-          sold: 1,
-          tags: 1,
-          sizeStock: 1,
-          sizeAvailability: 1,
-          similarityScore: 1,
-          createdAt: 1,
-          updatedAt: 1
-        }
-      }
-    ];
-    
-    const similarProducts = await Product.aggregate(pipeline);
-    
-    // If we don't have enough similar products, get random products
-    if (similarProducts.length < limit) {
-      const remainingCount = limit - similarProducts.length;
-      const existingIds = [
-        currentProduct._id,
-        ...similarProducts.map(p => p._id)
-      ];
-      
-      const randomProducts = await Product.find({
-        _id: { $nin: existingIds },
-        isActive: true,
-        deleted: false,
-        stock: { $gt: 0 }
+    // Common query conditions
+    const baseQuery = {
+      _id: { $nin: usedIds },
+      isActive: true,
+      isDeleted: false,
+      totalStock: { $gt: 0 }
+    };
+
+    // Common projection for performance
+    const projection = {
+      name: 1,
+      price: 1,
+      description: 1,
+      category: 1,
+      productType: 1,
+      totalStock: 1,
+      sold: 1,
+      tags: 1,
+      sizeStock: 1,
+      createdAt: 1
+    };
+
+    // Stage 1: Same category products (highest priority)
+    if (currentProduct.category && similarProducts.length < limit) {
+      const sameCategoryProducts = await Product.find({
+        ...baseQuery,
+        category: currentProduct.category
       })
-        .populate('category')
-        .populate('productType')
-        .sort('-sold')
-        .limit(remainingCount)
-        .lean();
-      
-      similarProducts.push(...randomProducts);
+      .select(projection)
+      .populate('category', 'name')
+      .populate('productType', 'name')
+      .sort({
+        // Prioritize same product type
+        productType: currentProduct.productType ? -1 : 1,
+        sold: -1,
+        createdAt: -1
+      })
+      .limit(limit)
+      .lean();
+
+      // Add with high similarity scores
+      sameCategoryProducts.forEach(product => {
+        let score = 50; // Base score for same category
+        
+        // Bonus for same product type
+        if (product.productType && currentProduct.productType && 
+            product.productType._id.toString() === currentProduct.productType.toString()) {
+          score += 30;
+        }
+        
+        // Bonus for similar price (within 25%)
+        if (Math.abs(product.price - currentProduct.price) <= currentProduct.price * 0.25) {
+          score += 20;
+        }
+        
+        // Bonus for matching tags (simplified)
+        if (product.tags && currentProduct.tags) {
+          const matchingTags = product.tags.filter(tag => 
+            currentProduct.tags.includes(tag)
+          ).length;
+          score += Math.min(matchingTags * 5, 15);
+        }
+
+        product.similarityScore = score;
+        similarProducts.push(product);
+        usedIds.push(product._id);
+      });
     }
+
+    // Stage 2: Same product type from other categories (if needed)
+    if (currentProduct.productType && similarProducts.length < limit) {
+      const sameTypeProducts = await Product.find({
+        ...baseQuery,
+        _id: { $nin: usedIds },
+        productType: currentProduct.productType,
+        category: { $ne: currentProduct.category }
+      })
+      .select(projection)
+      .populate('category', 'name')
+      .populate('productType', 'name')
+      .sort({ sold: -1, createdAt: -1 })
+      .limit(limit - similarProducts.length)
+      .lean();
+
+      // Add with medium similarity scores
+      sameTypeProducts.forEach(product => {
+        let score = 30; // Base score for same product type
+        
+        // Bonus for similar price
+        if (Math.abs(product.price - currentProduct.price) <= currentProduct.price * 0.3) {
+          score += 15;
+        }
+
+        product.similarityScore = score;
+        similarProducts.push(product);
+        usedIds.push(product._id);
+      });
+    }
+
+    // Stage 3: Popular products from any category (final fallback)
+    if (similarProducts.length < limit) {
+      const popularProducts = await Product.find({
+        ...baseQuery,
+        _id: { $nin: usedIds }
+      })
+      .select(projection)
+      .populate('category', 'name')
+      .populate('productType', 'name')
+      .sort({ sold: -1, createdAt: -1 })
+      .limit(limit - similarProducts.length)
+      .lean();
+
+      // Add with low similarity scores
+      popularProducts.forEach(product => {
+        product.similarityScore = 10; // Base score for popular products
+        similarProducts.push(product);
+      });
+    }
+
+    // Sort by similarity score and limit results
+    similarProducts.sort((a, b) => (b.similarityScore || 0) - (a.similarityScore || 0));
+    similarProducts = similarProducts.slice(0, limit);
     
     res.json({
       products: similarProducts,

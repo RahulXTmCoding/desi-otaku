@@ -160,15 +160,51 @@ const productSchema = new Schema(
   { timestamps: true }
 );
 
-// Indexes
-productSchema.index({ isDeleted: 1, isActive: 1, category: 1, productType: 1 });
+// Indexes - Optimized for similar products performance
+// Core compound index for similar products queries
+productSchema.index({ 
+  isDeleted: 1, 
+  isActive: 1, 
+  totalStock: 1, 
+  category: 1, 
+  productType: 1,
+  sold: -1,
+  createdAt: -1 
+});
+
+// Optimized index for same category products (Stage 1)
+productSchema.index({ 
+  isDeleted: 1, 
+  isActive: 1, 
+  totalStock: 1, 
+  category: 1,
+  sold: -1 
+});
+
+// Optimized index for same product type queries (Stage 2)
+productSchema.index({ 
+  isDeleted: 1, 
+  isActive: 1, 
+  totalStock: 1, 
+  productType: 1,
+  sold: -1 
+});
+
+// Index for popular products fallback (Stage 3)
+productSchema.index({ 
+  isDeleted: 1, 
+  isActive: 1, 
+  totalStock: 1, 
+  sold: -1 
+});
+
+// Additional indexes for other features
 productSchema.index({ isDeleted: 1, isActive: 1, subcategory: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, price: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, averageRating: -1 });
 productSchema.index({ name: "text", description: "text", tags: "text" });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ sold: -1 });
-productSchema.index({ totalStock: 1 });
 
 // Pre-save hook to calculate total stock and pricing
 productSchema.pre('save', function(next) {
