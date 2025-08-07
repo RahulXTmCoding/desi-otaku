@@ -1,2 +1,2 @@
-export const API = "http://localhost:8000/api"
-// "https://rahul.tail6c9a2a.ts.net/backend/api";
+// Get API base URL from environment variables with fallback
+export const API = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
