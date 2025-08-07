@@ -31,6 +31,24 @@ jobs:
 
       - name: Deploy to Render
         env:
-          deploy_url: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
-          curl "$deploy_url"
+          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
+            echo "❌ RENDER_DEPLOY_HOOK_URL secret is not set"
+            echo "Please add your Render deploy hook URL to GitHub repository secrets"
+            echo "Go to: GitHub repo → Settings → Secrets and variables → Actions"
+            echo "Add secret: RENDER_DEPLOY_HOOK_URL"
+            exit 1
+          fi
+          
+          echo "🚀 Triggering Render deployment..."
+          response=$(curl -s -w "%{http_code}" -o /tmp/response.txt "$RENDER_DEPLOY_HOOK_URL")
+          
+          if [ "$response" -eq 200 ] || [ "$response" -eq 201 ]; then
+            echo "✅ Deployment triggered successfully"
+            cat /tmp/response.txt
+          else
+            echo "❌ Deployment failed with HTTP status: $response"
+            cat /tmp/response.txt
+            exit 1
+          fi
