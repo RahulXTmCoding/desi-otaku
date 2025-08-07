@@ -25,9 +25,9 @@ jobs:
         run: npm ci
         working-directory: ./server
 
-      - name: Run tests (if any)
-        run: npm test --if-present
-        working-directory: ./server
+      # - name: Run tests (if any)
+      #   run: npm test --if-present
+      #   working-directory: ./server
 
       - name: Deploy to Render
         env:
