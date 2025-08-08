@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Star, ThumbsUp, Edit2, Trash2, CheckCircle } from 'lucide-react';
+import { Star, ThumbsUp, Edit2, Trash2, CheckCircle, Loader } from 'lucide-react';
+import { useProductReviews, useUserReview, useReviewsSettings } from '../hooks/useProducts';
+import { useQueryClient } from '@tanstack/react-query';
 import { API } from '../backend';
 import { isAutheticated } from '../auth/helper';
 
@@ -9,12 +11,7 @@ interface ProductReviewsProps {
 }
 
 const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage }) => {
-  const [reviews, setReviews] = useState<any[]>([]);
-  const [stats, setStats] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [showReviewForm, setShowReviewForm] = useState(false);
-  const [userReview, setUserReview] = useState<any>(null);
-  const [reviewsEnabled, setReviewsEnabled] = useState(true);
   const [formData, setFormData] = useState({
     rating: 5,
     title: '',
@@ -24,67 +21,45 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
   const auth = isAutheticated();
   const userId = auth && auth.user ? auth.user._id : null;
   const token = auth ? auth.token : null;
+  const queryClient = useQueryClient();
 
+  // React Query hooks
+  const { 
+    data: reviewsData, 
+    isLoading: reviewsLoading, 
+    error: reviewsError,
+    isFetching: reviewsIsFetching 
+  } = useProductReviews(productId);
+
+  const { 
+    data: userReviewData,
+    isLoading: userReviewLoading,
+    isFetching: userReviewIsFetching
+  } = useUserReview(productId, userId || '', token || '');
+
+  const { 
+    data: reviewsSettings, 
+    isLoading: settingsLoading 
+  } = useReviewsSettings();
+
+  // Extract data from hooks
+  const reviews = reviewsData?.reviews || [];
+  const stats = reviewsData?.stats || null;
+  const userReview = userReviewData;
+  const reviewsEnabled = reviewsSettings?.reviewsEnabled !== false; // Default to true if loading
+  const loading = reviewsLoading || userReviewLoading || settingsLoading;
+
+  // Update form data when user review loads
   useEffect(() => {
-    checkReviewsStatus();
-    loadReviews();
-    if (userId) {
-      checkUserReview();
-    }
-  }, [productId]);
-
-  const checkReviewsStatus = async () => {
-    try {
-      const response = await fetch(`${API}/settings/reviews-status`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setReviewsEnabled(data.reviewsEnabled);
-      }
-    } catch (err) {
-      console.error('Failed to check reviews status:', err);
-    }
-  };
-
-  const loadReviews = async () => {
-    try {
-      const response = await fetch(`${API}/reviews/product/${productId}`);
-      const data = await response.json();
-      
-      if (response.ok) {
-        setReviews(data.reviews);
-        setStats(data.stats);
-      }
-    } catch (err) {
-      console.error('Failed to load reviews:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkUserReview = async () => {
-    if (!userId || !token) return;
-    
-    try {
-      const response = await fetch(`${API}/reviews/product/${productId}/user/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+    if (userReview) {
+      setFormData({
+        rating: userReview.rating,
+        title: userReview.title,
+        comment: userReview.comment
       });
-      
-      if (response.ok) {
-        const review = await response.json();
-        setUserReview(review);
-        setFormData({
-          rating: review.rating,
-          title: review.title,
-          comment: review.comment
-        });
-      }
-    } catch (err) {
-      console.error('Error checking user review:', err);
     }
-  };
+  }, [userReview]);
+
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,8 +92,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       console.log('Review response:', response.status, data);
 
       if (response.ok) {
-        await loadReviews();
-        await checkUserReview();
+        // Invalidate React Query cache to refetch fresh data
+        queryClient.invalidateQueries({ queryKey: ['productReviews', productId] });
+        queryClient.invalidateQueries({ queryKey: ['userReview', productId, userId] });
         setShowReviewForm(false);
         // Reset form for new reviews
         if (!userReview) {
@@ -147,8 +123,9 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       });
 
       if (response.ok) {
-        setUserReview(null);
-        await loadReviews();
+        // Invalidate cache to refresh data
+        queryClient.invalidateQueries({ queryKey: ['productReviews', productId] });
+        queryClient.invalidateQueries({ queryKey: ['userReview', productId, userId] });
         setFormData({ rating: 5, title: '', comment: '' });
       }
     } catch (err) {
@@ -171,7 +148,8 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       });
 
       if (response.ok) {
-        await loadReviews();
+        // Invalidate cache to refresh data
+        queryClient.invalidateQueries({ queryKey: ['productReviews', productId] });
       }
     } catch (err) {
       console.error('Error marking review as helpful:', err);
@@ -217,7 +195,17 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
   };
 
   if (loading) {
-    return <div className="text-center py-8">Loading reviews...</div>;
+    return (
+      <div className="text-center py-8">
+        <div className="flex flex-col items-center gap-2">
+          <Loader className="w-8 h-8 animate-spin text-yellow-400" />
+          <p className="text-gray-400">Loading reviews...</p>
+          {reviewsData && !reviewsLoading && (
+            <p className="text-green-400 text-sm">⚡ Loading from cache</p>
+          )}
+        </div>
+      </div>
+    );
   }
 
   if (!reviewsEnabled) {

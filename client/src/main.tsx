@@ -5,6 +5,7 @@ import App from './pages/App'
 import { DevModeProvider } from './context/DevModeContext'
 import { CartProvider } from './context/CartContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { QueryProvider } from './providers/QueryProvider'
 import { initializeAuth } from './utils/clearAuth'
 import SEOProvider from './components/SEOProvider'
 import './index.css'
@@ -14,16 +15,18 @@ initializeAuth();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <SEOProvider>
-      <ThemeProvider>
-        <DevModeProvider>
-          <BrowserRouter>
-            <CartProvider>
-              <App />
-            </CartProvider>
-          </BrowserRouter>
-        </DevModeProvider>
-      </ThemeProvider>
-    </SEOProvider>
+    <QueryProvider>
+      <SEOProvider>
+        <ThemeProvider>
+          <DevModeProvider>
+            <BrowserRouter>
+              <CartProvider>
+                <App />
+              </CartProvider>
+            </BrowserRouter>
+          </DevModeProvider>
+        </ThemeProvider>
+      </SEOProvider>
+    </QueryProvider>
   </React.StrictMode>,
 )

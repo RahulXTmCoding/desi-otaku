@@ -15,7 +15,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { addItemToCart } from '../core/helper/cartHelper';
 import { getCategories, getMainCategories, getSubcategories } from '../core/helper/coreapicalls';
 import { getAllProductTypes } from '../admin/helper/productTypeApiCalls';
-import { getFilteredProducts } from '../core/helper/shopApiCalls';
+import { useFilteredProducts } from '../hooks/useProducts';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, mockCategories } from '../data/mockData';
@@ -136,18 +136,10 @@ const ShopWithBackendFilters: React.FC = () => {
   const [maxPrice, setMaxPrice] = useState(5000);
   const [priceRange, setPriceRange] = useState([0, 5000]);
   
-  // Data states
-  const [products, setProducts] = useState<Product[]>([]);
+  // Data states for metadata (categories, product types)
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [productTypes, setProductTypes] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
-  // Pagination states
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalProducts, setTotalProducts] = useState(0);
-  const productsPerPage = 12;
   
   // Quick View Modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -159,6 +151,80 @@ const ShopWithBackendFilters: React.FC = () => {
   // Infinite scroll states
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const productsPerPage = 12;
+
+  // Parse sort options for API
+  const getSortParams = (sortBy: string) => {
+    switch (sortBy) {
+      case 'price-low':
+        return { sortBy: 'price', sortOrder: 'asc' };
+      case 'price-high':
+        return { sortBy: 'price', sortOrder: 'desc' };
+      case 'bestselling':
+        return { sortBy: 'bestselling', sortOrder: 'desc' };
+      case 'name':
+        return { sortBy: 'name', sortOrder: 'asc' };
+      default:
+        return { sortBy: 'newest', sortOrder: 'desc' };
+    }
+  };
+
+  // Build filter parameters for React Query
+  const filterParams = useMemo(() => {
+    const sortParams = getSortParams(sortBy);
+    return {
+      search: searchQuery || undefined,
+      category: selectedCategory === 'all' ? undefined : selectedCategory,
+      subcategory: selectedSubcategory === 'all' ? undefined : selectedSubcategory,
+      productType: selectedProductType === 'all' ? undefined : selectedProductType,
+      minPrice: priceRange[0],
+      maxPrice: priceRange[1],
+      sizes: selectedSizes.length > 0 ? selectedSizes : undefined,
+      availability: selectedAvailability === 'all' ? undefined : selectedAvailability,
+      tags: selectedTags.length > 0 ? selectedTags : undefined,
+      sortBy: sortParams.sortBy,
+      sortOrder: sortParams.sortOrder,
+      page: currentPage,
+      limit: productsPerPage
+    };
+  }, [searchQuery, selectedCategory, selectedSubcategory, selectedProductType, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage]);
+
+  // Use React Query for filtered products (only when not in test mode)
+  const { 
+    data: filteredProductsData, 
+    isLoading, 
+    error: queryError,
+    isFetching 
+  } = useFilteredProducts(filterParams);
+
+  // Handle test mode products
+  const testModeProducts = useMemo(() => {
+    if (!isTestMode) return [];
+    
+    // Simple filtering for test mode
+    let filtered = [...mockProducts];
+    
+    if (searchQuery) {
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        p.description.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    if (selectedCategory !== 'all') {
+      filtered = filtered.filter(p => p.category._id === selectedCategory);
+    }
+    
+    return filtered;
+  }, [isTestMode, searchQuery, selectedCategory, mockProducts]);
+
+  // Get current products to display
+  const currentProducts = isTestMode ? testModeProducts : (filteredProductsData?.products || []);
+  const currentLoading = isTestMode ? false : isLoading;
+  const currentError = isTestMode ? null : queryError;
+  const totalProducts = isTestMode ? testModeProducts.length : (filteredProductsData?.pagination?.totalProducts || 0);
+  const totalPages = isTestMode ? Math.ceil(testModeProducts.length / productsPerPage) : (filteredProductsData?.pagination?.totalPages || 1);
 
   // Update URL params whenever filters change (but not when syncing from URL)
   useEffect(() => {
@@ -205,20 +271,6 @@ const ShopWithBackendFilters: React.FC = () => {
     }
   }, [selectedCategory]);
 
-  // Load products whenever filters change
-  useEffect(() => {
-    const debounceTimer = setTimeout(() => {
-      // If page changed and we have products, append new ones (infinite scroll)
-      if (currentPage > 1 && products.length > 0) {
-        loadFilteredProducts(true);
-      } else {
-        // Otherwise, load fresh
-        loadFilteredProducts(false);
-      }
-    }, 500); // Debounce for search input and price slider
-
-    return () => clearTimeout(debounceTimer);
-  }, [searchQuery, selectedCategory, selectedSubcategory, selectedProductType, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage, isTestMode]);
 
   const loadCategories = () => {
     if (isTestMode) {
@@ -260,97 +312,9 @@ const ShopWithBackendFilters: React.FC = () => {
     }
   };
 
-  const loadFilteredProducts = async (append = false) => {
-    if (append) {
-      setIsLoadingMore(true);
-    } else {
-      setLoading(true);
-      setError('');
-      setProducts([]); // Clear products when not appending
-    }
-
-    if (isTestMode) {
-      // Mock filtering for test mode
-      setTimeout(() => {
-        if (append) {
-          setProducts(prev => [...prev, ...mockProducts]);
-        } else {
-          setProducts(mockProducts);
-        }
-        setTotalPages(Math.ceil(mockProducts.length / productsPerPage));
-        setTotalProducts(mockProducts.length);
-        setLoading(false);
-        setIsLoadingMore(false);
-        setHasMore(false); // No infinite scroll in test mode
-      }, 500);
-      return;
-    }
-
-    try {
-      // Parse sort options
-      let sortField = 'newest';
-      let sortOrder = 'desc';
-      
-      switch (sortBy) {
-        case 'price-low':
-          sortField = 'price';
-          sortOrder = 'asc';
-          break;
-        case 'price-high':
-          sortField = 'price';
-          sortOrder = 'desc';
-          break;
-        case 'bestselling':
-          sortField = 'bestselling';
-          break;
-        case 'name':
-          sortField = 'name';
-          sortOrder = 'asc';
-          break;
-      }
-
-      const response = await getFilteredProducts({
-        search: searchQuery,
-        category: selectedCategory,
-        subcategory: selectedSubcategory !== 'all' ? selectedSubcategory : undefined,
-        productType: selectedProductType,
-        minPrice: priceRange[0],
-        maxPrice: priceRange[1],
-        sizes: selectedSizes.length > 0 ? selectedSizes : undefined,
-        availability: selectedAvailability !== 'all' ? selectedAvailability : undefined,
-        tags: selectedTags,
-        sortBy: sortField,
-        sortOrder,
-        page: currentPage,
-        limit: productsPerPage
-      });
-
-      if (response.error) {
-        setError(response.error);
-      } else {
-        if (append) {
-          setProducts(prev => [...prev, ...(response.products || [])]);
-        } else {
-          setProducts(response.products || []);
-        }
-        if (response.pagination) {
-          setTotalPages(response.pagination.totalPages);
-          setTotalProducts(response.pagination.totalProducts);
-          setHasMore(currentPage < response.pagination.totalPages);
-        }
-      }
-    } catch (err) {
-      console.error('Error loading products:', err);
-      setError('Failed to load products');
-    } finally {
-      setLoading(false);
-      setIsLoadingMore(false);
-    }
-  };
-  
-  // Infinite scroll handler using window scroll
+  // Infinite scroll handler using window scroll (disabled for now since we're using React Query)
   const handleScroll = useCallback(() => {
-    if (isLoadingMore || !hasMore || loading) return;
+    if (isLoadingMore || !hasMore || currentLoading) return;
     
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollHeight = document.documentElement.scrollHeight;
@@ -360,7 +324,7 @@ const ShopWithBackendFilters: React.FC = () => {
     if (scrollTop + clientHeight >= scrollHeight - 300) {
       setCurrentPage(prev => prev + 1);
     }
-  }, [isLoadingMore, hasMore, loading]);
+  }, [isLoadingMore, hasMore, currentLoading]);
   
   // Add scroll event listener to window
   useEffect(() => {
@@ -716,7 +680,7 @@ const ShopWithBackendFilters: React.FC = () => {
                   )}
                 </button>
                 <p className="text-gray-300">
-                  {loading ? 'Loading...' : `Showing ${products.length} of ${totalProducts} products`}
+                  {currentLoading ? 'Loading...' : `Showing ${currentProducts.length} of ${totalProducts} products`}
                 </p>
               </div>
 
@@ -786,21 +750,24 @@ const ShopWithBackendFilters: React.FC = () => {
             )}
 
             {/* Loading State */}
-            {loading && (
+            {currentLoading && (
               <div className="text-center py-12">
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-800 rounded-full mb-4">
                   <div className="w-8 h-8 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
                 </div>
                 <p className="text-gray-400">Loading products...</p>
+                {filteredProductsData?.cached && (
+                  <p className="text-green-400 text-sm mt-2">⚡ Loading from cache</p>
+                )}
               </div>
             )}
 
             {/* Error State */}
-            {error && !loading && (
+            {currentError && !currentLoading && (
               <div className="text-center py-12">
-                <p className="text-red-400 mb-4">{error}</p>
+                <p className="text-red-400 mb-4">{currentError.message || 'Failed to load products'}</p>
                 <button
-                  onClick={() => loadFilteredProducts()}
+                  onClick={() => window.location.reload()}
                   className="bg-yellow-400 text-gray-900 px-6 py-2 rounded-lg font-semibold hover:bg-yellow-300"
                 >
                   Retry
@@ -809,10 +776,10 @@ const ShopWithBackendFilters: React.FC = () => {
             )}
 
             {/* Products Grid */}
-            {!loading && !error && products.length > 0 ? (
+            {!currentLoading && !currentError && currentProducts.length > 0 ? (
               <>
                 <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
-                  {products.map(product => (
+                  {currentProducts.map(product => (
                     <ProductGridItem 
                       key={product._id} 
                       product={product}
@@ -821,18 +788,21 @@ const ShopWithBackendFilters: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Loading more indicator for infinite scroll */}
-                {isLoadingMore && (
-                  <div className="flex justify-center items-center py-8">
+                {/* React Query fetching indicator */}
+                {isFetching && !currentLoading && (
+                  <div className="flex justify-center items-center py-4">
                     <div className="flex items-center gap-3">
-                      <Loader className="w-5 h-5 animate-spin text-yellow-400" />
-                      <span className="text-gray-400">Loading more products...</span>
+                      <Loader className="w-4 h-4 animate-spin text-yellow-400" />
+                      <span className="text-gray-400 text-sm">Updating results...</span>
+                      {filteredProductsData?.cached && (
+                        <span className="text-green-400 text-sm">⚡ Cached</span>
+                      )}
                     </div>
                   </div>
                 )}
 
                 {/* End of products message */}
-                {!hasMore && products.length > 0 && !isLoadingMore && (
+                {!hasMore && currentProducts.length > 0 && !isLoadingMore && (
                   <div className="text-center py-8">
                     <p className="text-gray-400">You've reached the end! That's all the products we have.</p>
                   </div>
@@ -896,7 +866,7 @@ const ShopWithBackendFilters: React.FC = () => {
                   </div>
                 )}
               </>
-            ) : !loading && !error && (
+            ) : !currentLoading && !currentError && (
               <div className="text-center py-12">
                 <p className="text-xl text-gray-400 mb-4">No products found matching your criteria</p>
                 <button

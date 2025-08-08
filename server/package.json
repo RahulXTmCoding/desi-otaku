@@ -38,6 +38,7 @@
     "passport-google-oauth20": "^2.0.0",
     "puppeteer": "^24.15.0",
     "razorpay": "^2.9.6",
+    "redis": "^5.8.0",
     "stripe": "^18.2.1",
     "uuid": "^8.3.2",
     "uuidv4": "^6.2.13"

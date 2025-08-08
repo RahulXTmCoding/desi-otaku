@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getSimilarProducts } from '../core/helper/shopApiCalls';
-import { getProducts } from '../core/helper/coreapicalls';
+import { useSimilarProducts } from '../hooks/useProducts';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts } from '../data/mockData';
 import ProductGridItem from './ProductGridItem';
@@ -15,8 +14,10 @@ interface Product {
     _id: string;
     name: string;
   };
-  stock: number;
+  stock?: number;
+  totalStock?: number;
   sold: number;
+  similarityScore?: number;
 }
 
 interface LazyRelatedProductsProps {
@@ -29,21 +30,30 @@ const LazyRelatedProducts: React.FC<LazyRelatedProductsProps> = ({
   onQuickView 
 }) => {
   const { isTestMode } = useDevMode();
-  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
+  const [isIntersecting, setIsIntersecting] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Use React Query hook - only enabled when component is visible
+  const { 
+    data: similarProductsData, 
+    isLoading, 
+    error,
+    isFetched 
+  } = useSimilarProducts(
+    isIntersecting && !isTestMode ? currentProductId : '', 
+    4
+  );
 
+  // Setup intersection observer for lazy loading
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        // Load when the container is 200px away from being visible
-        if (entry.isIntersecting && !hasLoaded) {
-          loadRelatedProducts();
+        if (entry.isIntersecting) {
+          setIsIntersecting(true);
         }
       },
       {
@@ -62,13 +72,10 @@ const LazyRelatedProducts: React.FC<LazyRelatedProductsProps> = ({
         observer.unobserve(containerRef.current);
       }
     };
-  }, [hasLoaded, currentProductId]);
+  }, []);
 
-  const loadRelatedProducts = async () => {
-    if (hasLoaded || isLoading) return;
-    
-    setIsLoading(true);
-    
+  // Get products to display
+  const getProductsToDisplay = (): Product[] => {
     if (isTestMode) {
       // In test mode, show products from same category
       const currentProduct = mockProducts.find(p => p._id === currentProductId);
@@ -85,44 +92,18 @@ const LazyRelatedProducts: React.FC<LazyRelatedProductsProps> = ({
           related.push(...additional);
         }
         
-        setRelatedProducts(related);
+        return related;
       }
-    } else {
-      // Use the similar products API
-      try {
-        const data = await getSimilarProducts(currentProductId, 4);
-        if (data && data.products) {
-          setRelatedProducts(data.products);
-        } else if (data && data.error) {
-          console.error('Error loading similar products:', data.error);
-          // Fallback to random products
-          await loadRandomProducts();
-        }
-      } catch (err) {
-        console.error('Error loading similar products:', err);
-        // Fallback to random products
-        await loadRandomProducts();
-      }
+      return [];
     }
-    
-    setIsLoading(false);
-    setHasLoaded(true);
+
+    // Return React Query data if available
+    return similarProductsData?.products || [];
   };
-  
-  const loadRandomProducts = async () => {
-    try {
-      const data = await getProducts();
-      if (data && !data.error) {
-        const related = data
-          .filter((p: Product) => p._id !== currentProductId)
-          .sort(() => Math.random() - 0.5)
-          .slice(0, 4);
-        setRelatedProducts(related);
-      }
-    } catch (err) {
-      console.error('Error loading random products:', err);
-    }
-  };
+
+  const relatedProducts = getProductsToDisplay();
+  const showLoading = isLoading && isIntersecting;
+  const showNoResults = !showLoading && relatedProducts.length === 0 && (isFetched || isTestMode);
 
   const handleQuickView = (product: Product) => {
     if (onQuickView) {
@@ -140,9 +121,17 @@ const LazyRelatedProducts: React.FC<LazyRelatedProductsProps> = ({
 
   return (
     <div ref={containerRef} className="mt-16">
-      <h2 className="text-2xl font-bold mb-8">You May Also Like</h2>
+      <h2 className="text-2xl font-bold mb-8">
+        You May Also Like
+        {similarProductsData?.cached && (
+          <span className="text-sm text-green-400 ml-2">
+            ⚡ Cached
+          </span>
+        )}
+      </h2>
       
-      {isLoading && (
+      {/* Loading State */}
+      {showLoading && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {[...Array(4)].map((_, index) => (
             <div key={index} className="bg-gray-800 rounded-lg overflow-hidden animate-pulse">
@@ -156,7 +145,8 @@ const LazyRelatedProducts: React.FC<LazyRelatedProductsProps> = ({
         </div>
       )}
       
-      {!isLoading && relatedProducts.length > 0 && (
+      {/* Products Grid */}
+      {!showLoading && relatedProducts.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
           {relatedProducts.map((product) => (
             <ProductGridItem 
@@ -168,9 +158,15 @@ const LazyRelatedProducts: React.FC<LazyRelatedProductsProps> = ({
         </div>
       )}
       
-      {!isLoading && relatedProducts.length === 0 && hasLoaded && (
+      {/* No Results */}
+      {showNoResults && (
         <div className="text-center py-8 text-gray-400">
           <p>No related products found</p>
+          {error && (
+            <p className="text-sm mt-2 text-red-400">
+              Failed to load recommendations
+            </p>
+          )}
         </div>
       )}
 

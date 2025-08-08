@@ -1,10 +1,34 @@
 const Product = require('../models/product');
+const redisService = require('../services/redisService');
 
-// Get similar products using optimized staged approach
+// Get similar products using optimized staged approach with Redis caching
 exports.getSimilarProducts = async (req, res) => {
   try {
     const { productId } = req.params;
     const limit = parseInt(req.query.limit) || 4;
+    
+    // Generate cache key for this request
+    const cacheKey = `similar:${productId}:${limit}`;
+    
+    // Try to get from Redis cache first
+    let cachedData = null;
+    if (redisService.isAvailable()) {
+      try {
+        cachedData = await redisService.get(cacheKey);
+        if (cachedData) {
+          console.log(`✅ Cache HIT for similar products: ${productId}`);
+          return res.json({
+            ...cachedData,
+            cached: true,
+            cacheHit: true
+          });
+        }
+      } catch (cacheError) {
+        console.log('⚠️ Cache read error, falling back to database:', cacheError.message);
+      }
+    }
+    
+    console.log(`💾 Cache MISS for similar products: ${productId}, querying database...`);
     
     // Get current product with only needed fields
     const currentProduct = await Product.findById(productId)
@@ -143,10 +167,27 @@ exports.getSimilarProducts = async (req, res) => {
     similarProducts.sort((a, b) => (b.similarityScore || 0) - (a.similarityScore || 0));
     similarProducts = similarProducts.slice(0, limit);
     
-    res.json({
+    // Prepare response data
+    const responseData = {
       products: similarProducts,
-      total: similarProducts.length
-    });
+      total: similarProducts.length,
+      cached: false,
+      cacheHit: false
+    };
+    
+    // Cache the results for future requests (1 hour TTL)
+    if (redisService.isAvailable() && similarProducts.length > 0) {
+      try {
+        const cacheSuccess = await redisService.set(cacheKey, responseData, 3600); // 1 hour TTL
+        if (cacheSuccess) {
+          console.log(`💾 Cached similar products for: ${productId}`);
+        }
+      } catch (cacheError) {
+        console.log('⚠️ Cache write error:', cacheError.message);
+      }
+    }
+    
+    res.json(responseData);
     
   } catch (error) {
     console.error('Get similar products error:', error);

@@ -32,6 +32,7 @@ const invoiceRoutes = require("./routes/invoice");
 const aovRoutes = require("./routes/aov");
 const { initializeSettings } = require("./controllers/settings");
 const AOVService = require("./services/aovService");
+const redisService = require("./services/redisService");
 
 const app = express();
 
@@ -48,6 +49,12 @@ mongoose
     initializeSettings();
     // Initialize AOV settings
     AOVService.initializeAOVSettings();
+    // Initialize Redis connection (optional, graceful fallback if unavailable)
+    redisService.connect().then(() => {
+      console.log("✅ Redis initialization complete");
+    }).catch(err => {
+      console.log("⚠️ Redis initialization failed, continuing without cache:", err.message);
+    });
   });
 
 //Middlewares

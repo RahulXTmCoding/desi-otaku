@@ -1,0 +1,549 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { getSimilarProducts, getFilteredProducts } from '../core/helper/shopApiCalls';
+import { getProducts, getProduct } from '../core/helper/coreapicalls';
+import { getDesigns, getAllDesignTags } from '../admin/helper/designapicall';
+import { getCategories } from '../admin/helper/adminapicall';
+import { API } from '../backend';
+import { queryPersistence } from '../utils/queryPersistence';
+
+// Interface for filtered products parameters
+interface FilteredProductsParams {
+  search?: string;
+  category?: string;
+  subcategory?: string;
+  productType?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sizes?: string[];
+  availability?: string;
+  tags?: string[];
+  sortBy?: string;
+  sortOrder?: string;
+  page?: number;
+  limit?: number;
+}
+
+// Hook for fetching similar products with caching
+export const useSimilarProducts = (productId: string, limit: number = 4) => {
+  return useQuery({
+    queryKey: ['similarProducts', productId, limit],
+    queryFn: () => getSimilarProducts(productId, limit),
+    enabled: !!productId, // Only run if productId exists
+    staleTime: 1 * 60 * 1000, // 1 minute (short TTL for fresh recommendations)
+    gcTime: 3 * 60 * 1000, // 3 minutes in cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Hook for fetching all products with caching (optimized for home page)
+export const useProducts = () => {
+  return useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      if (import.meta.env.DEV) {
+        console.log(`🌐 HOME PAGE: API CALL INITIATED for products list`);
+      }
+      const startTime = Date.now();
+      
+      try {
+        const data = await getProducts();
+        const endTime = Date.now();
+        if (import.meta.env.DEV) {
+          console.log(`✅ HOME PAGE: API CALL COMPLETED for products list (${endTime - startTime}ms)`);
+          console.log(`📦 HOME PAGE: ${data.length} products received`);
+          console.log(`💾 Saving to React Query cache for home page`);
+        }
+        return data;
+      } catch (error) {
+        const endTime = Date.now();
+        if (import.meta.env.DEV) {
+          console.log(`❌ HOME PAGE: API CALL FAILED for products list (${endTime - startTime}ms)`, error);
+        }
+        throw error;
+      }
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes (home page cache)
+    gcTime: 8 * 60 * 1000, // 8 minutes in cache (matches backend TTL)
+    retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    // Use cached data while fetching fresh in background
+    placeholderData: (previousData) => {
+      if (previousData && import.meta.env.DEV) {
+        console.log(`💾 HOME PAGE: PLACEHOLDER DATA used for products list`);
+      }
+      return previousData;
+    },
+    // Better structural sharing for product lists
+    structuralSharing: true,
+    // Add meta for debugging
+    meta: {
+      hookType: 'useProducts',
+      purpose: 'homePage'
+    }
+  });
+};
+
+// Hook for fetching single product with caching
+export const useProduct = (productId: string) => {
+  const queryKey = ['product', productId];
+  
+  return useQuery({
+    queryKey,
+    queryFn: async () => {
+      if (import.meta.env.DEV) {
+        console.log(`🌐 API CALL INITIATED for product: ${productId}`);
+      }
+      const startTime = Date.now();
+      
+      try {
+        const data = await getProduct(productId);
+        const endTime = Date.now();
+        if (import.meta.env.DEV) {
+          console.log(`✅ API CALL COMPLETED for product: ${productId} (${endTime - startTime}ms)`);
+          console.log(`📦 Product data received:`, { 
+            id: data._id, 
+            name: data.name, 
+            size: JSON.stringify(data).length + ' bytes' 
+          });
+          console.log(`💾 Saving to localStorage cache for future use`);
+        }
+        return data;
+      } catch (error) {
+        const endTime = Date.now();
+        if (import.meta.env.DEV) {
+          console.log(`❌ API CALL FAILED for product: ${productId} (${endTime - startTime}ms)`, error);
+        }
+        throw error;
+      }
+    },
+    enabled: !!productId,
+    staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh longer
+    gcTime: 30 * 60 * 1000, // 30 minutes in cache
+    retry: 2,
+    // Prevent unnecessary refetches but allow initial fetch
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    // Use cached data if available while fetching fresh in background
+    placeholderData: (previousData) => {
+      if (previousData && import.meta.env.DEV) {
+        console.log(`💾 PLACEHOLDER DATA used for product: ${productId}`);
+      }
+      return previousData;
+    },
+    // Use initial data from persistence if available
+    initialData: () => {
+      // Check if we have persisted data
+      const persistedCache = localStorage.getItem('react-query-cache');
+      if (persistedCache) {
+        try {
+          const cache = JSON.parse(persistedCache);
+          const queryHash = JSON.stringify(queryKey);
+          
+          // Look for our specific query in the persisted cache
+          if (cache.clientState && cache.clientState.queries) {
+            for (const query of cache.clientState.queries) {
+              if (JSON.stringify(query.queryKey) === queryHash && query.state.data) {
+                const cacheAge = Date.now() - query.state.dataUpdatedAt;
+                if (cacheAge < 30 * 60 * 1000) { // Within 30 minutes
+                  if (import.meta.env.DEV) {
+                    console.log(`🗄️ RESTORED from localStorage: product ${productId} (${Math.round(cacheAge/1000)}s old)`);
+                  }
+                  return query.state.data;
+                }
+              }
+            }
+          }
+        } catch (e) {
+          if (import.meta.env.DEV) {
+            console.log('Failed to parse persisted cache:', e);
+          }
+        }
+      }
+      return undefined;
+    },
+    // Prevent network requests if data is fresh
+    networkMode: 'online',
+    // Better structural sharing
+    structuralSharing: true,
+    // Add meta for debugging
+    meta: {
+      productId,
+      hookType: 'useProduct'
+    }
+  });
+};
+
+// Hook for fetching filtered products with comprehensive caching
+export const useFilteredProducts = (params: FilteredProductsParams) => {
+  // Create a stable cache key by normalizing the parameters
+  const createCacheKey = (params: FilteredProductsParams) => {
+    // Sort arrays for consistent cache keys
+    const sortedSizes = params.sizes ? [...params.sizes].sort() : undefined;
+    const sortedTags = params.tags ? [...params.tags].sort() : undefined;
+    
+    // Clean up undefined/null values and create normalized params
+    const normalizedParams = {
+      search: params.search || undefined,
+      category: params.category === 'all' ? undefined : params.category,
+      subcategory: params.subcategory === 'all' ? undefined : params.subcategory,
+      productType: params.productType === 'all' ? undefined : params.productType,
+      minPrice: params.minPrice || 0,
+      maxPrice: params.maxPrice || 5000,
+      sizes: sortedSizes?.length ? sortedSizes : undefined,
+      availability: params.availability === 'all' ? undefined : params.availability,
+      tags: sortedTags?.length ? sortedTags : undefined,
+      sortBy: params.sortBy || 'newest',
+      sortOrder: params.sortOrder || 'desc',
+      page: params.page || 1,
+      limit: params.limit || 12
+    };
+
+    // Remove undefined values for cleaner cache key
+    const cleanParams = Object.fromEntries(
+      Object.entries(normalizedParams).filter(([_, value]) => value !== undefined)
+    );
+
+    return ['filteredProducts', cleanParams];
+  };
+
+  return useQuery({
+    queryKey: createCacheKey(params),
+    queryFn: () => getFilteredProducts(params),
+    staleTime: 3 * 60 * 1000, // 3 minutes (shop data changes more frequently)
+    gcTime: 10 * 60 * 1000, // 10 minutes in cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+    // Enable background refetch to keep data fresh
+    refetchOnReconnect: true,
+  });
+};
+
+// Hook for prefetching similar products (preload before user needs them)
+export const usePrefetchSimilarProducts = () => {
+  const queryClient = useQueryClient();
+  
+  const prefetchSimilarProducts = (productId: string, limit: number = 4) => {
+    queryClient.prefetchQuery({
+      queryKey: ['similarProducts', productId, limit],
+      queryFn: () => getSimilarProducts(productId, limit),
+      staleTime: 10 * 60 * 1000,
+    });
+  };
+
+  return prefetchSimilarProducts;
+};
+
+// Hook for prefetching filtered products (useful for predicted user navigation)
+export const usePrefetchFilteredProducts = () => {
+  const queryClient = useQueryClient();
+  
+  const prefetchFilteredProducts = (params: FilteredProductsParams) => {
+    const createCacheKey = (params: FilteredProductsParams) => {
+      const sortedSizes = params.sizes ? [...params.sizes].sort() : undefined;
+      const sortedTags = params.tags ? [...params.tags].sort() : undefined;
+      
+      const normalizedParams = {
+        search: params.search || undefined,
+        category: params.category === 'all' ? undefined : params.category,
+        subcategory: params.subcategory === 'all' ? undefined : params.subcategory,
+        productType: params.productType === 'all' ? undefined : params.productType,
+        minPrice: params.minPrice || 0,
+        maxPrice: params.maxPrice || 5000,
+        sizes: sortedSizes?.length ? sortedSizes : undefined,
+        availability: params.availability === 'all' ? undefined : params.availability,
+        tags: sortedTags?.length ? sortedTags : undefined,
+        sortBy: params.sortBy || 'newest',
+        sortOrder: params.sortOrder || 'desc',
+        page: params.page || 1,
+        limit: params.limit || 12
+      };
+
+      const cleanParams = Object.fromEntries(
+        Object.entries(normalizedParams).filter(([_, value]) => value !== undefined)
+      );
+
+      return ['filteredProducts', cleanParams];
+    };
+
+    queryClient.prefetchQuery({
+      queryKey: createCacheKey(params),
+      queryFn: () => getFilteredProducts(params),
+      staleTime: 3 * 60 * 1000,
+    });
+  };
+
+  return prefetchFilteredProducts;
+};
+
+// Interface for design filter parameters
+interface DesignFilterParams {
+  search?: string;
+  category?: string;
+  tag?: string;
+  page?: number;
+  limit?: number;
+}
+
+// Hook for fetching filtered designs with caching (longer TTL since designs change less frequently)
+export const useDesigns = (params: DesignFilterParams) => {
+  // Create a stable cache key by normalizing the parameters
+  const createCacheKey = (params: DesignFilterParams) => {
+    const normalizedParams = {
+      search: params.search || undefined,
+      category: params.category === 'all' ? undefined : params.category,
+      tag: params.tag || undefined,
+      page: params.page || 1,
+      limit: params.limit || 50
+    };
+
+    // Remove undefined values for cleaner cache key
+    const cleanParams = Object.fromEntries(
+      Object.entries(normalizedParams).filter(([_, value]) => value !== undefined)
+    );
+
+    return ['designs', cleanParams];
+  };
+
+  return useQuery({
+    queryKey: createCacheKey(params),
+    queryFn: () => {
+      const filters: any = {};
+      if (params.search) filters.search = params.search;
+      if (params.category && params.category !== 'all') filters.category = params.category;
+      if (params.tag) filters.tag = params.tag;
+      return getDesigns(params.page || 1, params.limit || 50, filters);
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes (longer TTL for designs)
+    gcTime: 30 * 60 * 1000, // 30 minutes in cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+  });
+};
+
+// Hook for fetching design categories with caching
+export const useDesignCategories = () => {
+  return useQuery({
+    queryKey: ['designCategories'],
+    queryFn: getCategories,
+    staleTime: 15 * 60 * 1000, // 15 minutes (categories change rarely)
+    gcTime: 60 * 60 * 1000, // 1 hour in cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Hook for fetching design tags with caching
+export const useDesignTags = () => {
+  return useQuery({
+    queryKey: ['designTags'],
+    queryFn: getAllDesignTags,
+    staleTime: 15 * 60 * 1000, // 15 minutes (tags change rarely)
+    gcTime: 60 * 60 * 1000, // 1 hour in cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Hook for fetching product reviews with caching (longer TTL since reviews don't change frequently)
+export const useProductReviews = (productId: string) => {
+  return useQuery({
+    queryKey: ['productReviews', productId],
+    queryFn: async () => {
+      const response = await fetch(`${API}/reviews/product/${productId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch reviews');
+      }
+      return response.json();
+    },
+    enabled: !!productId,
+    staleTime: 15 * 60 * 1000, // 15 minutes (reviews don't change frequently)
+    gcTime: 45 * 60 * 1000, // 45 minutes in cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Hook for fetching user's review for a specific product
+export const useUserReview = (productId: string, userId: string, token: string) => {
+  return useQuery({
+    queryKey: ['userReview', productId, userId],
+    queryFn: async () => {
+      if (!userId || !token) return null;
+      
+      const response = await fetch(`${API}/reviews/product/${productId}/user/${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      if (response.status === 404) {
+        return null; // User hasn't reviewed this product
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user review');
+      }
+      
+      return response.json();
+    },
+    enabled: !!productId && !!userId && !!token,
+    staleTime: 20 * 60 * 1000, // 20 minutes (user's own review changes rarely)
+    gcTime: 60 * 60 * 1000, // 1 hour in cache
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Hook for fetching reviews settings (whether reviews are enabled)
+export const useReviewsSettings = () => {
+  return useQuery({
+    queryKey: ['reviewsSettings'],
+    queryFn: async () => {
+      const response = await fetch(`${API}/settings/reviews-status`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch reviews settings');
+      }
+      return response.json();
+    },
+    staleTime: 30 * 60 * 1000, // 30 minutes (settings change very rarely)
+    gcTime: 120 * 60 * 1000, // 2 hours in cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+  });
+};
+
+// Hook for caching product images with React Query (NON-BLOCKING)
+export const useProductImages = (productId: string) => {
+  return useQuery({
+    queryKey: ['productImages', productId],
+    queryFn: async () => {
+      if (!productId) throw new Error('Product ID required');
+      
+      // Fetch product data first to get image info
+      const productResponse = await fetch(`${API}/product/${productId}`);
+      if (!productResponse.ok) {
+        throw new Error('Failed to fetch product');
+      }
+      const product = await productResponse.json();
+      
+      // Build image array
+      const images = [];
+      
+      if (product.images && product.images.length > 0) {
+        // Process multiple images
+        product.images.forEach((img: any, index: number) => {
+          images.push({
+            id: `${productId}-${index}`,
+            url: img.url || `${API}/product/image/${productId}/${index}`,
+            caption: img.caption || `Image ${index + 1}`,
+            isPrimary: img.isPrimary || false,
+            order: img.order || index
+          });
+        });
+        
+        // Sort by order
+        images.sort((a, b) => a.order - b.order);
+        
+        // Ensure at least one image is primary
+        if (!images.some(img => img.isPrimary) && images.length > 0) {
+          images[0].isPrimary = true;
+        }
+      } else {
+        // Single image fallback
+        images.push({
+          id: `${productId}-0`,
+          url: `${API}/product/image/${productId}`,
+          caption: 'Main Image',
+          isPrimary: true,
+          order: 0
+        });
+      }
+      
+      // Return images immediately - preload in background after return
+      setTimeout(() => {
+        images.forEach(image => {
+          const img = new Image();
+          img.src = image.url; // Preload in background without blocking
+        });
+      }, 0);
+      
+      return images;
+    },
+    enabled: !!productId,
+    staleTime: 10 * 60 * 1000, // 10 minutes (images don't change frequently)
+    gcTime: 30 * 60 * 1000, // 30 minutes in cache (longer for images)
+    retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Use cached images first
+  });
+};
+
+// Hook for prefetching product images (use when hovering over product cards)
+export const usePrefetchProductImages = () => {
+  const queryClient = useQueryClient();
+  
+  const prefetchProductImages = (productId: string) => {
+    queryClient.prefetchQuery({
+      queryKey: ['productImages', productId],
+      queryFn: async () => {
+        if (!productId) throw new Error('Product ID required');
+        
+        const productResponse = await fetch(`${API}/product/${productId}`);
+        if (!productResponse.ok) {
+          throw new Error('Failed to fetch product');
+        }
+        const product = await productResponse.json();
+        
+        const images = [];
+        
+        if (product.images && product.images.length > 0) {
+          product.images.forEach((img: any, index: number) => {
+            images.push({
+              id: `${productId}-${index}`,
+              url: img.url || `${API}/product/image/${productId}/${index}`,
+              caption: img.caption || `Image ${index + 1}`,
+              isPrimary: img.isPrimary || false,
+              order: img.order || index
+            });
+          });
+          
+          images.sort((a, b) => a.order - b.order);
+          
+          if (!images.some(img => img.isPrimary) && images.length > 0) {
+            images[0].isPrimary = true;
+          }
+        } else {
+          images.push({
+            id: `${productId}-0`,
+            url: `${API}/product/image/${productId}`,
+            caption: 'Main Image',
+            isPrimary: true,
+            order: 0
+          });
+        }
+        
+        // Preload images
+        await Promise.all(
+          images.map(image => 
+            new Promise((resolve) => {
+              const img = new Image();
+              img.onload = () => resolve(image);
+              img.onerror = () => resolve(image);
+              img.src = image.url;
+            })
+          )
+        );
+        
+        return images;
+      },
+      staleTime: 10 * 60 * 1000,
+    });
+  };
+
+  return prefetchProductImages;
+};

@@ -13,9 +13,11 @@ export const getProducts = () => {
 export const getProduct = (productId: string) => {
   return fetch(`${API}/product/${productId}`, { method: "GET" })
     .then(response => {
+      if (!response.ok) {
+        throw new Error(`Failed to fetch product: ${response.status}`);
+      }
       return response.json();
-    })
-    .catch(err => console.log(err));
+    });
 };
 
 // Get all categories

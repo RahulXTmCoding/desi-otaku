@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Star, 
@@ -13,18 +13,22 @@ import {
   Minus,
   Check,
   Share2,
-  Zap
+  Zap,
+  Loader
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
-import { getProduct } from '../core/helper/coreapicalls';
+import { useProduct, useProductImages } from '../hooks/useProducts';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
 import SizeChart from '../components/SizeChart';
-import ProductReviews from '../components/ProductReviews';
-import LazyRelatedProducts from '../components/LazyRelatedProducts';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
+import { productCache } from '../utils/productCache';
+
+// Lazy load heavy components to improve initial page load
+const ProductReviews = lazy(() => import('../components/ProductReviews'));
+const LazyRelatedProducts = lazy(() => import('../components/LazyRelatedProducts'));
 
 interface Product {
   _id: string;
@@ -75,7 +79,51 @@ const ProductDetail: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const { addToCart } = useCart();
-  const [product, setProduct] = useState<Product | null>(null);
+  
+  // React Query for product data (disabled in test mode)
+  const { 
+    data: productData, 
+    isLoading, 
+    error: queryError,
+    isFetching,
+    isSuccess,
+    dataUpdatedAt
+  } = useProduct(id || '');
+
+  // Comprehensive React Query debugging
+  console.log('🔍 REACT QUERY DEBUG:', {
+    productId: id,
+    hasData: !!productData,
+    isLoading,
+    isFetching,
+    isSuccess,
+    isError: !!queryError,
+    error: queryError?.message,
+    dataUpdatedAt: dataUpdatedAt ? new Date(dataUpdatedAt).toISOString() : 'NO_CACHE',
+    cacheAge: dataUpdatedAt ? `${Math.round((Date.now() - dataUpdatedAt) / 1000)}s` : 'NO_CACHE',
+    isStale: dataUpdatedAt ? (Date.now() - dataUpdatedAt) > (10 * 60 * 1000) : true,
+    timestamp: new Date().toISOString()
+  });
+
+  // Log cache status more clearly
+  useEffect(() => {
+    if (id && productData) {
+      const cacheAge = dataUpdatedAt ? Date.now() - dataUpdatedAt : 0;
+      const isFromCache = cacheAge > 0 && cacheAge < 1000; // Less than 1s means likely from cache
+      
+      console.log(`📊 CACHE STATUS for product ${id}:`, {
+        source: isFromCache ? '💾 CACHE HIT' : '🌐 FRESH FETCH',
+        ageSeconds: Math.round(cacheAge / 1000),
+        dataSize: JSON.stringify(productData).length + ' bytes',
+        productName: productData.name
+      });
+    }
+  }, [id, productData, dataUpdatedAt]);
+
+  // Remove the duplicate image hook that was causing delays
+  // We'll build images directly from product data for better performance
+
+  
   const [selectedColor, setSelectedColor] = useState<{ name: string; value: string } | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -84,14 +132,36 @@ const ProductDetail: React.FC = () => {
   const [productVariants, setProductVariants] = useState<any[]>([]);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   
   const auth = isAutheticated();
   const userId = auth && auth.user ? auth.user._id : null;
   const token = auth ? auth.token : null;
+
+  // Handle test mode and real data
+  const product = isTestMode 
+    ? mockProducts.find(p => p._id === id) 
+    : productData;
+  
+  // Fix loading logic - only show loading if no data
+  const loading = isTestMode ? false : (!productData && isLoading);
+  const error = isTestMode 
+    ? (id && !mockProducts.find(p => p._id === id) ? 'Product not found' : '')
+    : (queryError?.message || '');
+
+  // More detailed debugging
+  console.log('Detailed Debug:', {
+    id,
+    isTestMode,
+    productData: productData ? 'EXISTS' : 'NULL',
+    product: product ? 'EXISTS' : 'NULL', 
+    isLoading,
+    queryError: queryError ? queryError.message : 'NO_ERROR',
+    loading,
+    error,
+    cacheStatus: dataUpdatedAt ? 'CACHED' : 'NO_CACHE'
+  });
 
   // Default colors and sizes for t-shirts
   const defaultColors = [
@@ -121,19 +191,11 @@ const ProductDetail: React.FC = () => {
 
   const defaultMaterial = "100% Cotton (180 GSM)";
 
-  useEffect(() => {
-    loadProduct();
-    if (id) {
-      if (userId && token) {
-        checkWishlistStatus();
-      }
-    }
-  }, [id, isTestMode]);
-
-  // Load images after product is loaded
+  // Initialize defaults immediately when product loads (non-blocking)
   useEffect(() => {
     if (product && id) {
-      loadProductImages();
+      // Set defaults immediately for better UX
+      setSelectedColor(defaultColors[0]);
       
       // Auto-select first available size
       if (product.sizeStock) {
@@ -146,6 +208,24 @@ const ProductDetail: React.FC = () => {
       }
     }
   }, [product, id]);
+
+  // Build images directly from product data for instant loading
+  useEffect(() => {
+    if (product && !isTestMode) {
+      loadProductImages();
+    }
+  }, [product, isTestMode]);
+
+  // Load wishlist status asynchronously (non-blocking, only if user is logged in)
+  useEffect(() => {
+    if (id && userId && token) {
+      // Use setTimeout to make it truly non-blocking
+      const timer = setTimeout(() => {
+        checkWishlistStatus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [id, userId, token]);
 
   const checkWishlistStatus = async () => {
     if (!userId || !token || !id) return;
@@ -177,40 +257,6 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  const loadProduct = () => {
-    setLoading(true);
-    
-    if (isTestMode) {
-      // Use mock data
-      const mockProduct = mockProducts.find(p => p._id === id);
-      if (mockProduct) {
-        setProduct(mockProduct);
-        setSelectedColor(defaultColors[0]);
-      } else {
-        setError('Product not found');
-      }
-      setLoading(false);
-    } else {
-      // Use real backend
-      if (id) {
-        getProduct(id)
-          .then((data: any) => {
-            if (data && data.error) {
-              setError(data.error);
-            } else {
-              setProduct(data);
-              setSelectedColor(defaultColors[0]);
-            }
-            setLoading(false);
-          })
-          .catch((err: any) => {
-            console.log(err);
-            setError('Failed to load product');
-            setLoading(false);
-          });
-      }
-    }
-  };
 
 
   const loadProductImages = async () => {
@@ -387,10 +433,18 @@ const ProductDetail: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)' }}>
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderBottomColor: 'var(--color-primary)' }}></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4" style={{ borderBottomColor: 'var(--color-primary)' }}></div>
+          <p className="text-gray-400">Loading product details...</p>
+          {!isTestMode && productData && (
+            <p className="text-green-400 text-sm mt-2">⚡ Loading from cache</p>
+          )}
+        </div>
       </div>
     );
   }
+
+  console.log(error , !product)
 
   if (error || !product) {
     return (
@@ -543,7 +597,15 @@ const ProductDetail: React.FC = () => {
 
           {/* Product Info */}
           <div>
-            <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+            <div className="flex items-center gap-3 mb-4">
+              <h1 className="text-3xl font-bold">{product.name}</h1>
+              {!isTestMode && isFetching && !isLoading && (
+                <div className="flex items-center gap-2 text-sm text-green-400">
+                  <Loader className="w-4 h-4 animate-spin" />
+                  <span>⚡ Updating</span>
+                </div>
+              )}
+            </div>
             
             {/* Rating and Reviews - Only show if product has actual reviews */}
             {product.rating && product.rating > 0 && (
@@ -927,14 +989,34 @@ const ProductDetail: React.FC = () => {
 
         {/* Reviews Section */}
         {product && (
-          <ProductReviews 
-            productId={product._id} 
-            productImage={getProductImage(product)} 
-          />
+          <Suspense fallback={
+            <div className="mt-12 text-center py-8">
+              <div className="flex flex-col items-center gap-2">
+                <Loader className="w-8 h-8 animate-spin text-yellow-400" />
+                <p className="text-gray-400">Loading reviews...</p>
+              </div>
+            </div>
+          }>
+            <ProductReviews 
+              productId={product._id} 
+              productImage={getProductImage(product)} 
+            />
+          </Suspense>
         )}
 
         {/* Lazy Related Products */}
-        {id && <LazyRelatedProducts currentProductId={id} />}
+        {id && (
+          <Suspense fallback={
+            <div className="mt-12 text-center py-8">
+              <div className="flex flex-col items-center gap-2">
+                <Loader className="w-8 h-8 animate-spin text-yellow-400" />
+                <p className="text-gray-400">Loading related products...</p>
+              </div>
+            </div>
+          }>
+            <LazyRelatedProducts currentProductId={id} />
+          </Suspense>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ const _ = require("lodash");
 const fs = require("fs");
 const { sortBy } = require("lodash");
 const emailService = require("../services/emailService");
+const redisService = require("../services/redisService");
 
 //get the product by its id
 exports.getProductById = (req, res, next, id) => {
@@ -135,7 +136,7 @@ exports.createProduct = (req, res) => {
     });
 
     //save to DB
-    product.save((err, product) => {
+    product.save(async (err, product) => {
       if (err) {
         return res.status(400).json({
           err: "Failed to save the product in DB",
@@ -143,27 +144,100 @@ exports.createProduct = (req, res) => {
         });
       }
 
+      // Clear any potential cache entries for this product (though unlikely to exist)
+      try {
+        await redisService.connect();
+        const cacheKey = `product:${product._id}`;
+        await redisService.del(cacheKey);
+        console.log(`🔄 REDIS CACHE CLEARED for new product: ${product._id}`);
+      } catch (redisError) {
+        console.error('Redis cache clear failed for new product:', redisError);
+        // Continue without failing the creation
+      }
+
       res.json(product);
     });
   });
 };
 
-exports.getProduct = (req, res) => {
-  // Remove image data for faster response
-  const product = req.product.toObject();
-  if (product.images) {
-    product.images = product.images.map(img => ({
-      _id: img._id,
-      url: img.url,
-      isPrimary: img.isPrimary,
-      order: img.order,
-      caption: img.caption,
-      // Exclude binary data
-      data: undefined,
-      contentType: undefined
-    }));
+exports.getProduct = async (req, res) => {
+  try {
+    const productId = req.product._id.toString();
+    const cacheKey = `product:${productId}`;
+    
+    // Initialize Redis connection if not already connected
+    await redisService.connect();
+    
+    // Try to get from Redis cache first
+    const cachedProduct = await redisService.get(cacheKey);
+    
+    if (cachedProduct) {
+      console.log(`🔥 REDIS CACHE HIT for product: ${productId}`);
+      return res.json({
+        ...cachedProduct,
+        _cached: true,
+        _cacheAge: Date.now() - cachedProduct._cachedAt
+      });
+    }
+    
+    console.log(`💾 REDIS CACHE MISS for product: ${productId} - fetching from DB`);
+    
+    // Cache miss - prepare product data
+    const product = req.product.toObject();
+    
+    // Remove image data for faster response and caching
+    if (product.images) {
+      product.images = product.images.map(img => ({
+        _id: img._id,
+        url: img.url,
+        isPrimary: img.isPrimary,
+        order: img.order,
+        caption: img.caption,
+        // Exclude binary data from cache
+        data: undefined,
+        contentType: undefined
+      }));
+    }
+    
+    // Add cache metadata
+    const cacheableProduct = {
+      ...product,
+      _cachedAt: Date.now(),
+      _cacheKey: cacheKey
+    };
+    
+    // Store in Redis cache with 2-minute TTL (120 seconds)
+    const cacheSuccess = await redisService.set(cacheKey, cacheableProduct, 120);
+    
+    if (cacheSuccess) {
+      console.log(`✅ REDIS CACHED product: ${productId} for 2 minutes`);
+    } else {
+      console.log(`⚠️ REDIS CACHE FAILED for product: ${productId}`);
+    }
+    
+    return res.json({
+      ...cacheableProduct,
+      _cached: false
+    });
+    
+  } catch (error) {
+    console.error('Error in getProduct with Redis caching:', error);
+    
+    // Fallback to original behavior if Redis fails
+    const product = req.product.toObject();
+    if (product.images) {
+      product.images = product.images.map(img => ({
+        _id: img._id,
+        url: img.url,
+        isPrimary: img.isPrimary,
+        order: img.order,
+        caption: img.caption,
+        data: undefined,
+        contentType: undefined
+      }));
+    }
+    return res.json(product);
   }
-  return res.json(product);
 };
 
 // Get product image by index or primary image
@@ -461,12 +535,23 @@ exports.updateProduct = (req, res) => {
     }
 
     //save to DB
-    product.save((err, product) => {
+    product.save(async (err, product) => {
       if (err) {
         return res.status(400).json({
           err: "Updation in DB is failed",
           details: err.message
         });
+      }
+
+      // Invalidate Redis cache for this product
+      try {
+        await redisService.connect();
+        const cacheKey = `product:${product._id}`;
+        await redisService.del(cacheKey);
+        console.log(`🔄 REDIS CACHE INVALIDATED for updated product: ${product._id}`);
+      } catch (redisError) {
+        console.error('Redis cache invalidation failed:', redisError);
+        // Continue without failing the update
       }
 
       // Check for low stock and send alerts
@@ -478,28 +563,104 @@ exports.updateProduct = (req, res) => {
 };
 
 //listing controller
-exports.getAllProducts = (req, res) => {
-  let limit = req.query.limit ? parseInt(req.query.limit) : 8;
-  let sortBy = req.query.sortBy ? req.query.sortBy : "_id";
-  let includeDeleted = req.query.includeDeleted === 'true'; // Admin option to include deleted
-  
-  // Build filter - exclude soft deleted products by default
-  const filter = includeDeleted ? {} : { isDeleted: { $ne: true } };
-  
-  Product.find(filter)
-    .select("-photo")
-    .populate("category")
-    .populate("productType")
-    .sort([[sortBy, "asc"]])
-    .limit(limit)
-    .exec((err, products) => {
-      if (err) {
-        return res.status(400).json({
-          err: "No product is found",
-        });
+exports.getAllProducts = async (req, res) => {
+  try {
+    let limit = req.query.limit ? parseInt(req.query.limit) : 8;
+    let sortBy = req.query.sortBy ? req.query.sortBy : "_id";
+    let includeDeleted = req.query.includeDeleted === 'true'; // Admin option to include deleted
+    
+    // Create cache key based on query parameters
+    const cacheKey = `products:list:${limit}:${sortBy}:${includeDeleted}`;
+    
+    // Initialize Redis connection
+    await redisService.connect();
+    
+    // Try to get from Redis cache first
+    const cachedProducts = await redisService.get(cacheKey);
+    
+    if (cachedProducts) {
+      console.log(`🔥 REDIS CACHE HIT for products list: ${limit} items, sortBy: ${sortBy}`);
+      return res.json({
+        ...cachedProducts,
+        _cached: true,
+        _cacheAge: Date.now() - cachedProducts._cachedAt
+      });
+    }
+    
+    console.log(`💾 REDIS CACHE MISS for products list - fetching from DB`);
+    
+    // Build filter - exclude soft deleted products by default
+    const filter = includeDeleted ? {} : { isDeleted: { $ne: true } };
+    
+    // Fetch from database
+    const products = await Product.find(filter)
+      .select("-photo -images.data") // Exclude heavy binary data
+      .populate("category")
+      .populate("productType")
+      .sort([[sortBy, "asc"]])
+      .limit(limit)
+      .lean(); // Use lean for better performance
+    
+    // Clean up image data for caching
+    const cleanedProducts = products.map(product => {
+      if (product.images && product.images.length > 0) {
+        product.images = product.images.map(img => ({
+          _id: img._id,
+          url: img.url,
+          isPrimary: img.isPrimary,
+          order: img.order,
+          caption: img.caption
+          // Exclude binary data
+        }));
       }
-      res.json(products);
+      return product;
     });
+    
+    // Prepare cacheable response
+    const cacheableResponse = {
+      products: cleanedProducts,
+      count: cleanedProducts.length,
+      _cachedAt: Date.now(),
+      _cacheKey: cacheKey
+    };
+    
+    // Store in Redis cache with 8-minute TTL (480 seconds) for home page products
+    const cacheSuccess = await redisService.set(cacheKey, cacheableResponse, 480);
+    
+    if (cacheSuccess) {
+      console.log(`✅ REDIS CACHED products list: ${cleanedProducts.length} items for 8 minutes`);
+    } else {
+      console.log(`⚠️ REDIS CACHE FAILED for products list`);
+    }
+    
+    // Return the products directly (not wrapped in cacheableResponse)
+    res.json(cleanedProducts);
+    
+  } catch (err) {
+    console.error('Error in getAllProducts with Redis caching:', err);
+    
+    // Fallback to original behavior
+    let limit = req.query.limit ? parseInt(req.query.limit) : 8;
+    let sortBy = req.query.sortBy ? req.query.sortBy : "_id";
+    let includeDeleted = req.query.includeDeleted === 'true';
+    
+    const filter = includeDeleted ? {} : { isDeleted: { $ne: true } };
+    
+    Product.find(filter)
+      .select("-photo")
+      .populate("category")
+      .populate("productType")
+      .sort([[sortBy, "asc"]])
+      .limit(limit)
+      .exec((err, products) => {
+        if (err) {
+          return res.status(400).json({
+            err: "No product is found",
+          });
+        }
+        res.json(products);
+      });
+  }
 };
 
 // Get soft deleted products (admin only)

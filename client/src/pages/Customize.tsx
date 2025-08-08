@@ -11,9 +11,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { getDesigns, getAllDesignTags } from '../admin/helper/designapicall';
-import { getProducts } from '../core/helper/coreapicalls';
-import { getCategories } from '../admin/helper/adminapicall';
+import { useDesigns, useDesignCategories, useDesignTags, useProducts } from '../hooks/useProducts';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
 import { API } from '../backend';
@@ -46,9 +44,6 @@ const Customize: React.FC = () => {
   const { isTestMode } = useDevMode();
   const { addToCart } = useCart();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [designs, setDesigns] = useState<Design[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const [selectedDesign, setSelectedDesign] = useState<Design | null>(null);
   const [selectedColor, setSelectedColor] = useState('#FFFFFF');
   const [selectedSize, setSelectedSize] = useState('M');
@@ -58,17 +53,41 @@ const Customize: React.FC = () => {
   const [selectedTag, setSelectedTag] = useState(searchParams.get('tag') || '');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [activeCategory, setActiveCategory] = useState(searchParams.get('category') || 'all');
-  const [products, setProducts] = useState<any[]>([]);
   const [basePrice, setBasePrice] = useState(499); // Default base price
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [allTags, setAllTags] = useState<string[]>([]);
   
   // New states for front/back design
   const [currentSide, setCurrentSide] = useState<'front' | 'back'>('front');
   const [frontDesign, setFrontDesign] = useState<DesignPlacement>({ design: null, position: 'center' });
   const [backDesign, setBackDesign] = useState<DesignPlacement>({ design: null, position: 'center' });
+
+  // React Query hooks (disabled in test mode)
+  const { 
+    data: designsData, 
+    isLoading: designsLoading, 
+    error: designsError,
+    isFetching: designsIsFetching 
+  } = useDesigns({
+    search: searchQuery,
+    category: activeCategory,
+    tag: selectedTag,
+    page: currentPage,
+    limit: 50
+  });
+
+  const { data: categoriesData } = useDesignCategories();
+  const { data: tagsData } = useDesignTags();
+  const { data: productsData } = useProducts();
+
+  // Handle test mode and real data
+  const designs = isTestMode ? [] : (designsData?.designs || designsData || []);
+  const loading = isTestMode ? false : designsLoading;
+  const error = isTestMode ? '' : (designsError?.message || '');
+  const totalPages = isTestMode ? 1 : (designsData?.pagination?.totalPages || 1);
+  const categories = isTestMode ? [] : (categoriesData || []);
+  const allTags = isTestMode ? [] : (tagsData?.filter((tag: string) => 
+    tag && tag.length > 2 && !tag.match(/^[0-9a-fA-F]{24}$/)
+  ) || []);
 
   const tshirtColors = [
     { name: 'White', value: '#FFFFFF' },
@@ -110,139 +129,25 @@ const Customize: React.FC = () => {
     setSearchParams(params);
   }, [searchQuery, activeCategory, selectedTag, setSearchParams]);
 
-  // Load designs when filters change
+  // Load base price from products data
   useEffect(() => {
-    loadDesigns();
-  }, [searchQuery, activeCategory, selectedTag, currentPage, isTestMode]);
-
-  // Load products from backend
-  useEffect(() => {
-    loadProducts();
-  }, [isTestMode]);
-
-  const loadProducts = async () => {
-    try {
-      if (isTestMode) {
-        // Use mock products for base price
-        const defaultProduct = mockProducts[0]; // Use first product as default
-        if (defaultProduct) {
-          setBasePrice(defaultProduct.price);
-        }
-      } else {
-        const data = await getProducts();
-        if (data && !data.error) {
-          // Find the cheapest t-shirt as base price
-          const tshirts = data.filter((p: any) => 
-            p.productType === 't-shirt' || !p.productType
-          );
-          if (tshirts.length > 0) {
-            const minPrice = Math.min(...tshirts.map((p: any) => p.price));
-            setBasePrice(minPrice);
-          }
-        }
+    if (isTestMode) {
+      // Use mock products for base price
+      const defaultProduct = mockProducts[0]; // Use first product as default
+      if (defaultProduct) {
+        setBasePrice(defaultProduct.price);
       }
-    } catch (err) {
-      console.error('Error loading products:', err);
-    }
-  };
-
-  const loadDesigns = async () => {
-    setLoading(true);
-    setError('');
-
-    try {
-      if (isTestMode) {
-        // Use mock data in test mode - apply filtering client-side for test mode
-        setTimeout(() => {
-          let mockDesigns: Design[] = mockProducts.map(p => ({
-            _id: p._id,
-            name: p.name,
-            description: p.description,
-            imageUrl: getMockProductImage(p._id),
-            category: p.category?.name || 'other',
-            tags: [p.category?.name?.toLowerCase() || 'other', 'sample'],
-            price: 150,
-            isActive: true,
-            isFeatured: false
-          }));
-
-          // Apply filters for test mode
-          if (searchQuery) {
-            mockDesigns = mockDesigns.filter(d => 
-              d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-              d.description?.toLowerCase().includes(searchQuery.toLowerCase())
-            );
-          }
-          if (activeCategory !== 'all') {
-            mockDesigns = mockDesigns.filter(d => d.category === activeCategory);
-          }
-
-          setDesigns(mockDesigns);
-          setTotalPages(1);
-          setLoading(false);
-        }, 500);
-      } else {
-        // Build filter parameters for backend
-        const filters: any = {};
-        if (searchQuery) filters.search = searchQuery;
-        if (activeCategory !== 'all') filters.category = activeCategory;
-        if (selectedTag) filters.tag = selectedTag;
-
-        // Fetch designs from backend with filters
-        const data = await getDesigns(currentPage, 50, filters);
-        if (data && data.error) {
-          setError(data.error);
-          setDesigns([]);
-        } else if (data && data.designs) {
-          // New paginated format
-          setDesigns(data.designs);
-          setTotalPages(data.pagination?.totalPages || 1);
-        } else if (data && Array.isArray(data)) {
-          // Old format (backward compatibility)
-          setDesigns(data);
-          setTotalPages(1);
-        } else {
-          setDesigns([]);
-        }
-        setLoading(false);
-      }
-    } catch (err) {
-      console.error('Error loading designs:', err);
-      setError('Failed to load designs');
-      setLoading(false);
-    }
-  };
-
-  // Load categories and tags on component mount
-  useEffect(() => {
-    loadCategoriesAndTags();
-  }, [isTestMode]);
-
-  const loadCategoriesAndTags = async () => {
-    if (!isTestMode) {
-      // Load categories from backend
-      try {
-        const categoryData = await getCategories();
-        if (categoryData && !categoryData.error) {
-          setCategories(categoryData);
-        }
-      } catch (err) {
-        console.error('Error loading categories:', err);
-      }
-
-      // Load tags from backend
-      try {
-        const tagsData = await getAllDesignTags();
-        if (tagsData && Array.isArray(tagsData)) {
-          setAllTags(tagsData.filter((tag: string) => 
-            tag && tag.length > 2 && !tag.match(/^[0-9a-fA-F]{24}$/)
-          ));
-        }
-      } catch (err) {
-        console.error('Error loading tags:', err);
+    } else if (productsData && !productsData.error) {
+      // Find the cheapest t-shirt as base price
+      const tshirts = productsData.filter((p: any) => 
+        p.productType === 't-shirt' || !p.productType
+      );
+      if (tshirts.length > 0) {
+        const minPrice = Math.min(...tshirts.map((p: any) => p.price));
+        setBasePrice(minPrice);
       }
     }
-  };
+  }, [isTestMode, productsData]);
 
   const categoryLabels: Record<string, string> = {
     'anime': 'Anime',
@@ -497,17 +402,26 @@ const Customize: React.FC = () => {
                 <h3 className="text-base md:text-lg font-semibold mb-4">
                   Select a Design for {currentSide.charAt(0).toUpperCase() + currentSide.slice(1)} Side
                   {!loading && <span className="text-gray-400 text-xs md:text-sm ml-2">({filteredDesigns.length} available)</span>}
+                  {!isTestMode && designsIsFetching && !loading && (
+                    <span className="text-green-400 text-xs ml-2">⚡ Updating designs</span>
+                  )}
                 </h3>
                 
                 {loading ? (
                   <div className="flex justify-center items-center py-12">
-                    <Loader className="w-8 h-8 animate-spin text-yellow-400" />
+                    <div className="text-center">
+                      <Loader className="w-8 h-8 animate-spin text-yellow-400 mx-auto mb-2" />
+                      <p className="text-gray-400">Loading designs...</p>
+                      {!isTestMode && designsData && (
+                        <p className="text-green-400 text-sm mt-2">⚡ Loading from cache</p>
+                      )}
+                    </div>
                   </div>
                 ) : error ? (
                   <div className="text-center py-12">
                     <p className="text-red-400 mb-4">{error}</p>
                     <button
-                      onClick={loadDesigns}
+                      onClick={() => window.location.reload()}
                       className="text-yellow-400 hover:text-yellow-300"
                     >
                       Try Again
