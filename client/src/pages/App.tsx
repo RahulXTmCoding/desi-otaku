@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Routes, Route } from "react-router-dom";
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import ScrollToTop from '../components/ScrollToTop';
 import PrivateRoute from "../auth/helper/PrivateRoutes";
 import AdminRoute from "../auth/helper/AdminRoutes";
 import DevModeToggle from '../components/DevModeToggle';
@@ -62,6 +63,7 @@ const PageLoader = () => (
 export default function App() {
   return (
     <div className="min-h-screen font-sans flex flex-col" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+      <ScrollToTop />
       <Header />
       <DevModeToggle />
       <main className="flex-grow">
