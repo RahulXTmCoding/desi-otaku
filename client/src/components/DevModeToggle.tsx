@@ -5,6 +5,11 @@ import { Database, TestTube } from 'lucide-react';
 const DevModeToggle: React.FC = () => {
   const { isTestMode, toggleTestMode } = useDevMode();
 
+  // Only show in development mode
+  if (import.meta.env.PROD) {
+    return null;
+  }
+
   return (
     <div className="fixed bottom-4 right-4 z-50">
       <div className="bg-gray-800 border border-gray-700 rounded-2xl p-4 shadow-lg">
