@@ -16,7 +16,14 @@ export const DevModeProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isTestMode, setIsTestMode] = useState(() => {
     // Load from localStorage if available
     const saved = localStorage.getItem('devTestMode');
-    return saved !== null ? saved === 'true' : true; // Default to test mode
+    if (saved !== null) {
+      return saved === 'true';
+    }
+    
+    // Default based on environment:
+    // Development: Test mode (easier for development)
+    // Production: Backend mode (real users should use backend)
+    return import.meta.env.DEV ? true : false;
   });
 
   useEffect(() => {
