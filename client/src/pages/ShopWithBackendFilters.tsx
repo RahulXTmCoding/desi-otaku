@@ -16,12 +16,13 @@ import { addItemToCart } from '../core/helper/cartHelper';
 import { getCategories, getMainCategories, getSubcategories } from '../core/helper/coreapicalls';
 import { getAllProductTypes } from '../admin/helper/productTypeApiCalls';
 import { useFilteredProducts } from '../hooks/useProducts';
+import { useInfiniteScroll } from '../hooks/useInfiniteScroll';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, mockCategories } from '../data/mockData';
 import ProductGridItem from '../components/ProductGridItem';
 import QuickViewModal from '../components/QuickViewModal';
-// Removed custom scrollbar import
+import MobileFilterModal from '../components/MobileFilterModal';
 
 interface Product {
   _id: string;
@@ -145,6 +146,9 @@ const ShopWithBackendFilters: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
+  // Mobile Filter Modal state
+  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+
   // Available sizes
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
   
@@ -198,6 +202,46 @@ const ShopWithBackendFilters: React.FC = () => {
     isFetching 
   } = useFilteredProducts(filterParams);
 
+  // Accumulate products for infinite scroll
+  useEffect(() => {
+    if (filteredProductsData?.products) {
+      if (currentPage === 1) {
+        // First page - replace all products
+        setAllProducts(filteredProductsData.products);
+      } else {
+        // Subsequent pages - append to existing products
+        setAllProducts(prev => [...prev, ...filteredProductsData.products]);
+      }
+      
+      // Update hasMore based on pagination info - more conservative logic
+      const pagination = filteredProductsData.pagination;
+      const receivedProducts = filteredProductsData.products;
+      
+      if (pagination && pagination.hasMore !== undefined) {
+        // Trust explicit hasMore from API
+        setHasMore(pagination.hasMore);
+      } else if (pagination && pagination.totalPages) {
+        // Check if we're at the last page
+        setHasMore(currentPage < pagination.totalPages);
+      } else {
+        // Fallback: only set hasMore to false if we got fewer products than requested
+        // This prevents flickering by being more conservative
+        if (receivedProducts.length < productsPerPage) {
+          setHasMore(false);
+        }
+        // If we got a full page, keep hasMore as true (don't change it)
+      }
+      
+      setIsLoadingMore(false);
+    }
+  }, [filteredProductsData, currentPage]);
+
+  // Reset products when filters change (but not when just page changes)
+  useEffect(() => {
+    setCurrentPage(1);
+    setHasMore(true);
+  }, [searchQuery, selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy]);
+
   // Handle test mode products
   const testModeProducts = useMemo(() => {
     if (!isTestMode) return [];
@@ -219,14 +263,15 @@ const ShopWithBackendFilters: React.FC = () => {
     return filtered;
   }, [isTestMode, searchQuery, selectedCategory, mockProducts]);
 
-  // Get current products to display
-  const currentProducts = isTestMode ? testModeProducts : (filteredProductsData?.products || []);
-  const currentLoading = isTestMode ? false : isLoading;
+  // Get current products to display - use accumulated products for infinite scroll
+  const currentProducts = isTestMode ? testModeProducts : allProducts;
+  const currentLoading = isTestMode ? false : (isLoading && currentPage === 1);
   const currentError = isTestMode ? null : queryError;
   const totalProducts = isTestMode ? testModeProducts.length : (filteredProductsData?.pagination?.totalProducts || 0);
   const totalPages = isTestMode ? Math.ceil(testModeProducts.length / productsPerPage) : (filteredProductsData?.pagination?.totalPages || 1);
 
   // Update URL params whenever filters change (but not when syncing from URL)
+  // Note: We don't include currentPage here to avoid infinite scroll URL oscillation
   useEffect(() => {
     if (isUpdatingFromURL.current) return; // Don't update URL when we're syncing from URL
     
@@ -243,8 +288,8 @@ const ShopWithBackendFilters: React.FC = () => {
     }
     if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
     if (sortBy !== 'newest') params.set('sort', sortBy);
-    if (currentPage > 1) params.set('page', currentPage.toString());
     if (!showFilters) params.set('filters', 'hidden');
+    // Note: Removed currentPage from URL updates to prevent infinite scroll oscillation
     
     // Only update if params are different from current URL
     const currentParams = searchParams.toString();
@@ -253,7 +298,7 @@ const ShopWithBackendFilters: React.FC = () => {
     if (currentParams !== newParams) {
       setSearchParams(params, { replace: true });
     }
-  }, [searchQuery, selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, currentPage, showFilters, searchParams, setSearchParams]);
+  }, [searchQuery, selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, showFilters, searchParams, setSearchParams]);
 
   // Load categories and product types on mount
   useEffect(() => {
@@ -438,8 +483,8 @@ const ShopWithBackendFilters: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="w-[96%] md:w-[90%] mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
-          {/* Filters Sidebar - Fixed position with its own scroll */}
-          <div className={`lg:w-80 ${showFilters ? 'block' : 'hidden lg:block'}`}>
+          {/* Filters Sidebar - Hidden on mobile, only visible on desktop */}
+          <div className={`lg:w-80 hidden lg:block`}>
             <div className="lg:sticky lg:top-8 lg:max-h-[calc(100vh-4rem)] lg:overflow-y-auto bg-gray-800 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold flex items-center gap-2">
@@ -667,9 +712,10 @@ const ShopWithBackendFilters: React.FC = () => {
             {/* Toolbar */}
             <div className="flex flex-col sm:flex-row items-center justify-between mb-6 gap-4">
               <div className="flex items-center gap-4">
+                {/* Hide filter button on mobile since we have FAB */}
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="bg-gray-800 p-2 rounded-lg flex items-center gap-2"
+                  className="hidden lg:flex bg-gray-800 p-2 rounded-lg items-center gap-2"
                 >
                   <Filter className="w-5 h-5" />
                   <span>Filters</span>
@@ -788,23 +834,31 @@ const ShopWithBackendFilters: React.FC = () => {
                   ))}
                 </div>
 
-                {/* React Query fetching indicator */}
-                {isFetching && !currentLoading && (
-                  <div className="flex justify-center items-center py-4">
+                {/* Loading more products indicator */}
+                {(isFetching && currentPage > 1) && (
+                  <div className="flex justify-center items-center py-8">
                     <div className="flex items-center gap-3">
-                      <Loader className="w-4 h-4 animate-spin text-yellow-400" />
-                      <span className="text-gray-400 text-sm">Updating results...</span>
+                      <Loader className="w-6 h-6 animate-spin text-yellow-400" />
+                      <span className="text-gray-400">Loading more products...</span>
                       {filteredProductsData?.cached && (
-                        <span className="text-green-400 text-sm">⚡ Cached</span>
+                        <span className="text-green-400 text-sm">⚡ From Cache</span>
                       )}
                     </div>
                   </div>
                 )}
 
                 {/* End of products message */}
-                {!hasMore && currentProducts.length > 0 && !isLoadingMore && (
+                {!hasMore && currentProducts.length > 0 && !isFetching && (
                   <div className="text-center py-8">
-                    <p className="text-gray-400">You've reached the end! That's all the products we have.</p>
+                    <div className="text-center">
+                      <div className="w-16 h-16 mx-auto mb-4 bg-gray-800 rounded-full flex items-center justify-center">
+                        <svg className="w-8 h-8 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <p className="text-gray-400 text-lg font-medium">You've reached the end!</p>
+                      <p className="text-gray-500 text-sm mt-1">That's all the products we have matching your filters.</p>
+                    </div>
                   </div>
                 )}
 
@@ -880,6 +934,43 @@ const ShopWithBackendFilters: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Mobile Filter FAB Button */}
+      <button
+        onClick={() => setIsMobileFilterOpen(true)}
+        className="filter-fab bg-yellow-400 text-gray-900 flex items-center justify-center lg:hidden hover:bg-yellow-300 transition-colors"
+      >
+        <Filter className="w-6 h-6" />
+        {activeFilterCount > 0 && (
+          <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
+            {activeFilterCount}
+          </span>
+        )}
+      </button>
+
+      {/* Mobile Filter Modal */}
+      <MobileFilterModal
+        isOpen={isMobileFilterOpen}
+        onClose={() => setIsMobileFilterOpen(false)}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        selectedCategory={selectedCategory}
+        setSelectedCategory={setSelectedCategory}
+        selectedProductType={selectedProductType}
+        setSelectedProductType={setSelectedProductType}
+        selectedSizes={selectedSizes}
+        toggleSize={toggleSize}
+        selectedAvailability={selectedAvailability}
+        setSelectedAvailability={setSelectedAvailability}
+        priceRange={priceRange}
+        setPriceRange={setPriceRange}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        categories={categories}
+        productTypes={productTypes}
+        activeFilterCount={activeFilterCount}
+        clearFilters={clearFilters}
+      />
 
       {/* Quick View Modal */}
       <QuickViewModal

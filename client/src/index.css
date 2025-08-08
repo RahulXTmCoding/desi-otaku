@@ -41,3 +41,46 @@
 .border-gray-800 {
   border-color: var(--color-border) !important;
 }
+
+/* Custom animations */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+/* Fixed filter button styles */
+.filter-fab {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  z-index: 50 !important;
+  border-radius: 50% !important;
+  width: 56px !important;
+  height: 56px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5) !important;
+  backdrop-filter: blur(10px) !important;
+  display: flex !important;
+}
+
+@media (min-width: 1024px) {
+  .filter-fab {
+    display: none !important;
+  }
+}
+
+/* Ensure it's visible on mobile */
+@media (max-width: 1023px) {
+  .filter-fab {
+    display: flex !important;
+  }
+}

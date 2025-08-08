@@ -5,8 +5,13 @@ import { Database, TestTube } from 'lucide-react';
 const DevModeToggle: React.FC = () => {
   const { isTestMode, toggleTestMode } = useDevMode();
 
-  // Only show in development mode
-  if (import.meta.env.PROD) {
+  // Only show in development mode - use multiple checks to ensure it's hidden in production
+  if (import.meta.env.PROD || import.meta.env.MODE === 'production') {
+    return null;
+  }
+
+  // Additional check - if we're not in development, don't show
+  if (!import.meta.env.DEV) {
     return null;
   }
 
