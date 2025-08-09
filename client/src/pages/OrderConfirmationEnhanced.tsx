@@ -16,6 +16,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { isAutheticated, signup, authenticate } from '../auth/helper';
 import { API } from '../backend';
+import OrderDiscountBreakdown from '../components/OrderDiscountBreakdown';
 
 const OrderConfirmationEnhanced: React.FC = () => {
   // Immediate test to see if component loads
@@ -160,17 +161,18 @@ const OrderConfirmationEnhanced: React.FC = () => {
   };
 
   const autoCreateAccount = async () => {
-    if (!shippingInfo?.email || !shippingInfo?.fullName || accountCreated || accountCreationLoading) {
+    if (!shippingInfo?.email || !shippingInfo?.fullName || accountCreated || accountExists || accountCreationLoading) {
       return;
     }
 
     setAccountCreationLoading(true);
 
     try {
-      // Extract first name from full name
-      const name = shippingInfo.fullName.split(' ')[0];
+      // ✅ FIXED: First check if user already exists before trying to create account
+      // This prevents showing "creating account" for existing users
       
-      // Generate a secure temporary password
+      // Check if user already exists by attempting to sign up
+      const name = shippingInfo.fullName.split(' ')[0];
       const tempPassword = `Temp${Date.now()}!${Math.random().toString(36).substring(2, 8)}`;
       
       const signupData = await signup({
@@ -180,28 +182,30 @@ const OrderConfirmationEnhanced: React.FC = () => {
       });
 
       if (!signupData.error) {
+        // Account was successfully created (first time user)
         setAccountCreated(true);
-        console.log('Account created successfully for:', shippingInfo.email);
+        console.log('✅ New account created successfully for:', shippingInfo.email);
         
         // Link the order to the newly created user
         if (orderStateData?.orderId) {
           try {
-            // In a real implementation, you'd have an API endpoint to link the order
-            console.log('Order will be linked to new account:', orderStateData.orderId);
+            console.log('Order linked to new account:', orderStateData.orderId);
           } catch (error) {
             console.error('Failed to link order to new account:', error);
           }
         }
-        
-        // In a real app, you would send an email with password reset link
-        // For now, we'll just show a message
       } else if (signupData.error.includes('already exists') || signupData.error.includes('Email already registered')) {
-        // User already has an account - order is already linked by the backend
-        console.log('User already has an account - order already linked');
+        // User already has an account - this is a returning guest customer
+        console.log('✅ Existing account detected - order already linked for:', shippingInfo.email);
         setAccountExists(true);
+      } else {
+        // Some other error occurred
+        console.error('Account creation error:', signupData.error);
+        // Don't show any account messages if there's an unexpected error
       }
     } catch (error) {
       console.error('Auto account creation failed:', error);
+      // Don't show any account messages if there's an error
     } finally {
       setAccountCreationLoading(false);
     }
@@ -214,35 +218,39 @@ const OrderConfirmationEnhanced: React.FC = () => {
   console.log('🔍 FULL OrderStateData structure:', JSON.stringify(orderStateData, null, 2));
   console.log('🔍 OrderDetails structure:', JSON.stringify(orderDetails, null, 2));
   
-  const finalAmount = orderStateData?.finalAmount || orderDetails?.amount || 0;
-  const itemCount = orderStateData?.itemCount || orderDetails?.products?.length || 0;
-  
-  // ✅ FIXED: Calculate correct subtotal - sum of all products before discounts
-  const shippingCost = orderStateData?.shippingCost || orderDetails?.shipping?.shippingCost || 0;
-  
-  // ✅ FIXED: Get discounts first (needed for subtotal calculation)
-  const couponDiscount = orderStateData?.couponDiscount || (orderDetails?.coupon?.code ? (orderDetails?.discount || orderDetails?.coupon?.discount || 0) : 0);
-  const quantityDiscount = orderStateData?.quantityDiscount || 0;
-  const rewardPointsUsed = orderStateData?.rewardPointsUsed || orderDetails?.rewardPointsRedeemed || 0;
-  const rewardDiscount = orderStateData?.rewardDiscount || (rewardPointsUsed * 0.5) || 0;
-  
-  // Calculate actual subtotal from products
-  let calculatedSubtotal = 0;
-  if (orderDetails?.products && Array.isArray(orderDetails.products)) {
-    calculatedSubtotal = orderDetails.products.reduce((sum, product) => {
-      const price = product.price || 0;
-      const count = product.count || product.quantity || 1;
-      return sum + (price * count);
-    }, 0);
-  } else if (orderStateData?.originalAmount) {
-    // If no product details, use originalAmount (should be subtotal + shipping before discounts)
-    calculatedSubtotal = orderStateData.originalAmount - shippingCost;
-  } else {
-    // Last fallback - calculate from final amount + discounts
-    calculatedSubtotal = finalAmount + (quantityDiscount || 0) + (couponDiscount || 0) + (rewardDiscount || 0) - shippingCost;
-  }
-  
-  const subtotal = Math.max(0, calculatedSubtotal);
+    const finalAmount = orderStateData?.finalAmount || orderDetails?.amount || 0;
+    const itemCount = orderStateData?.itemCount || orderDetails?.products?.length || 0;
+    
+    // ✅ FIXED: Get all discount information from database
+    const shippingCost = orderStateData?.shippingCost || orderDetails?.shipping?.shippingCost || 0;
+    
+    // ✅ Get all discounts from database/order details
+    const couponDiscount = orderStateData?.couponDiscount || orderDetails?.coupon?.discountValue || 0;
+    const quantityDiscount = orderStateData?.quantityDiscount || orderDetails?.quantityDiscount?.amount || 0;
+    const rewardPointsUsed = orderStateData?.rewardPointsUsed || orderDetails?.rewardPointsRedeemed || 0;
+    const rewardDiscount = orderStateData?.rewardDiscount || orderDetails?.rewardPointsDiscount || (rewardPointsUsed * 0.5) || 0;
+    
+    // ✅ NEW: Get online payment discount from database
+    const onlinePaymentDiscount = orderStateData?.onlinePaymentDiscount || orderDetails?.onlinePaymentDiscount?.amount || 0;
+    
+    // ✅ FIXED: Calculate correct subtotal from originalAmount (before all discounts)
+    let subtotal = 0;
+    if (orderDetails?.originalAmount) {
+      // Use originalAmount (subtotal + shipping before discounts)
+      subtotal = orderDetails.originalAmount - shippingCost;
+    } else if (orderDetails?.products && Array.isArray(orderDetails.products)) {
+      // Calculate from products if originalAmount not available
+      subtotal = orderDetails.products.reduce((sum, product) => {
+        const price = product.price || 0;
+        const count = product.count || product.quantity || 1;
+        return sum + (price * count);
+      }, 0);
+    } else {
+      // Last fallback - calculate from final amount + all discounts
+      subtotal = finalAmount + quantityDiscount + couponDiscount + rewardDiscount + onlinePaymentDiscount - shippingCost;
+    }
+    
+    subtotal = Math.max(0, subtotal);
   
   // ✅ CRITICAL DEBUG: Log all possible data sources
   console.log('📊 Order Confirmation Data Analysis:');
@@ -374,8 +382,8 @@ const OrderConfirmationEnhanced: React.FC = () => {
           <p className="text-xl text-gray-300">Thank you for your purchase</p>
         </div>
 
-        {/* Account Creation Info for Guest Users */}
-        {isGuest && accountCreated && (
+        {/* Account Creation Info for NEW Guest Users Only */}
+        {isGuest && accountCreated && !accountExists && (
           <div className="bg-blue-500/10 border border-blue-500 p-6 rounded-lg mb-6">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -412,8 +420,8 @@ const OrderConfirmationEnhanced: React.FC = () => {
           </div>
         )}
 
-        {/* Account Already Exists Info */}
-        {isGuest && accountExists && (
+        {/* Account Already Exists Info for RETURNING Guest Users */}
+        {isGuest && accountExists && !accountCreated && (
           <div className="bg-green-500/10 border border-green-500 p-6 rounded-lg mb-6">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -509,66 +517,14 @@ const OrderConfirmationEnhanced: React.FC = () => {
                 <Package className="w-6 h-6 text-yellow-400" />
                 <h3 className="font-semibold text-lg">Order Summary</h3>
               </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Items:</span>
-                  <span>{itemCount} T-shirts</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Subtotal:</span>
-                  <span>₹{subtotal.toLocaleString('en-IN')}</span>
-                </div>
-                
-                {shippingCost > 0 ? (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Shipping:</span>
-                    <span>₹{shippingCost.toLocaleString('en-IN')}</span>
-                  </div>
-                ) : (
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Shipping:</span>
-                    <span className="text-green-400">FREE</span>
-                  </div>
-                )}
-                
-                {quantityDiscount > 0 && (
-                  <div className="flex justify-between text-yellow-400">
-                    <span>Quantity Discount ({orderStateData?.aovDiscount?.percentage || ''}% off for {itemCount} items):</span>
-                    <span>-₹{quantityDiscount.toLocaleString('en-IN')}</span>
-                  </div>
-                )}
-                
-                {couponDiscount > 0 && (
-                  <div className="flex justify-between text-green-400">
-                    <span>Coupon Discount ({orderStateData?.orderDetails?.coupon?.code || orderDetails?.coupon?.code || 'Applied'}):</span>
-                    <span>-₹{couponDiscount.toLocaleString('en-IN')}</span>
-                  </div>
-                )}
-                
-                {rewardPointsUsed > 0 && (
-                  <div className="flex justify-between text-purple-400">
-                    <span>Reward Points ({rewardPointsUsed} points):</span>
-                    <span>-₹{(rewardPointsUsed * 0.5).toLocaleString('en-IN')}</span>
-                  </div>
-                )}
-                
-                {(quantityDiscount > 0 || couponDiscount > 0 || rewardPointsUsed > 0) && (
-                  <div className="flex justify-between text-green-400 font-semibold pt-1 border-t border-gray-600">
-                    <span>Total Savings:</span>
-                    <span>-₹{(quantityDiscount + couponDiscount + (rewardPointsUsed * 0.5)).toLocaleString('en-IN')}</span>
-                  </div>
-                )}
-                
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Tax:</span>
-                  <span>₹0</span>
-                </div>
-                <hr className="border-gray-600 my-2" />
-                <div className="flex justify-between font-bold text-base">
-                  <span>Total Paid:</span>
-                  <span className="text-yellow-400">₹{finalAmount.toLocaleString('en-IN')}</span>
-                </div>
-              </div>
+              {/* ✅ UNIVERSAL DISCOUNT COMPONENT - Handles all discount sources */}
+              <OrderDiscountBreakdown 
+                order={orderDetails}
+                orderStateData={orderStateData}
+                className=""
+                showTitle={false}
+                variant="detailed"
+              />
             </div>
 
             <div className="bg-gray-700 rounded-lg p-6">
@@ -614,8 +570,8 @@ const OrderConfirmationEnhanced: React.FC = () => {
           )}
         </div>
 
-        {/* Loading State for Account Creation */}
-        {accountCreationLoading && (
+        {/* Loading State for Account Creation (only for new users) */}
+        {accountCreationLoading && !accountExists && !accountCreated && (
           <div className="bg-gray-800 rounded-lg p-6 mb-6 text-center">
             <div className="animate-spin w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full mx-auto mb-3"></div>
             <p className="text-gray-300">Creating your account...</p>

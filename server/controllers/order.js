@@ -58,7 +58,8 @@ exports.createOrder = async (req, res) => {
           cartItems,
           req.body.order.coupon?.code,
           req.body.order.rewardPointsRedeemed,
-          req.profile
+          req.profile,
+          req.body.order.paymentMethod || 'razorpay' // ✅ Pass payment method for online discount calculation
         );
         
         const expectedAmountPaise = Math.round(serverAmount.total * 100);
@@ -379,10 +380,67 @@ exports.createOrder = async (req, res) => {
       recalculatedTotal = 0;
     }
     
-    // Update order with validated data
+    // ✅ Use backend calculation instead of manual calculation
+    // Get server-calculated amount using the unified function that includes online payment discount
+    const { calculateOrderAmountSecure } = require('./razorpay');
+    const cartItemsForCalculation = validatedProducts.map(item => ({
+      product: item.product,
+      name: item.name,
+      quantity: item.count,
+      size: item.size,
+      customization: item.customization,
+      isCustom: item.isCustom
+    }));
+    
+    const serverCalculation = await calculateOrderAmountSecure(
+      cartItemsForCalculation,
+      req.body.order.coupon?.code,
+      req.body.order.rewardPointsRedeemed,
+      req.profile,
+      req.body.order.paymentMethod || 'razorpay'
+    );
+    
+    // ✅ Use server calculation results
+    const finalServerAmount = serverCalculation.total;
+    
+    // ✅ Store all discount information from server calculation
     req.body.order.products = validatedProducts;
-    req.body.order.amount = recalculatedTotal;
+    req.body.order.amount = finalServerAmount;
+    req.body.order.originalAmount = serverCalculation.subtotal + serverCalculation.shippingCost;
+    req.body.order.discount = serverCalculation.couponDiscount + serverCalculation.rewardDiscount;
     req.body.order.paymentStatus = 'Paid';
+    
+    // ✅ Save quantity discount info
+    if (serverCalculation.quantityDiscount > 0) {
+      req.body.order.quantityDiscount = {
+        amount: serverCalculation.quantityDiscount,
+        percentage: Math.round((serverCalculation.quantityDiscount / (serverCalculation.subtotal + serverCalculation.shippingCost)) * 100),
+        totalQuantity: validatedProducts.reduce((total, item) => total + item.count, 0),
+        message: `Bulk discount applied`
+      };
+    }
+    
+    // ✅ Save online payment discount info
+    if (serverCalculation.onlinePaymentDiscount > 0) {
+      req.body.order.onlinePaymentDiscount = {
+        amount: serverCalculation.onlinePaymentDiscount,
+        percentage: 5,
+        paymentMethod: req.body.order.paymentMethod || 'razorpay'
+      };
+    }
+    
+    // ✅ Save individual discount amounts
+    req.body.order.rewardPointsDiscount = serverCalculation.rewardDiscount;
+    
+    console.log('✅ Using server calculation:', {
+      subtotal: serverCalculation.subtotal,
+      shipping: serverCalculation.shippingCost,
+      couponDiscount: serverCalculation.couponDiscount,
+      quantityDiscount: serverCalculation.quantityDiscount,
+      onlinePaymentDiscount: serverCalculation.onlinePaymentDiscount,
+      rewardDiscount: serverCalculation.rewardDiscount,
+      finalAmount: finalServerAmount
+    });
     
     // Log price validation
     console.log(`Price validation - Client sent: ₹${req.body.order.amount}, Server calculated: ₹${recalculatedTotal}, Discounts: ₹${totalDiscount}`);

@@ -87,11 +87,13 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
     }
 
     // ✅ UNIFIED CALCULATION - Same logic for both user types
+    // Use the actual payment method from request body
     const serverAmount = await calculateOrderAmountSecure(
       cartItems, 
       couponCode, 
       isAuthenticated ? rewardPoints : null, // Only authenticated users can use reward points
-      req.user || null
+      req.user || null,
+      req.body.paymentMethod || 'razorpay' // ✅ CRITICAL FIX: Use actual payment method from frontend
     );
     
     if (serverAmount.error) {
@@ -488,18 +490,31 @@ exports.razorpayWebhook = async (req, res) => {
 // ✅ NEW: Calculate amounts endpoint for frontend to get AOV discount
 exports.calculateAmount = async (req, res) => {
   try {
-    const { cartItems, couponCode, rewardPoints, shippingCost } = req.body;
+    const { cartItems, couponCode, rewardPoints, shippingCost, paymentMethod = 'cod' } = req.body;
     
     if (!cartItems || !Array.isArray(cartItems)) {
       return res.status(400).json({ error: 'Cart items are required' });
     }
 
-    // Use the same calculation function as payment creation
-    const result = await calculateOrderAmountSecure(cartItems, couponCode, rewardPoints, req.user);
+    console.log(`🔍 CALCULATE AMOUNT ENDPOINT - Payment Method: ${paymentMethod}`);
+
+    // ✅ CRITICAL FIX: Pass payment method to include online payment discount
+    const result = await calculateOrderAmountSecure(cartItems, couponCode, rewardPoints, req.user, paymentMethod);
     
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
+
+    console.log(`✅ CALCULATE AMOUNT RESULT:`, {
+      subtotal: result.subtotal,
+      shippingCost: result.shippingCost,
+      quantityDiscount: result.quantityDiscount,
+      couponDiscount: result.couponDiscount,
+      rewardDiscount: result.rewardDiscount,
+      onlinePaymentDiscount: result.onlinePaymentDiscount,
+      total: result.total,
+      paymentMethod
+    });
 
     // Return detailed breakdown for frontend
     res.json({
@@ -509,6 +524,7 @@ exports.calculateAmount = async (req, res) => {
       couponDiscount: result.couponDiscount,
       rewardDiscount: result.rewardDiscount,
       quantityDiscount: result.quantityDiscount, // ✅ AOV discount from AOVService
+      onlinePaymentDiscount: result.onlinePaymentDiscount, // ✅ NEW: Online payment discount
       total: result.total,
       validatedItems: result.validatedItems.map(item => ({
         productId: item.productId,
@@ -557,7 +573,7 @@ exports.createTestOrder = async (req, res) => {
 // 🔒 SECURITY HELPER FUNCTIONS
 
 // Secure server-side amount calculation
-const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, user) => {
+const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, user, paymentMethod = 'cod') => {
   try {
     const Product = require('../models/product');
     const Design = require('../models/design');
@@ -566,6 +582,8 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
     
     let subtotal = 0;
     const validatedItems = [];
+    
+    console.log(`🔍 DETAILED ITEM CALCULATION:`);
     
     // Validate each cart item server-side
     for (const item of cartItems) {
@@ -576,72 +594,127 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
         size: item.size || 'M'
       };
       
-      // Validate product exists and get current price
-      if (item.product && item.product !== 'custom') {
-        const product = await Product.findById(item.product);
-        if (!product || product.isDeleted) {
-          return { error: `Product not found: ${item.name}` };
+      console.log(`📦 Processing Item: ${item.name}`);
+      console.log(`   Frontend Price: ₹${item.price}, Quantity: ${item.quantity}`);
+      console.log(`   Product ID: ${item.product || item.productId}`);
+      
+      // ✅ CRITICAL FIX: Check for temporary/custom product IDs before database query
+      const productId = item.product || item.productId;
+      const isTemporaryId = !productId || 
+                           productId === 'custom' || 
+                           typeof productId === 'string' && (
+                             productId.startsWith('temp_') || 
+                             productId.startsWith('custom') ||
+                             productId.length < 12 || // MongoDB ObjectIds are 24 hex chars or 12 bytes
+                             !/^[0-9a-fA-F]{24}$/.test(productId) // Not a valid ObjectId
+                           );
+      
+      // Validate product exists and get current price (only for real products)
+      if (!isTemporaryId && productId && productId !== 'custom') {
+        try {
+          const product = await Product.findById(productId);
+          if (!product || product.isDeleted) {
+            return { error: `Product not found: ${item.name}` };
+          }
+          
+          // Use server price, not client price
+          validatedItem.price = product.price;
+          validatedItem.name = product.name; // Use server name
+          console.log(`   ✅ REGULAR PRODUCT - Server Price: ₹${product.price} (${product.name})`);
+        } catch (dbError) {
+          console.error(`❌ Database error for product ${productId}:`, dbError.message);
+          // If database query fails, treat as custom product
+          console.log(`🔄 Treating product ${productId} as custom due to DB error`);
+        }
+      }
+      
+      // Handle custom products, temporary products, or DB query failures
+      if (isTemporaryId || !validatedItem.price) {
+        // Custom product validation - get actual base t-shirt price from database
+        let basePrice = 499; // Fallback price
+        
+        try {
+          // ✅ CRITICAL FIX: Get actual base t-shirt price from database
+          const baseTShirt = await Product.findOne({ 
+            $or: [
+              { name: /base.*t-?shirt/i },
+              { name: /plain.*t-?shirt/i },
+              { name: /custom.*t-?shirt/i },
+              { category: { $regex: /t-?shirt/i } }
+            ],
+            isDeleted: { $ne: true }
+          }).sort({ createdAt: 1 }); // Get the oldest/first t-shirt as base
+          
+          if (baseTShirt && baseTShirt.price) {
+            basePrice = baseTShirt.price;
+            console.log(`   🎯 Found base t-shirt in DB: ${baseTShirt.name} - ₹${basePrice}`);
+          } else {
+            console.log(`   ⚠️ No base t-shirt found in DB, using fallback: ₹${basePrice}`);
+          }
+        } catch (dbError) {
+          console.error('   ❌ Error fetching base t-shirt price:', dbError.message);
+          console.log(`   ⚠️ Using fallback base price: ₹${basePrice}`);
         }
         
-        // Use server price, not client price
-        validatedItem.price = product.price;
-        validatedItem.name = product.name; // Use server name
-      } else {
-        // Custom product validation
-        const basePrice = 549; // Base custom t-shirt price
         let designPrice = 0;
+        
+        console.log(`   🎨 CUSTOM PRODUCT - Base: ₹${basePrice}`);
         
         if (item.customization) {
           if (item.customization.frontDesign && item.customization.frontDesign.designId) {
             const frontDesign = await Design.findById(item.customization.frontDesign.designId);
-            designPrice += frontDesign ? frontDesign.price : 150;
+            const frontPrice = frontDesign ? frontDesign.price : 150;
+            designPrice += frontPrice;
+            console.log(`   🎨 Front Design: +₹${frontPrice}`);
           }
           if (item.customization.backDesign && item.customization.backDesign.designId) {
             const backDesign = await Design.findById(item.customization.backDesign.designId);
-            designPrice += backDesign ? backDesign.price : 150;
+            const backPrice = backDesign ? backDesign.price : 150;
+            designPrice += backPrice;
+            console.log(`   🎨 Back Design: +₹${backPrice}`);
           }
         } else {
           designPrice = 110; // Default design fee
+          console.log(`   🎨 Default Design Fee: +₹${designPrice}`);
         }
         
         validatedItem.price = basePrice + designPrice;
+        console.log(`   🎨 CUSTOM TOTAL: ₹${validatedItem.price} (${basePrice} + ${designPrice})`);
       }
       
+      const itemTotal = validatedItem.price * validatedItem.quantity;
+      console.log(`   💰 Item Total: ₹${itemTotal} (₹${validatedItem.price} × ${validatedItem.quantity})`);
+      console.log(`   🔍 Frontend vs Backend: ₹${item.price} vs ₹${validatedItem.price} (diff: ₹${validatedItem.price - item.price})`);
+      
       validatedItems.push(validatedItem);
-      subtotal += validatedItem.price * validatedItem.quantity;
+      subtotal += itemTotal;
     }
     
-    // Calculate shipping
-    let shippingCost = 0;
-    if (subtotal < 999) {
-      shippingCost = 79;
-    }
+    console.log(`💰 TOTAL SUBTOTAL: ₹${subtotal} (Should be ₹1256)`);
     
-    // ✅ CRITICAL: Use EXACT same calculation logic as frontend
-    const baseAmount = subtotal + shippingCost;
+    // ✅ INDUSTRY STANDARD DISCOUNT CALCULATION
+    // Apply discounts to SUBTOTAL ONLY, then add shipping at the end
+    let discountedSubtotal = subtotal;
     
-    // ✅ CRITICAL FIX: Use AOVService instead of hardcoded values
+    console.log(`🔍 INDUSTRY STANDARD DISCOUNT CALCULATION:`);
+    console.log(`   1️⃣ Base Subtotal: ₹${discountedSubtotal}`);
+    
     const totalQuantity = validatedItems.reduce((total, item) => total + item.quantity, 0);
     
-    // Calculate AOV discount using AOVService settings
+    // 1️⃣ FIRST: Apply AOV discount to subtotal
     const aovResult = await AOVService.calculateQuantityDiscount(validatedItems);
     let quantityDiscount = 0;
     
     if (aovResult && aovResult.discount > 0) {
-      // AOVService calculates on subtotal, but we need it on baseAmount (subtotal + shipping)
-      // So calculate proportionally to match frontend behavior
-      const discountPercentage = (aovResult.discount / subtotal) * 100;
-      quantityDiscount = Math.floor((baseAmount * discountPercentage) / 100);
+      quantityDiscount = Math.round((discountedSubtotal * aovResult.percentage) / 100);
+      discountedSubtotal = discountedSubtotal - quantityDiscount;
       
-      console.log(`✅ AOV Quantity Discount Applied in Payment: ₹${quantityDiscount} (${aovResult.percentage}% for ${totalQuantity} items) - Using AOVService`);
+      console.log(`   2️⃣ After AOV Discount (${aovResult.percentage}%): ₹${discountedSubtotal} (saved ₹${quantityDiscount})`);
     } else {
-      console.log(`ℹ️ No AOV discount applicable for ${totalQuantity} items`);
+      console.log(`   2️⃣ No AOV discount applicable for ${totalQuantity} items`);
     }
     
-    // Apply quantity discount - EXACT frontend logic
-    const afterQuantityDiscount = baseAmount - quantityDiscount;
-    
-    // ✅ Calculate coupon discount using EXACT coupon API logic (on subtotal only)
+    // 2️⃣ SECOND: Apply coupon discount to discounted subtotal
     let couponDiscount = 0;
     if (couponCode) {
       const coupon = await Coupon.findOne({
@@ -651,37 +724,68 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
       
       if (coupon && coupon.isValid()) {
         if (subtotal >= coupon.minimumPurchase) {
-          // ✅ EXACT API REPLICATION: Calculate on subtotal only (not baseAmount)
+          // ✅ SEQUENTIAL: Apply coupon discount to current discounted subtotal
           if (coupon.discountType === 'percentage') {
-            couponDiscount = Math.floor((subtotal * coupon.discountValue) / 100);
+            couponDiscount = Math.floor((discountedSubtotal * coupon.discountValue) / 100);
             if (coupon.maxDiscount !== null && couponDiscount > coupon.maxDiscount) {
               couponDiscount = coupon.maxDiscount;
             }
           } else {
-            couponDiscount = coupon.discountValue;
+            // Fixed amount discount - ensure it doesn't exceed discounted subtotal
+            couponDiscount = Math.min(coupon.discountValue, discountedSubtotal);
           }
           
-          // Ensure discount doesn't exceed subtotal
-          couponDiscount = Math.min(couponDiscount, subtotal);
+          discountedSubtotal = discountedSubtotal - couponDiscount;
+          
+          console.log(`   3️⃣ After Coupon (${couponCode}): ₹${discountedSubtotal} (additional ₹${couponDiscount} off)`);
+        } else {
+          console.log(`   3️⃣ Coupon (${couponCode}): Not applicable (original subtotal ₹${subtotal} < minimum ₹${coupon.minimumPurchase})`);
         }
+      } else {
+        console.log(`   3️⃣ Coupon (${couponCode}): Invalid or expired`);
       }
+    } else {
+      console.log(`   3️⃣ No coupon applied`);
     }
     
-    // Validate reward points (only for authenticated users)
+    // 3️⃣ THIRD: Apply online payment discount to discounted subtotal
+    let onlinePaymentDiscount = 0;
+    if (paymentMethod === 'razorpay' || paymentMethod === 'card') {
+      onlinePaymentDiscount = Math.round(discountedSubtotal * 0.05);
+      discountedSubtotal = discountedSubtotal - onlinePaymentDiscount;
+      
+      console.log(`   4️⃣ After Online Payment Discount (5%): ₹${discountedSubtotal} (additional ₹${onlinePaymentDiscount} off)`);
+    } else {
+      console.log(`   4️⃣ No online payment discount (COD selected)`);
+    }
+    
+    // 4️⃣ FOURTH: Apply reward points redemption (like cash payment)
     let rewardDiscount = 0;
     if (rewardPoints && user && user._id) {
       const User = require('../models/user');
       const userDoc = await User.findById(user._id);
       if (userDoc && userDoc.rewardPoints >= rewardPoints) {
-        rewardDiscount = rewardPoints * 0.5; // 1 point = ₹0.5 (consistent with frontend)
+        rewardDiscount = Math.min(rewardPoints * 0.5, discountedSubtotal); // Don't exceed discounted subtotal
+        discountedSubtotal = discountedSubtotal - rewardDiscount;
+        
+        console.log(`   5️⃣ After Reward Points Redemption: ₹${discountedSubtotal} (redeemed ₹${rewardDiscount} as cash equivalent)`);
       }
+    } else {
+      console.log(`   5️⃣ No reward points redeemed`);
     }
     
-    // Apply all discounts - EXACT frontend logic
-    let total = afterQuantityDiscount - couponDiscount - rewardDiscount;
+    // 5️⃣ FIFTH: Add shipping charges to final discounted subtotal
+    let shippingCost = 0;
+    if (subtotal < 999) { // Free shipping threshold based on original subtotal
+      shippingCost = 79;
+    }
     
-    // ✅ CRITICAL ROUNDING FIX: Use consistent rounding to match frontend exactly
-    total = Math.round(total);
+    const total = Math.round(Math.max(0, discountedSubtotal + shippingCost));
+    
+    console.log(`   6️⃣ Add Shipping: ₹${discountedSubtotal} + ₹${shippingCost} = ₹${total}`);
+    console.log(`🎯 FINAL INDUSTRY STANDARD TOTAL: ₹${total}`);
+    console.log(`💰 TOTAL DISCOUNTS APPLIED: ₹${subtotal - discountedSubtotal} on subtotal`);
+    console.log(`💰 FINAL SAVINGS: ₹${(subtotal + shippingCost) - total} from original ₹${subtotal + shippingCost}`);
     
     // Ensure total is not negative
     if (total < 0) total = 0;
@@ -692,6 +796,7 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
       couponDiscount,
       rewardDiscount,
       quantityDiscount, // ✅ CRITICAL FIX: Return AOV discount calculated by backend
+      onlinePaymentDiscount, // ✅ NEW: Return online payment discount
       total,
       validatedItems
     };

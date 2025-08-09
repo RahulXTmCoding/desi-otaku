@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const DiscountCalculator = require('../utils/discountCalculator');
 
 class EmailService {
   constructor() {
@@ -14,7 +15,7 @@ class EmailService {
       this.initializeNodemailer();
     }
 
-    this.from = process.env.EMAIL_FROM || 'Anime T-Shirt Shop <noreply@animetshirt.com>';
+    this.from = process.env.EMAIL_FROM || 'Attars <noreply@attarsclothing.com>';
   }
 
   initializeBrevo() {
@@ -44,8 +45,8 @@ class EmailService {
       // Store SDK reference for creating emails
       this.SibApiV3Sdk = SibApiV3Sdk;
       
-      this.senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@animetshirt.com';
-      this.senderName = process.env.BREVO_SENDER_NAME || 'Anime T-Shirt Shop';
+      this.senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@attarsclothing.com';
+      this.senderName = process.env.BREVO_SENDER_NAME || 'Attars';
       
       console.log('✅ Brevo API initialized successfully with key:', process.env.BREVO_API_KEY.substring(0, 8) + '...');
       
@@ -207,7 +208,7 @@ class EmailService {
 
   // Welcome email for new users
   async sendWelcomeEmail(user) {
-    const subject = 'Welcome to Anime T-Shirt Shop! 🎌';
+    const subject = 'Welcome to Attars! 🎉';
     const html = `
       <!DOCTYPE html>
       <html>
@@ -227,32 +228,32 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Welcome to Anime T-Shirt Shop!</h1>
+            <h1>Welcome to Attars!</h1>
           </div>
           <div class="content">
             <h2>Hey ${user.name}! 👋</h2>
-            <p>Welcome to the ultimate destination for anime-inspired fashion! We're thrilled to have you join our community of anime enthusiasts.</p>
+            <p>Welcome to your premium fashion destination! We're thrilled to have you join our community of fashion enthusiasts.</p>
             
             <h3 class="highlight">What you can do now:</h3>
             <ul>
-              <li>Browse our exclusive anime t-shirt collection</li>
-              <li>Create custom designs with your favorite characters</li>
-              <li>Try our random design generator for surprise styles</li>
+              <li>Browse our exclusive premium fashion collection</li>
+              <li>Create custom designs with your favorite styles</li>
+              <li>Explore our premium collections and limited editions</li>
               <li>Enjoy fast shipping across India</li>
             </ul>
             
-            <p>As a welcome gift, enjoy <strong class="highlight">10% OFF</strong> your first order with code: <strong>ANIME10</strong></p>
+            <p>As a welcome gift, enjoy <strong class="highlight">10% OFF</strong> your first order with code: <strong>WELCOME10</strong></p>
             
             <center>
               <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/shop" class="button">Start Shopping</a>
             </center>
             
             <p>Need help? Reply to this email or visit our contact page.</p>
-            <p>Happy shopping!<br>The Anime T-Shirt Team</p>
+            <p>Happy shopping!<br>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
-            <p>You received this email because you signed up at animetshirt.com</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
+            <p>You received this email because you signed up at attarsclothing.com</p>
           </div>
         </div>
       </body>
@@ -333,86 +334,7 @@ class EmailService {
             <h3 class="highlight">Order Summary:</h3>
             <table style="background-color: #374151; border-radius: 8px; overflow: hidden;">
               <tbody>
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Subtotal:</td>
-                  <td style="padding: 12px; text-align: right; font-weight: bold;">₹${order.originalAmount || order.amount}</td>
-                </tr>
-                ${order.shipping?.shippingCost > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Shipping:</td>
-                  <td style="padding: 12px; text-align: right;">₹${order.shipping.shippingCost}</td>
-                </tr>
-                ` : `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">Free Shipping:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">₹0</td>
-                </tr>
-                `}
-                ${order.quantityDiscount && order.quantityDiscount.amount > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #FCD34D;">Quantity Discount (${order.quantityDiscount.percentage}% off for ${order.quantityDiscount.totalQuantity} items):</td>
-                  <td style="padding: 12px; text-align: right; color: #FCD34D;">-₹${order.quantityDiscount.amount}</td>
-                </tr>
-                ` : ''}
-                ${(() => {
-                  if (!order.coupon || !order.coupon.discountValue) return '';
-                  
-                  const subtotal = order.originalAmount || order.amount;
-                  let couponDiscountAmount = 0;
-                  
-                  if (order.coupon.discountType === 'percentage') {
-                    couponDiscountAmount = Math.floor((subtotal * order.coupon.discountValue) / 100);
-                  } else {
-                    couponDiscountAmount = order.coupon.discountValue;
-                  }
-                  
-                  if (couponDiscountAmount <= 0) return '';
-                  
-                  const discountText = order.coupon.discountType === 'percentage' 
-                    ? `Coupon Discount (${order.coupon.code} - ${order.coupon.discountValue}% off)`
-                    : `Coupon Discount (${order.coupon.code})`;
-                  
-                  return `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">${discountText}:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">-₹${couponDiscountAmount}</td>
-                </tr>
-                  `;
-                })()}
-                ${order.rewardPointsDiscount > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">Reward Points (${order.rewardPointsRedeemed} points):</td>
-                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">-₹${order.rewardPointsDiscount}</td>
-                </tr>
-                ` : ''}
-                ${(() => {
-                  const quantitySavings = (order.quantityDiscount?.amount || 0);
-                  
-                  // Calculate coupon savings correctly
-                  let couponSavings = 0;
-                  if (order.coupon && order.coupon.discountValue) {
-                    const subtotal = order.originalAmount || order.amount;
-                    if (order.coupon.discountType === 'percentage') {
-                      couponSavings = Math.floor((subtotal * order.coupon.discountValue) / 100);
-                    } else {
-                      couponSavings = order.coupon.discountValue;
-                    }
-                  }
-                  
-                  const rewardSavings = (order.rewardPointsDiscount || 0);
-                  const totalSavings = quantitySavings + couponSavings + rewardSavings;
-                  
-                  return totalSavings > 0 ? `
-                <tr style="border-top: 2px solid #6B7280;">
-                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">Total Savings:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">-₹${totalSavings}</td>
-                </tr>
-                  ` : '';
-                })()}
-                <tr style="background-color: #FCD34D; color: #1F2937;">
-                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">Final Total:</td>
-                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">₹${order.amount}</td>
-                </tr>
+                ${DiscountCalculator.generateDiscountHTML(order)}
               </tbody>
             </table>
             
@@ -435,10 +357,10 @@ class EmailService {
             </ul>
             
             <p>If you have any questions, feel free to contact us.</p>
-            <p>Thank you for shopping with us!<br>The Anime T-Shirt Team</p>
+            <p>Thank you for shopping with us!<br>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>Order #${order._id} | ${user.email}</p>
           </div>
         </div>
@@ -500,11 +422,11 @@ class EmailService {
             
             <p>Track your package anytime using the tracking number above or from your account dashboard.</p>
             
-            <p>Can't wait to see you rock your new anime tee! 🎌</p>
-            <p>The Anime T-Shirt Team</p>
+            <p>Can't wait to see you rock your new outfit! 🎉</p>
+            <p>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>Tracking updates for Order #${order._id}</p>
           </div>
         </div>
@@ -542,7 +464,7 @@ class EmailService {
           </div>
           <div class="content">
             <p>Hi ${user.name || 'there'},</p>
-            <p>We received a request to reset your password for your Anime T-Shirt Shop account.</p>
+            <p>We received a request to reset your password for your Attars account.</p>
             
             <p>Click the button below to reset your password:</p>
             
@@ -565,10 +487,10 @@ class EmailService {
             <p>For security reasons, we recommend choosing a strong password that you don't use for other accounts.</p>
             
             <p>Need help? Contact our support team.</p>
-            <p>Stay secure!<br>The Anime T-Shirt Team</p>
+            <p>Stay secure!<br>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>This is an automated security email for ${user.email}</p>
           </div>
         </div>
@@ -582,7 +504,7 @@ class EmailService {
   // Order status update email
   async sendOrderStatusUpdate(order, user, oldStatus) {
     const statusMessages = {
-      'Processing': 'We\'re preparing your awesome anime tees! 👕',
+      'Processing': 'We\'re preparing your awesome clothing! 👕',
       'Shipped': 'Your order is on its way! 📦',
       'Delivered': 'Your order has been delivered! 🎉',
       'Cancelled': 'Your order has been cancelled 😔'
@@ -642,11 +564,11 @@ class EmailService {
               <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/user/dashboard" class="button">View Order Details</a>
             </center>
             
-            <p>Thank you for choosing Anime T-Shirt Shop!</p>
-            <p>The Anime T-Shirt Team</p>
+            <p>Thank you for choosing Attars!</p>
+            <p>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>Status update for Order #${order._id}</p>
           </div>
         </div>
@@ -756,7 +678,7 @@ class EmailService {
             <p>This is an automated alert from your inventory management system.</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>Inventory Alert for Product #${product._id}</p>
           </div>
         </div>
@@ -793,11 +715,11 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>Welcome to Anime T-Shirt Shop! 🎌</h1>
+            <h1>Welcome to Attars! 🎉</h1>
             <p style="margin: 10px 0 0 0; font-size: 18px;">Your account has been created</p>
           </div>
           <div class="content">
-            <p>Hi ${user.name || 'Anime Fan'},</p>
+            <p>Hi ${user.name || 'Fashion Enthusiast'},</p>
             <p>Great news! We've automatically created an account for you after your recent purchase. This makes it easier to track your order and shop faster next time!</p>
             
             <div class="info-box">
@@ -838,10 +760,10 @@ class EmailService {
             
             <p>If you have any questions or need help accessing your account, just reply to this email and we'll assist you right away!</p>
             
-            <p>Welcome to the Anime T-Shirt family! 🎉<br>The Anime T-Shirt Team</p>
+            <p>Welcome to the Attars family! 🎉<br>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>This account was created for ${user.email} after order #${order._id}</p>
           </div>
         </div>
@@ -939,86 +861,7 @@ class EmailService {
             <h3 class="highlight">Order Summary:</h3>
             <table style="background-color: #374151; border-radius: 8px; overflow: hidden;">
               <tbody>
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Subtotal:</td>
-                  <td style="padding: 12px; text-align: right; font-weight: bold;">₹${order.originalAmount || order.amount}</td>
-                </tr>
-                ${order.shipping?.shippingCost > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Shipping:</td>
-                  <td style="padding: 12px; text-align: right;">₹${order.shipping.shippingCost}</td>
-                </tr>
-                ` : `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">Free Shipping:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">₹0</td>
-                </tr>
-                `}
-                ${order.quantityDiscount && order.quantityDiscount.amount > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #FCD34D;">Quantity Discount (${order.quantityDiscount.percentage}% off for ${order.quantityDiscount.totalQuantity} items):</td>
-                  <td style="padding: 12px; text-align: right; color: #FCD34D;">-₹${order.quantityDiscount.amount}</td>
-                </tr>
-                ` : ''}
-                ${(() => {
-                  if (!order.coupon || !order.coupon.discountValue) return '';
-                  
-                  const subtotal = order.originalAmount || order.amount;
-                  let couponDiscountAmount = 0;
-                  
-                  if (order.coupon.discountType === 'percentage') {
-                    couponDiscountAmount = Math.floor((subtotal * order.coupon.discountValue) / 100);
-                  } else {
-                    couponDiscountAmount = order.coupon.discountValue;
-                  }
-                  
-                  if (couponDiscountAmount <= 0) return '';
-                  
-                  const discountText = order.coupon.discountType === 'percentage' 
-                    ? `Coupon Discount (${order.coupon.code} - ${order.coupon.discountValue}% off)`
-                    : `Coupon Discount (${order.coupon.code})`;
-                  
-                  return `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">${discountText}:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">-₹${couponDiscountAmount}</td>
-                </tr>
-                  `;
-                })()}
-                ${order.rewardPointsDiscount > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">Reward Points (${order.rewardPointsRedeemed} points):</td>
-                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">-₹${order.rewardPointsDiscount}</td>
-                </tr>
-                ` : ''}
-                ${(() => {
-                  const quantitySavings = (order.quantityDiscount?.amount || 0);
-                  
-                  // Calculate coupon savings correctly
-                  let couponSavings = 0;
-                  if (order.coupon && order.coupon.discountValue) {
-                    const subtotal = order.originalAmount || order.amount;
-                    if (order.coupon.discountType === 'percentage') {
-                      couponSavings = Math.floor((subtotal * order.coupon.discountValue) / 100);
-                    } else {
-                      couponSavings = order.coupon.discountValue;
-                    }
-                  }
-                  
-                  const rewardSavings = (order.rewardPointsDiscount || 0);
-                  const totalSavings = quantitySavings + couponSavings + rewardSavings;
-                  
-                  return totalSavings > 0 ? `
-                <tr style="border-top: 2px solid #6B7280;">
-                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">Total Savings:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">-₹${totalSavings}</td>
-                </tr>
-                  ` : '';
-                })()}
-                <tr style="background-color: #FCD34D; color: #1F2937;">
-                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">Final Total:</td>
-                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">₹${order.amount}</td>
-                </tr>
+                ${DiscountCalculator.generateDiscountHTML(order)}
               </tbody>
             </table>
             
@@ -1045,10 +888,10 @@ class EmailService {
             </ul>
             
             <p>If you have any questions, feel free to contact us.</p>
-            <p>Thank you for shopping with us!<br>The Anime T-Shirt Team</p>
+            <p>Thank you for shopping with us!<br>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>Order #${order._id} | ${user.email}</p>
           </div>
         </div>
@@ -1143,86 +986,7 @@ class EmailService {
             <h3 class="highlight">Order Summary:</h3>
             <table style="background-color: #374151; border-radius: 8px; overflow: hidden;">
               <tbody>
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Subtotal:</td>
-                  <td style="padding: 12px; text-align: right; font-weight: bold;">₹${order.originalAmount || order.amount}</td>
-                </tr>
-                ${order.shipping?.shippingCost > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #D1D5DB;">Shipping:</td>
-                  <td style="padding: 12px; text-align: right;">₹${order.shipping.shippingCost}</td>
-                </tr>
-                ` : `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">Free Shipping:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">₹0</td>
-                </tr>
-                `}
-                ${order.quantityDiscount && order.quantityDiscount.amount > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #FCD34D;">Quantity Discount (${order.quantityDiscount.percentage}% off for ${order.quantityDiscount.totalQuantity} items):</td>
-                  <td style="padding: 12px; text-align: right; color: #FCD34D;">-₹${order.quantityDiscount.amount}</td>
-                </tr>
-                ` : ''}
-                ${(() => {
-                  if (!order.coupon || !order.coupon.discountValue) return '';
-                  
-                  const subtotal = order.originalAmount || order.amount;
-                  let couponDiscountAmount = 0;
-                  
-                  if (order.coupon.discountType === 'percentage') {
-                    couponDiscountAmount = Math.floor((subtotal * order.coupon.discountValue) / 100);
-                  } else {
-                    couponDiscountAmount = order.coupon.discountValue;
-                  }
-                  
-                  if (couponDiscountAmount <= 0) return '';
-                  
-                  const discountText = order.coupon.discountType === 'percentage' 
-                    ? `Coupon Discount (${order.coupon.code} - ${order.coupon.discountValue}% off)`
-                    : `Coupon Discount (${order.coupon.code})`;
-                  
-                  return `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">${discountText}:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981;">-₹${couponDiscountAmount}</td>
-                </tr>
-                  `;
-                })()}
-                ${order.rewardPointsDiscount > 0 ? `
-                <tr>
-                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">Reward Points (${order.rewardPointsRedeemed} points):</td>
-                  <td style="padding: 12px; text-align: right; color: #8B5CF6;">-₹${order.rewardPointsDiscount}</td>
-                </tr>
-                ` : ''}
-                ${(() => {
-                  const quantitySavings = (order.quantityDiscount?.amount || 0);
-                  
-                  // Calculate coupon savings correctly
-                  let couponSavings = 0;
-                  if (order.coupon && order.coupon.discountValue) {
-                    const subtotal = order.originalAmount || order.amount;
-                    if (order.coupon.discountType === 'percentage') {
-                      couponSavings = Math.floor((subtotal * order.coupon.discountValue) / 100);
-                    } else {
-                      couponSavings = order.coupon.discountValue;
-                    }
-                  }
-                  
-                  const rewardSavings = (order.rewardPointsDiscount || 0);
-                  const totalSavings = quantitySavings + couponSavings + rewardSavings;
-                  
-                  return totalSavings > 0 ? `
-                <tr style="border-top: 2px solid #6B7280;">
-                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">Total Savings:</td>
-                  <td style="padding: 12px; text-align: right; color: #10B981; font-weight: bold;">-₹${totalSavings}</td>
-                </tr>
-                  ` : '';
-                })()}
-                <tr style="background-color: #FCD34D; color: #1F2937;">
-                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">Final Total:</td>
-                  <td style="padding: 15px; text-align: right; font-weight: bold; font-size: 18px;">₹${order.amount}</td>
-                </tr>
+                ${DiscountCalculator.generateDiscountHTML(order)}
               </tbody>
             </table>
             
@@ -1262,11 +1026,11 @@ class EmailService {
               <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/track-order" class="button-secondary">Manual Tracking Page</a>
             </center>
             
-            <p>Thank you for choosing Anime T-Shirt Shop! 🎌</p>
-            <p>The Anime T-Shirt Team</p>
+            <p>Thank you for choosing Attars! 🎉</p>
+            <p>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>Order #${order._id} | ${customerInfo.email || customerInfo.user?.email}</p>
             <p style="color: #6B7280;">This email contains secure tracking credentials. Keep it safe for easy order access.</p>
           </div>
@@ -1354,11 +1118,11 @@ class EmailService {
               <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/track-order" class="button-secondary">Manual Tracking Page</a>
             </center>
             
-            <p>Thank you for choosing Anime T-Shirt Shop! 🎌</p>
-            <p>The Anime T-Shirt Team</p>
+            <p>Thank you for choosing Attars! 🎉</p>
+            <p>The Attars Team</p>
           </div>
           <div class="footer">
-            <p>&copy; 2025 Anime T-Shirt Shop. All rights reserved.</p>
+            <p>&copy; 2025 Attars. All rights reserved.</p>
             <p>Secure tracking for Order #${order._id} | ${customerInfo.email}</p>
             <p style="color: #6B7280;">This email contains secure access credentials. Do not share with others.</p>
           </div>
@@ -1372,7 +1136,7 @@ class EmailService {
 
   // Test email functionality
   async sendTestEmail(to) {
-    const subject = 'Test Email from Anime T-Shirt Shop';
+    const subject = 'Test Email from Attars';
     const html = `
       <h1>Test Email</h1>
       <p>This is a test email to verify that the email service is working correctly.</p>

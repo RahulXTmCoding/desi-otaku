@@ -4,6 +4,7 @@ import { isAutheticated } from "../auth/helper";
 import { API } from "../backend";
 import { Loader, Package, Truck, CreditCard, MapPin, ChevronLeft, ExternalLink, Download, Loader2 } from "lucide-react";
 import CartTShirtPreview from "../components/CartTShirtPreview";
+import OrderDiscountBreakdown from "../components/OrderDiscountBreakdown";
 
 const OrderDetail = () => {
   const [order, setOrder] = useState(null);
@@ -352,92 +353,43 @@ const OrderDetail = () => {
                   <CreditCard className="w-5 h-5 mr-2 text-yellow-400" />
                   Order Summary
                 </h2>
-                <div className="space-y-3">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-400">Subtotal</span>
-                    <span className="text-white font-medium">₹{(order.originalAmount || order.subtotal || order.amount).toLocaleString('en-IN')}</span>
-                  </div>
-                  
-                  {order.shipping?.shippingCost > 0 ? (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Shipping</span>
-                      <span className="text-white font-medium">₹{order.shipping.shippingCost.toLocaleString('en-IN')}</span>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-green-400">Free Shipping</span>
-                      <span className="text-green-400 font-medium">₹0</span>
-                    </div>
-                  )}
-                  
-                  {order.quantityDiscount && order.quantityDiscount.amount > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-yellow-400">Quantity Discount ({order.quantityDiscount.percentage}% off for {order.quantityDiscount.totalQuantity} items)</span>
-                      <span className="text-yellow-400 font-medium">-₹{order.quantityDiscount.amount.toLocaleString('en-IN')}</span>
-                    </div>
-                  )}
-                  
-                  {order.coupon && order.coupon.discountValue > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-green-400">Coupon Discount ({order.coupon.code})</span>
-                      <span className="text-green-400 font-medium">-₹{order.coupon.discountValue.toLocaleString('en-IN')}</span>
-                    </div>
-                  )}
-                  
-                  {order.rewardPointsRedeemed > 0 && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-purple-400">Reward Points ({order.rewardPointsRedeemed} points)</span>
-                      <span className="text-purple-400 font-medium">-₹{(order.rewardPointsDiscount || (order.rewardPointsRedeemed * 0.5)).toLocaleString('en-IN')}</span>
-                    </div>
-                  )}
-                  
-                  {(() => {
-                    const totalSavings = 
-                      (order.quantityDiscount?.amount || 0) + 
-                      (order.coupon?.discountValue || 0) + 
-                      (order.rewardPointsDiscount || (order.rewardPointsRedeemed ? order.rewardPointsRedeemed * 0.5 : 0));
-                    
-                    return totalSavings > 0 && (
-                      <div className="flex justify-between text-sm pt-2 border-t border-gray-600">
-                        <span className="text-green-400 font-semibold">Total Savings</span>
-                        <span className="text-green-400 font-semibold">-₹{totalSavings.toLocaleString('en-IN')}</span>
-                      </div>
-                    );
-                  })()}
-                  
-                  <div className="border-t border-gray-600 my-3"></div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-white">Total Paid</span>
-                    <span className="text-2xl font-bold text-yellow-400">₹{(order.amount || 0).toLocaleString('en-IN')}</span>
-                  </div>
-                  {order.transaction_id && (
-                    <div className="mt-4 pt-4 border-t border-gray-600">
-                      <p className="text-xs text-gray-400 mb-1">Transaction ID</p>
-                      <p className="text-xs font-mono text-gray-300 break-all bg-gray-800 p-2 rounded">{order.transaction_id}</p>
-                    </div>
-                  )}
-                  
-                  {/* ✅ FIX: Download Invoice Button for User Order Detail */}
+                {/* ✅ UNIVERSAL DISCOUNT COMPONENT - Handles all discount sources */}
+                <OrderDiscountBreakdown 
+                  order={order}
+                  orderStateData={null}
+                  className=""
+                  showTitle={false}
+                  variant="detailed"
+                />
+                
+                {/* Transaction ID */}
+                {order.transaction_id && (
                   <div className="mt-4 pt-4 border-t border-gray-600">
-                    <div className="flex flex-col items-center">
-                      <button 
-                        onClick={handleDownloadInvoice}
-                        disabled={downloadingInvoice}
-                        className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 px-4 py-3 rounded-lg font-bold transition-colors"
-                      >
-                        {downloadingInvoice ? (
-                          <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                          <Download className="w-5 h-5" />
-                        )}
-                        {downloadingInvoice ? 'Downloading...' : 'Download Invoice'}
-                      </button>
-                      {downloadError && (
-                        <p className="text-red-400 text-sm mt-2 text-center">
-                          {downloadError}
-                        </p>
+                    <p className="text-xs text-gray-400 mb-1">Transaction ID</p>
+                    <p className="text-xs font-mono text-gray-300 break-all bg-gray-800 p-2 rounded">{order.transaction_id}</p>
+                  </div>
+                )}
+                
+                {/* ✅ FIX: Download Invoice Button for User Order Detail */}
+                <div className="mt-4 pt-4 border-t border-gray-600">
+                  <div className="flex flex-col items-center">
+                    <button 
+                      onClick={handleDownloadInvoice}
+                      disabled={downloadingInvoice}
+                      className="w-full flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 disabled:opacity-50 disabled:cursor-not-allowed text-gray-900 px-4 py-3 rounded-lg font-bold transition-colors"
+                    >
+                      {downloadingInvoice ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <Download className="w-5 h-5" />
                       )}
-                    </div>
+                      {downloadingInvoice ? 'Downloading...' : 'Download Invoice'}
+                    </button>
+                    {downloadError && (
+                      <p className="text-red-400 text-sm mt-2 text-center">
+                        {downloadError}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>

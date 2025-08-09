@@ -1,6 +1,7 @@
-import React, { memo, useMemo } from 'react';
-import { CreditCard, Smartphone, AlertCircle, Shield, Loader } from 'lucide-react';
+import React, { memo, useMemo, useState } from 'react';
+import { CreditCard, Smartphone, AlertCircle, Shield, Loader, Phone, CheckCircle } from 'lucide-react';
 import DropIn from 'braintree-web-drop-in-react';
+import { API } from '../../backend';
 
 interface PaymentSectionProps {
   paymentMethod: string;
@@ -11,6 +12,15 @@ interface PaymentSectionProps {
   totalAmount: number;
   onPaymentMethodChange: (method: string) => void;
   onPlaceOrder: () => void;
+  showCOD?: boolean;
+  codVerification?: {
+    otpSent: boolean;
+    otpVerified: boolean;
+    otp: string;
+    loading: boolean;
+  };
+  setCodVerification?: (verification: any) => void;
+  customerPhone?: string;
 }
 
 const PaymentSection: React.FC<PaymentSectionProps> = memo(({
@@ -21,24 +31,45 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
   loading,
   totalAmount,
   onPaymentMethodChange,
-  onPlaceOrder
+  onPlaceOrder,
+  showCOD = false,
+  codVerification,
+  setCodVerification,
+  customerPhone
 }) => {
-  const paymentMethods = useMemo(() => [
-    {
-      id: 'razorpay',
-      name: 'Razorpay',
-      description: 'Cards, UPI, Wallets, NetBanking - All in one',
-      icon: <span className="text-sm">₹</span>,
-      recommended: true
-    },
-    {
-      id: 'card',
-      name: 'International Cards',
-      description: 'Visa, Mastercard, Amex (via Braintree)',
-      icon: <CreditCard className="w-5 h-5" />,
-      recommended: false
+  const paymentMethods = useMemo(() => {
+    const methods = [
+      {
+        id: 'razorpay',
+        name: 'Pay Online',
+        description: 'Cards, UPI, Wallets, NetBanking - All in one',
+        icon: <span className="text-sm">₹</span>,
+        recommended: true,
+        discount: '5% discount'
+      }
+      // ,
+      // {
+      //   id: 'card',
+      //   name: 'International Cards',
+      //   description: 'Visa, Mastercard, Amex (via Braintree)',
+      //   icon: <CreditCard className="w-5 h-5" />,
+      //   recommended: false
+      // }
+    ];
+
+    if (showCOD) {
+      methods.push({
+        id: 'cod',
+        name: 'Cash on Delivery (COD)',
+        description: 'Pay when your order is delivered',
+        icon: <Smartphone className="w-5 h-5" />,
+        recommended: false,
+        discount: undefined // Make discount optional for COD
+      });
     }
-  ], []);
+
+    return methods;
+  }, [showCOD]);
 
   return (
     <>
@@ -65,6 +96,9 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
         isTestMode={isTestMode}
         razorpayReady={razorpayReady}
         paymentData={paymentData}
+        codVerification={codVerification}
+        setCodVerification={setCodVerification}
+        customerPhone={customerPhone}
       />
 
       {/* Security Note */}
@@ -116,22 +150,29 @@ const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
         <div className="w-5 h-5 flex items-center justify-center">
           {method.icon}
         </div>
-        <div>
+        <div className="flex-1">
           <p className="font-medium">{method.name}</p>
           <p className="text-xs text-gray-400">{method.description}</p>
         </div>
       </div>
-      {method.recommended && (
-        <span className="ml-auto text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
-          Recommended
-        </span>
-      )}
+      <div className="ml-auto flex items-center gap-2">
+        {method.discount && (
+          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
+            {method.discount}
+          </span>
+        )}
+        {method.recommended && (
+          <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
+            Recommended
+          </span>
+        )}
+      </div>
     </label>
   );
 });
 
 // Separate component for payment forms
-const PaymentForm = memo(({ paymentMethod, isTestMode, razorpayReady, paymentData }: any) => {
+const PaymentForm = memo(({ paymentMethod, isTestMode, razorpayReady, paymentData, codVerification, setCodVerification, customerPhone }: any) => {
   if (paymentMethod === 'razorpay') {
     return (
       <div>
@@ -177,6 +218,17 @@ const PaymentForm = memo(({ paymentMethod, isTestMode, razorpayReady, paymentDat
           <CardPaymentForm paymentData={paymentData} />
         )}
       </div>
+    );
+  }
+
+  if (paymentMethod === 'cod') {
+    return (
+      <CodVerificationForm 
+        codVerification={codVerification}
+        setCodVerification={setCodVerification}
+        customerPhone={customerPhone}
+        isTestMode={isTestMode}
+      />
     );
   }
 
@@ -270,9 +322,226 @@ const CardPaymentForm = memo(({ paymentData }: any) => {
   );
 });
 
+// COD Verification Form Component
+const CodVerificationForm = memo(({ codVerification, setCodVerification, customerPhone, isTestMode }: any) => {
+  const handleSendOtp = async () => {
+    if (!customerPhone) {
+      alert('Please enter your phone number in the address section first');
+      return;
+    }
+
+    setCodVerification({ ...codVerification, loading: true });
+
+    try {
+      if (isTestMode) {
+        // Test mode - simulate OTP sending
+        setTimeout(() => {
+          setCodVerification({
+            ...codVerification,
+            otpSent: true,
+            loading: false
+          });
+          alert('Test OTP sent: 123456');
+        }, 1000);
+      } else {
+        // ✅ REAL MODE - Call actual backend API
+        const response = await fetch(`${API}/cod/send-otp`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+          },
+          body: JSON.stringify({ phone: customerPhone })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          setCodVerification({
+            ...codVerification,
+            otpSent: true,
+            loading: false
+          });
+          
+          // Show OTP in development mode
+          if (data.developmentOtp) {
+            alert(`Development OTP sent: ${data.developmentOtp}`);
+          } else {
+            alert('OTP sent to your phone number');
+          }
+        } else {
+          throw new Error(data.error || 'Failed to send OTP');
+        }
+      }
+    } catch (error: any) {
+      console.error('Failed to send OTP:', error);
+      setCodVerification({ ...codVerification, loading: false });
+      alert(error.message || 'Failed to send OTP. Please try again.');
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!codVerification.otp) {
+      alert('Please enter the OTP');
+      return;
+    }
+
+    setCodVerification({ ...codVerification, loading: true });
+
+    try {
+      if (isTestMode) {
+        // Test mode - accept any OTP
+        setTimeout(() => {
+          setCodVerification({
+            ...codVerification,
+            otpVerified: true,
+            loading: false
+          });
+        }, 500);
+      } else {
+        // ✅ REAL MODE - Call actual backend API
+        const response = await fetch(`${API}/cod/verify-otp`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+          },
+          body: JSON.stringify({ 
+            phone: customerPhone,
+            otp: codVerification.otp
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success && data.verified) {
+          setCodVerification({
+            ...codVerification,
+            otpVerified: true,
+            loading: false
+          });
+          alert('Phone number verified successfully!');
+        } else {
+          throw new Error(data.error || 'Invalid OTP');
+        }
+      }
+    } catch (error: any) {
+      console.error('OTP verification failed:', error);
+      setCodVerification({ ...codVerification, loading: false });
+      alert(error.message || 'Invalid OTP. Please try again.');
+    }
+  };
+
+  const handleOtpChange = (value: string) => {
+    setCodVerification({
+      ...codVerification,
+      otp: value.replace(/\D/g, '').slice(0, 6)
+    });
+  };
+
+  return (
+    <div className="bg-gray-700 rounded-lg p-6">
+      <div className="mb-4">
+        <p className="text-sm text-gray-300 mb-2">Cash on Delivery (COD)</p>
+        <p className="text-xs text-gray-400">Verify your phone number to place COD orders</p>
+      </div>
+
+      {!codVerification?.otpVerified ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-gray-300">
+            <Phone className="w-4 h-4" />
+            <span>Phone: {customerPhone || 'Please add phone number in address section'}</span>
+          </div>
+
+          {!codVerification?.otpSent ? (
+            <button
+              onClick={handleSendOtp}
+              disabled={!customerPhone || codVerification?.loading}
+              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {codVerification?.loading ? (
+                <>
+                  <Loader className="w-4 h-4 animate-spin" />
+                  Sending OTP...
+                </>
+              ) : (
+                <>
+                  <Phone className="w-4 h-4" />
+                  Send OTP
+                </>
+              )}
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Enter OTP sent to {customerPhone}
+                </label>
+                <input
+                  type="text"
+                  value={codVerification.otp || ''}
+                  onChange={(e) => handleOtpChange(e.target.value)}
+                  placeholder="Enter 6-digit OTP"
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-center text-lg tracking-widest"
+                  maxLength={6}
+                />
+                {isTestMode && (
+                  <p className="text-xs text-blue-400 mt-1">Test mode: Use any 6-digit number or 123456</p>
+                )}
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleVerifyOtp}
+                  disabled={!codVerification.otp || codVerification.otp.length !== 6 || codVerification.loading}
+                  className="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-medium disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {codVerification.loading ? (
+                    <>
+                      <Loader className="w-4 h-4 animate-spin" />
+                      Verifying...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Verify OTP
+                    </>
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setCodVerification({ otpSent: false, otpVerified: false, otp: '', loading: false })}
+                  className="px-4 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium"
+                >
+                  Resend
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-green-400 bg-green-500/10 border border-green-500/50 rounded-lg p-4">
+          <CheckCircle className="w-5 h-5" />
+          <div>
+            <p className="font-medium">Phone number verified!</p>
+            <p className="text-xs text-green-300">You can now place your COD order</p>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/50 rounded-lg">
+        <p className="text-xs text-yellow-400">
+          📱 COD orders require phone verification for security and delivery confirmation
+        </p>
+      </div>
+    </div>
+  );
+});
+
 PaymentSection.displayName = 'PaymentSection';
 PaymentMethodOption.displayName = 'PaymentMethodOption';
 PaymentForm.displayName = 'PaymentForm';
 CardPaymentForm.displayName = 'CardPaymentForm';
+CodVerificationForm.displayName = 'CodVerificationForm';
 
 export default PaymentSection;

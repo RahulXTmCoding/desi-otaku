@@ -16,6 +16,7 @@ const Contact = lazy(() => import('../pages/Contact'));
 const Customize = lazy(() => import('./Customize'));
 const Cart = lazy(() => import('./Cart'));
 const CheckoutFixed = lazy(() => import('./CheckoutFixed'));
+const CheckoutSinglePage = lazy(() => import('./CheckoutSinglePage'));
 const OrderConfirmation = lazy(() => import('./OrderConfirmation'));
 const OrderConfirmationEnhanced = lazy(() => import('./OrderConfirmationEnhanced'));
 const ProductDetail = lazy(() => import('./ProductDetail'));
@@ -77,7 +78,8 @@ export default function App() {
             <Route path="/customize" element={<Customize />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/checkout" element={<CheckoutFixed />} />
+            <Route path="/checkout" element={<CheckoutSinglePage />} />
+            <Route path="/checkout-old" element={<CheckoutFixed />} />
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
             <Route path="/order-confirmation-enhanced" element={<OrderConfirmationEnhanced />} />
             <Route path="/signup" element={<Signup />} />

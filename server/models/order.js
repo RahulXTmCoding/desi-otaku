@@ -135,6 +135,22 @@ const OrderSchema = new Schema(
       type: Number,
       default: 0
     },
+    // Online payment discount (5% for Razorpay/Card payments)
+    onlinePaymentDiscount: {
+      amount: {
+        type: Number,
+        default: 0
+      },
+      percentage: {
+        type: Number,
+        default: 0
+      },
+      paymentMethod: {
+        type: String,
+        enum: ["razorpay", "card"],
+        required: false
+      }
+    },
     status: {
       type: String,
       default: "Received",
@@ -145,6 +161,25 @@ const OrderSchema = new Schema(
       type: String,
       default: "Pending",
       enum: ["Pending", "Paid", "Failed", "Refunded"]
+    },
+    // Payment method tracking
+    paymentMethod: {
+      type: String,
+      default: "razorpay",
+      enum: ["razorpay", "cod", "card", "upi", "wallet"]
+    },
+    // COD specific fields
+    codVerification: {
+      phoneVerified: {
+        type: Boolean,
+        default: false
+      },
+      otpSentAt: Date,
+      verificationMethod: {
+        type: String,
+        enum: ["otp", "manual"],
+        default: "otp"
+      }
     },
     address: {
       type: String,

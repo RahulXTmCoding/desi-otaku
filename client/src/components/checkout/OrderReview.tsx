@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import { Package, MapPin, Truck, Clock, Home, CreditCard, Shield } from 'lucide-react';
 import CartTShirtPreview from '../CartTShirtPreview';
+import OrderDiscountBreakdown from '../OrderDiscountBreakdown';
 import { API } from '../../backend';
 
 interface CartItem {
@@ -28,14 +29,40 @@ interface OrderReviewProps {
   shippingInfo: any;
   selectedShipping: any;
   getTotalAmount: () => number;
+  appliedDiscounts?: any; // For discount information
+  paymentMethod?: string; // For online payment discount
 }
 
 const OrderReview: React.FC<OrderReviewProps> = memo(({
   cartItems,
   shippingInfo,
   selectedShipping,
-  getTotalAmount
+  getTotalAmount,
+  appliedDiscounts = {},
+  paymentMethod = 'razorpay'
 }) => {
+  // ✅ CRITICAL FIX: Create mock order object for consistent discount display
+  const mockOrder = {
+    products: cartItems.map(item => ({
+      name: item.name,
+      price: item.price,
+      count: item.quantity,
+      _id: item._id
+    })),
+    originalAmount: getTotalAmount(),
+    amount: getTotalAmount(), // This will be updated by OrderDiscountBreakdown
+    shipping: {
+      shippingCost: selectedShipping?.rate || 0
+    },
+    paymentMethod: paymentMethod,
+    // Include any applied discounts
+    quantityDiscount: appliedDiscounts.quantityDiscount || null,
+    coupon: appliedDiscounts.coupon || null,
+    rewardPointsDiscount: appliedDiscounts.rewardPointsDiscount || 0,
+    rewardPointsRedeemed: appliedDiscounts.rewardPointsRedeemed || 0,
+    onlinePaymentDiscount: appliedDiscounts.onlinePaymentDiscount || null
+  };
+
   return (
     <>
       <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
@@ -65,6 +92,38 @@ const OrderReview: React.FC<OrderReviewProps> = memo(({
         
         {/* Delivery Method */}
         <DeliveryMethodCard selectedShipping={selectedShipping} />
+      </div>
+
+      {/* ✅ UNIVERSAL ORDER SUMMARY - Consistent with all other order displays */}
+      <div className="bg-gradient-to-r from-gray-700/50 to-gray-700/30 rounded-lg p-6 border border-gray-600">
+        <h3 className="font-semibold mb-4 flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-yellow-400" />
+          Order Summary
+        </h3>
+        
+        {/* ✅ UNIVERSAL DISCOUNT COMPONENT - Shows ALL discounts including online payment */}
+        <OrderDiscountBreakdown 
+          order={mockOrder}
+          orderStateData={null}
+          className=""
+          showTitle={false}
+          variant="detailed"
+        />
+        
+        {/* Additional Security Info */}
+        <div className="mt-4 pt-4 border-t border-gray-600">
+          <div className="flex items-start gap-2">
+            <Shield className="w-4 h-4 text-green-400 mt-0.5" />
+            <div>
+              <p className="text-sm text-gray-400">
+                Your order is protected by our secure payment system
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                All transactions are encrypted and secure
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );

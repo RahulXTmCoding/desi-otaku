@@ -50,7 +50,6 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
 
   return (
     <div className="mt-6">
-      <h3 className="text-lg font-semibold mb-4">Select Shipping Method</h3>
       
       {/* Free Shipping Banner */}
       {isFreeShipping && (
@@ -148,7 +147,6 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
         <ul className="text-sm text-gray-300 space-y-1">
           <li>• Free shipping on orders ₹999 and above</li>
           <li>• Flat ₹79 shipping for orders below ₹999</li>
-          <li>• Delivery times are estimates and may vary</li>
           <li>• Tracking information will be sent via email</li>
           {/* <li>• Cash on Delivery available for most locations</li> */}
         </ul>

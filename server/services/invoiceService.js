@@ -2,6 +2,7 @@ const pdf = require('html-pdf');
 const fs = require('fs').promises;
 const path = require('path');
 const Invoice = require('../models/invoice');
+const DiscountCalculator = require('../utils/discountCalculator');
 
 class InvoiceService {
   constructor() {
@@ -530,16 +531,16 @@ class InvoiceService {
         })
       );
 
-      // GST-inclusive pricing: Final price is the "hook price" (e.g., ₹549)
-      const finalPrice = order.amount; // This is what customer sees and pays
-      const couponDiscount = order.discount || 0;
-      const rewardPointsDiscount = order.rewardPointsDiscount || 0;
-      const rewardPointsRedeemed = order.rewardPointsRedeemed || 0;
-
-      // Use actual product MRP data for attractive display
-      const grossAmount = Math.round(totalGrossAmount);
-      const productDiscount = Math.round(totalActualDiscount);
-      const finalDiscount = Math.round(grossAmount - finalPrice);
+      // ✅ CRITICAL FIX: Use universal discount calculator for consistent amounts
+      console.log('🔄 INVOICE: Using DiscountCalculator for consistent pricing');
+      const discountBreakdown = DiscountCalculator.calculateOrderDiscounts(order);
+      
+      console.log('💰 INVOICE: Discount breakdown from universal calculator:', discountBreakdown);
+      
+      // Use calculated amounts that match frontend exactly
+      const grossAmount = discountBreakdown.subtotal + discountBreakdown.shippingCost;
+      const finalPrice = discountBreakdown.finalAmount;
+      const totalDiscountApplied = discountBreakdown.totalSavings;
 
       // Create invoice with GST-inclusive pricing structure
       const invoice = new Invoice({
@@ -551,18 +552,18 @@ class InvoiceService {
         shippingAddress: billingAddress, // Same as billing for now
         items,
         amounts: {
-          // Use actual product MRP data
+          // ✅ FIXED: Use discount calculator amounts for consistency
           grossAmount: grossAmount,
-          discount: finalDiscount,
+          discount: totalDiscountApplied,
           grandTotal: finalPrice,
           otherCharges: 0,
-          discountDescription: order.coupon?.code ? 
-            `${Math.round((productDiscount/grossAmount)*100)}% Off + Coupon: ${order.coupon.code}` : 
-            `${Math.round((finalDiscount/grossAmount)*100)}% Off - Special Offer`,
+          discountDescription: discountBreakdown.couponDiscount > 0 ? 
+            `${Math.round((totalDiscountApplied/grossAmount)*100)}% Off + Coupon: ${discountBreakdown.couponCode}` : 
+            `${Math.round((totalDiscountApplied/grossAmount)*100)}% Off - Special Offer`,
           
           // Legacy fields for compatibility
-          subtotal: order.originalAmount || order.amount,
-          shippingCost: order.shipping?.shippingCost || 0
+          subtotal: discountBreakdown.subtotal,
+          shippingCost: discountBreakdown.shippingCost
         },
         tax: {
           isGstApplicable: true, // Enable GST by default for proper invoice display
@@ -589,8 +590,8 @@ class InvoiceService {
 
       console.log(`✅ GST-inclusive invoice created: ${invoice.invoiceNumber}`);
       console.log(`   Final Price: ₹${finalPrice}`);
-      console.log(`   Gross Amount: ₹${invoice.amounts.grossAmount} (from product MRP)`);
-      console.log(`   Discount: ₹${invoice.amounts.discount} (${Math.round((finalDiscount/grossAmount)*100)}%)`);
+      console.log(`   Gross Amount: ₹${invoice.amounts.grossAmount} (from universal calculator)`);
+      console.log(`   Discount: ₹${invoice.amounts.discount} (${Math.round((totalDiscountApplied/grossAmount)*100)}%)`);
       console.log(`   Taxable Amount: ₹${invoice.amounts.taxableAmount}`);
       console.log(`   CGST: ₹${invoice.amounts.cgst}`);
       console.log(`   SGST: ₹${invoice.amounts.sgst}`);

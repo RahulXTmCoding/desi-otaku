@@ -10,15 +10,18 @@ interface DiscountSectionProps {
   onDiscountChange: (discount: {
     coupon: { code: string; discount: number; description: string } | null;
     rewardPoints: { points: number; discount: number } | null;
+    quantity?: { discount: number; percentage: number; message: string } | null;
   }) => void;
   isTestMode?: boolean;
+  aovDiscount?: number; // ✅ NEW: Pass AOV discount for sequential calculation
 }
 
 const DiscountSection: React.FC<DiscountSectionProps> = ({
   subtotal,
   shippingCost,
   onDiscountChange,
-  isTestMode = false
+  isTestMode = false,
+  aovDiscount = 0 // ✅ NEW: Pass AOV discount for sequential calculation
 }) => {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
@@ -31,6 +34,13 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
   const [rewardLoading, setRewardLoading] = useState(false);
   const [showRewardInput, setShowRewardInput] = useState(false);
   const [rewardBalanceLoaded, setRewardBalanceLoaded] = useState(false);
+  
+  // ✅ NEW: AOV/Quantity discount state
+  const [quantityDiscount, setQuantityDiscount] = useState<{
+    discount: number;
+    percentage: number;
+    message: string;
+  } | null>(null);
   
   const auth = isAutheticated();
   const isGuest = !auth || typeof auth === 'boolean' || !auth.user;
@@ -51,7 +61,15 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
     }
   }, [isGuest, rewardBalanceLoaded, auth && typeof auth !== 'boolean' ? auth.user._id : null]);
 
-  // Check for auto-apply coupons
+  // ✅ CRITICAL FIX: Reset auto-apply when AOV discount changes
+  useEffect(() => {
+    if (aovDiscount > 0 && appliedCoupon && autoApplyChecked) {
+      console.log(`🔄 AOV discount changed to ₹${aovDiscount}, recalculating auto-applied coupon`);
+      setAutoApplyChecked(false); // Reset to trigger recalculation
+    }
+  }, [aovDiscount]);
+
+  // Check for auto-apply coupons with AOV-discounted calculation
   useEffect(() => {
     if (!autoApplyChecked && subtotal > 0) {
       setAutoApplyChecked(true);
@@ -61,17 +79,37 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
       )
         .then(data => {
           if (data.coupon) {
-            setAppliedCoupon(data.coupon);
-            setCouponCode(data.coupon.code);
+            // ✅ CRITICAL FIX: Calculate coupon discount on AOV-discounted amount for auto-apply too
+            const aovDiscountedSubtotal = subtotal - aovDiscount;
+            let actualDiscount = data.coupon.discount;
+            
+            if (data.coupon.discountType === 'percentage') {
+              actualDiscount = Math.floor((aovDiscountedSubtotal * data.coupon.discountValue) / 100);
+              if (data.coupon.maxDiscount && actualDiscount > data.coupon.maxDiscount) {
+                actualDiscount = data.coupon.maxDiscount;
+              }
+            } else {
+              actualDiscount = Math.min(data.coupon.discountValue, aovDiscountedSubtotal);
+            }
+            
+            console.log(`✅ Auto-apply sequential coupon: ${data.coupon.discountType} discount of ₹${actualDiscount} on ₹${aovDiscountedSubtotal} (AOV: ₹${aovDiscount})`);
+            
+            const sequentialCoupon = {
+              ...data.coupon,
+              discount: actualDiscount
+            };
+            
+            setAppliedCoupon(sequentialCoupon);
+            setCouponCode(sequentialCoupon.code);
             onDiscountChange({
-              coupon: data.coupon,
+              coupon: sequentialCoupon,
               rewardPoints: null
             });
           }
         })
         .catch(console.error);
     }
-  }, [subtotal, autoApplyChecked, isGuest, auth, onDiscountChange]);
+  }, [subtotal, aovDiscount, autoApplyChecked, isGuest, auth, onDiscountChange]);
 
   // Validate coupon
   const handleApplyCoupon = useCallback(async () => {
@@ -85,22 +123,49 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
 
     try {
       const token = !isGuest && auth && typeof auth !== 'boolean' ? auth.token : undefined;
-      const result = await validateCoupon(couponCode, subtotal, token);
-
+      
+      // ✅ CRITICAL FIX: Use AOV-discounted subtotal for sequential calculation
+      const aovDiscountedSubtotal = subtotal - aovDiscount;
+      console.log(`🔍 Coupon validation: Original ₹${subtotal} - AOV ₹${aovDiscount} = ₹${aovDiscountedSubtotal}`);
+      
+      const result = await validateCoupon(couponCode, subtotal, token); // Still validate against original for minimum purchase
+      
       if (result.error) {
         setCouponError(result.error);
         setAppliedCoupon(null);
       } else if (result.valid) {
-        setAppliedCoupon(result.coupon);
+        // ✅ CRITICAL FIX: Calculate discount on AOV-discounted amount
+        let actualDiscount = result.coupon.discount;
+        
+        if (result.coupon.discountType === 'percentage') {
+          // Apply percentage to AOV-discounted subtotal
+          actualDiscount = Math.floor((aovDiscountedSubtotal * result.coupon.discountValue) / 100);
+          if (result.coupon.maxDiscount && actualDiscount > result.coupon.maxDiscount) {
+            actualDiscount = result.coupon.maxDiscount;
+          }
+        } else {
+          // Fixed amount - ensure it doesn't exceed AOV-discounted subtotal
+          actualDiscount = Math.min(result.coupon.discountValue, aovDiscountedSubtotal);
+        }
+        
+        console.log(`✅ Sequential coupon: ${result.coupon.discountType} discount of ₹${actualDiscount} on ₹${aovDiscountedSubtotal}`);
+        
+        const sequentialCoupon = {
+          ...result.coupon,
+          discount: actualDiscount
+        };
+        
+        setAppliedCoupon(sequentialCoupon);
         setCouponError('');
         
-        // Update parent with discount info
+        // Update parent with sequential discount info
         onDiscountChange({
-          coupon: result.coupon,
+          coupon: sequentialCoupon,
           rewardPoints: rewardPointsToRedeem > 0 ? {
             points: rewardPointsToRedeem,
             discount: rewardPointsToRedeem * 0.5
-          } : null
+          } : null,
+          quantity: quantityDiscount
         });
       }
     } catch (error) {
@@ -108,7 +173,7 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
     } finally {
       setCouponLoading(false);
     }
-  }, [couponCode, subtotal, isGuest, auth, onDiscountChange, rewardPointsToRedeem]);
+  }, [couponCode, subtotal, aovDiscount, isGuest, auth, onDiscountChange, rewardPointsToRedeem, quantityDiscount]);
 
   // Remove coupon
   const handleRemoveCoupon = useCallback(() => {
@@ -121,7 +186,8 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
       rewardPoints: rewardPointsToRedeem > 0 ? {
         points: rewardPointsToRedeem,
         discount: rewardPointsToRedeem * 0.5
-      } : null
+      } : null,
+      quantity: quantityDiscount
     });
   }, [onDiscountChange, rewardPointsToRedeem]);
 
@@ -142,7 +208,8 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
       rewardPoints: {
         points: pointsToApply,
         discount: pointsToApply * 0.5
-      }
+      },
+      quantity: quantityDiscount
     });
     
     setShowRewardInput(false);
@@ -155,7 +222,8 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
     
     onDiscountChange({
       coupon: appliedCoupon,
-      rewardPoints: null
+      rewardPoints: null,
+      quantity: quantityDiscount
     });
   }, [appliedCoupon, onDiscountChange]);
 

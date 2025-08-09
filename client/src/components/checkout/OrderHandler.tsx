@@ -28,6 +28,12 @@ interface OrderHandlerProps {
   razorpayReady: boolean;
   clearCart: () => Promise<void>;
   isBuyNow?: boolean;
+  codVerification?: {
+    otpSent: boolean;
+    otpVerified: boolean;
+    otp: string;
+    loading: boolean;
+  };
 }
 
 export const useOrderHandler = ({
@@ -42,7 +48,8 @@ export const useOrderHandler = ({
   getFinalAmount,
   razorpayReady,
   clearCart,
-  isBuyNow = false
+  isBuyNow = false,
+  codVerification
 }: OrderHandlerProps) => {
   const navigate = useNavigate();
   const [showProcessingModal, setShowProcessingModal] = useState(false);
@@ -113,6 +120,139 @@ export const useOrderHandler = ({
           isBuyNow // ✅ FIXED: Pass isBuyNow flag for test mode too
         }
       });
+    } else if (paymentMethod === 'cod') {
+      // COD implementation for both authenticated and guest users
+      console.log('🎯 CREATING COD ORDER:', {
+        userType: isGuest ? 'guest' : 'authenticated',
+        cartItems: cart.length,
+        codVerified: codVerification?.otpVerified,
+        totalAmount
+      });
+
+      if (!isTestMode && !codVerification?.otpVerified) {
+        throw new Error('Phone verification required for COD orders');
+      }
+
+      const orderData = {
+        products: cart.map(item => ({
+          product: item.product || item._id?.split('-')[0] || '',
+          name: item.name,
+          price: item.price,
+          count: item.quantity,
+          size: item.size,
+          isCustom: item.isCustom,
+          color: item.color,
+          customization: item.customization
+        })),
+        amount: totalAmount,
+        coupon: appliedDiscount.coupon,
+        rewardPointsRedeemed: isGuest ? 0 : (appliedDiscount.rewardPoints?.points || 0),
+        address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pinCode}, ${shippingInfo.country}`,
+        shipping: {
+          name: shippingInfo.fullName,
+          phone: shippingInfo.phone,
+          pincode: shippingInfo.pinCode,
+          city: shippingInfo.city,
+          state: shippingInfo.state,
+          country: shippingInfo.country,
+          weight: 0.3 * cart.length,
+          shippingCost: selectedShipping?.rate || 0,
+          courier: selectedShipping?.courier_name || ''
+        },
+        codVerified: true
+      };
+
+      let orderResult;
+      
+      if (isGuest) {
+        console.log('👤 Creating guest COD order...');
+        
+        const response = await fetch(`${API}/cod/order/guest/create`, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ...orderData,
+            guestInfo: {
+              name: shippingInfo.fullName,
+              email: shippingInfo.email,
+              phone: shippingInfo.phone
+            }
+          })
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create COD order');
+        }
+        
+        orderResult = data.order;
+        console.log('✅ Guest COD order created successfully:', orderResult._id);
+        
+      } else {
+        console.log('🔐 Creating authenticated user COD order...');
+        
+        const response = await fetch(`${API}/cod/order/create/${(auth as any).user._id}`, {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${(auth as any).token}`
+          },
+          body: JSON.stringify(orderData)
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to create COD order');
+        }
+        
+        orderResult = data.order;
+        console.log('✅ Authenticated COD order created successfully:', orderResult._id);
+      }
+
+      // Navigate to confirmation page
+      console.log('🎉 COD ORDER CREATION SUCCESSFUL - NAVIGATING TO CONFIRMATION');
+      
+      const navigationState = {
+        orderId: orderResult._id,
+        orderDetails: orderResult,
+        shippingInfo,
+        paymentMethod: 'cod',
+        finalAmount: totalAmount,
+        originalAmount: getTotalAmount() + (selectedShipping?.rate || 0),
+        subtotal: getTotalAmount(),
+        couponDiscount: appliedDiscount.coupon ? appliedDiscount.coupon.discount : 0,
+        quantityDiscount: 0, // COD orders don't have quantity discounts in this flow
+        rewardPointsUsed: isGuest ? 0 : (appliedDiscount.rewardPoints?.points || 0),
+        rewardDiscount: isGuest ? 0 : (appliedDiscount.rewardPoints?.discount || 0),
+        // ✅ NEW: Include online payment discount (0 for COD but needed for consistency)
+        onlinePaymentDiscount: 0,
+        shippingCost: selectedShipping?.rate || 0,
+        appliedCoupon: appliedDiscount.coupon,
+        appliedRewardPoints: isGuest ? null : appliedDiscount.rewardPoints,
+        isGuest,
+        isBuyNow,
+        createdAt: new Date().toISOString(),
+        paymentSuccess: true,
+        orderCreated: true,
+        codOrder: true
+      };
+      
+      navigate('/order-confirmation-enhanced', { 
+        state: navigationState,
+        replace: true 
+      });
+      
+      // Clear cart after successful navigation
+      if (!isBuyNow) {
+        clearCart()
+          .then(() => console.log('✅ Cart cleared after successful COD order'))
+          .catch((error) => console.error('Cart clear error (non-blocking):', error));
+      }
+      
     } else if (paymentMethod === 'razorpay') {
       // Razorpay implementation for both authenticated and guest users
       let orderResponse;
@@ -155,6 +295,7 @@ export const useOrderHandler = ({
           cartItems: cartItems,
           couponCode: appliedDiscount.coupon?.code || null,
           rewardPoints: isGuest ? null : (appliedDiscount.rewardPoints?.points || null),
+          paymentMethod: paymentMethod, // ✅ CRITICAL FIX: Send actual selected payment method for online discount
           currency: 'INR',
           receipt: isGuest ? `guest_${Date.now()}` : `order_${Date.now()}`,
           customerInfo: {
@@ -215,7 +356,8 @@ export const useOrderHandler = ({
           console.log('🔄 PROCESSING ORDER CREATION...');
           
           try {
-            // Create order data for backend
+            // ✅ FIXED: Let backend calculate all discounts - don't duplicate logic
+            // Create order data for backend (backend will calculate all discounts including online payment discount)
             const orderData = {
               products: cart.map(item => ({
                 product: item.product || item._id?.split('-')[0] || '',
@@ -229,6 +371,7 @@ export const useOrderHandler = ({
               })),
               transaction_id: paymentData.razorpay_payment_id,
               amount: totalAmount,
+              paymentMethod: paymentMethod, // ✅ Backend will use this to calculate online payment discount
               coupon: appliedDiscount.coupon,
               rewardPointsRedeemed: appliedDiscount.rewardPoints?.points || 0,
               address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pinCode}, ${shippingInfo.country}`,
@@ -332,6 +475,9 @@ export const useOrderHandler = ({
             const serverCouponDiscount = appliedDiscount.coupon ? appliedDiscount.coupon.discount : 0; // ✅ Only set if coupon exists
             const serverQuantityDiscount = orderResult.quantityDiscount?.amount || 0;
             
+            // ✅ CRITICAL FIX: Get online payment discount from order result
+            const serverOnlinePaymentDiscount = orderResult.onlinePaymentDiscount?.amount || 0;
+            
             const navigationState = {
               orderId: orderResult._id || paymentData.razorpay_payment_id,
               orderDetails: orderResult,
@@ -346,6 +492,8 @@ export const useOrderHandler = ({
               quantityDiscount: serverQuantityDiscount,
               rewardPointsUsed: appliedDiscount.rewardPoints?.points || 0,
               rewardDiscount: appliedDiscount.rewardPoints?.discount || 0,
+              // ✅ NEW: Pass online payment discount
+              onlinePaymentDiscount: serverOnlinePaymentDiscount,
               shippingCost: selectedShipping?.rate || 0,
               // ✅ FIXED: Pass applied discount info for proper display
               appliedCoupon: appliedDiscount.coupon,
