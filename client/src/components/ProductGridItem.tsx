@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Eye, Trash2, Star, X, ChevronLeft, Plus, Minus, Zap, Tag } from 'lucide-react';
 import { API } from '../backend';
 import { useCart } from '../context/CartContext';
+import { useAOV } from '../context/AOVContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 
@@ -71,31 +72,14 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
   const [isFlipped, setIsFlipped] = useState(false);
   const [selectedSize, setSelectedSize] = useState('');
   const [quantity, setQuantity] = useState(1);
-  const [quantityTiers, setQuantityTiers] = useState<any[]>([]);
   const { addToCart } = useCart();
+  const { quantityTiers } = useAOV();
 
   const authData = isAutheticated();
   const user = authData && authData.user;
   const token = authData && authData.token;
 
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
-
-  // Fetch quantity discount tiers on mount
-  useEffect(() => {
-    const fetchQuantityTiers = async () => {
-      try {
-        const response = await fetch(`${API}/aov/quantity-discounts`);
-        if (response.ok) {
-          const data = await response.json();
-          setQuantityTiers(data.tiers || []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch quantity tiers:', error);
-      }
-    };
-    
-    fetchQuantityTiers();
-  }, []);
 
   // Generate image URL with fallback
   const getImageUrl = () => {

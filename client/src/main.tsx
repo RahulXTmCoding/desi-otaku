@@ -5,6 +5,7 @@ import App from './pages/App'
 import { DevModeProvider } from './context/DevModeContext'
 import { CartProvider } from './context/CartContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { AOVProvider } from './context/AOVContext'
 import { QueryProvider } from './providers/QueryProvider'
 import { initializeAuth } from './utils/clearAuth'
 import SEOProvider from './components/SEOProvider'
@@ -19,11 +20,13 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <SEOProvider>
         <ThemeProvider>
           <DevModeProvider>
-            <BrowserRouter>
-              <CartProvider>
-                <App />
-              </CartProvider>
-            </BrowserRouter>
+            <AOVProvider>
+              <BrowserRouter>
+                <CartProvider>
+                  <App />
+                </CartProvider>
+              </BrowserRouter>
+            </AOVProvider>
           </DevModeProvider>
         </ThemeProvider>
       </SEOProvider>
