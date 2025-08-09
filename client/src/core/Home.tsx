@@ -301,12 +301,12 @@ const Home: React.FC = () => {
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight">
                 Design Your Own
                 <span className="block bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
-                  Otakool T-Shirt
+                  Fashion T-Shirt
                 </span>
               </h1>
 
               <p className="text-xl text-gray-300 leading-relaxed">
-                Create custom anime t-shirts with our design tool or choose from our collection of premium anime designs. Express your otaku style!
+                Create custom fashion pieces with our design tool or choose from our collection of premium designs. Express your unique style!
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4">
@@ -413,7 +413,7 @@ const Home: React.FC = () => {
           <div className="max-w-4xl mx-auto text-center">
             <h2 className="text-4xl font-bold mb-6">
               Ready to Create Your
-              <span className="text-yellow-400"> Perfect Otakool Shirt?</span>
+              <span className="text-yellow-400"> Perfect Fashion Shirt?</span>
             </h2>
             <p className="text-xl text-gray-300 mb-8">
               Join thousands of anime fans who've designed their dream t-shirts with us

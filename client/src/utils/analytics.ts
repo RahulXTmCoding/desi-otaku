@@ -42,7 +42,7 @@ export const trackEcommerce = {
         item_name: product.name,
         item_category: product.category?.name || 'Uncategorized',
         item_category2: product.productType || '',
-        item_brand: 'Desi Otaku',
+        item_brand: 'Attars Clothing',
         price: product.price,
         quantity: 1
       }]
@@ -57,7 +57,7 @@ export const trackEcommerce = {
         item_id: product._id,
         item_name: product.name,
         item_category: product.category?.name || 'Uncategorized',
-        item_brand: 'Desi Otaku',
+        item_brand: 'Attars Clothing',
         price: product.price,
         index: index
       }))
@@ -73,7 +73,7 @@ export const trackEcommerce = {
         item_id: product._id,
         item_name: product.name,
         item_category: product.category?.name || 'Uncategorized',
-        item_brand: 'Desi Otaku',
+        item_brand: 'Attars Clothing',
         price: product.price,
         quantity: quantity
       }]
@@ -89,7 +89,7 @@ export const trackEcommerce = {
         item_id: product._id,
         item_name: product.name,
         item_category: product.category?.name || 'Uncategorized',
-        item_brand: 'Desi Otaku',
+        item_brand: 'Attars Clothing',
         price: product.price,
         quantity: quantity
       }]
@@ -105,7 +105,7 @@ export const trackEcommerce = {
         item_id: item.product?._id || item._id,
         item_name: item.product?.name || item.name,
         item_category: item.product?.category?.name || 'Custom',
-        item_brand: 'Desi Otaku',
+        item_brand: 'Attars Clothing',
         price: item.price,
         quantity: item.quantity
       }))
@@ -123,7 +123,7 @@ export const trackEcommerce = {
         item_id: item.product?._id || item._id,
         item_name: item.product?.name || item.name,
         item_category: item.product?.category?.name || 'Custom',
-        item_brand: 'Desi Otaku',
+        item_brand: 'Attars Clothing',
         price: item.price,
         quantity: item.count || item.quantity
       }))
@@ -146,7 +146,7 @@ export const trackEcommerce = {
         item_id: item.product?._id || item._id,
         item_name: item.product?.name || item.name,
         item_category: item.product?.category?.name || 'Custom',
-        item_brand: 'Desi Otaku',
+        item_brand: 'Attars Clothing',
         price: item.price,
         quantity: item.quantity
       }))
@@ -162,7 +162,7 @@ export const trackEcommerce = {
         item_id: product._id,
         item_name: product.name,
         item_category: product.category?.name || 'Uncategorized',
-        item_brand: 'Desi Otaku',
+        item_brand: 'Attars Clothing',
         price: product.price
       }]
     });

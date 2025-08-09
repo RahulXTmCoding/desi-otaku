@@ -17,7 +17,7 @@ const FeatureSection: React.FC = () => {
     {
       icon: <Shield className="w-8 h-8 text-green-400" />,
       title: "Assured Premium Quality",
-      description: "Loved by more than 1 lakh+ Otaku's and counting."
+      description: "Loved by more than 1 lakh+ fashion enthusiasts and counting."
     },
     {
       icon: <Headphones className="w-8 h-8 text-blue-400" />,

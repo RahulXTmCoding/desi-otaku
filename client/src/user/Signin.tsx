@@ -142,7 +142,7 @@ const Signin = () => {
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
             Welcome Back!
           </h1>
-          <p className="text-gray-400 text-sm md:text-base">Sign in to your anime t-shirt account</p>
+          <p className="text-gray-400 text-sm md:text-base">Sign in to your Attars Clothing account</p>
         </div>
 
         {/* Error Message */}

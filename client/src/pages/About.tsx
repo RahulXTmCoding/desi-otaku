@@ -10,7 +10,7 @@ const About: React.FC = () => {
     {
       icon: <Heart className="w-8 h-8" />,
       title: "Passion-Driven",
-      description: "Every design is crafted with genuine love for anime culture and fashion",
+      description: "Every design is crafted with genuine love for fashion culture and contemporary style",
       color: "from-red-500 to-pink-500"
     },
     {
@@ -22,13 +22,13 @@ const About: React.FC = () => {
     {
       icon: <Palette className="w-8 h-8" />,
       title: "Creative Excellence",
-      description: "Our in-house design team creates unique, eye-catching artwork",
+      description: "Our in-house design team creates unique, eye-catching fashion pieces",
       color: "from-purple-500 to-blue-500"
     },
     {
       icon: <Users className="w-8 h-8" />,
       title: "Community First",
-      description: "Built by otakus, for otakus - we understand what fans truly want",
+      description: "Built by fashion enthusiasts, for fashion lovers - we understand what style conscious people truly want",
       color: "from-green-500 to-teal-500"
     }
   ];
@@ -50,7 +50,7 @@ const About: React.FC = () => {
   ];
 
   return (
-    <Base title="About Us - Desi Otaku" description="Learn about our passion for delivering high-quality anime merchandise and exceptional designs">
+    <Base title="About Us - Attars Clothing" description="Learn about our passion for delivering high-quality fashion and exceptional designs">
       <div className="min-h-screen">
         
         {/* Hero Section - Always dark background with white text */}
@@ -67,22 +67,22 @@ const About: React.FC = () => {
           <div className="relative w-[96%] mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-yellow-400 px-6 py-3 rounded-full mb-8 shadow-lg">
               <Sparkles className="w-5 h-5 text-black" />
-              <span className="text-black font-black">About Desi Otaku</span>
+              <span className="text-black font-black">About Attars Clothing</span>
             </div>
             
             <h1 className="text-4xl sm:text-5xl lg:text-7xl font-black mb-8 leading-tight text-white">
               Where
               <span className="block bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-                Passion Meets
+                Fashion Meets
               </span>
               <span className="block bg-gradient-to-r from-purple-500 via-blue-500 to-green-500 bg-clip-text text-transparent">
-                Perfection
+                Excellence
               </span>
             </h1>
             
             <p className="text-xl mb-12 max-w-3xl mx-auto leading-relaxed font-bold text-white">
-              We're not just another clothing brand. We're a community of passionate anime lovers dedicated to bringing you 
-              the highest quality merchandise with designs that truly capture the essence of your favorite series.
+              We're not just another clothing brand. We're a community of fashion enthusiasts dedicated to bringing you 
+              the highest quality apparel with designs that truly capture the essence of contemporary style.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
@@ -118,8 +118,8 @@ const About: React.FC = () => {
                   <h2 className="text-3xl font-black text-black">Our Mission</h2>
                 </div>
                 <p className="text-lg leading-relaxed font-bold text-black bg-gray-100 p-6 rounded-2xl">
-                  To revolutionize anime fashion by delivering premium quality apparel that lets every otaku express their 
-                  passion with pride. We believe that loving anime is not just a hobby—it's a lifestyle, and your clothing 
+                  To revolutionize contemporary fashion by delivering premium quality apparel that lets every style enthusiast express their 
+                  personality with pride. We believe that fashion is not just about clothing—it's a lifestyle, and your wardrobe 
                   should reflect that commitment to excellence.
                 </p>
                 <div className="grid grid-cols-2 gap-4">
@@ -145,15 +145,15 @@ const About: React.FC = () => {
                   <h2 className="text-3xl font-black text-black">Our Vision</h2>
                 </div>
                 <p className="text-lg leading-relaxed font-bold text-black bg-gray-100 p-6 rounded-2xl">
-                  To become India's most beloved anime fashion brand, known for our unwavering commitment to quality, 
-                  innovative designs, and deep understanding of otaku culture. We envision a world where every anime 
-                  fan can wear their passion confidently.
+                  To become India's most beloved premium fashion brand, known for our unwavering commitment to quality, 
+                  innovative designs, and deep understanding of contemporary style. We envision a world where every fashion 
+                  enthusiast can wear their individuality confidently.
                 </p>
                 <div className="bg-purple-100 p-6 rounded-2xl border-2 border-purple-400">
                   <blockquote className="text-lg italic text-purple-700 font-bold">
-                    "Quality is not just about the fabric we use—it's about the dreams we help you wear."
+                    "Quality is not just about the fabric we use—it's about the style we help you express."
                   </blockquote>
-                  <cite className="block mt-4 text-sm font-bold text-black">— Desi Otaku Founders</cite>
+                  <cite className="block mt-4 text-sm font-bold text-black">— Attars Clothing Founders</cite>
                 </div>
               </div>
             </div>
@@ -290,13 +290,13 @@ const About: React.FC = () => {
               <h2 className="text-4xl lg:text-6xl font-black leading-tight text-white">
                 Ready to Wear Your
                 <span className="block bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent">
-                  Passion?
+                  Style?
                 </span>
               </h2>
               
               <p className="text-xl text-white max-w-2xl mx-auto font-bold">
-                Join thousands of satisfied customers who trust Desi Otaku for premium anime merchandise. 
-                Your journey to exceptional quality starts here.
+                Join thousands of satisfied customers who trust Attars Clothing for premium fashion. 
+                Your journey to exceptional style starts here.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-6 justify-center pt-8">

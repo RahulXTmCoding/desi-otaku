@@ -6,14 +6,16 @@ const Footer: React.FC = () => {
     <footer className="bg-gray-900 border-t border-gray-800 px-6 py-12">
       <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8">
         <div>
-          <div className="flex items-center space-x-2 mb-4">
-            <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
-              <span className="text-gray-900 font-bold text-lg">👕</span>
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden">
+              <img src="/A-full.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
             </div>
-            <span className="text-xl font-bold text-white">Otakool</span>
+            <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent tracking-wide" style={{ fontFamily: 'Playfair Display, serif' }}>
+              Attars
+            </span>
           </div>
           <p className="text-gray-400 text-sm">
-            Your one-stop shop for custom otakool t-shirts and premium designs.
+            Your one-stop shop for premium fashion and contemporary designs.
           </p>
         </div>
 
@@ -21,8 +23,8 @@ const Footer: React.FC = () => {
           <h4 className="font-semibold mb-4 text-white">Shop</h4>
           <ul className="space-y-2 text-gray-400 text-sm">
             <li>
-              <Link to="/shop?category=anime" className="hover:text-yellow-400 transition-colors">
-                Otakool Collection
+              <Link to="/shop?category=fashion" className="hover:text-yellow-400 transition-colors">
+                Fashion Collection
               </Link>
             </li>
             <li>
@@ -117,7 +119,7 @@ const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-        <p>&copy; 2024 Otakool. All rights reserved. Made with ❤️ for anime fans.</p>
+        <p>&copy; 2024 Attars Clothing. All rights reserved. Made with ❤️ for fashion enthusiasts.</p>
       </div>
     </footer>
   );

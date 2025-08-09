@@ -49,7 +49,7 @@ const ReviewCarousel: React.FC<ReviewCarouselProps> = ({ reviews }) => {
     <section className="py-16 px-6" style={{ backgroundColor: 'var(--color-background)' }}>
       <div className="w-[96%] mx-auto">
         <h2 className="text-3xl font-bold text-center mb-12" style={{ color: 'var(--color-text)' }}>
-          Reviews From Our Otaku's
+          Reviews From Our Customers
         </h2>
         
         <div className="relative max-w-3xl mx-auto">

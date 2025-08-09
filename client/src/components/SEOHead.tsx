@@ -64,7 +64,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta name="twitter:site" content={DEFAULT_SEO.twitterHandle} />
       
       {/* Additional Meta Tags */}
-      <meta name="author" content="Desi Otaku" />
+      <meta name="author" content="Attars Clothing" />
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
       <meta http-equiv="X-UA-Compatible" content="IE=edge" />
       <meta name="theme-color" content="#1F2937" />

@@ -1,6 +1,6 @@
 {
-  "name": "custom-tshirt-shop",
-  "version": "0.0.1",
+  "name": "attars-clothing",
+  "version": "1.0.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

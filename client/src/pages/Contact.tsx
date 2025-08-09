@@ -154,8 +154,8 @@ const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
-                    <p className="text-gray-300">support@otakool.com</p>
-                    <p className="text-gray-300">orders@otakool.com</p>
+                    <p className="text-gray-300">support@attarsclothing.com</p>
+                    <p className="text-gray-300">orders@attarsclothing.com</p>
                   </div>
                 </div>
 
@@ -178,7 +178,7 @@ const Contact: React.FC = () => {
                     <h3 className="font-semibold mb-1">Address</h3>
                     <p className="text-gray-300">
                       123 Anime Street,<br />
-                      Otaku District,<br />
+                      Fashion District,<br />
                       Mumbai, Maharashtra 400001
                     </p>
                   </div>

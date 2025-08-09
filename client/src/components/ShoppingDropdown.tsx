@@ -63,7 +63,7 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
       name: "Best Sellers", 
       link: "/shop?sort=bestselling", 
       icon: <TrendingUp className="w-5 h-5" />,
-      description: "Most loved by otakus",
+      description: "Most loved by fashion enthusiasts",
       color: "from-yellow-400 to-orange-500"
     },
     { 

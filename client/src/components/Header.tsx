@@ -59,18 +59,17 @@ const Header: React.FC = () => {
         <Link to={auth && auth.user && auth.user.role === 1 ? "/admin/dashboard" : "/"} className="flex items-center space-x-3 group">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
-            <div className="relative w-10 h-10 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-xl flex items-center justify-center transform group-hover:scale-110 transition-transform shadow-lg">
-              <span className="text-gray-900 font-bold text-xl">👕</span>
+            <div className="relative w-10 h-10 flex items-center justify-center transform group-hover:scale-110 transition-transform rounded-xl overflow-hidden">
+              <img src="/A-full.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
             </div>
           </div>
           <div className="hidden sm:block">
             <div className="flex items-center gap-2">
-              <span className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent">
-                AnimeShirt
+              <span className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent tracking-wide" style={{ fontFamily: 'Playfair Display, serif' }}>
+                Attars
               </span>
-              <Sparkles className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-400 animate-pulse" />
             </div>
-            <p className="text-xs text-gray-400 -mt-1 hidden lg:block">Custom Anime Designs</p>
+            <p className="text-xs text-gray-400 -mt-1 hidden lg:block font-light tracking-wide" style={{ fontFamily: 'Inter, sans-serif' }}>Premium Fashion Store</p>
           </div>
         </Link>
 
@@ -249,10 +248,10 @@ const Header: React.FC = () => {
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-yellow-400 rounded-lg flex items-center justify-center">
-                <span className="text-gray-900 font-bold text-lg">👕</span>
+              <div className="w-8 h-8 flex items-center justify-center rounded-lg overflow-hidden">
+                <img src="/A-full.png" alt="Attars Clothing Logo" className="w-8 h-8 object-contain" />
               </div>
-              <span className="text-xl font-bold text-white">AnimeShirt</span>
+              <span className="text-xl font-bold text-white">Attars</span>
             </div>
             <button
               onClick={closeMobileMenu}
@@ -330,13 +329,13 @@ const Header: React.FC = () => {
                 
                 {/* Mobile Shopping Sections */}
                 <div className="px-6 py-3">
-                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Shop by Products</h3>
+                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Shop by Category</h3>
                   <div className="space-y-1">
-                    <Link to="/shop?category=printed-tshirt" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      Printed T-shirt
+                    <Link to="/shop?category=t-shirts" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      T-Shirts
                     </Link>
-                    <Link to="/shop?category=oversized-tshirt" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      Oversized T-shirt
+                    <Link to="/shop?category=oversized" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      Oversized Wear
                     </Link>
                     <Link to="/shop?category=hoodies" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
                       Hoodies
@@ -351,25 +350,25 @@ const Header: React.FC = () => {
                 </div>
 
                 <div className="px-6 py-3 border-t border-gray-800">
-                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Shop by Anime</h3>
+                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Premium Collections</h3>
                   <div className="grid grid-cols-2 gap-1">
-                    <Link to="/shop?anime=naruto" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Naruto
+                    <Link to="/shop?collection=casual" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Casual Wear
                     </Link>
-                    <Link to="/shop?anime=one-piece" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      One Piece
+                    <Link to="/shop?collection=streetwear" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Streetwear
                     </Link>
-                    <Link to="/shop?anime=dragon-ball" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Dragon Ball
+                    <Link to="/shop?collection=vintage" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Vintage
                     </Link>
-                    <Link to="/shop?anime=attack-on-titan" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Attack on Titan
+                    <Link to="/shop?collection=minimalist" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Minimalist
                     </Link>
-                    <Link to="/shop?anime=my-hero-academia" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      My Hero Academia
+                    <Link to="/shop?collection=premium" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Premium Line
                     </Link>
-                    <Link to="/shop?anime=demon-slayer" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Demon Slayer
+                    <Link to="/shop?collection=limited" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      Limited Edition
                     </Link>
                   </div>
                   <Link to="/shop" onClick={closeMobileMenu} className="block text-yellow-400 text-sm font-semibold hover:text-yellow-300 transition-colors py-2 mt-2">

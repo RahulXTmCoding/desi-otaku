@@ -459,11 +459,11 @@ const HomeEnhanced: React.FC = () => {
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
               Express Your
               <span className="block bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
-                Anime Passion
+                Unique Style
               </span>
             </h1>
             <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Premium anime merchandise with custom design options. Join the Otaku community!
+              Premium fashion apparel with custom design options. Join the Attars community!
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
@@ -576,9 +576,9 @@ const HomeEnhanced: React.FC = () => {
             <div className="space-y-6">
               <h2 className="text-4xl font-bold mb-4">ABOUT US</h2>
               <p className="text-lg text-gray-300 leading-relaxed">
-                Welcome to <span className="text-yellow-400 font-bold">DESI OTAKU</span>! Your Ultimate Destination for Anime Fashion! 
-                At Desi Otaku, we bring your favorite anime characters and iconic series to life through our exclusive and stylish 
-                clothing collections. Dive into a world where fashion meets fandom, and express your love for anime 
+                Welcome to <span className="text-yellow-400 font-bold">ATTARS CLOTHING</span>! Your Ultimate Destination for Premium Fashion!
+                At Attars Clothing, we bring contemporary style and premium quality to life through our exclusive and stylish 
+                clothing collections. Dive into a world where fashion meets sophistication, and express your unique style 
                 with our premium apparel.
               </p>
               <button
@@ -600,9 +600,9 @@ const HomeEnhanced: React.FC = () => {
                     <img src="https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894" alt="Anime Tee 2" className="rounded-lg" />
                   </div>
                   <div className="text-center">
-                    <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-yellow-400 bg-clip-text text-transparent">DESI</h3>
-                    <h3 className="text-3xl font-bold">OTAKU</h3>
-                    <h3 className="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">HUB</h3>
+                    <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-yellow-400 bg-clip-text text-transparent">ATTARS</h3>
+                    <h3 className="text-3xl font-bold">CLOTHING</h3>
+                    <h3 className="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">STORE</h3>
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -618,7 +618,7 @@ const HomeEnhanced: React.FC = () => {
         {/* Why Choose Us Section */}
         <section className="py-16" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="w-[96%] mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Why Choose Desi Otaku?</h2>
+            <h2 className="text-3xl font-bold text-center mb-12">Why Choose Attars Clothing?</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
               {[
                 { icon: <Heart className="w-8 h-8" />, title: "Community Focus", color: "bg-red-500" },
@@ -652,7 +652,7 @@ const HomeEnhanced: React.FC = () => {
         <section className="py-20 bg-gradient-to-r from-purple-900 via-blue-900 to-purple-900">
           <div className="w-[96%] mx-auto text-center">
             <h2 className="text-4xl font-bold mb-6">
-              Join The Otaku Revolution
+              Join The Fashion Revolution
             </h2>
             <p className="text-xl text-gray-300 mb-8">
               Get exclusive deals and be the first to know about new drops

@@ -1,4 +1,4 @@
-// SEO Configuration for Desi Otaku - Custom T-Shirt Shop
+// SEO Configuration for Attars Clothing - Premium Fashion Store
 
 export interface SEOPageData {
   title: string;
@@ -9,50 +9,50 @@ export interface SEOPageData {
   structuredData?: any;
 }
 
-export const BASE_URL = 'https://desiotaku.com'; // Update with your actual domain
+export const BASE_URL = 'https://attarsclothing.com'; // Update with your actual domain
 
 export const DEFAULT_SEO = {
-  siteName: 'Desi Otaku - Custom Anime T-Shirts & Merchandise',
-  defaultTitle: 'Desi Otaku - Custom Anime T-Shirts, Oversized Tees & Hoodies India',
-  defaultDescription: 'Shop premium anime t-shirts, oversized tees, hoodies & custom merchandise in India. Express your anime passion with Naruto, One Piece, Demon Slayer designs. Free shipping on orders above ₹999.',
+  siteName: 'Attars Clothing - Premium Fashion Store',
+  defaultTitle: 'Attars Clothing - Premium Fashion Store | Designer Apparel & Contemporary Clothing',
+  defaultDescription: 'Discover premium fashion at Attars Clothing. Shop our exclusive collection of designer apparel, t-shirts, hoodies, and contemporary clothing. Elevate your style with our curated fashion pieces.',
   defaultKeywords: [
-    'anime t-shirts india',
-    'custom t-shirt design',
-    'oversized t-shirts',
-    'anime merchandise india',
-    'anime hoodies',
-    'otaku clothing',
-    'custom anime shirts',
-    'printed t-shirts online',
-    'anime clothing brand india',
-    'oversized anime tees',
-    'graphic t-shirts',
-    'anime merch store'
+    'premium fashion',
+    'designer clothing',
+    'attars clothing',
+    'fashion store',
+    'premium apparel',
+    'designer t-shirts',
+    'luxury fashion',
+    'contemporary clothing',
+    'fashion brand',
+    'premium wear',
+    'designer hoodies',
+    'fashion boutique'
   ],
   defaultOgImage: '/og-image.jpg',
-  twitterHandle: '@desiotaku',
+  twitterHandle: '@attarsclothing',
   facebookAppId: '', // Add your Facebook App ID
 };
 
 export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
   home: {
-    title: 'Desi Otaku - Custom Anime T-Shirts, Oversized Tees & Hoodies India',
-    description: 'Shop premium anime t-shirts, oversized tees & custom merchandise. Express your anime passion with designs from Naruto, One Piece, Demon Slayer & more. Free shipping on orders above ₹999.',
+    title: 'Attars Clothing - Premium Fashion Store | Designer Apparel & Contemporary Clothing',
+    description: 'Discover premium fashion at Attars Clothing. Shop our exclusive collection of designer apparel, contemporary clothing & curated fashion pieces. Elevate your style with quality craftsmanship.',
     keywords: [
-      'anime t-shirts india',
-      'custom t-shirt printing',
-      'oversized t-shirts online',
-      'anime merchandise',
-      'otaku store india',
-      'anime hoodies india',
-      'custom design t-shirts',
-      'printed t-shirts',
-      'anime clothing brand'
+      'premium fashion store',
+      'designer apparel',
+      'contemporary clothing',
+      'luxury fashion',
+      'attars clothing',
+      'premium brand',
+      'designer t-shirts',
+      'fashion boutique',
+      'premium wear'
     ],
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'Desi Otaku',
+      name: 'Attars Clothing',
       url: BASE_URL,
       potentialAction: {
         '@type': 'SearchAction',
@@ -65,63 +65,63 @@ export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
     }
   },
   shop: {
-    title: 'Shop Anime T-Shirts, Oversized Tees & Hoodies - Desi Otaku',
-    description: 'Browse our collection of anime t-shirts, oversized tees, hoodies & sweatshirts. Find designs from popular anime like Naruto, One Piece, Attack on Titan. Sizes S-XXL available.',
+    title: 'Shop Premium Fashion & Designer Clothing - Attars Clothing',
+    description: 'Browse our collection of premium fashion, designer t-shirts, hoodies & contemporary clothing. Discover luxury apparel crafted with quality materials. Sizes S-XXL available.',
     keywords: [
-      'buy anime t-shirts',
-      'oversized t-shirts india',
-      'anime hoodies online',
-      'graphic tees india',
-      'printed t-shirts',
-      'anime clothing',
-      'otaku merchandise',
-      'anime sweatshirts'
+      'buy premium fashion',
+      'designer clothing online',
+      'luxury apparel',
+      'premium t-shirts',
+      'designer hoodies',
+      'contemporary fashion',
+      'fashion store',
+      'premium wear'
     ]
   },
   product: {
-    title: '{productName} - Anime T-Shirt | Desi Otaku',
-    description: 'Buy {productName} anime t-shirt online. Premium quality, 100% cotton, available in multiple colors & sizes (S-XXL). Express shipping across India.',
+    title: '{productName} - Premium Fashion | Attars Clothing',
+    description: 'Buy {productName} premium fashion item online. Superior quality, contemporary design, available in multiple colors & sizes (S-XXL). Express shipping across India.',
     keywords: [
-      '{productName} t-shirt',
-      'anime t-shirt',
-      'printed t-shirt india',
-      'graphic tee',
-      'cotton t-shirt',
-      'anime merchandise'
+      '{productName}',
+      'premium fashion',
+      'designer clothing',
+      'luxury apparel',
+      'contemporary wear',
+      'fashion brand'
     ]
   },
   customize: {
-    title: 'Create Custom Anime T-Shirt Design Online - Desi Otaku',
-    description: 'Design your own custom anime t-shirt with our easy-to-use designer. Upload your artwork, add text, choose colors & create unique anime merchandise. No minimum order.',
+    title: 'Create Custom Fashion Design Online - Attars Clothing',
+    description: 'Design your own custom fashion pieces with our designer. Upload your artwork, choose colors & create unique apparel. Premium quality guaranteed.',
     keywords: [
-      'custom t-shirt design',
-      'create custom t-shirt',
-      'design your own t-shirt',
-      'custom anime shirts',
-      'personalized t-shirts',
-      'custom printing india',
-      't-shirt designer online',
-      'make your own t-shirt'
+      'custom fashion design',
+      'create custom clothing',
+      'design your own apparel',
+      'custom fashion pieces',
+      'personalized clothing',
+      'custom printing',
+      'fashion designer online',
+      'make your own clothes'
     ]
   },
   about: {
-    title: 'About Desi Otaku - Premium Anime Clothing Brand India',
-    description: 'Desi Otaku is India\'s premier anime clothing brand offering high-quality t-shirts, hoodies & merchandise. Join the otaku community and express your anime passion.',
+    title: 'About Attars Clothing - Premium Fashion Brand',
+    description: 'Attars Clothing is a premium fashion brand offering high-quality designer apparel & contemporary clothing. Discover our commitment to quality and style.',
     keywords: [
-      'anime clothing brand',
-      'otaku store india',
-      'anime merchandise india',
-      'about desi otaku',
-      'anime fashion brand'
+      'premium fashion brand',
+      'luxury clothing brand',
+      'designer apparel brand',
+      'about attars clothing',
+      'fashion brand story'
     ]
   },
   contact: {
-    title: 'Contact Desi Otaku - Customer Support & Inquiries',
-    description: 'Get in touch with Desi Otaku for orders, custom designs, bulk inquiries or support. We\'re here to help with your anime merchandise needs.',
+    title: 'Contact Attars Clothing - Customer Support & Inquiries',
+    description: 'Get in touch with Attars Clothing for orders, custom designs, bulk inquiries or support. We\'re here to help with your fashion needs.',
     keywords: [
-      'contact desi otaku',
+      'contact attars clothing',
       'customer support',
-      'anime store contact',
+      'fashion store contact',
       'bulk order inquiry'
     ]
   }
@@ -137,7 +137,7 @@ export const getProductStructuredData = (product: any) => ({
   sku: product._id,
   brand: {
     '@type': 'Brand',
-    name: 'Desi Otaku'
+    name: 'Attars Clothing'
   },
   offers: {
     '@type': 'Offer',
@@ -148,7 +148,7 @@ export const getProductStructuredData = (product: any) => ({
     availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
     seller: {
       '@type': 'Organization',
-      name: 'Desi Otaku'
+      name: 'Attars Clothing'
     }
   },
   aggregateRating: product.rating ? {
@@ -174,14 +174,14 @@ export const getBreadcrumbStructuredData = (items: Array<{name: string, url: str
 export const ORGANIZATION_STRUCTURED_DATA = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Desi Otaku',
+  name: 'Attars Clothing',
   url: BASE_URL,
   logo: `${BASE_URL}/logo.png`,
-  description: 'Premium anime clothing brand in India offering custom t-shirts, hoodies, and merchandise',
+  description: 'Premium fashion store offering designer apparel, contemporary clothing, and curated fashion pieces',
   sameAs: [
-    'https://www.facebook.com/desiotaku',
-    'https://www.instagram.com/desiotaku',
-    'https://twitter.com/desiotaku'
+    'https://www.facebook.com/attarsclothing',
+    'https://www.instagram.com/attarsclothing',
+    'https://twitter.com/attarsclothing'
   ],
   contactPoint: {
     '@type': 'ContactPoint',
@@ -199,18 +199,18 @@ export const FAQ_STRUCTURED_DATA = {
   mainEntity: [
     {
       '@type': 'Question',
-      name: 'What sizes are available for anime t-shirts?',
+      name: 'What sizes are available for fashion items?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Our anime t-shirts are available in sizes S, M, L, XL, and XXL. We offer both regular fit and oversized options.'
+        text: 'Our fashion items are available in sizes S, M, L, XL, and XXL. We offer both regular fit and oversized options for different styles.'
       }
     },
     {
       '@type': 'Question',
-      name: 'Can I create custom anime t-shirt designs?',
+      name: 'Can I create custom fashion designs?',
       acceptedAnswer: {
         '@type': 'Answer',
-        text: 'Yes! You can create custom anime t-shirt designs using our online designer. Upload your artwork or choose from our design library.'
+        text: 'Yes! You can create custom fashion designs using our online designer. Upload your artwork or choose from our design library.'
       }
     },
     {
