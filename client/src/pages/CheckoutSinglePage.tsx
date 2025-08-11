@@ -16,6 +16,7 @@ import {
   type Address
 } from '../core/helper/addressHelper';
 import { useDevMode } from '../context/DevModeContext';
+import { useAOV } from '../context/AOVContext';
 import { useOrderHandler } from '../components/checkout/OrderHandler';
 import { getMockProductImage } from '../data/mockData';
 import CartTShirtPreview from '../components/CartTShirtPreview';
@@ -244,149 +245,82 @@ const CheckoutSinglePage: React.FC = () => {
     return cart.reduce((total, item) => total + (item.price * item.quantity), 0);
   }, [cart]);
 
-  // ✅ FIXED: Add AOV calculation with backend API
-  const [frontendAovDiscount, setFrontendAovDiscount] = useState({ discount: 0, percentage: 0 });
-  const [aovCalculationLoading, setAovCalculationLoading] = useState(false);
+  // ✅ USE EXISTING AOV CONTEXT - NO API CALLS!
+  const { quantityTiers } = useAOV();
   
-  // Fetch AOV discount from backend for consistent calculation
-  useEffect(() => {
-    if (cart.length > 0 && selectedShipping) {
-      setAovCalculationLoading(true);
-      
-      fetch(`${API}/razorpay/calculate-amount`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-          // No auth header for AOV calculation - works for guests too
-        },
-        body: JSON.stringify({
-          cartItems: cart.map(item => ({
-            product: item.product || item._id?.split('-')[0] || '',
-            name: item.name,
-            quantity: item.quantity,
-            size: item.size,
-            customization: item.customization,
-            isCustom: item.isCustom,
-            color: item.color
-          })),
-          couponCode: null, // Just get AOV discount, no other discounts
-          rewardPoints: null,
-          shippingCost: selectedShipping?.rate || 0
-          // ✅ FIXED: Don't specify payment method for AOV calculation - AOV applies to all payment types
-        })
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success && data.quantityDiscount > 0) {
-          const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
-          const percentage = Math.round((data.quantityDiscount / (data.subtotal + data.shippingCost)) * 100);
-          setFrontendAovDiscount({ discount: data.quantityDiscount, percentage });
-          console.log(`✅ Frontend AOV from server: ${percentage}% (₹${data.quantityDiscount}) for ${totalQuantity} items`);
-          
-          // Update applied discount state for display
-          if (!appliedDiscount.quantity || appliedDiscount.quantity.discount !== data.quantityDiscount) {
-            setAppliedDiscount(prev => ({
-              ...prev,
-              quantity: {
-                discount: data.quantityDiscount,
-                percentage,
-                message: `${percentage}% off for ${totalQuantity} items`
-              }
-            }));
-          }
-        } else {
-          setFrontendAovDiscount({ discount: 0, percentage: 0 });
-          if (appliedDiscount.quantity) {
-            setAppliedDiscount(prev => ({ ...prev, quantity: null }));
-          }
-        }
-      })
-      .catch(error => {
-        console.error('Failed to get AOV from server:', error);
-        setFrontendAovDiscount({ discount: 0, percentage: 0 });
-      })
-      .finally(() => {
-        setAovCalculationLoading(false);
-      });
+  // ✅ Calculate AOV discount from existing context data
+  const frontendAovDiscount = useMemo(() => {
+    if (!quantityTiers || quantityTiers.length === 0) {
+      return { discount: 0, percentage: 0 };
     }
-  }, [cart.length, cart.map(item => `${item.quantity}-${item.isCustom ? 'custom' : 'regular'}`).join(','), selectedShipping?.rate]);
 
-  // ✅ CRITICAL FIX: Add backend calculation for complete payment calculation
-  const [backendCalculatedAmount, setBackendCalculatedAmount] = useState<number | null>(null);
-  const [backendCalculationLoading, setBackendCalculationLoading] = useState(false);
-  
-  // Fetch complete backend calculation including online payment discount
-  useEffect(() => {
-    if (cart.length > 0 && selectedShipping && paymentMethod) {
-      setBackendCalculationLoading(true);
-      
-      console.log(`🔍 FRONTEND: Sending calculation request with payment method: ${paymentMethod}`);
-      const requestPayload = {
-        cartItems: cart.map(item => ({
-          product: item.product || item._id?.split('-')[0] || '',
-          name: item.name,
-          quantity: item.quantity,
-          size: item.size,
-          customization: item.customization,
-          isCustom: item.isCustom,
-          color: item.color
-        })),
-        couponCode: appliedDiscount.coupon?.code || null,
-        rewardPoints: appliedDiscount.rewardPoints?.points || null,
-        shippingCost: selectedShipping?.rate || 0,
-        paymentMethod: paymentMethod // ✅ CRITICAL: Send payment method for online discount
+    const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
+    const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    
+    // Find applicable discount based on total quantity
+    const applicableTier = quantityTiers
+      .filter(tier => totalQuantity >= tier.minQuantity)
+      .sort((a, b) => b.minQuantity - a.minQuantity)[0];
+
+    if (applicableTier) {
+      const discountAmount = Math.round((subtotal * applicableTier.discount) / 100);
+      console.log(`✅ AOV Calculation: ${totalQuantity} items, ${applicableTier.discount}% tier, ₹${discountAmount} discount`);
+      return {
+        discount: discountAmount,
+        percentage: applicableTier.discount
       };
-      
-      console.log(`🔍 FRONTEND: Complete request payload:`, requestPayload);
-      
-      fetch(`${API}/razorpay/calculate-amount`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestPayload)
-      })
-      .then(response => response.json())
-      .then(data => {
-        if (data.success) {
-          console.log(`✅ Backend calculation with payment method ${paymentMethod}: ₹${data.total}`);
-          setBackendCalculatedAmount(data.total);
-        } else {
-          console.error('Backend calculation failed:', data.error);
-          setBackendCalculatedAmount(null);
-        }
-      })
-      .catch(error => {
-        console.error('Failed to get complete calculation from server:', error);
-        setBackendCalculatedAmount(null);
-      })
-      .finally(() => {
-        setBackendCalculationLoading(false);
-      });
     }
-  }, [cart.length, cart.map(item => `${item.quantity}-${item.isCustom ? 'custom' : 'regular'}`).join(','), selectedShipping?.rate, paymentMethod, appliedDiscount.coupon?.code, appliedDiscount.rewardPoints?.points]);
+
+    return { discount: 0, percentage: 0 };
+  }, [cart, quantityTiers]);
+
+  // ✅ Update applied discount when AOV discount changes
+  useEffect(() => {
+    if (frontendAovDiscount.discount > 0) {
+      const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
+      setAppliedDiscount(prev => ({
+        ...prev,
+        quantity: {
+          discount: frontendAovDiscount.discount,
+          percentage: frontendAovDiscount.percentage,
+          message: `${frontendAovDiscount.percentage}% off for ${totalQuantity} items`
+        }
+      }));
+    } else {
+      setAppliedDiscount(prev => ({ ...prev, quantity: null }));
+    }
+  }, [frontendAovDiscount.discount, frontendAovDiscount.percentage, cart]);
+
+  // ✅ STEP 3: Handle discount changes (NO API calls)
+  const handleDiscountChange = useCallback((discount: any) => {
+    setAppliedDiscount(prev => ({ ...prev, ...discount }));
+  }, []);
 
   const getFinalAmount = useCallback(() => {
-    // ✅ Use backend calculation if available, otherwise fallback to frontend
-    if (backendCalculatedAmount !== null) {
-      console.log(`✅ Using backend calculated amount: ₹${backendCalculatedAmount}`);
-      return backendCalculatedAmount;
-    }
-    
-    // ✅ INDUSTRY STANDARD: Apply discounts to subtotal only, then add shipping
-    const subtotal = getTotalAmount();
+    // ✅ FIXED: Recalculate every time to ensure reactivity
+    const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
     const shipping = selectedShipping?.rate || 0;
     let discountedSubtotal = subtotal;
+    
+    console.log(`💰 CALCULATING FINAL AMOUNT (REACTIVE):`, {
+      subtotal,
+      shipping,
+      paymentMethod,
+      aovDiscount: frontendAovDiscount.discount,
+      couponDiscount: appliedDiscount.coupon?.discount || 0,
+      rewardDiscount: appliedDiscount.rewardPoints?.discount || 0,
+      timestamp: new Date().toISOString()
+    });
     
     // 1️⃣ Apply AOV discount to subtotal
     const quantityDiscount = frontendAovDiscount.discount;
     discountedSubtotal = discountedSubtotal - quantityDiscount;
+    console.log(`🔸 After AOV: ₹${discountedSubtotal} (deducted ₹${quantityDiscount})`);
     
     // 2️⃣ Apply coupon discount to discounted subtotal
     const couponDiscount = appliedDiscount.coupon?.discount || 0;
     discountedSubtotal = discountedSubtotal - couponDiscount;
+    console.log(`🔸 After Coupon: ₹${discountedSubtotal} (deducted ₹${couponDiscount})`);
     
     // 3️⃣ Apply online payment discount to discounted subtotal
     const onlinePaymentDiscount = (paymentMethod === 'razorpay' || paymentMethod === 'card') 
@@ -394,16 +328,20 @@ const CheckoutSinglePage: React.FC = () => {
       : 0;
     discountedSubtotal = discountedSubtotal - onlinePaymentDiscount;
     
+    console.log(`💳 Online Payment Discount: ${paymentMethod} = ₹${onlinePaymentDiscount}`);
+    console.log(`🔸 After Online Discount: ₹${discountedSubtotal}`);
+    
     // 4️⃣ Apply reward points redemption (cash equivalent)
     const rewardDiscount = Math.min(appliedDiscount.rewardPoints?.discount || 0, discountedSubtotal);
     discountedSubtotal = discountedSubtotal - rewardDiscount;
+    console.log(`🔸 After Rewards: ₹${discountedSubtotal} (deducted ₹${rewardDiscount})`);
     
     // 5️⃣ Add shipping to final discounted subtotal
     const finalAmount = Math.max(0, Math.round(discountedSubtotal + shipping));
     
-    console.log(`✅ Using industry standard frontend calculation: ₹${finalAmount}`);
+    console.log(`✅ FINAL CALCULATION: ₹${finalAmount} (added shipping ₹${shipping})`);
     return finalAmount;
-  }, [backendCalculatedAmount, getTotalAmount, selectedShipping, frontendAovDiscount.discount, appliedDiscount, paymentMethod]);
+  }, [cart, selectedShipping?.rate, frontendAovDiscount.discount, appliedDiscount.coupon?.discount, appliedDiscount.rewardPoints?.discount, paymentMethod]);
 
   // Helper function to get online payment discount amount
   // ✅ REUSE: Same image handling logic as Cart page
@@ -939,7 +877,7 @@ const CheckoutSinglePage: React.FC = () => {
               <DiscountSection
                 subtotal={getTotalAmount()}
                 shippingCost={selectedShipping?.rate || 0}
-                onDiscountChange={(discount) => setAppliedDiscount(prev => ({ ...prev, ...discount }))}
+                onDiscountChange={handleDiscountChange}
                 isTestMode={isTestMode}
                 aovDiscount={frontendAovDiscount.discount} // ✅ CRITICAL FIX: Pass AOV discount for sequential calculation
               />
@@ -985,12 +923,14 @@ const CheckoutSinglePage: React.FC = () => {
                   <div className="flex justify-between text-sm text-blue-400">
                     <span>Online Payment Discount (5%)</span>
                     <span>-₹{(() => {
-                      // ✅ CORRECT: Calculate online discount on progressively discounted amount
+                      // ✅ FIXED: Use same calculation as getFinalAmount for consistency
                       const subtotal = getTotalAmount();
                       let discountedAmount = subtotal;
                       discountedAmount -= frontendAovDiscount.discount;
                       discountedAmount -= appliedDiscount.coupon?.discount || 0;
-                      return Math.round(discountedAmount * 0.05);
+                      const onlineDiscount = Math.round(discountedAmount * 0.05);
+                      console.log(`🎯 UI Online Discount: ${paymentMethod} = ₹${onlineDiscount}`);
+                      return onlineDiscount;
                     })()}</span>
                   </div>
                 )}

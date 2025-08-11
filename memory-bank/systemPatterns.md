@@ -249,7 +249,265 @@ const PromotionalBanner = () => {
 };
 ```
 
-## Comprehensive Discount Display Patterns (New - 2025-01-08)
+## Universal Discount Calculation Consistency Patterns (New - 2025-01-09)
+
+### Progressive Discount Flow Pattern
+**Critical Pattern**: Ensures identical discount calculations across all systems using sequential discount application
+
+```javascript
+// Universal Progressive Discount Algorithm
+const calculateOrderDiscounts = (order) => {
+  // 1. Calculate product subtotal (no shipping)
+  let productSubtotal = order.products.reduce((sum, product) => {
+    return sum + (product.price * product.count);
+  }, 0);
+
+  // 2. Apply discounts progressively (ORDER MATTERS!)
+  let remainingAmount = productSubtotal;
+
+  // 3. Apply AOV/Quantity discount first
+  const quantityDiscount = calculateQuantityDiscount(remainingAmount, totalQuantity);
+  remainingAmount -= quantityDiscount;
+
+  // 4. Apply coupon discount to reduced amount
+  let couponDiscount = 0;
+  if (order.coupon) {
+    const couponBaseAmount = remainingAmount; // After AOV discount
+    if (order.coupon.discountType === 'percentage') {
+      couponDiscount = Math.floor((couponBaseAmount * order.coupon.discountValue) / 100);
+    } else {
+      couponDiscount = order.coupon.discountValue;
+    }
+  }
+  remainingAmount -= couponDiscount;
+
+  // 5. Apply online payment discount to final reduced amount
+  const onlinePaymentDiscount = isOnlinePayment 
+    ? Math.round(remainingAmount * 0.05) 
+    : 0;
+
+  // 6. Calculate final total with shipping
+  const finalTotal = remainingAmount - onlinePaymentDiscount + shippingCost;
+
+  return {
+    productSubtotal,
+    quantityDiscount,
+    couponDiscount,
+    onlinePaymentDiscount,
+    finalTotal,
+    totalSavings: quantityDiscount + couponDiscount + onlinePaymentDiscount
+  };
+};
+```
+
+### Universal Calculator Architecture Pattern
+**Single Source of Truth**: One calculator for backend, one component for frontend, both using identical logic
+
+```javascript
+// Backend: server/utils/discountCalculator.js
+class DiscountCalculator {
+  static calculateOrderDiscounts(order) {
+    // Progressive discount logic implementation
+    // Smart coupon metadata handling
+    // Consistent HTML generation for emails
+    return discountBreakdown;
+  }
+
+  static generateDiscountHTML(order) {
+    const discounts = this.calculateOrderDiscounts(order);
+    return `
+      <tr><td>Subtotal:</td><td>₹${discounts.subtotal}</td></tr>
+      <tr><td>Quantity Discount:</td><td>-₹${discounts.quantityDiscount}</td></tr>
+      <tr><td>Coupon Discount:</td><td>-₹${discounts.couponDiscount}</td></tr>
+      <tr><td>Online Payment Discount:</td><td>-₹${discounts.onlinePaymentDiscount}</td></tr>
+      <tr><td>Final Total:</td><td>₹${discounts.finalTotal}</td></tr>
+    `;
+  }
+}
+
+// Frontend: client/src/components/OrderDiscountBreakdown.tsx
+const OrderDiscountBreakdown = ({ order, orderStateData }) => {
+  // Uses IDENTICAL progressive logic as backend
+  // Handles missing coupon metadata intelligently  
+  // Provides consistent UI across all order pages
+  return <div>{/* Discount breakdown UI */}</div>;
+};
+```
+
+### Smart Coupon Metadata Handling Pattern
+**Intelligent Detection**: Handles missing coupon metadata gracefully
+
+```javascript
+// Automatic discount type detection
+const handleMissingCouponMetadata = (coupon, baseAmount) => {
+  let couponDiscount = 0;
+  
+  if (coupon.discountType === 'percentage') {
+    // Explicitly marked as percentage
+    couponDiscount = Math.floor((baseAmount * coupon.discountValue) / 100);
+  } else if (coupon.discountType === 'fixed') {
+    // Explicitly marked as fixed amount
+    couponDiscount = coupon.discountValue;
+  } else {
+    // ✅ SMART DETECTION: Missing discountType
+    const discountValue = coupon.discountValue || 0;
+    if (discountValue <= 100 && discountValue > 0) {
+      // Likely percentage (e.g., 10 = 10%)
+      couponDiscount = Math.floor((baseAmount * discountValue) / 100);
+      console.log(`🔄 Auto-detected percentage: ${discountValue}% = ₹${couponDiscount}`);
+    } else {
+      // Likely fixed amount (e.g., 150 = ₹150)
+      couponDiscount = discountValue;
+      console.log(`🔄 Auto-detected fixed amount: ₹${couponDiscount}`);
+    }
+  }
+  
+  return couponDiscount;
+};
+```
+
+### Email Integration Pattern
+**Hardcoded Removal**: Replace all hardcoded email calculations with universal calculator
+
+```javascript
+// BEFORE: Hardcoded email calculations (WRONG)
+const sendOrderConfirmationWithTracking = (order) => {
+  const html = `
+    <!-- Hardcoded inline calculations -->
+    ${(() => {
+      const subtotal = order.originalAmount || order.amount;
+      let couponDiscountAmount = 0;
+      if (order.coupon.discountType === 'percentage') {
+        couponDiscountAmount = Math.floor((subtotal * order.coupon.discountValue) / 100);
+      }
+      return `<tr><td>Coupon:</td><td>-₹${couponDiscountAmount}</td></tr>`;
+    })()}
+  `;
+};
+
+// AFTER: Universal calculator integration (CORRECT)
+const sendOrderConfirmationWithTracking = (order) => {
+  const html = `
+    <h3>Order Summary:</h3>
+    <table>
+      <tbody>
+        ${DiscountCalculator.generateDiscountHTML(order)}
+      </tbody>
+    </table>
+  `;
+};
+```
+
+### Consistency Validation Pattern
+**Zero Tolerance**: System must show identical amounts across all touchpoints
+
+```javascript
+// Validation test pattern
+const validateDiscountConsistency = async (orderId) => {
+  const order = await Order.findById(orderId);
+  
+  // Get calculations from all sources
+  const frontendCalc = OrderDiscountBreakdown.calculateDiscounts(order);
+  const backendCalc = DiscountCalculator.calculateOrderDiscounts(order);
+  const checkoutCalc = getCheckoutPageCalculation(order);
+  
+  // Verify all calculations match
+  const calculations = [frontendCalc, backendCalc, checkoutCalc];
+  const areConsistent = calculations.every(calc => 
+    calc.couponDiscount === calculations[0].couponDiscount &&
+    calc.onlinePaymentDiscount === calculations[0].onlinePaymentDiscount &&
+    calc.totalSavings === calculations[0].totalSavings
+  );
+  
+  if (!areConsistent) {
+    throw new Error('Discount calculation inconsistency detected!');
+  }
+  
+  return { consistent: true, calculation: calculations[0] };
+};
+```
+
+### Architecture Diagram Pattern
+```
+┌─────────────────────────────────┐
+│     Universal Calculator        │
+│  (DiscountCalculator.js)        │
+│                                 │
+│  ✅ Progressive discount logic  │
+│  ✅ Smart metadata handling     │
+│  ✅ HTML generation for emails  │
+│  ✅ Consistent mathematical ops │
+└─────────────────┬───────────────┘
+                  │
+         ┌────────┴────────┐
+         │                 │
+    ┌────▼─────┐    ┌─────▼──────┐
+    │ Backend  │    │  Frontend  │
+    │ Systems  │    │ Component  │
+    │          │    │            │
+    │ • Emails │    │ • OrderDiscount│
+    │ • Invoice│    │   Breakdown │
+    │ • APIs   │    │ • All Pages│
+    │ • Orders │    │ • Admin UI │
+    └──────────┘    └────────────┘
+```
+
+### Implementation Checklist Pattern
+```javascript
+// Files requiring universal calculator integration
+const DISCOUNT_CONSISTENCY_CHECKLIST = {
+  backend: [
+    'server/utils/discountCalculator.js',     // ✅ Universal calculator
+    'server/services/emailService.js',       // ✅ Remove hardcoded calculations
+    'server/services/invoiceService.js',     // ✅ Use universal calculator
+    'server/controllers/order.js'            // ✅ Store consistent data
+  ],
+  frontend: [
+    'client/src/components/OrderDiscountBreakdown.tsx', // ✅ Universal component
+    'client/src/pages/OrderConfirmationEnhanced.tsx',   // ✅ Use universal component
+    'client/src/pages/OrderTracking.tsx',               // ✅ Use universal component
+    'client/src/user/OrderDetail.tsx',                  // ✅ Use universal component
+    'client/src/admin/components/orders/OrderDetailModal.tsx' // ✅ Use universal component
+  ],
+  validation: [
+    'All pages show identical coupon discounts',        // ✅ Verified
+    'All pages show identical online payment discounts', // ✅ Verified  
+    'All pages show identical total savings',           // ✅ Verified
+    'Emails match all frontend displays',               // ✅ Verified
+    'Invoices match all frontend displays'              // ✅ Verified
+  ]
+};
+```
+
+### Business Rules Enforcement Pattern
+```javascript
+// Consistent business rules across all systems
+const DISCOUNT_BUSINESS_RULES = {
+  discountOrder: [
+    '1. Product subtotal calculation (no shipping)',
+    '2. AOV/Quantity discount application', 
+    '3. Coupon discount on reduced amount',
+    '4. Online payment discount on final reduced amount',
+    '5. Add shipping cost to get final total'
+  ],
+  
+  couponCalculation: {
+    baseAmount: 'Product subtotal AFTER AOV discount',
+    percentageFormula: 'Math.floor((baseAmount * percentage) / 100)',
+    fixedFormula: 'coupon.discountValue',
+    autoDetection: 'Value <= 100 = percentage, > 100 = fixed amount'
+  },
+  
+  onlinePaymentDiscount: {
+    baseAmount: 'Amount AFTER AOV and coupon discounts',
+    percentage: '5%',
+    formula: 'Math.round(baseAmount * 0.05)',
+    eligibility: 'razorpay, card, or online payment methods only'
+  }
+};
+```
+
+## Comprehensive Discount Display Patterns (Previous - 2025-01-08)
 
 ### Centralized Discount Architecture Pattern
 **Critical Pattern**: Replace all hardcoded discount values with centralized, configurable service

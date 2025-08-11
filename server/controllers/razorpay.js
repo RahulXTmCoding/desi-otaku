@@ -196,16 +196,6 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
   }
 };
 
-// ✅ LEGACY: Keep old endpoints for backward compatibility
-exports.createRazorpayOrder = async (req, res) => {
-  console.log('🔄 Legacy authenticated endpoint called, redirecting to unified...');
-  return exports.createUnifiedRazorpayOrder(req, res);
-};
-
-exports.createGuestRazorpayOrder = async (req, res) => {
-  console.log('🔄 Legacy guest endpoint called, redirecting to unified...');
-  return exports.createUnifiedRazorpayOrder(req, res);
-};
 
 // Verify payment signature
 exports.verifyRazorpayPayment = async (req, res) => {
@@ -378,6 +368,174 @@ exports.verifyGuestRazorpayPayment = async (req, res) => {
     res.status(500).json({ 
       error: 'Failed to verify guest payment',
       details: error.message 
+    });
+  }
+};
+
+// ✅ NEW: Create database order after successful payment verification using createUnifiedOrder
+exports.createRazorpayDatabaseOrder = async (req, res) => {
+  try {
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      orderData,
+      customerInfo
+    } = req.body;
+
+    // ✅ STEP 1: Verify payment first
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ 
+        error: 'Missing payment verification details' 
+      });
+    }
+
+    console.log('🎯 CREATING RAZORPAY DATABASE ORDER VIA UNIFIED SYSTEM:', {
+      payment_id: razorpay_payment_id,
+      order_id: razorpay_order_id,
+      hasOrderData: !!orderData,
+      hasCustomerInfo: !!customerInfo,
+      isAuthenticated: !!req.user
+    });
+
+    // Verify payment signature
+    const body = razorpay_order_id + '|' + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'dummy_secret')
+      .update(body.toString())
+      .digest('hex');
+
+    const isAuthentic = expectedSignature === razorpay_signature;
+    
+    if (!isAuthentic) {
+      return res.status(400).json({
+        error: 'Invalid payment signature - order creation blocked for security'
+      });
+    }
+
+    console.log('✅ Payment signature verified successfully');
+
+    // ✅ STEP 2: Fetch payment details for verification
+    let paymentDetails = null;
+    const razorpayInstance = getRazorpayInstance();
+    
+    if (razorpayInstance) {
+      try {
+        paymentDetails = await razorpayInstance.payments.fetch(razorpay_payment_id);
+        console.log('✅ Payment details fetched:', {
+          amount: paymentDetails.amount,
+          status: paymentDetails.status,
+          method: paymentDetails.method
+        });
+      } catch (fetchError) {
+        console.error('❌ Failed to fetch payment details:', fetchError);
+        // Continue with mock payment for development
+        paymentDetails = {
+          id: razorpay_payment_id,
+          amount: orderData.amount * 100,
+          status: 'captured',
+          method: 'card'
+        };
+      }
+    } else {
+      // Mock payment for development
+      paymentDetails = {
+        id: razorpay_payment_id,
+        amount: orderData.amount * 100,
+        status: 'captured',
+        method: 'card'
+      };
+    }
+
+    // ✅ STEP 3: Determine user type and prepare user profile
+    const isAuthenticated = !!(req.user || req.headers.authorization);
+    let userProfile = null;
+
+    if (isAuthenticated) {
+      userProfile = req.user;
+      // If not loaded, try to load from userId in orderData
+      if (!userProfile && orderData.userId) {
+        try {
+          const User = require('../models/user');
+          userProfile = await User.findById(orderData.userId);
+        } catch (userError) {
+          console.error('❌ Failed to load user:', userError);
+        }
+      }
+    }
+
+    // For guest orders, create a user profile-like object
+    if (!isAuthenticated && customerInfo) {
+      userProfile = {
+        email: customerInfo.email,
+        name: customerInfo.name,
+        phone: customerInfo.phone
+      };
+    }
+
+    // ✅ STEP 4: Prepare order data for unified creation
+    const unifiedOrderData = {
+      ...orderData,
+      paymentMethod: 'razorpay',
+      paymentStatus: paymentDetails?.status === 'captured' ? 'Paid' : 'Pending',
+      transaction_id: razorpay_payment_id,
+      razorpay_order_id: razorpay_order_id,
+      razorpay_payment_id: razorpay_payment_id,
+      razorpay_signature: razorpay_signature,
+      status: "Received"
+    };
+
+    // Add guest info if not authenticated
+    if (!isAuthenticated && customerInfo) {
+      unifiedOrderData.guestInfo = {
+        name: customerInfo.name,
+        email: customerInfo.email,
+        phone: customerInfo.phone
+      };
+    }
+
+    // ✅ STEP 5: Create payment verification object
+    const paymentVerification = {
+      type: 'razorpay',
+      payment: {
+        id: razorpay_payment_id,
+        status: paymentDetails?.status || 'captured',
+        amount: paymentDetails?.amount,
+        method: paymentDetails?.method
+      },
+      signature: razorpay_signature,
+      order_id: razorpay_order_id
+    };
+
+    // ✅ STEP 6: Use unified order creation (same as COD flow)
+    const { createUnifiedOrder } = require('./order');
+    
+    const result = await createUnifiedOrder(
+      unifiedOrderData,
+      userProfile,
+      paymentVerification
+    );
+
+    if (!result.success) {
+      throw new Error('Unified order creation failed');
+    }
+
+    console.log('✅ RAZORPAY ORDER CREATED VIA UNIFIED SYSTEM:', result.order._id);
+
+    // ✅ STEP 7: Return success response
+    res.json({
+      success: true,
+      order: result.order,
+      trackingInfo: result.trackingInfo,
+      message: 'Order created successfully after payment verification using unified system',
+      userType: isAuthenticated ? 'authenticated' : 'guest'
+    });
+
+  } catch (error) {
+    console.error('❌ Razorpay database order creation failed:', error);
+    res.status(500).json({
+      error: 'Failed to create order in database',
+      details: error.message
     });
   }
 };

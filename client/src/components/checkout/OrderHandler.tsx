@@ -33,6 +33,8 @@ interface OrderHandlerProps {
     otpVerified: boolean;
     otp: string;
     loading: boolean;
+    verificationToken?: string;
+    verifiedPhone?: string;
   };
 }
 
@@ -159,7 +161,9 @@ export const useOrderHandler = ({
           shippingCost: selectedShipping?.rate || 0,
           courier: selectedShipping?.courier_name || ''
         },
-        codVerified: true
+        // ✅ SECURE VERIFICATION: Send token and phone instead of simple boolean
+        verificationToken: codVerification?.verificationToken,
+        phone: codVerification?.verifiedPhone || shippingInfo.phone
       };
 
       let orderResult;
@@ -194,7 +198,7 @@ export const useOrderHandler = ({
       } else {
         console.log('🔐 Creating authenticated user COD order...');
         
-        const response = await fetch(`${API}/cod/order/create/${(auth as any).user._id}`, {
+        const response = await fetch(`${API}/cod/order/create`, {
           method: 'POST',
           headers: {
             Accept: 'application/json',

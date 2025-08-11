@@ -18,6 +18,8 @@ interface PaymentSectionProps {
     otpVerified: boolean;
     otp: string;
     loading: boolean;
+    verificationToken?: string;
+    verifiedPhone?: string;
   };
   setCodVerification?: (verification: any) => void;
   customerPhone?: string;
@@ -415,11 +417,21 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
         const data = await response.json();
         
         if (response.ok && data.success && data.verified) {
+          // ✅ CRITICAL: Store the verification token and verified phone
           setCodVerification({
             ...codVerification,
             otpVerified: true,
-            loading: false
+            loading: false,
+            verificationToken: data.verificationToken,
+            verifiedPhone: customerPhone
           });
+          
+          console.log('✅ COD verification successful:', {
+            token: data.verificationToken,
+            phone: customerPhone,
+            expiresIn: data.expiresIn
+          });
+          
           alert('Phone number verified successfully!');
         } else {
           throw new Error(data.error || 'Invalid OTP');

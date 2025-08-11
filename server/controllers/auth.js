@@ -13,6 +13,7 @@ exports.signup = async (req, res) => {
       error: errors.array()[0].msg,
     });
   }
+  
   const user = new User(req.body);
   
   try {
@@ -29,8 +30,39 @@ exports.signup = async (req, res) => {
       id: savedUser._id,
     });
   } catch (err) {
+    console.error("Signup error:", err);
+    
+    // ✅ IMPROVED: Provide specific error messages
+    if (err.code === 11000) {
+      // Duplicate key error (email already exists)
+      const field = Object.keys(err.keyPattern)[0];
+      return res.status(400).json({
+        error: `${field === 'email' ? 'Email' : field} already exists. Please use a different ${field}.`,
+        code: 'DUPLICATE_EMAIL'
+      });
+    }
+    
+    if (err.name === 'ValidationError') {
+      // Mongoose validation error
+      const validationErrors = Object.values(err.errors).map(e => e.message);
+      return res.status(400).json({
+        error: validationErrors[0],
+        code: 'VALIDATION_ERROR'
+      });
+    }
+    
+    if (err.name === 'CastError') {
+      return res.status(400).json({
+        error: "Invalid data format provided",
+        code: 'CAST_ERROR'
+      });
+    }
+    
+    // Generic fallback with more details for debugging
     return res.status(400).json({
-      err: "Not able to store it in DB",
+      error: "Unable to create user account. Please try again.",
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined,
+      code: 'DATABASE_ERROR'
     });
   }
 };

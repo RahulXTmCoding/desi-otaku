@@ -27,6 +27,277 @@ exports.getOrderById = (req, res, next, id) => {
     });
 };
 
+// ✅ UNIFIED ORDER CREATION FUNCTION
+// Used by both Razorpay and COD flows to ensure consistency
+exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification = null) => {
+  try {
+    console.log('🎯 UNIFIED ORDER CREATION:', {
+      paymentMethod: orderData.paymentMethod,
+      amount: orderData.amount,
+      hasUser: !!userProfile,
+      hasCoupon: !!orderData.coupon?.code,
+      hasRewards: !!orderData.rewardPointsRedeemed
+    });
+
+    // 🔒 SECURITY: Payment verification (method-specific)
+    if (paymentVerification) {
+      if (paymentVerification.type === 'razorpay' && paymentVerification.payment?.id) {
+        const Razorpay = require('razorpay');
+        const razorpay = new Razorpay({
+          key_id: process.env.RAZORPAY_KEY_ID,
+          key_secret: process.env.RAZORPAY_KEY_SECRET
+        });
+        
+        try {
+          const paymentDetails = await razorpay.payments.fetch(paymentVerification.payment.id);
+          console.log('✅ Razorpay payment verified:', paymentDetails.id);
+        } catch (paymentVerifyError) {
+          console.error('❌ Razorpay payment verification failed:', paymentVerifyError);
+          throw new Error('Payment verification failed');
+        }
+      } else if (paymentVerification.type === 'cod' && !paymentVerification.codVerified) {
+        throw new Error('Phone verification required for COD orders');
+      }
+    }
+
+    // ✅ UNIFIED DISCOUNT CALCULATION
+    const { calculateOrderAmountSecure } = require('./razorpay');
+    const cartItems = orderData.products.map(item => ({
+      product: item.product || item.productId,
+      name: item.name,
+      quantity: item.count || item.quantity,
+      size: item.size,
+      customization: item.customization,
+      isCustom: item.isCustom,
+      price: item.price
+    }));
+
+    const serverCalculation = await calculateOrderAmountSecure(
+      cartItems,
+      orderData.coupon?.code,
+      orderData.rewardPointsRedeemed,
+      userProfile,
+      orderData.paymentMethod || 'cod'
+    );
+
+    if (serverCalculation.error) {
+      throw new Error(serverCalculation.error);
+    }
+
+    console.log('✅ UNIFIED CALCULATION COMPLETE:', {
+      subtotal: serverCalculation.subtotal,
+      quantityDiscount: serverCalculation.quantityDiscount,
+      couponDiscount: serverCalculation.couponDiscount,
+      onlinePaymentDiscount: serverCalculation.onlinePaymentDiscount,
+      rewardDiscount: serverCalculation.rewardDiscount,
+      finalAmount: serverCalculation.total
+    });
+
+    // ✅ PROCESS AND VALIDATE PRODUCTS
+    const Product = require("../models/product");
+    const Design = require("../models/design");
+    const validatedProducts = [];
+
+    for (const item of orderData.products) {
+      let validatedItem = {
+        name: item.name,
+        count: item.count || item.quantity || 1,
+        size: item.size || 'M'
+      };
+
+      // Preserve photoUrl if present
+      if (item.photoUrl) {
+        validatedItem.photoUrl = item.photoUrl;
+      }
+
+      // ✅ CRITICAL FIX: Handle custom products with temporary IDs
+      const productId = item.product || item.productId;
+      const isTemporaryId = !productId || 
+                           productId === 'custom' || 
+                           typeof productId === 'string' && (
+                             productId.startsWith('temp_') || 
+                             productId.startsWith('custom') ||
+                             productId.length < 12 ||
+                             !/^[0-9a-fA-F]{24}$/.test(productId)
+                           );
+
+      if (isTemporaryId || item.isCustom) {
+        // Handle custom products
+        validatedItem.isCustom = true;
+        validatedItem.customDesign = item.customDesign || item.name;
+        validatedItem.color = item.color || item.selectedColor || 'White';
+        validatedItem.colorValue = item.colorValue || item.selectedColorValue || '#FFFFFF';
+        validatedItem.product = null; // ✅ CRITICAL: Use null instead of invalid ObjectId
+
+        // Store customization data
+        if (item.customization) {
+          validatedItem.customization = {};
+          
+          if (item.customization.frontDesign?.designId && item.customization.frontDesign?.designImage) {
+            validatedItem.customization.frontDesign = {
+              designId: item.customization.frontDesign.designId,
+              designImage: item.customization.frontDesign.designImage,
+              position: item.customization.frontDesign.position || 'center',
+              price: item.customization.frontDesign.price || 150
+            };
+          }
+          
+          if (item.customization.backDesign?.designId && item.customization.backDesign?.designImage) {
+            validatedItem.customization.backDesign = {
+              designId: item.customization.backDesign.designId,
+              designImage: item.customization.backDesign.designImage,
+              position: item.customization.backDesign.position || 'center',
+              price: item.customization.backDesign.price || 150
+            };
+          }
+
+          // Only keep customization if it has actual design data
+          if (!validatedItem.customization.frontDesign && !validatedItem.customization.backDesign) {
+            delete validatedItem.customization;
+          }
+        }
+
+        // Use server-calculated price for custom products
+        validatedItem.price = serverCalculation.validatedItems.find(v => 
+          v.name === item.name && v.quantity === validatedItem.count
+        )?.price || item.price;
+      } else {
+        // Handle regular products
+        const product = await Product.findById(productId);
+        if (!product || product.isDeleted) {
+          throw new Error(`Product not found or unavailable: ${item.name}`);
+        }
+        
+        validatedItem.product = product._id;
+        validatedItem.price = product.price;
+        validatedItem.name = product.name;
+      }
+
+      validatedProducts.push(validatedItem);
+    }
+
+    // ✅ BUILD ORDER DATA WITH SERVER CALCULATIONS
+    const unifiedOrderData = {
+      ...orderData,
+      products: validatedProducts,
+      amount: serverCalculation.total,
+      originalAmount: serverCalculation.subtotal + serverCalculation.shippingCost,
+      discount: serverCalculation.couponDiscount + serverCalculation.rewardDiscount,
+      user: userProfile?._id || userProfile,
+      paymentStatus: orderData.paymentMethod === 'cod' ? 'Pending' : 'Paid'
+    };
+
+    // ✅ STORE DETAILED DISCOUNT BREAKDOWN
+    if (serverCalculation.quantityDiscount > 0) {
+      unifiedOrderData.quantityDiscount = {
+        amount: serverCalculation.quantityDiscount,
+        percentage: Math.round((serverCalculation.quantityDiscount / serverCalculation.subtotal) * 100),
+        totalQuantity: validatedProducts.reduce((total, item) => total + item.count, 0),
+        message: `Bulk discount applied`
+      };
+    }
+
+    if (serverCalculation.onlinePaymentDiscount > 0) {
+      unifiedOrderData.onlinePaymentDiscount = {
+        amount: serverCalculation.onlinePaymentDiscount,
+        percentage: 5,
+        paymentMethod: orderData.paymentMethod
+      };
+    }
+
+    unifiedOrderData.rewardPointsDiscount = serverCalculation.rewardDiscount;
+
+    // ✅ CREATE AND SAVE ORDER
+    const order = new Order(unifiedOrderData);
+    const savedOrder = await order.save();
+
+    console.log('✅ UNIFIED ORDER CREATED:', savedOrder._id);
+
+    // ✅ POPULATE USER INFO FOR EMAIL
+    await savedOrder.populate('user', 'email name');
+
+    // ✅ PROCESS REWARD POINTS (if applicable)
+    if (orderData.rewardPointsRedeemed > 0 && userProfile?._id) {
+      const { redeemPoints } = require("./reward");
+      try {
+        await redeemPoints(userProfile._id, orderData.rewardPointsRedeemed, savedOrder._id);
+        console.log(`✅ Reward points redeemed: ${orderData.rewardPointsRedeemed}`);
+      } catch (rewardError) {
+        console.error('❌ Reward points redemption failed:', rewardError);
+      }
+    }
+
+    // ✅ GENERATE SECURE ACCESS TOKENS
+    const { createSecureAccess } = require("./secureOrder");
+    let magicLink = null;
+    let pin = null;
+    
+    const customerEmail = savedOrder.user?.email || savedOrder.guestInfo?.email;
+    if (customerEmail) {
+      try {
+        const secureAccess = await createSecureAccess(savedOrder._id, customerEmail);
+        if (secureAccess.success) {
+          magicLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/track/${Buffer.from(secureAccess.token).toString('base64url')}`;
+          pin = secureAccess.pin;
+          console.log('✅ Secure access tokens generated');
+        }
+      } catch (err) {
+        console.error('❌ Failed to create secure access tokens:', err);
+      }
+    }
+
+    // ✅ SEND EMAIL CONFIRMATION
+    const emailService = require("../services/emailService");
+    const customerInfo = savedOrder.user || savedOrder.guestInfo;
+    
+    if (customerInfo?.email && magicLink && pin) {
+      emailService.sendOrderConfirmationWithTracking(savedOrder, customerInfo, magicLink, pin).catch(err => {
+        console.error("❌ Failed to send order confirmation email:", err);
+      });
+    }
+
+    // ✅ TRACK COUPON USAGE
+    if (orderData.coupon?.code) {
+      const { trackCouponUsage } = require("./coupon");
+      trackCouponUsage(orderData.coupon.code, savedOrder._id, userProfile?._id).catch(err => {
+        console.error("❌ Failed to track coupon usage:", err);
+      });
+    }
+
+    // ✅ CREDIT REWARD POINTS (for paid orders)
+    if (savedOrder.paymentStatus === 'Paid' && userProfile?._id) {
+      const { creditPoints } = require("./reward");
+      creditPoints(userProfile._id, savedOrder._id, savedOrder.amount).then(result => {
+        if (result.success) {
+          console.log(`✅ Credited ${result.points} reward points`);
+        }
+      }).catch(err => {
+        console.error("❌ Failed to credit reward points:", err);
+      });
+    }
+
+    // ✅ TELEGRAM NOTIFICATIONS
+    const telegramService = require("../services/telegramService");
+    telegramService.sendNewOrderNotification(savedOrder, customerInfo).catch(err => {
+      console.error("❌ Failed to send Telegram notification:", err);
+    });
+
+    return {
+      success: true,
+      order: savedOrder,
+      trackingInfo: magicLink && pin ? {
+        orderId: savedOrder._id,
+        magicLink,
+        pin
+      } : null
+    };
+
+  } catch (error) {
+    console.error('❌ UNIFIED ORDER CREATION FAILED:', error);
+    throw error;
+  }
+};
+
 exports.createOrder = async (req, res) => {
   try {
     console.log('Creating order with data:', JSON.stringify(req.body.order, null, 2));

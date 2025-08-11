@@ -5,15 +5,8 @@ const router = express.Router();
 const codController = require("../controllers/cod");
 
 // Import middleware
-const { requireSignin, isAuth } = require("../controllers/auth");
 const { getUserById } = require("../controllers/user");
 const { requireAdmin } = require("../middleware/adminAuth");
-
-// Debug: Check if functions exist
-console.log('COD Controller functions:', Object.keys(codController));
-console.log('Auth middleware:', { requireSignin: !!requireSignin, isAuth: !!isAuth });
-console.log('User middleware:', { getUserById: !!getUserById });
-console.log('Admin middleware:', { requireAdmin: !!requireAdmin });
 
 // Route to get user by ID (middleware)
 router.param("userId", getUserById);
@@ -25,8 +18,49 @@ router.post("/verify-otp", codController.verifyCodOtp);
 // Guest COD order creation
 router.post("/order/guest/create", codController.createGuestCodOrder);
 
-// Authenticated user COD order creation (temporarily without auth middleware)
-router.post("/order/create/:userId", codController.createCodOrder);
+// ✅ SECURE: Authenticated user COD order creation with proper JWT authentication  
+router.post("/order/create", async (req, res, next) => {
+  // Require authentication header for authenticated COD orders
+  if (req.headers.authorization) {
+    try {
+      const token = req.headers.authorization.replace('Bearer ', '');
+      const jwt = require('jsonwebtoken');
+      
+      try {
+        const decoded = jwt.verify(token, process.env.SECRET);
+        req.auth = decoded;
+        
+        // Get user by ID from token (secure - no URL parameter manipulation)
+        const User = require('../models/user');
+        const user = await User.findById(decoded._id);
+        if (user) {
+          req.user = user;
+          console.log('✅ COD Order: User authenticated securely via JWT:', user._id);
+        } else {
+          return res.status(401).json({
+            error: 'User not found - invalid token'
+          });
+        }
+      } catch (jwtError) {
+        console.log('❌ COD Order: Invalid JWT token');
+        return res.status(401).json({
+          error: 'Invalid authentication token'
+        });
+      }
+    } catch (authError) {
+      console.log('❌ COD Order: Auth error:', authError.message);
+      return res.status(401).json({
+        error: 'Authentication failed'
+      });
+    }
+  } else {
+    return res.status(401).json({
+      error: 'Authentication token required for authenticated COD orders'
+    });
+  }
+  next();
+}, codController.createCodOrder);
+
 
 // Admin routes
 router.get("/stats", requireAdmin, codController.getCodStats);

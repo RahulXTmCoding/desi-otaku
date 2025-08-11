@@ -4,8 +4,7 @@ const { isSignedIn, isAuthenticated } = require('../controllers/auth');
 const { getUserById } = require('../controllers/user');
 const {
   createUnifiedRazorpayOrder,
-  createRazorpayOrder,
-  createGuestRazorpayOrder,
+  createRazorpayDatabaseOrder,
   verifyRazorpayPayment,
   verifyGuestRazorpayPayment,
   getRazorpayPayment,
@@ -45,12 +44,6 @@ router.post('/order/create', async (req, res, next) => {
   next();
 }, createUnifiedRazorpayOrder);
 
-// ✅ LEGACY: Keep old endpoints for backward compatibility
-// Create order - requires authentication
-router.post('/order/create/:userId', isSignedIn, isAuthenticated, createRazorpayOrder);
-
-// Guest order creation - no auth required
-router.post('/order/guest/create', createGuestRazorpayOrder);
 
 // ✅ NEW: Calculate amounts endpoint - optional auth for reward points validation
 router.post('/calculate-amount', async (req, res, next) => {
@@ -83,6 +76,37 @@ router.post('/calculate-amount', async (req, res, next) => {
   }
   next();
 }, calculateAmount);
+
+// ✅ NEW: Create database order after payment verification - unified for both user types
+router.post('/order/database/create', async (req, res, next) => {
+  // Optional authentication - if Authorization header is present, authenticate
+  if (req.headers.authorization) {
+    try {
+      const token = req.headers.authorization.replace('Bearer ', '');
+      const jwt = require('jsonwebtoken');
+      
+      try {
+        const decoded = jwt.verify(token, process.env.SECRET);
+        req.auth = decoded;
+        
+        // Get user by ID from token
+        const User = require('../models/user');
+        const user = await User.findById(decoded._id);
+        if (user) {
+          req.user = user;
+          console.log('✅ Database order creation: User authenticated:', user._id);
+        }
+      } catch (jwtError) {
+        console.log('🔄 Database order creation: Invalid JWT token, proceeding as guest');
+      }
+    } catch (authError) {
+      console.log('🔄 Database order creation: Auth error, proceeding as guest:', authError.message);
+    }
+  } else {
+    console.log('🔄 Database order creation: No auth header, proceeding as guest');
+  }
+  next();
+}, createRazorpayDatabaseOrder);
 
 // Test mode order creation - no auth required
 router.post('/order/test', createTestOrder);
