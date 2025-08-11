@@ -1,0 +1,349 @@
+name: Deploy Backend to AWS Spot Instances
+
+on:
+  push:
+    branches: [ main ]
+    paths: [ 'server/**' ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+        - production
+        - staging
+
+jobs:
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    env:
+      AWS_REGION: ap-south-1
+      PROJECT_NAME: fashion-backend
+      ENVIRONMENT: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+    - name: 🚀 Checkout Code
+      uses: actions/checkout@v4
+      
+    - name: 📦 Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+        
+    - name: 🏗️ Get Auto Scaling Group Name
+      id: get-asg
+      run: |
+        ASG_NAME=$(aws autoscaling describe-auto-scaling-groups \
+          --query "AutoScalingGroups[?contains(Tags[?Key=='Name'].Value, '${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}')].AutoScalingGroupName" \
+          --output text --region ${{ env.AWS_REGION }})
+        
+        if [ -z "$ASG_NAME" ]; then
+          echo "❌ Auto Scaling Group not found. Please deploy infrastructure first."
+          exit 1
+        fi
+        
+        echo "ASG_NAME=$ASG_NAME" >> $GITHUB_OUTPUT
+        echo "✅ Found Auto Scaling Group: $ASG_NAME"
+        
+    - name: 🎯 Get Current Instance IDs
+      id: get-instances
+      run: |
+        INSTANCE_IDS=$(aws autoscaling describe-auto-scaling-groups \
+          --auto-scaling-group-names ${{ steps.get-asg.outputs.ASG_NAME }} \
+          --query "AutoScalingGroups[0].Instances[?LifecycleState=='InService'].InstanceId" \
+          --output text --region ${{ env.AWS_REGION }})
+        
+        echo "INSTANCE_IDS=$INSTANCE_IDS" >> $GITHUB_OUTPUT
+        echo "✅ Found running instances: $INSTANCE_IDS"
+        
+    - name: 🔄 Rolling Deployment via Launch Template Update
+      run: |
+        # Get current launch template
+        LT_ID=$(aws autoscaling describe-auto-scaling-groups \
+          --auto-scaling-group-names ${{ steps.get-asg.outputs.ASG_NAME }} \
+          --query "AutoScalingGroups[0].LaunchTemplate.LaunchTemplateId" \
+          --output text --region ${{ env.AWS_REGION }})
+        
+        # Get current version
+        CURRENT_VERSION=$(aws autoscaling describe-auto-scaling-groups \
+          --auto-scaling-group-names ${{ steps.get-asg.outputs.ASG_NAME }} \
+          --query "AutoScalingGroups[0].LaunchTemplate.Version" \
+          --output text --region ${{ env.AWS_REGION }})
+        
+        echo "📋 Current Launch Template: $LT_ID (version: $CURRENT_VERSION)"
+        
+        # Create new launch template version with deployment timestamp
+        DEPLOYMENT_TIME=$(date -u +"%Y%m%d-%H%M%S")
+        
+        # Get current template data
+        aws ec2 describe-launch-template-versions \
+          --launch-template-id $LT_ID \
+          --versions '$Latest' \
+          --query 'LaunchTemplateVersions[0].LaunchTemplateData' > /tmp/template-data.json
+        
+        # Update user data with new deployment info
+        cat > /tmp/update-user-data.sh << 'EOF'
+        #!/bin/bash
+        yum update -y
+        
+        # Install Node.js 18 (ARM64)
+        curl -fsSL https://rpm.nodesource.com/setup_18.x | bash -
+        yum install -y nodejs git
+        
+        # Install PM2 globally
+        npm install -g pm2
+        
+        # Create application directory
+        mkdir -p /opt/app
+        cd /opt/app
+        
+        # Remove existing code if any
+        rm -rf .git server node_modules
+        
+        # Clone repository with latest code
+        git clone ${{ github.server_url }}/${{ github.repository }}.git .
+        cd server
+        
+        # Install dependencies
+        npm install --production
+        
+        # Create environment file from secrets
+        cat > .env << EOF2
+        # Core Application Settings
+        NODE_ENV=production
+        PORT=3000
+        DATABASE=${{ secrets.DATABASE }}
+        SECRET=${{ secrets.SECRET }}
+        CLIENT_URL=${{ secrets.CLIENT_URL }}
+        
+        # Payment Processing - Braintree
+        BRAINTREE_MERCHANT_ID=${{ secrets.BRAINTREE_MERCHANT_ID }}
+        BRAINTREE_PUBLIC_KEY=${{ secrets.BRAINTREE_PUBLIC_KEY }}
+        BRAINTREE_PRIVATE_KEY=${{ secrets.BRAINTREE_PRIVATE_KEY }}
+        
+        # Payment Processing - Razorpay
+        RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}
+        RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }}
+        RAZORPAY_WEBHOOK_SECRET=${{ secrets.RAZORPAY_WEBHOOK_SECRET }}
+        
+        # Shipping - Shiprocket
+        SHIPROCKET_EMAIL=${{ secrets.SHIPROCKET_EMAIL }}
+        SHIPROCKET_PASSWORD=${{ secrets.SHIPROCKET_PASSWORD }}
+        SHIPROCKET_TEST_MODE=${{ secrets.SHIPROCKET_TEST_MODE }}
+        PICKUP_PINCODE=${{ secrets.PICKUP_PINCODE }}
+        PICKUP_NAME=${{ secrets.PICKUP_NAME }}
+        PICKUP_PHONE=${{ secrets.PICKUP_PHONE }}
+        
+        # Email Service - Brevo
+        EMAIL_SERVICE=${{ secrets.EMAIL_SERVICE }}
+        BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}
+        BREVO_SENDER_EMAIL=${{ secrets.BREVO_SENDER_EMAIL }}
+        BREVO_SENDER_NAME=${{ secrets.BREVO_SENDER_NAME }}
+        
+        # Social OAuth - Google
+        GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
+        GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
+        
+        # Social OAuth - Facebook
+        FACEBOOK_APP_ID=${{ secrets.FACEBOOK_APP_ID }}
+        FACEBOOK_APP_SECRET=${{ secrets.FACEBOOK_APP_SECRET }}
+        
+        # Redis Caching
+        REDIS_URL=${{ secrets.REDIS_URL }}
+        
+        # SMS Service - MSG91
+        MSG91_AUTH_KEY=${{ secrets.MSG91_AUTH_KEY }}
+        MSG91_SENDER_ID=${{ secrets.MSG91_SENDER_ID }}
+        MSG91_TEMPLATE_ID=${{ secrets.MSG91_TEMPLATE_ID }}
+        MSG91_ROUTE=${{ secrets.MSG91_ROUTE }}
+        EOF2
+        
+        # Create PM2 ecosystem file
+        cat > ecosystem.config.js << 'EOF2'
+        module.exports = {
+          apps: [{
+            name: 'fashion-backend',
+            script: './app.js',
+            instances: 1,
+            exec_mode: 'cluster',
+            env: {
+              NODE_ENV: 'production',
+              PORT: 3000
+            },
+            error_file: '/var/log/pm2/err.log',
+            out_file: '/var/log/pm2/out.log',
+            log_file: '/var/log/pm2/combined.log',
+            time: true,
+            watch: false,
+            max_memory_restart: '800M',
+            restart_delay: 4000,
+            max_restarts: 5,
+            min_uptime: '10s'
+          }]
+        };
+        EOF2
+        
+        # Create log directory
+        mkdir -p /var/log/pm2
+        
+        # Stop existing PM2 processes
+        pm2 delete all || true
+        
+        # Start application with PM2
+        pm2 start ecosystem.config.js
+        pm2 save
+        
+        # Ensure PM2 starts on boot
+        pm2 startup systemd -u root --hp /root || true
+        env PATH=$PATH:/usr/bin /usr/lib/node_modules/pm2/bin/pm2 startup systemd -u root --hp /root
+        
+        echo "✅ Deployment completed at $(date)"
+        echo "🔗 Commit: ${{ github.sha }}"
+        echo "📊 Health check: curl -f http://localhost:3000/health"
+        EOF
+        
+        # Create new launch template version
+        USER_DATA=$(base64 -w 0 /tmp/update-user-data.sh)
+        
+        NEW_VERSION=$(aws ec2 create-launch-template-version \
+          --launch-template-id $LT_ID \
+          --version-description "Deployment-$DEPLOYMENT_TIME-${{ github.sha }}" \
+          --source-version '$Latest' \
+          --launch-template-data "{\"UserData\":\"$USER_DATA\"}" \
+          --query 'LaunchTemplateVersion.VersionNumber' \
+          --output text --region ${{ env.AWS_REGION }})
+        
+        echo "🆕 Created new launch template version: $NEW_VERSION"
+        
+        # Update Auto Scaling Group to use new template version
+        aws autoscaling update-auto-scaling-group \
+          --auto-scaling-group-name ${{ steps.get-asg.outputs.ASG_NAME }} \
+          --launch-template "LaunchTemplateId=$LT_ID,Version=$NEW_VERSION" \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "🔄 Updated Auto Scaling Group with new launch template"
+        
+    - name: 🔄 Trigger Instance Refresh
+      run: |
+        # Start instance refresh for rolling deployment
+        REFRESH_ID=$(aws autoscaling start-instance-refresh \
+          --auto-scaling-group-name ${{ steps.get-asg.outputs.ASG_NAME }} \
+          --preferences "InstanceWarmup=300,MinHealthyPercentage=50,SkipMatching=false" \
+          --query 'InstanceRefreshId' \
+          --output text --region ${{ env.AWS_REGION }})
+        
+        echo "🔄 Started instance refresh: $REFRESH_ID"
+        echo "REFRESH_ID=$REFRESH_ID" >> $GITHUB_ENV
+        
+    - name: ⏳ Wait for Deployment to Complete
+      run: |
+        echo "⏳ Waiting for instance refresh to complete..."
+        
+        while true; do
+          STATUS=$(aws autoscaling describe-instance-refreshes \
+            --auto-scaling-group-name ${{ steps.get-asg.outputs.ASG_NAME }} \
+            --instance-refresh-ids $REFRESH_ID \
+            --query 'InstanceRefreshes[0].Status' \
+            --output text --region ${{ env.AWS_REGION }})
+          
+          PERCENTAGE=$(aws autoscaling describe-instance-refreshes \
+            --auto-scaling-group-name ${{ steps.get-asg.outputs.ASG_NAME }} \
+            --instance-refresh-ids $REFRESH_ID \
+            --query 'InstanceRefreshes[0].PercentageComplete' \
+            --output text --region ${{ env.AWS_REGION }})
+          
+          echo "📊 Deployment Status: $STATUS ($PERCENTAGE% complete)"
+          
+          case $STATUS in
+            "Successful")
+              echo "✅ Deployment completed successfully!"
+              break
+              ;;
+            "Failed"|"Cancelled")
+              echo "❌ Deployment failed with status: $STATUS"
+              exit 1
+              ;;
+            "InProgress"|"Pending")
+              echo "⏳ Still deploying... waiting 30 seconds"
+              sleep 30
+              ;;
+            *)
+              echo "❓ Unknown status: $STATUS"
+              sleep 15
+              ;;
+          esac
+        done
+        
+    - name: 🏥 Health Check
+      run: |
+        # Get load balancer DNS
+        ALB_DNS=$(aws elbv2 describe-load-balancers \
+          --names "${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-alb" \
+          --query 'LoadBalancers[0].DNSName' \
+          --output text --region ${{ env.AWS_REGION }})
+        
+        echo "🌐 Load Balancer DNS: $ALB_DNS"
+        
+        # Wait for health checks to pass
+        echo "⏳ Waiting for application to be healthy..."
+        
+        for i in {1..20}; do
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "http://$ALB_DNS/health" || echo "000")
+          
+          if [ "$HTTP_CODE" = "200" ]; then
+            echo "✅ Health check passed! Application is running."
+            
+            # Get health check response
+            HEALTH_RESPONSE=$(curl -s "http://$ALB_DNS/health")
+            echo "📊 Health Response: $HEALTH_RESPONSE"
+            break
+          else
+            echo "⏳ Health check attempt $i/20 - HTTP $HTTP_CODE (waiting 15 seconds...)"
+            sleep 15
+          fi
+          
+          if [ $i -eq 20 ]; then
+            echo "❌ Health checks failed after 5 minutes"
+            exit 1
+          fi
+        done
+        
+    - name: 📊 Deployment Summary
+      run: |
+        # Get final instance information
+        INSTANCES=$(aws autoscaling describe-auto-scaling-groups \
+          --auto-scaling-group-names ${{ steps.get-asg.outputs.ASG_NAME }} \
+          --query "AutoScalingGroups[0].Instances[?LifecycleState=='InService'].[InstanceId,AvailabilityZone]" \
+          --output table --region ${{ env.AWS_REGION }})
+        
+        # Get load balancer URL
+        ALB_DNS=$(aws elbv2 describe-load-balancers \
+          --names "${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-alb" \
+          --query 'LoadBalancers[0].DNSName' \
+          --output text --region ${{ env.AWS_REGION }})
+        
+        echo "🎉 DEPLOYMENT SUCCESSFUL!"
+        echo "================================"
+        echo "🌐 Application URL: http://$ALB_DNS"
+        echo "🏥 Health Check: http://$ALB_DNS/health"
+        echo "📋 Git Commit: ${{ github.sha }}"
+        echo "⏰ Deployed at: $(date -u)"
+        echo ""
+        echo "🖥️ Running Instances:"
+        echo "$INSTANCES"
+        echo ""
+        echo "💰 Estimated Monthly Cost: ~$16.94 (2x t4g.micro spot + ALB)"
+        echo "🛡️ Features: Auto-scaling, Spot termination handling, Health checks"
+        
+    - name: 🚀 Optional Render Backup Deployment
+      if: always()
+      run: |
+        echo "🔄 Note: Render backup deployment can run in parallel"
+        echo "📝 Configure Render deployment separately if needed as fallback"

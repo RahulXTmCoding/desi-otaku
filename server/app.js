@@ -34,6 +34,7 @@ const codRoutes = require("./routes/cod");
 const { initializeSettings } = require("./controllers/settings");
 const AOVService = require("./services/aovService");
 const redisService = require("./services/redisService");
+const spotTerminationService = require("./services/spotTerminationService");
 
 const app = express();
 
@@ -64,6 +65,34 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 app.use(cors());
 app.use(passport.initialize());
+
+// Graceful shutdown middleware - reject requests during shutdown
+app.use((req, res, next) => {
+  if (spotTerminationService.isInShutdown()) {
+    return res.status(503).json({ 
+      error: 'Service temporarily unavailable',
+      message: 'Server is shutting down, please retry in a few seconds'
+    });
+  }
+  next();
+});
+
+// Health check endpoint for load balancer
+app.get('/health', (req, res) => {
+  if (spotTerminationService.isInShutdown()) {
+    return res.status(503).json({ 
+      status: 'shutting-down',
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  res.status(200).json({ 
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
 
 //My Routers
 app.use("/api", authRoutes);
@@ -97,6 +126,14 @@ app.use('/invoices', express.static(require('path').join(__dirname, 'public/invo
 const port = process.env.PORT || 8000;
 
 //Starting a server
-app.listen(port, () => {
-  console.log(`App is running on ${port}...`);
+const server = app.listen(port, () => {
+  console.log(`🚀 App is running on ${port}...`);
+  console.log(`🏥 Health check available at http://localhost:${port}/health`);
+  
+  // Initialize spot termination monitoring
+  spotTerminationService.initialize(server);
+  console.log(`🛡️ Spot termination monitoring active`);
 });
+
+// Export server for testing purposes
+module.exports = server;
