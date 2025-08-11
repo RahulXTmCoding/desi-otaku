@@ -1591,6 +1591,203 @@ Category.find({
 });
 ```
 
+## Checkout Performance Optimization Patterns (New - 2025-08-09)
+
+### Infinite API Call Prevention Pattern
+**Critical Pattern**: Eliminate redundant API calls while maintaining data integrity
+
+```javascript
+// Problem: Infinite useEffect loops
+const BadExample = () => {
+  const [loading, setLoading] = useState(false);
+  
+  useEffect(() => {
+    setLoading(true);
+    fetch('/api/calculate-amount')
+      .then(data => {
+        setLoading(false); // ❌ Triggers infinite loop
+      });
+  }, [loading]); // ❌ loading dependency causes infinite calls
+};
+
+// Solution: Reference-based tracking
+const OptimizedExample = () => {
+  const lastCalculationRef = useRef<string>('');
+  
+  const calculateAmount = useCallback(() => {
+    const calculationKey = `${cartSignature}-${paymentMethod}-${discounts}`;
+    
+    // Only calculate if signature actually changed
+    if (calculationKey !== lastCalculationRef.current) {
+      lastCalculationRef.current = calculationKey;
+      // Perform calculation
+    }
+  }, [cartSignature, paymentMethod, discounts]);
+};
+```
+
+### Context Over API Calls Pattern
+**Performance Pattern**: Use global context for frequently accessed data
+
+```javascript
+// BEFORE: Redundant API calls on every page
+const CheckoutPage = () => {
+  const [aovData, setAovData] = useState(null);
+  
+  useEffect(() => {
+    fetch('/api/aov/quantity-discount').then(setAovData); // ❌ Redundant call
+  }, []);
+};
+
+// AFTER: Use pre-loaded global context
+const CheckoutPage = () => {
+  const { quantityTiers } = useAOV(); // ✅ Already loaded at app startup
+  
+  const aovDiscount = useMemo(() => {
+    // Calculate from context data instantly
+    return calculateFromTiers(quantityTiers, cart);
+  }, [quantityTiers, cart]);
+};
+```
+
+### Frontend UX + Backend Validation Pattern
+**Architecture Pattern**: Instant feedback with server verification
+
+```javascript
+// Frontend: Instant calculations for UX
+const getFinalAmount = useCallback(() => {
+  // Progressive discount calculation
+  let discountedAmount = subtotal;
+  discountedAmount -= aovDiscount;
+  discountedAmount -= couponDiscount;
+  discountedAmount -= onlinePaymentDiscount;
+  return Math.max(0, discountedAmount + shipping);
+}, [subtotal, aovDiscount, couponDiscount, onlinePaymentDiscount, shipping]);
+
+// Backend: Validation during order placement
+const createOrder = async (orderData) => {
+  // Server-side recalculation for security
+  const serverCalculation = await calculateOrderAmountSecure(orderData);
+  
+  // Verify frontend amount matches backend
+  if (Math.abs(orderData.frontendAmount - serverCalculation.finalAmount) > 1) {
+    throw new Error('Amount mismatch detected');
+  }
+  
+  // Proceed with order creation using server calculation
+};
+```
+
+### Smart Dependency Management Pattern
+**React Pattern**: Optimize useEffect/useCallback dependencies
+
+```javascript
+// BEFORE: Over-dependent callbacks
+const badCallback = useCallback(() => {
+  calculateDiscount();
+}, [cart, shipping, user, loading, error, data]); // ❌ Too many dependencies
+
+// AFTER: Minimal necessary dependencies
+const optimizedCallback = useCallback(() => {
+  calculateDiscount();
+}, [cart.length, selectedShipping?.rate, paymentMethod]); // ✅ Only essential dependencies
+
+// Use refs for non-reactive values
+const userRef = useRef(user);
+useEffect(() => { userRef.current = user; }, [user]);
+```
+
+### Progressive Discount Flow Pattern
+**Business Logic Pattern**: Sequential discount application for consistency
+
+```javascript
+// Universal progressive discount algorithm
+const calculateProgressiveDiscounts = (order) => {
+  let remainingAmount = order.subtotal;
+  const discounts = {};
+  
+  // 1. Apply AOV discount first (highest value, encourages bulk orders)
+  discounts.aov = calculateAOVDiscount(remainingAmount, order.quantity);
+  remainingAmount -= discounts.aov;
+  
+  // 2. Apply coupon discount to reduced amount
+  discounts.coupon = calculateCouponDiscount(remainingAmount, order.coupon);
+  remainingAmount -= discounts.coupon;
+  
+  // 3. Apply online payment discount to final reduced amount
+  discounts.onlinePayment = order.paymentMethod === 'online' 
+    ? Math.round(remainingAmount * 0.05) : 0;
+  remainingAmount -= discounts.onlinePayment;
+  
+  // 4. Apply reward points (cash equivalent)
+  discounts.rewards = Math.min(order.rewardPoints * 0.5, remainingAmount);
+  
+  return {
+    finalAmount: remainingAmount - discounts.rewards + order.shipping,
+    discountBreakdown: discounts,
+    totalSavings: Object.values(discounts).reduce((sum, val) => sum + val, 0)
+  };
+};
+```
+
+### Error Transparency Pattern
+**UX Pattern**: Clear, actionable error messages
+
+```javascript
+// BEFORE: Generic error messages
+catch (err) {
+  return res.status(400).json({ error: "Not able to store it in DB" }); // ❌ Unhelpful
+}
+
+// AFTER: Specific, actionable errors
+catch (err) {
+  if (err.code === 11000) {
+    const field = Object.keys(err.keyPattern)[0];
+    return res.status(400).json({
+      error: `${field === 'email' ? 'Email' : field} already exists. Please use a different ${field}.`,
+      code: 'DUPLICATE_EMAIL',
+      suggestion: 'Try signing in instead or use a different email address.'
+    });
+  }
+  
+  // More specific error handling...
+}
+```
+
+### Performance Monitoring Pattern
+**DevOps Pattern**: Track optimization results
+
+```javascript
+// Performance metrics tracking
+const PerformanceMonitor = {
+  trackAPICall: (endpoint, duration) => {
+    console.log(`API Call: ${endpoint} took ${duration}ms`);
+    // Send to analytics
+  },
+  
+  trackCalculationTime: (calculationType, startTime) => {
+    const duration = Date.now() - startTime;
+    console.log(`${calculationType} calculation: ${duration}ms`);
+  },
+  
+  trackUserAction: (action, metadata) => {
+    console.log(`User Action: ${action}`, metadata);
+  }
+};
+
+// Usage in components
+const CheckoutPage = () => {
+  useEffect(() => {
+    const startTime = Date.now();
+    
+    // Perform calculation
+    const result = calculateDiscounts();
+    
+    PerformanceMonitor.trackCalculationTime('discount', startTime);
+  }, []);
+};
+```
+
 ## Best Practices Summary
 
 1. **Always break large components into smaller modules**
@@ -1617,6 +1814,13 @@ Category.find({
 22. **Use dropdown navigation for better product discovery**
 23. **Ensure text visibility across all themes with proper contrast**
 24. **Add visual hierarchy with icons, badges, and gradients**
+25. **Eliminate infinite API calls with reference tracking**
+26. **Use global context for frequently accessed data**
+27. **Implement frontend UX with backend validation pattern**
+28. **Optimize React dependencies for performance**
+29. **Apply progressive discount flows for consistency**
+30. **Provide clear, actionable error messages**
+31. **Monitor and track performance optimizations**
 
 ## Testing Utilities
 
