@@ -1,5 +1,5 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Star, 
   Heart, 
@@ -25,6 +25,8 @@ import SizeChart from '../components/SizeChart';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { productCache } from '../utils/productCache';
+import SEOHead from '../components/SEOHead';
+import { SEOUtils } from '../seo/SEOUtils';
 
 // Lazy load heavy components to improve initial page load
 const ProductReviews = lazy(() => import('../components/ProductReviews'));
@@ -469,7 +471,23 @@ const ProductDetail: React.FC = () => {
   const discount = Math.round(((originalPrice - product.price) / originalPrice) * 100);
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+    <>
+      {/* Automatic SEO Optimization for every product */}
+      {product && (
+        <SEOHead 
+          product={product}
+          category={product.category?.name?.toLowerCase()}
+          includeOrganizationData={true}
+          breadcrumbs={[
+            { name: 'Home', url: '/' },
+            { name: 'Shop', url: '/shop' },
+            { name: product.category?.name || 'Products', url: `/category/${product.category?.name?.toLowerCase()}` },
+            { name: product.name, url: `/product/${product._id}` }
+          ]}
+        />
+      )}
+      
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
       {/* Breadcrumb */}
       <div className="w-[96%] md:w-[90%] mx-auto px-4 py-4">
         <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-textMuted)' }}>
@@ -1019,6 +1037,7 @@ const ProductDetail: React.FC = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

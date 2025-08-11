@@ -1,6 +1,7 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
-import { SEOPageData, DEFAULT_SEO, BASE_URL } from '../seo/SEOConfig';
+import { SEOPageData, DEFAULT_SEO, BASE_URL, ORGANIZATION_STRUCTURED_DATA, FAQ_STRUCTURED_DATA, getEnhancedProductStructuredData } from '../seo/SEOConfig';
+import { SEOUtils } from '../seo/SEOUtils';
 
 interface SEOHeadProps {
   pageData?: SEOPageData;
@@ -11,6 +12,13 @@ interface SEOHeadProps {
   ogImage?: string;
   structuredData?: any;
   noindex?: boolean;
+  // Enhanced props for AI platform optimization
+  product?: any;
+  category?: string;
+  pageName?: string;
+  includeOrganizationData?: boolean;
+  includeFAQData?: boolean;
+  breadcrumbs?: Array<{name: string, url: string}>;
 }
 
 const SEOHead: React.FC<SEOHeadProps> = ({
@@ -21,14 +29,56 @@ const SEOHead: React.FC<SEOHeadProps> = ({
   canonicalUrl,
   ogImage,
   structuredData,
-  noindex = false
+  noindex = false,
+  product,
+  category,
+  pageName,
+  includeOrganizationData = true,
+  includeFAQData = false,
+  breadcrumbs
 }) => {
-  const finalTitle = title || pageData?.title || DEFAULT_SEO.defaultTitle;
-  const finalDescription = description || pageData?.description || DEFAULT_SEO.defaultDescription;
-  const finalKeywords = keywords || pageData?.keywords || DEFAULT_SEO.defaultKeywords;
-  const finalOgImage = ogImage || pageData?.ogImage || DEFAULT_SEO.defaultOgImage;
-  const finalCanonicalUrl = canonicalUrl || pageData?.canonicalUrl;
-  const finalStructuredData = structuredData || pageData?.structuredData;
+  // Generate dynamic SEO data if product or page name provided
+  let dynamicSEOData = null;
+  if (product) {
+    dynamicSEOData = SEOUtils.getProductSEO(product, category);
+  } else if (pageName) {
+    dynamicSEOData = SEOUtils.getPageSEO(pageName);
+  }
+
+  const finalTitle = title || dynamicSEOData?.title || pageData?.title || DEFAULT_SEO.defaultTitle;
+  const finalDescription = description || dynamicSEOData?.description || pageData?.description || DEFAULT_SEO.defaultDescription;
+  const finalKeywords = keywords || dynamicSEOData?.keywords || pageData?.keywords || DEFAULT_SEO.defaultKeywords;
+  const finalOgImage = ogImage || dynamicSEOData?.ogImage || pageData?.ogImage || DEFAULT_SEO.defaultOgImage;
+  const finalCanonicalUrl = canonicalUrl || dynamicSEOData?.canonicalUrl || pageData?.canonicalUrl;
+
+  // Generate structured data array
+  const allStructuredData = [];
+  
+  if (includeOrganizationData) {
+    allStructuredData.push(ORGANIZATION_STRUCTURED_DATA);
+  }
+  
+  if (includeFAQData) {
+    allStructuredData.push(FAQ_STRUCTURED_DATA);
+  }
+  
+  if (product) {
+    allStructuredData.push(getEnhancedProductStructuredData(product, category));
+  }
+  
+  if (breadcrumbs) {
+    allStructuredData.push(SEOUtils.generateBreadcrumbs(window.location.pathname, product, { name: category }));
+  }
+  
+  if (structuredData) {
+    allStructuredData.push(structuredData);
+  }
+  
+  if (pageData?.structuredData) {
+    allStructuredData.push(pageData.structuredData);
+  }
+
+  const finalStructuredData = allStructuredData.length > 0 ? allStructuredData : null;
 
   return (
     <Helmet>
@@ -75,11 +125,11 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta name="geo.placename" content="India" />
       
       {/* Structured Data */}
-      {finalStructuredData && (
-        <script type="application/ld+json">
-          {JSON.stringify(finalStructuredData)}
+      {finalStructuredData && finalStructuredData.map((schema, index) => (
+        <script key={index} type="application/ld+json">
+          {JSON.stringify(schema)}
         </script>
-      )}
+      ))}
       
       {/* Facebook App ID */}
       {DEFAULT_SEO.facebookAppId && (

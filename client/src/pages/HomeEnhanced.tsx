@@ -428,9 +428,9 @@ const HomeEnhanced: React.FC = () => {
   return (
     <Base title="" description="">
       <SEOHead 
-        pageData={PAGE_SEO_DATA.home}
-        canonicalUrl={BASE_URL}
-        structuredData={ORGANIZATION_STRUCTURED_DATA}
+        pageName="home"
+        includeOrganizationData={true}
+        includeFAQData={true}
       />
       {/* Promotional Banner */}
       {showBanner && (
