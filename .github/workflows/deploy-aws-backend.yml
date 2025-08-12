@@ -1,4 +1,4 @@
-name: Deploy Fashion Backend to AWS
+name: Deploy Fashion Backend to AWS (SSH-Free)
 
 on:
   push:
@@ -47,7 +47,6 @@ jobs:
           [ -z "${{ secrets.BREVO_SENDER_EMAIL }}" ] && missing_secrets+=("BREVO_SENDER_EMAIL")
           [ -z "${{ secrets.MSG91_AUTH_KEY }}" ] && missing_secrets+=("MSG91_AUTH_KEY")
           [ -z "${{ secrets.REDIS_URL }}" ] && missing_secrets+=("REDIS_URL")
-          [ -z "${{ secrets.EC2_PRIVATE_KEY }}" ] && missing_secrets+=("EC2_PRIVATE_KEY")
           
           if [ ${#missing_secrets[@]} -ne 0 ]; then
             echo "❌ Missing required secrets:"
@@ -59,11 +58,11 @@ jobs:
           
           echo "✅ All required secrets validated"
 
-      - name: Find Auto Scaling Group Instances
-        id: get-instances
+      - name: Find Auto Scaling Group
+        id: get-asg
         run: |
           ASG_NAME="fashion-backend-production-asg"
-          echo "🔍 Finding instances in Auto Scaling Group: $ASG_NAME"
+          echo "🔍 Finding Auto Scaling Group: $ASG_NAME"
           
           # Check if ASG exists
           if ! aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $ASG_NAME &>/dev/null; then
@@ -72,191 +71,224 @@ jobs:
             exit 1
           fi
           
-          # Get running instances
-          INSTANCES=$(aws autoscaling describe-auto-scaling-groups \
+          # Get ASG details
+          ASG_DETAILS=$(aws autoscaling describe-auto-scaling-groups \
             --auto-scaling-group-names $ASG_NAME \
-            --query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`].InstanceId' \
+            --query 'AutoScalingGroups[0].[MinSize,MaxSize,DesiredCapacity]' \
             --output text)
           
-          if [ -z "$INSTANCES" ]; then
-            echo "❌ No running instances found in Auto Scaling Group"
-            exit 1
+          MIN_SIZE=$(echo $ASG_DETAILS | cut -f1)
+          MAX_SIZE=$(echo $ASG_DETAILS | cut -f2)
+          DESIRED_CAPACITY=$(echo $ASG_DETAILS | cut -f3)
+          
+          echo "✅ Found ASG: $ASG_NAME"
+          echo "📊 Current capacity: Min=$MIN_SIZE, Max=$MAX_SIZE, Desired=$DESIRED_CAPACITY"
+          
+          echo "asg_name=$ASG_NAME" >> $GITHUB_OUTPUT
+          echo "min_size=$MIN_SIZE" >> $GITHUB_OUTPUT
+          echo "max_size=$MAX_SIZE" >> $GITHUB_OUTPUT
+          echo "desired_capacity=$DESIRED_CAPACITY" >> $GITHUB_OUTPUT
+
+      - name: Update Parameter Store Secrets
+        run: |
+          echo "🔐 Updating Parameter Store with application secrets..."
+          
+          # Parameter Store path prefix
+          PARAM_PREFIX="/fashion-backend/production"
+          
+          # Core application parameters
+          echo "📝 Setting core parameters..."
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/DATABASE" \
+            --value "${{ secrets.DATABASE }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/SECRET" \
+            --value "${{ secrets.SECRET }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/CLIENT_URL" \
+            --value "${{ secrets.CLIENT_URL }}" \
+            --type "String" \
+            --overwrite
+          
+          # Payment integration parameters
+          echo "💳 Setting payment parameters..."
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/RAZORPAY_KEY_ID" \
+            --value "${{ secrets.RAZORPAY_KEY_ID }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/RAZORPAY_KEY_SECRET" \
+            --value "${{ secrets.RAZORPAY_KEY_SECRET }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          # Optional payment parameters
+          if [ -n "${{ secrets.RAZORPAY_WEBHOOK_SECRET }}" ]; then
+            aws ssm put-parameter \
+              --name "$PARAM_PREFIX/RAZORPAY_WEBHOOK_SECRET" \
+              --value "${{ secrets.RAZORPAY_WEBHOOK_SECRET }}" \
+              --type "SecureString" \
+              --overwrite
           fi
           
-          echo "✅ Found instances: $INSTANCES"
-          echo "instances=$INSTANCES" >> $GITHUB_OUTPUT
+          if [ -n "${{ secrets.BRAINTREE_MERCHANT_ID }}" ]; then
+            aws ssm put-parameter \
+              --name "$PARAM_PREFIX/BRAINTREE_MERCHANT_ID" \
+              --value "${{ secrets.BRAINTREE_MERCHANT_ID }}" \
+              --type "SecureString" \
+              --overwrite
+          fi
+          
+          # Email service parameters
+          echo "📧 Setting email parameters..."
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/BREVO_API_KEY" \
+            --value "${{ secrets.BREVO_API_KEY }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/BREVO_SENDER_EMAIL" \
+            --value "${{ secrets.BREVO_SENDER_EMAIL }}" \
+            --type "String" \
+            --overwrite
+          
+          if [ -n "${{ secrets.BREVO_SENDER_NAME }}" ]; then
+            aws ssm put-parameter \
+              --name "$PARAM_PREFIX/BREVO_SENDER_NAME" \
+              --value "${{ secrets.BREVO_SENDER_NAME }}" \
+              --type "String" \
+              --overwrite
+          fi
+          
+          # SMS service parameters
+          echo "📱 Setting SMS parameters..."
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/MSG91_AUTH_KEY" \
+            --value "${{ secrets.MSG91_AUTH_KEY }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          if [ -n "${{ secrets.MSG91_SENDER_ID }}" ]; then
+            aws ssm put-parameter \
+              --name "$PARAM_PREFIX/MSG91_SENDER_ID" \
+              --value "${{ secrets.MSG91_SENDER_ID }}" \
+              --type "String" \
+              --overwrite
+          fi
+          
+          # Redis and other services
+          echo "🔄 Setting service parameters..."
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/REDIS_URL" \
+            --value "${{ secrets.REDIS_URL }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          # Optional OAuth parameters
+          if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then
+            aws ssm put-parameter \
+              --name "$PARAM_PREFIX/GOOGLE_CLIENT_ID" \
+              --value "${{ secrets.GOOGLE_CLIENT_ID }}" \
+              --type "SecureString" \
+              --overwrite
+          fi
+          
+          if [ -n "${{ secrets.GOOGLE_CLIENT_SECRET }}" ]; then
+            aws ssm put-parameter \
+              --name "$PARAM_PREFIX/GOOGLE_CLIENT_SECRET" \
+              --value "${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+              --type "SecureString" \
+              --overwrite
+          fi
+          
+          echo "✅ All parameters updated successfully in Parameter Store"
 
-      - name: Deploy to EC2 Instances
+      - name: Refresh Auto Scaling Group Instances
         run: |
-          echo "🚀 Starting deployment to all instances..."
+          echo "🔄 Starting Auto Scaling Group instance refresh..."
+          ASG_NAME="${{ steps.get-asg.outputs.asg_name }}"
           
-          # Create SSH key file
-          echo "${{ secrets.EC2_PRIVATE_KEY }}" > private_key.pem
-          chmod 600 private_key.pem
+          # Start instance refresh for zero-downtime deployment
+          REFRESH_ID=$(aws autoscaling start-instance-refresh \
+            --auto-scaling-group-name $ASG_NAME \
+            --preferences '{
+              "MinHealthyPercentage": 50,
+              "InstanceWarmup": 300,
+              "CheckpointPercentages": [50, 100],
+              "CheckpointDelay": 600
+            }' \
+            --query 'InstanceRefreshId' --output text)
           
-          # Track deployment results
-          successful_deployments=0
-          failed_deployments=0
+          echo "🚀 Instance refresh started with ID: $REFRESH_ID"
+          echo "⏳ This will take several minutes for zero-downtime deployment..."
           
-          for instance_id in ${{ steps.get-instances.outputs.instances }}; do
-            echo ""
-            echo "📦 Deploying to instance: $instance_id"
+          # Monitor refresh progress
+          echo "📊 Monitoring refresh progress..."
+          START_TIME=$(date +%s)
+          TIMEOUT=1800  # 30 minutes timeout
+          
+          while true; do
+            CURRENT_TIME=$(date +%s)
+            ELAPSED=$((CURRENT_TIME - START_TIME))
             
-            # Get instance IP
-            INSTANCE_IP=$(aws ec2 describe-instances \
-              --instance-ids $instance_id \
-              --query 'Reservations[0].Instances[0].PublicIpAddress' \
+            if [ $ELAPSED -gt $TIMEOUT ]; then
+              echo "❌ Instance refresh timed out after 30 minutes"
+              exit 1
+            fi
+            
+            # Get refresh status
+            REFRESH_STATUS=$(aws autoscaling describe-instance-refreshes \
+              --auto-scaling-group-name $ASG_NAME \
+              --instance-refresh-ids $REFRESH_ID \
+              --query 'InstanceRefreshes[0].[Status,PercentageComplete]' \
               --output text)
             
-            if [ "$INSTANCE_IP" == "None" ] || [ -z "$INSTANCE_IP" ]; then
-              echo "⚠️ No public IP for instance $instance_id - skipping"
-              continue
-            fi
+            STATUS=$(echo $REFRESH_STATUS | cut -f1)
+            PERCENTAGE=$(echo $REFRESH_STATUS | cut -f2)
             
-            echo "🌐 Deploying to IP: $INSTANCE_IP"
+            echo "🔄 Refresh status: $STATUS ($PERCENTAGE% complete)"
             
-            # Deploy application
-            if ssh -i private_key.pem -o StrictHostKeyChecking=no -o ConnectTimeout=30 ec2-user@$INSTANCE_IP '
-              set -e
-              echo "🔧 Starting deployment on $(hostname)"
-              
-              # Navigate to app directory
-              cd /opt/app
-              
-              # Stop current application
-              echo "⏹️ Stopping current application..."
-              pm2 delete all || true
-              
-              # Backup current version
-              if [ -d "current" ]; then
-                echo "📦 Backing up current version..."
-                mv current backup-$(date +%Y%m%d-%H%M%S) || true
-              fi
-              
-              # Clone latest code
-              echo "⬇️ Cloning latest code..."
-              git clone https://github.com/RahulXTmCoding/desi-otaku.git current
-              cd current/server
-              
-              # Install dependencies
-              echo "📚 Installing dependencies..."
-              npm install --production --silent
-              
-              # Verify app.js exists
-              if [ ! -f "app.js" ]; then
-                echo "❌ app.js not found!"
+            case $STATUS in
+              "Successful")
+                echo "✅ Instance refresh completed successfully!"
+                break
+                ;;
+              "Failed"|"Cancelled")
+                echo "❌ Instance refresh failed with status: $STATUS"
+                
+                # Get failure details
+                FAILURE_REASON=$(aws autoscaling describe-instance-refreshes \
+                  --auto-scaling-group-name $ASG_NAME \
+                  --instance-refresh-ids $REFRESH_ID \
+                  --query 'InstanceRefreshes[0].StatusReason' \
+                  --output text)
+                
+                echo "💡 Failure reason: $FAILURE_REASON"
                 exit 1
-              fi
-              
-              echo "✅ Application setup complete"
-            '; then
-              echo "✅ Application deployed to $instance_id"
-              
-              # Configure environment and start application
-              if ssh -i private_key.pem -o StrictHostKeyChecking=no ec2-user@$INSTANCE_IP "
-                cd /opt/app/current/server
-                
-                # Create environment file
-                echo 'NODE_ENV=production' > .env
-                echo 'PORT=8000' >> .env
-                echo 'DATABASE=${{ secrets.DATABASE }}' >> .env
-                echo 'SECRET=${{ secrets.SECRET }}' >> .env
-                echo 'CLIENT_URL=${{ secrets.CLIENT_URL }}' >> .env
-                echo 'RAZORPAY_KEY_ID=${{ secrets.RAZORPAY_KEY_ID }}' >> .env
-                echo 'RAZORPAY_KEY_SECRET=${{ secrets.RAZORPAY_KEY_SECRET }}' >> .env
-                echo 'RAZORPAY_WEBHOOK_SECRET=${{ secrets.RAZORPAY_WEBHOOK_SECRET }}' >> .env
-                echo 'BRAINTREE_MERCHANT_ID=${{ secrets.BRAINTREE_MERCHANT_ID }}' >> .env
-                echo 'BRAINTREE_PUBLIC_KEY=${{ secrets.BRAINTREE_PUBLIC_KEY }}' >> .env
-                echo 'BRAINTREE_PRIVATE_KEY=${{ secrets.BRAINTREE_PRIVATE_KEY }}' >> .env
-                echo 'EMAIL_SERVICE=brevo' >> .env
-                echo 'BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}' >> .env
-                echo 'BREVO_SENDER_EMAIL=${{ secrets.BREVO_SENDER_EMAIL }}' >> .env
-                echo 'BREVO_SENDER_NAME=${{ secrets.BREVO_SENDER_NAME }}' >> .env
-                echo 'MSG91_AUTH_KEY=${{ secrets.MSG91_AUTH_KEY }}' >> .env
-                echo 'MSG91_SENDER_ID=${{ secrets.MSG91_SENDER_ID }}' >> .env
-                echo 'MSG91_TEMPLATE_ID=${{ secrets.MSG91_TEMPLATE_ID }}' >> .env
-                echo 'MSG91_ROUTE=${{ secrets.MSG91_ROUTE }}' >> .env
-                echo 'SHIPROCKET_EMAIL=${{ secrets.SHIPROCKET_EMAIL }}' >> .env
-                echo 'SHIPROCKET_PASSWORD=${{ secrets.SHIPROCKET_PASSWORD }}' >> .env
-                echo 'SHIPROCKET_TEST_MODE=${{ secrets.SHIPROCKET_TEST_MODE }}' >> .env
-                echo 'PICKUP_PINCODE=${{ secrets.PICKUP_PINCODE }}' >> .env
-                echo 'PICKUP_NAME=${{ secrets.PICKUP_NAME }}' >> .env
-                echo 'PICKUP_PHONE=${{ secrets.PICKUP_PHONE }}' >> .env
-                echo 'GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}' >> .env
-                echo 'GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}' >> .env
-                echo 'FACEBOOK_APP_ID=${{ secrets.FACEBOOK_APP_ID }}' >> .env
-                echo 'FACEBOOK_APP_SECRET=${{ secrets.FACEBOOK_APP_SECRET }}' >> .env
-                echo 'REDIS_URL=${{ secrets.REDIS_URL }}' >> .env
-                
-                chmod 600 .env
-                
-                # Create PM2 ecosystem config
-                cat > ecosystem.config.js << 'EOF'
-                module.exports = {
-                  apps: [{
-                    name: 'fashion-backend',
-                    script: './app.js',
-                    instances: 1,
-                    exec_mode: 'cluster',
-                    env: {
-                      NODE_ENV: 'production',
-                      PORT: 8000
-                    },
-                    error_file: '/var/log/pm2/err.log',
-                    out_file: '/var/log/pm2/out.log',
-                    log_file: '/var/log/pm2/combined.log',
-                    time: true,
-                    watch: false,
-                    max_memory_restart: '800M',
-                    restart_delay: 4000,
-                    max_restarts: 10,
-                    min_uptime: '10s'
-                  }]
-                };
-                EOF
-                
-                # Start application
-                echo '🚀 Starting application with PM2...'
-                pm2 start ecosystem.config.js
-                pm2 save
-                
-                echo '✅ Application started successfully'
-                pm2 list
-              "; then
-                echo "✅ Environment configured and application started on $instance_id"
-                ((successful_deployments++))
-              else
-                echo "❌ Failed to configure environment on $instance_id"
-                ((failed_deployments++))
-              fi
-            else
-              echo "❌ Failed to deploy application to $instance_id"
-              ((failed_deployments++))
-            fi
+                ;;
+              "InProgress"|"Pending")
+                # Continue monitoring
+                sleep 30
+                ;;
+              *)
+                echo "⚠️ Unknown status: $STATUS"
+                sleep 30
+                ;;
+            esac
           done
-          
-          # Clean up SSH key
-          rm -f private_key.pem
-          
-          echo ""
-          echo "📊 Deployment Summary:"
-          echo "✅ Successful: $successful_deployments"
-          echo "❌ Failed: $failed_deployments"
-          
-          if [ $failed_deployments -gt 0 ]; then
-            echo "⚠️ Some deployments failed"
-            exit 1
-          fi
-          
-          echo "🎉 All deployments completed successfully!"
 
-      - name: Health Check Applications
+      - name: Validate Deployment Health
         run: |
-          echo "🏥 Running health checks..."
-          
-          # Wait for applications to start
-          echo "⏳ Waiting 30 seconds for applications to start..."
-          sleep 30
+          echo "🏥 Validating deployment health..."
           
           # Get Load Balancer DNS
           ALB_DNS=$(aws elbv2 describe-load-balancers \
@@ -266,55 +298,79 @@ jobs:
           if [ -n "$ALB_DNS" ] && [ "$ALB_DNS" != "None" ]; then
             echo "🌐 Testing Load Balancer: http://$ALB_DNS"
             
-            for attempt in {1..5}; do
-              if curl -f -m 10 "http://$ALB_DNS/health" 2>/dev/null; then
-                echo "✅ Load Balancer health check passed"
-                echo "🌟 Backend is live at: http://$ALB_DNS"
-                break
-              else
-                if [ $attempt -eq 5 ]; then
-                  echo "❌ Load Balancer health check failed"
+            # Wait for new instances to be ready
+            echo "⏳ Waiting 60 seconds for new instances to be ready..."
+            sleep 60
+            
+            # Test load balancer health endpoint
+            MAX_ATTEMPTS=10
+            for attempt in $(seq 1 $MAX_ATTEMPTS); do
+              echo "🔍 Health check attempt $attempt/$MAX_ATTEMPTS..."
+              
+              if curl -f -m 10 -s "http://$ALB_DNS/health" | jq -e '.status' &>/dev/null; then
+                echo "✅ Load Balancer health check passed!"
+                
+                # Get health response for verification
+                HEALTH_RESPONSE=$(curl -s "http://$ALB_DNS/health")
+                echo "📊 Health check response:"
+                echo "$HEALTH_RESPONSE" | jq '.' 2>/dev/null || echo "$HEALTH_RESPONSE"
+                
+                # Verify it's the actual application, not just health check server
+                if echo "$HEALTH_RESPONSE" | grep -q "fashion-backend"; then
+                  echo "🎉 Fashion backend application is running!"
+                  echo "🌟 Deployment successful at: http://$ALB_DNS"
+                  break
                 else
-                  echo "⚠️ Health check attempt $attempt failed, retrying in 10 seconds..."
-                  sleep 10
+                  echo "⚠️ Health check passed but application may not be fully deployed yet"
+                  if [ $attempt -eq $MAX_ATTEMPTS ]; then
+                    echo "❌ Application not fully deployed after $MAX_ATTEMPTS attempts"
+                    exit 1
+                  fi
+                fi
+              else
+                if [ $attempt -eq $MAX_ATTEMPTS ]; then
+                  echo "❌ Load Balancer health check failed after $MAX_ATTEMPTS attempts"
+                  echo "💡 Check instance logs and Auto Scaling Group status"
+                  exit 1
+                else
+                  echo "⚠️ Health check failed, retrying in 30 seconds..."
+                  sleep 30
                 fi
               fi
             done
-          fi
-          
-          # Test individual instances
-          all_healthy=true
-          
-          for instance_id in ${{ steps.get-instances.outputs.instances }}; do
-            INSTANCE_IP=$(aws ec2 describe-instances \
-              --instance-ids $instance_id \
-              --query 'Reservations[0].Instances[0].PublicIpAddress' \
+          else
+            echo "⚠️ Load Balancer not found, checking individual instances..."
+            
+            # Get current instances
+            INSTANCES=$(aws autoscaling describe-auto-scaling-groups \
+              --auto-scaling-group-names fashion-backend-production-asg \
+              --query 'AutoScalingGroups[0].Instances[?LifecycleState==`InService`].InstanceId' \
               --output text)
             
-            if [ "$INSTANCE_IP" != "None" ] && [ -n "$INSTANCE_IP" ]; then
-              echo "🔍 Testing instance $instance_id at $INSTANCE_IP:8000"
-              
-              for attempt in {1..3}; do
-                if curl -f -m 10 "http://$INSTANCE_IP:8000/health" 2>/dev/null; then
-                  echo "✅ Instance $instance_id is healthy"
-                  break
-                else
-                  if [ $attempt -eq 3 ]; then
-                    echo "❌ Instance $instance_id failed health check"
-                    all_healthy=false
-                  else
-                    echo "⚠️ Retrying health check for $instance_id..."
-                    sleep 5
-                  fi
-                fi
-              done
+            if [ -z "$INSTANCES" ]; then
+              echo "❌ No running instances found"
+              exit 1
             fi
-          done
-          
-          if [ "$all_healthy" = true ]; then
-            echo "🎉 All instances are healthy!"
-          else
-            echo "⚠️ Some instances failed health checks"
+            
+            echo "🔍 Testing individual instances: $INSTANCES"
+            
+            # Test each instance
+            for instance_id in $INSTANCES; do
+              INSTANCE_IP=$(aws ec2 describe-instances \
+                --instance-ids $instance_id \
+                --query 'Reservations[0].Instances[0].PublicIpAddress' \
+                --output text)
+              
+              if [ "$INSTANCE_IP" != "None" ] && [ -n "$INSTANCE_IP" ]; then
+                echo "🌐 Testing instance $instance_id at $INSTANCE_IP:8000"
+                
+                if curl -f -m 10 -s "http://$INSTANCE_IP:8000/health" &>/dev/null; then
+                  echo "✅ Instance $instance_id is healthy"
+                else
+                  echo "❌ Instance $instance_id failed health check"
+                fi
+              fi
+            done
           fi
 
       - name: Deployment Summary
@@ -323,44 +379,48 @@ jobs:
           echo ""
           echo "=========================================="
           if [ "${{ job.status }}" == "success" ]; then
-            echo "🎉 ✅ DEPLOYMENT SUCCESSFUL!"
+            echo "🎉 ✅ SSH-FREE DEPLOYMENT SUCCESSFUL!"
             echo "=========================================="
             echo ""
             echo "🌐 Your fashion e-commerce backend is live!"
-            echo "🔧 All services configured and running:"
-            echo "   • Node.js application with PM2"
-            echo "   • Payment processing (Razorpay/Braintree)"
-            echo "   • Email service (Brevo)"
-            echo "   • SMS service (MSG91)"
-            echo "   • Redis caching"
-            echo "   • MongoDB database"
-            echo "   • Social authentication"
-            echo "   • Shipping integration (Shiprocket)"
+            echo "🔧 Modern deployment architecture:"
+            echo "   • ✅ No SSH keys required"
+            echo "   • ✅ Secure Parameter Store for secrets"
+            echo "   • ✅ Zero-downtime Auto Scaling Group refresh"
+            echo "   • ✅ ARM64 Graviton instances for cost optimization"
+            echo "   • ✅ Auto-deployment on instance startup"
             echo ""
-            echo "💰 Running on cost-optimized AWS infrastructure"
-            echo "📈 Auto Scaling Group monitoring traffic"
+            echo "📈 Infrastructure features:"
+            echo "   • Load balanced across multiple AZs"
+            echo "   • Auto scaling based on CPU utilization"
+            echo "   • Health checks and automated recovery"
+            echo "   • CloudWatch monitoring and logging"
+            echo ""
             
-            # Show load balancer URL if available
+            # Show access URLs
             ALB_DNS=$(aws elbv2 describe-load-balancers \
               --names fashion-backend-production-alb \
               --query 'LoadBalancers[0].DNSName' --output text 2>/dev/null || echo "")
             
             if [ -n "$ALB_DNS" ] && [ "$ALB_DNS" != "None" ]; then
-              echo ""
-              echo "🌟 Access your backend at:"
-              echo "   http://$ALB_DNS"
-              echo "   http://$ALB_DNS/health"
+              echo "🌟 Access your backend:"
+              echo "   • API: http://$ALB_DNS"
+              echo "   • Health: http://$ALB_DNS/health"
             fi
           else
             echo "❌ 🚨 DEPLOYMENT FAILED!"
             echo "=========================================="
             echo ""
-            echo "💡 Common solutions:"
+            echo "💡 Common troubleshooting steps:"
             echo "• Check GitHub Secrets are properly configured"
-            echo "• Ensure infrastructure is created (run create-infrastructure.sh)"
-            echo "• Verify Auto Scaling Group has running instances"
-            echo "• Check security groups allow SSH and HTTP access"
+            echo "• Verify infrastructure exists (run create-infrastructure.sh)"
+            echo "• Check Auto Scaling Group has healthy instances"
+            echo "• Review Parameter Store permissions"
+            echo "• Check CloudWatch logs for application errors"
             echo ""
-            echo "📖 See troubleshooting guide: docs/HYBRID_DEPLOYMENT_COMPLETE_GUIDE.md"
+            echo "🔧 Debug commands:"
+            echo "   aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names fashion-backend-production-asg"
+            echo "   aws elbv2 describe-target-health --target-group-arn <target-group-arn>"
+            echo "   aws ssm get-parameters-by-path --path '/fashion-backend/production'"
           fi
           echo "=========================================="

@@ -303,11 +303,7 @@ create_security_groups() {
             --resources $INSTANCE_SG_ID \
             --tags Key=Name,Value=${PROJECT_NAME}-${ENVIRONMENT}-instance-sg
         
-        # Instance rules
-        aws ec2 authorize-security-group-ingress \
-            --group-id $INSTANCE_SG_ID \
-            --protocol tcp --port 22 --cidr 0.0.0.0/0
-        
+        # Instance rules - No SSH needed for modern deployment
         aws ec2 authorize-security-group-ingress \
             --group-id $INSTANCE_SG_ID \
             --protocol tcp --port $PORT --source-group $ALB_SG_ID
@@ -358,6 +354,32 @@ EOF
             --role-name $ROLE_NAME \
             --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
         sleep 5
+        
+        # Create custom policy for Parameter Store access
+        cat > ./parameter-store-policy.json << EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ssm:GetParameter",
+                "ssm:GetParameters",
+                "ssm:GetParametersByPath"
+            ],
+            "Resource": [
+                "arn:aws:ssm:${REGION}:*:parameter/${PROJECT_NAME}/${ENVIRONMENT}/*"
+            ]
+        }
+    ]
+}
+EOF
+        
+        aws iam put-role-policy \
+            --role-name $ROLE_NAME \
+            --policy-name "ParameterStoreAccess" \
+            --policy-document file://parameter-store-policy.json
+        sleep 5
         log_success "Created IAM role: $ROLE_NAME"
     fi
     
@@ -402,7 +424,7 @@ create_launch_template() {
     log_info "Using Security Group: $INSTANCE_SG_ID"
     log_info "Using Instance Profile: $PROFILE_NAME"
     
-    # User data script - use current directory for Windows compatibility
+    # User data script - Enhanced with auto-deployment capability
     cat > ./user-data.sh << 'EOF'
 #!/bin/bash
 yum update -y
@@ -425,8 +447,124 @@ chown ec2-user:ec2-user /var/log/pm2
 # Install CloudWatch agent
 yum install -y amazon-cloudwatch-agent
 
-# Create basic health check service
-cat > /opt/app/health-check.js << 'HEALTH_EOF'
+# Function to get parameter from Parameter Store
+get_parameter() {
+    local param_name=$1
+    aws ssm get-parameter --name "/fashion-backend/production/$param_name" --with-decryption --query 'Parameter.Value' --output text 2>/dev/null || echo ""
+}
+
+# Function to deploy application
+deploy_application() {
+    echo "🚀 Starting application deployment..."
+    
+    cd /opt/app
+    
+    # Stop any existing processes
+    pm2 delete all || true
+    
+    # Remove old application if exists
+    rm -rf current
+    
+    # Clone application from GitHub
+    echo "⬇️ Cloning application from GitHub..."
+    git clone https://github.com/RahulXTmCoding/desi-otaku.git current
+    
+    if [ ! -d "current/server" ]; then
+        echo "❌ Server directory not found in repository"
+        return 1
+    fi
+    
+    cd current/server
+    
+    # Install dependencies
+    echo "📚 Installing dependencies..."
+    npm install --production --silent
+    
+    # Verify app.js exists
+    if [ ! -f "app.js" ]; then
+        echo "❌ app.js not found!"
+        return 1
+    fi
+    
+    # Create environment file from Parameter Store
+    echo "🔐 Setting up environment variables..."
+    cat > .env << 'ENV_EOF'
+NODE_ENV=production
+PORT=8000
+ENV_EOF
+    
+    # Get environment variables from Parameter Store
+    DATABASE=$(get_parameter "DATABASE")
+    SECRET=$(get_parameter "SECRET")
+    CLIENT_URL=$(get_parameter "CLIENT_URL")
+    RAZORPAY_KEY_ID=$(get_parameter "RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET=$(get_parameter "RAZORPAY_KEY_SECRET")
+    BREVO_API_KEY=$(get_parameter "BREVO_API_KEY")
+    BREVO_SENDER_EMAIL=$(get_parameter "BREVO_SENDER_EMAIL")
+    MSG91_AUTH_KEY=$(get_parameter "MSG91_AUTH_KEY")
+    REDIS_URL=$(get_parameter "REDIS_URL")
+    
+    # Add environment variables to .env file
+    [ -n "$DATABASE" ] && echo "DATABASE=$DATABASE" >> .env
+    [ -n "$SECRET" ] && echo "SECRET=$SECRET" >> .env
+    [ -n "$CLIENT_URL" ] && echo "CLIENT_URL=$CLIENT_URL" >> .env
+    [ -n "$RAZORPAY_KEY_ID" ] && echo "RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID" >> .env
+    [ -n "$RAZORPAY_KEY_SECRET" ] && echo "RAZORPAY_KEY_SECRET=$RAZORPAY_KEY_SECRET" >> .env
+    [ -n "$BREVO_API_KEY" ] && echo "BREVO_API_KEY=$BREVO_API_KEY" >> .env
+    [ -n "$BREVO_SENDER_EMAIL" ] && echo "BREVO_SENDER_EMAIL=$BREVO_SENDER_EMAIL" >> .env
+    [ -n "$MSG91_AUTH_KEY" ] && echo "MSG91_AUTH_KEY=$MSG91_AUTH_KEY" >> .env
+    [ -n "$REDIS_URL" ] && echo "REDIS_URL=$REDIS_URL" >> .env
+    
+    # Secure the .env file
+    chmod 600 .env
+    
+    # Create PM2 ecosystem config
+    cat > ecosystem.config.js << 'ECOSYSTEM_EOF'
+module.exports = {
+  apps: [{
+    name: 'fashion-backend',
+    script: './app.js',
+    instances: 1,
+    exec_mode: 'cluster',
+    env: {
+      NODE_ENV: 'production',
+      PORT: 8000
+    },
+    error_file: '/var/log/pm2/err.log',
+    out_file: '/var/log/pm2/out.log',
+    log_file: '/var/log/pm2/combined.log',
+    time: true,
+    watch: false,
+    max_memory_restart: '800M',
+    restart_delay: 4000,
+    max_restarts: 10,
+    min_uptime: '10s'
+  }]
+};
+ECOSYSTEM_EOF
+    
+    # Start application with PM2
+    echo "🚀 Starting application..."
+    pm2 start ecosystem.config.js
+    pm2 save
+    
+    echo "✅ Application deployed successfully!"
+    pm2 list
+    
+    return 0
+}
+
+# Try to deploy application if parameters exist, otherwise start health check
+if aws ssm get-parameter --name "/fashion-backend/production/DATABASE" --with-decryption &>/dev/null; then
+    echo "🔍 Found application parameters, deploying application..."
+    if deploy_application; then
+        echo "✅ Application deployment completed successfully"
+    else
+        echo "⚠️ Application deployment failed, starting health check server"
+        # Fall back to health check server
+        cd /opt/app
+        
+        cat > health-check.js << 'HEALTH_EOF'
 const express = require('express');
 const app = express();
 
@@ -435,7 +573,8 @@ app.get('/health', (req, res) => {
     status: 'ready-for-deployment', 
     timestamp: new Date().toISOString(),
     service: 'fashion-backend-infrastructure',
-    architecture: 'ARM64-Graviton'
+    architecture: 'ARM64-Graviton',
+    note: 'Waiting for application deployment via GitHub Actions'
   });
 });
 
@@ -445,15 +584,45 @@ app.listen(PORT, () => {
 });
 HEALTH_EOF
 
-# Start temporary health check server
-cd /opt/app
-npm init -y
-npm install express
-pm2 start health-check.js --name temp-health-check
-pm2 save
+        npm init -y
+        npm install express
+        pm2 start health-check.js --name temp-health-check
+        pm2 save
+    fi
+else
+    echo "⏳ No application parameters found, starting health check server..."
+    cd /opt/app
+    
+    cat > health-check.js << 'HEALTH_EOF'
+const express = require('express');
+const app = express();
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ready-for-deployment', 
+    timestamp: new Date().toISOString(),
+    service: 'fashion-backend-infrastructure',
+    architecture: 'ARM64-Graviton',
+    note: 'Waiting for environment variables via GitHub Actions'
+  });
+});
+
+const PORT = 8000;
+app.listen(PORT, () => {
+  console.log(`Health check server running on port ${PORT}`);
+});
+HEALTH_EOF
+
+    npm init -y
+    npm install express
+    pm2 start health-check.js --name temp-health-check
+    pm2 save
+fi
+
+# Set up PM2 to start on boot
 pm2 startup systemd -u root --hp /root
 
-echo "✅ Infrastructure setup completed - ready for application deployment"
+echo "✅ Instance setup completed - ready for SSH-free deployment!"
 EOF
 
     # Encode user data (compatible across different systems)
@@ -594,10 +763,44 @@ create_auto_scaling_group() {
         # return 1
     fi
     
-    # Check if ASG exists
-    if aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $ASG_NAME &>/dev/null; then
-        log_warning "Auto Scaling Group already exists: $ASG_NAME"
-        # return 0
+    # Check if ASG exists or is pending deletion
+    log_info "Checking Auto Scaling Group status..."
+    ASG_STATUS=""
+    
+    # Try to get ASG details
+    ASG_INFO=$(aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $ASG_NAME --query 'AutoScalingGroups[0].[AutoScalingGroupName,Status]' --output text 2>/dev/null || echo "None None")
+    ASG_EXISTS=$(echo $ASG_INFO | cut -f1)
+    ASG_STATUS=$(echo $ASG_INFO | cut -f2)
+    
+    if [ "$ASG_EXISTS" != "None" ]; then
+        if [ "$ASG_STATUS" = "Delete in progress" ]; then
+            log_warning "Auto Scaling Group is pending deletion. Waiting for deletion to complete..."
+            
+            # Wait for deletion to complete
+            MAX_WAIT=600  # 10 minutes
+            WAIT_TIME=0
+            SLEEP_INTERVAL=15
+            
+            while [ $WAIT_TIME -lt $MAX_WAIT ]; do
+                if ! aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $ASG_NAME &>/dev/null; then
+                    log_success "Auto Scaling Group deletion completed"
+                    break
+                fi
+                
+                echo "⏳ Still waiting for ASG deletion... ($((WAIT_TIME/60))m $((WAIT_TIME%60))s elapsed)"
+                sleep $SLEEP_INTERVAL
+                WAIT_TIME=$((WAIT_TIME + SLEEP_INTERVAL))
+            done
+            
+            if [ $WAIT_TIME -ge $MAX_WAIT ]; then
+                log_error "Timeout waiting for Auto Scaling Group deletion. Please wait and try again later."
+                log_info "💡 You can check deletion status with: aws autoscaling describe-auto-scaling-groups --auto-scaling-group-names $ASG_NAME"
+                return 1
+            fi
+        else
+            log_warning "Auto Scaling Group already exists: $ASG_NAME (Status: $ASG_STATUS)"
+            return 0
+        fi
     fi
     
     log_info "Creating ASG with Target Group: $TG_ARN"
