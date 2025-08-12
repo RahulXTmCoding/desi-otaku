@@ -60,7 +60,7 @@ const Header: React.FC = () => {
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
             <div className="relative w-10 h-10 flex items-center justify-center transform group-hover:scale-110 transition-transform rounded-xl overflow-hidden">
-              <img src="/logo.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
+              <img src="/logo512.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
             </div>
           </div>
           <div className="hidden sm:block">
@@ -249,7 +249,7 @@ const Header: React.FC = () => {
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
             <div className="flex items-center space-x-2">
               <div className="w-8 h-8 flex items-center justify-center rounded-lg overflow-hidden">
-                <img src="/logo.png" alt="Attars Clothing Logo" className="w-8 h-8 object-contain" />
+                <img src="/logo512.png" alt="Attars Clothing Logo" className="w-8 h-8 object-contain" />
               </div>
               <span className="text-xl font-bold text-white">Attars</span>
             </div>

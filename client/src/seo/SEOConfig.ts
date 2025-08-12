@@ -285,7 +285,7 @@ export const ORGANIZATION_STRUCTURED_DATA = {
   '@type': 'Organization',
   name: 'Attars Clothing',
   url: BASE_URL,
-  logo: `${BASE_URL}/logo.png`,
+  logo: `${BASE_URL}/logo512.png`,
   description: 'Premium fashion store offering designer apparel, contemporary clothing, and curated fashion pieces',
   sameAs: [
     'https://www.facebook.com/attarsclothing',

@@ -8,7 +8,7 @@ const Footer: React.FC = () => {
         <div>
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden">
-              <img src="/logo.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
+              <img src="/logo512.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
             </div>
             <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent tracking-wide" style={{ fontFamily: 'Playfair Display, serif' }}>
               Attars
