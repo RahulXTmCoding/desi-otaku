@@ -102,7 +102,6 @@ app.use("/api", productRoutes);
 app.use("/api", designRoutes);
 app.use("/api", orderRoutes);
 app.use("/api", paymentBRoutes);
-// app.use("/api", stripePaymentRoutes);
 app.use("/api", passwordResetRoutes);
 app.use("/api", wishlistRoutes);
 app.use("/api", reviewRoutes);
