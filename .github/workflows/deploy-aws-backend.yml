@@ -258,7 +258,7 @@ jobs:
             echo "🔄 Refresh status: $STATUS ($PERCENTAGE% complete)"
             
             case $STATUS in
-              "Successful")
+              "Successful 100")
                 echo "✅ Instance refresh completed successfully!"
                 break
                 ;;
