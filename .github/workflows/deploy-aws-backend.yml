@@ -105,6 +105,12 @@ jobs:
             --overwrite
           
           aws ssm put-parameter \
+            --name "$PARAM_PREFIX/PORT" \
+            --value "${{ secrets.PORT }}" \
+            --type "String" \
+            --overwrite
+          
+          aws ssm put-parameter \
             --name "$PARAM_PREFIX/SECRET" \
             --value "${{ secrets.SECRET }}" \
             --type "SecureString" \
@@ -119,6 +125,24 @@ jobs:
           # Payment integration parameters
           echo "💳 Setting payment parameters..."
           aws ssm put-parameter \
+            --name "$PARAM_PREFIX/BRAINTREE_MERCHANT_ID" \
+            --value "${{ secrets.BRAINTREE_MERCHANT_ID }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/BRAINTREE_PUBLIC_KEY" \
+            --value "${{ secrets.BRAINTREE_PUBLIC_KEY }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/BRAINTREE_PRIVATE_KEY" \
+            --value "${{ secrets.BRAINTREE_PRIVATE_KEY }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
             --name "$PARAM_PREFIX/RAZORPAY_KEY_ID" \
             --value "${{ secrets.RAZORPAY_KEY_ID }}" \
             --type "SecureString" \
@@ -130,7 +154,6 @@ jobs:
             --type "SecureString" \
             --overwrite
           
-          # Optional payment parameters
           if [ -n "${{ secrets.RAZORPAY_WEBHOOK_SECRET }}" ]; then
             aws ssm put-parameter \
               --name "$PARAM_PREFIX/RAZORPAY_WEBHOOK_SECRET" \
@@ -139,16 +162,52 @@ jobs:
               --overwrite
           fi
           
-          if [ -n "${{ secrets.BRAINTREE_MERCHANT_ID }}" ]; then
-            aws ssm put-parameter \
-              --name "$PARAM_PREFIX/BRAINTREE_MERCHANT_ID" \
-              --value "${{ secrets.BRAINTREE_MERCHANT_ID }}" \
-              --type "SecureString" \
-              --overwrite
-          fi
+          # Shipping parameters
+          echo "📦 Setting shipping parameters..."
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/SHIPROCKET_EMAIL" \
+            --value "${{ secrets.SHIPROCKET_EMAIL }}" \
+            --type "String" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/SHIPROCKET_PASSWORD" \
+            --value "${{ secrets.SHIPROCKET_PASSWORD }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/SHIPROCKET_TEST_MODE" \
+            --value "${{ secrets.SHIPROCKET_TEST_MODE }}" \
+            --type "String" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/PICKUP_PINCODE" \
+            --value "${{ secrets.PICKUP_PINCODE }}" \
+            --type "String" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/PICKUP_NAME" \
+            --value "${{ secrets.PICKUP_NAME }}" \
+            --type "String" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/PICKUP_PHONE" \
+            --value "${{ secrets.PICKUP_PHONE }}" \
+            --type "String" \
+            --overwrite
           
           # Email service parameters
           echo "📧 Setting email parameters..."
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/EMAIL_SERVICE" \
+            --value "${{ secrets.EMAIL_SERVICE }}" \
+            --type "String" \
+            --overwrite
+          
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/BREVO_API_KEY" \
             --value "${{ secrets.BREVO_API_KEY }}" \
@@ -161,39 +220,14 @@ jobs:
             --type "String" \
             --overwrite
           
-          if [ -n "${{ secrets.BREVO_SENDER_NAME }}" ]; then
-            aws ssm put-parameter \
-              --name "$PARAM_PREFIX/BREVO_SENDER_NAME" \
-              --value "${{ secrets.BREVO_SENDER_NAME }}" \
-              --type "String" \
-              --overwrite
-          fi
-          
-          # SMS service parameters
-          echo "📱 Setting SMS parameters..."
           aws ssm put-parameter \
-            --name "$PARAM_PREFIX/MSG91_AUTH_KEY" \
-            --value "${{ secrets.MSG91_AUTH_KEY }}" \
-            --type "SecureString" \
+            --name "$PARAM_PREFIX/BREVO_SENDER_NAME" \
+            --value "${{ secrets.BREVO_SENDER_NAME }}" \
+            --type "String" \
             --overwrite
           
-          if [ -n "${{ secrets.MSG91_SENDER_ID }}" ]; then
-            aws ssm put-parameter \
-              --name "$PARAM_PREFIX/MSG91_SENDER_ID" \
-              --value "${{ secrets.MSG91_SENDER_ID }}" \
-              --type "String" \
-              --overwrite
-          fi
-          
-          # Redis and other services
-          echo "🔄 Setting service parameters..."
-          aws ssm put-parameter \
-            --name "$PARAM_PREFIX/REDIS_URL" \
-            --value "${{ secrets.REDIS_URL }}" \
-            --type "SecureString" \
-            --overwrite
-          
-          # Optional OAuth parameters
+          # OAuth parameters
+          echo "🔐 Setting OAuth parameters..."
           if [ -n "${{ secrets.GOOGLE_CLIENT_ID }}" ]; then
             aws ssm put-parameter \
               --name "$PARAM_PREFIX/GOOGLE_CLIENT_ID" \
@@ -209,6 +243,60 @@ jobs:
               --type "SecureString" \
               --overwrite
           fi
+          
+          if [ -n "${{ secrets.FACEBOOK_APP_ID }}" ]; then
+            aws ssm put-parameter \
+              --name "$PARAM_PREFIX/FACEBOOK_APP_ID" \
+              --value "${{ secrets.FACEBOOK_APP_ID }}" \
+              --type "SecureString" \
+              --overwrite
+          fi
+          
+          if [ -n "${{ secrets.FACEBOOK_APP_SECRET }}" ]; then
+            aws ssm put-parameter \
+              --name "$PARAM_PREFIX/FACEBOOK_APP_SECRET" \
+              --value "${{ secrets.FACEBOOK_APP_SECRET }}" \
+              --type "SecureString" \
+              --overwrite
+          fi
+          
+          # Redis and SMS parameters
+          echo "📱 Setting SMS & Redis parameters..."
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/REDIS_URL" \
+            --value "${{ secrets.REDIS_URL }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/MSG91_AUTH_KEY" \
+            --value "${{ secrets.MSG91_AUTH_KEY }}" \
+            --type "SecureString" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/MSG91_SENDER_ID" \
+            --value "${{ secrets.MSG91_SENDER_ID }}" \
+            --type "String" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/MSG91_TEMPLATE_ID" \
+            --value "${{ secrets.MSG91_TEMPLATE_ID }}" \
+            --type "String" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/MSG91_ROUTE" \
+            --value "${{ secrets.MSG91_ROUTE }}" \
+            --type "String" \
+            --overwrite
+          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/NODE_ENV" \
+            --value "${{ secrets.NODE_ENV }}" \
+            --type "String" \
+            --overwrite
           
           echo "✅ All parameters updated successfully in Parameter Store"
 
@@ -262,7 +350,7 @@ jobs:
                 echo "✅ Instance refresh completed successfully!"
                 break
                 ;;
-              "Failed"|"Cancelled")
+              "Failed"|"Cancelled 50"|"Failed 50"|"Cancelled 100")
                 echo "❌ Instance refresh failed with status: $STATUS"
                 
                 # Get failure details

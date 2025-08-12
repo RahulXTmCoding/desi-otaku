@@ -1,0 +1,83 @@
+# Get environment variables from Parameter Store
+    DATABASE=$(get_parameter "DATABASE")
+    PORT=$(get_parameter "PORT")
+    SECRET=$(get_parameter "SECRET")
+    CLIENT_URL=$(get_parameter "CLIENT_URL")
+    
+    # Payment Gateway Variables
+    BRAINTREE_MERCHANT_ID=$(get_parameter "BRAINTREE_MERCHANT_ID")
+    BRAINTREE_PUBLIC_KEY=$(get_parameter "BRAINTREE_PUBLIC_KEY")
+    BRAINTREE_PRIVATE_KEY=$(get_parameter "BRAINTREE_PRIVATE_KEY")
+    RAZORPAY_KEY_ID=$(get_parameter "RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET=$(get_parameter "RAZORPAY_KEY_SECRET")
+    RAZORPAY_WEBHOOK_SECRET=$(get_parameter "RAZORPAY_WEBHOOK_SECRET")
+    
+    # Shipping Variables
+    SHIPROCKET_EMAIL=$(get_parameter "SHIPROCKET_EMAIL")
+    SHIPROCKET_PASSWORD=$(get_parameter "SHIPROCKET_PASSWORD")
+    SHIPROCKET_TEST_MODE=$(get_parameter "SHIPROCKET_TEST_MODE")
+    PICKUP_PINCODE=$(get_parameter "PICKUP_PINCODE")
+    PICKUP_NAME=$(get_parameter "PICKUP_NAME")
+    PICKUP_PHONE=$(get_parameter "PICKUP_PHONE")
+    
+    # Email Service Variables
+    EMAIL_SERVICE=$(get_parameter "EMAIL_SERVICE")
+    BREVO_API_KEY=$(get_parameter "BREVO_API_KEY")
+    BREVO_SENDER_EMAIL=$(get_parameter "BREVO_SENDER_EMAIL")
+    BREVO_SENDER_NAME=$(get_parameter "BREVO_SENDER_NAME")
+    
+    # OAuth Variables
+    GOOGLE_CLIENT_ID=$(get_parameter "GOOGLE_CLIENT_ID")
+    GOOGLE_CLIENT_SECRET=$(get_parameter "GOOGLE_CLIENT_SECRET")
+    FACEBOOK_APP_ID=$(get_parameter "FACEBOOK_APP_ID")
+    FACEBOOK_APP_SECRET=$(get_parameter "FACEBOOK_APP_SECRET")
+    
+    # Redis and SMS Variables
+    REDIS_URL=$(get_parameter "REDIS_URL")
+    MSG91_AUTH_KEY=$(get_parameter "MSG91_AUTH_KEY")
+    MSG91_SENDER_ID=$(get_parameter "MSG91_SENDER_ID")
+    MSG91_TEMPLATE_ID=$(get_parameter "MSG91_TEMPLATE_ID")
+    MSG91_ROUTE=$(get_parameter "MSG91_ROUTE")
+    NODE_ENV=$(get_parameter "NODE_ENV")
+    
+    # Add environment variables to .env file
+    [ -n "$DATABASE" ] && echo "DATABASE=$DATABASE" >> .env
+    [ -n "$PORT" ] && echo "PORT=$PORT" >> .env
+    [ -n "$SECRET" ] && echo "SECRET=$SECRET" >> .env
+    [ -n "$CLIENT_URL" ] && echo "CLIENT_URL=$CLIENT_URL" >> .env
+    
+    # Payment Gateway Variables
+    [ -n "$BRAINTREE_MERCHANT_ID" ] && echo "BRAINTREE_MERCHANT_ID=$BRAINTREE_MERCHANT_ID" >> .env
+    [ -n "$BRAINTREE_PUBLIC_KEY" ] && echo "BRAINTREE_PUBLIC_KEY=$BRAINTREE_PUBLIC_KEY" >> .env
+    [ -n "$BRAINTREE_PRIVATE_KEY" ] && echo "BRAINTREE_PRIVATE_KEY=$BRAINTREE_PRIVATE_KEY" >> .env
+    [ -n "$RAZORPAY_KEY_ID" ] && echo "RAZORPAY_KEY_ID=$RAZORPAY_KEY_ID" >> .env
+    [ -n "$RAZORPAY_KEY_SECRET" ] && echo "RAZORPAY_KEY_SECRET=$RAZORPAY_KEY_SECRET" >> .env
+    [ -n "$RAZORPAY_WEBHOOK_SECRET" ] && echo "RAZORPAY_WEBHOOK_SECRET=$RAZORPAY_WEBHOOK_SECRET" >> .env
+    
+    # Shipping Variables
+    [ -n "$SHIPROCKET_EMAIL" ] && echo "SHIPROCKET_EMAIL=$SHIPROCKET_EMAIL" >> .env
+    [ -n "$SHIPROCKET_PASSWORD" ] && echo "SHIPROCKET_PASSWORD=$SHIPROCKET_PASSWORD" >> .env
+    [ -n "$SHIPROCKET_TEST_MODE" ] && echo "SHIPROCKET_TEST_MODE=$SHIPROCKET_TEST_MODE" >> .env
+    [ -n "$PICKUP_PINCODE" ] && echo "PICKUP_PINCODE=$PICKUP_PINCODE" >> .env
+    [ -n "$PICKUP_NAME" ] && echo "PICKUP_NAME=$PICKUP_NAME" >> .env
+    [ -n "$PICKUP_PHONE" ] && echo "PICKUP_PHONE=$PICKUP_PHONE" >> .env
+    
+    # Email Service Variables
+    [ -n "$EMAIL_SERVICE" ] && echo "EMAIL_SERVICE=$EMAIL_SERVICE" >> .env
+    [ -n "$BREVO_API_KEY" ] && echo "BREVO_API_KEY=$BREVO_API_KEY" >> .env
+    [ -n "$BREVO_SENDER_EMAIL" ] && echo "BREVO_SENDER_EMAIL=$BREVO_SENDER_EMAIL" >> .env
+    [ -n "$BREVO_SENDER_NAME" ] && echo "BREVO_SENDER_NAME=$BREVO_SENDER_NAME" >> .env
+    
+    # OAuth Variables
+    [ -n "$GOOGLE_CLIENT_ID" ] && echo "GOOGLE_CLIENT_ID=$GOOGLE_CLIENT_ID" >> .env
+    [ -n "$GOOGLE_CLIENT_SECRET" ] && echo "GOOGLE_CLIENT_SECRET=$GOOGLE_CLIENT_SECRET" >> .env
+    [ -n "$FACEBOOK_APP_ID" ] && echo "FACEBOOK_APP_ID=$FACEBOOK_APP_ID" >> .env
+    [ -n "$FACEBOOK_APP_SECRET" ] && echo "FACEBOOK_APP_SECRET=$FACEBOOK_APP_SECRET" >> .env
+    
+    # Redis and SMS Variables
+    [ -n "$REDIS_URL" ] && echo "REDIS_URL=$REDIS_URL" >> .env
+    [ -n "$MSG91_AUTH_KEY" ] && echo "MSG91_AUTH_KEY=$MSG91_AUTH_KEY" >> .env
+    [ -n "$MSG91_SENDER_ID" ] && echo "MSG91_SENDER_ID=$MSG91_SENDER_ID" >> .env
+    [ -n "$MSG91_TEMPLATE_ID" ] && echo "MSG91_TEMPLATE_ID=$MSG91_TEMPLATE_ID" >> .env
+    [ -n "$MSG91_ROUTE" ] && echo "MSG91_ROUTE=$MSG91_ROUTE" >> .env
+    [ -n "$NODE_ENV" ] && echo "NODE_ENV=$NODE_ENV" >> .env
