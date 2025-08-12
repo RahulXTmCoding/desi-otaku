@@ -134,5 +134,4 @@ const server = app.listen(port, () => {
   console.log(`🛡️ Spot termination monitoring active`);
 });
 
-// Export server for testing purposes
 module.exports = server;
