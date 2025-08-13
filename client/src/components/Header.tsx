@@ -7,6 +7,7 @@ import { getWishlistCount } from '../core/helper/wishlistHelper';
 import CartDrawer from './CartDrawer';
 import ThemeSwitcher from './ThemeSwitcher';
 import ShoppingDropdown from './ShoppingDropdown';
+import SearchInput from './SearchInput';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Header: React.FC = () => {
   const [cartAnimation, setCartAnimation] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [prevCartCount, setPrevCartCount] = useState(0);
 
   const cartCount = !isAdmin ? getItemCount() : 0;
@@ -150,6 +152,18 @@ const Header: React.FC = () => {
         <div className="flex items-center space-x-2 md:space-x-3">
           {/* Theme Switcher */}
           <ThemeSwitcher />
+          
+          {/* Search Button - Only show for non-admin customers */}
+          {(!auth || !auth.user || auth.user.role !== 1) && (
+            <button
+              onClick={() => setIsMobileSearchOpen(true)}
+              className="p-2 rounded-lg transition-all hover:scale-110"
+              style={{ color: 'var(--color-text)', opacity: 0.8 }}
+              title="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+          )}
           
           {/* Only show wishlist and cart for non-admin users */}
           {(!auth || !auth.user || auth.user.role !== 1) && (
@@ -438,6 +452,96 @@ const Header: React.FC = () => {
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Search Modal */}
+      <div
+        className={`fixed inset-0 z-50 transition-opacity duration-300 ${
+          isMobileSearchOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/80"
+          onClick={() => setIsMobileSearchOpen(false)}
+        />
+
+        {/* Search Modal */}
+        <div
+          className={`absolute top-0 left-0 right-0 bg-gray-900 shadow-xl transform transition-transform duration-300 ${
+            isMobileSearchOpen ? 'translate-y-0' : '-translate-y-full'
+          }`}
+        >
+          {/* Search Header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-800">
+            <h3 className="text-lg font-semibold text-white">Search Products</h3>
+            <button
+              onClick={() => setIsMobileSearchOpen(false)}
+              className="p-2 text-white hover:text-yellow-400 transition-colors rounded-lg hover:bg-gray-800"
+            >
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Search Input */}
+          <div className="p-4">
+            <SearchInput 
+              placeholder="Search for anime, designs, products..."
+              className="w-full"
+              showSuggestions={true}
+              isMobile={true}
+              autoFocus={true}
+              onSearch={() => setIsMobileSearchOpen(false)}
+            />
+          </div>
+
+          {/* Quick Links */}
+          <div className="px-4 pb-4">
+            <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Quick Search</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  setIsMobileSearchOpen(false);
+                  navigate('/shop?search=anime');
+                }}
+                className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg transition-colors text-left"
+              >
+                <span className="text-lg mb-1 block">🎌</span>
+                <span className="text-sm font-medium">Anime</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileSearchOpen(false);
+                  navigate('/shop?search=oversized');
+                }}
+                className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg transition-colors text-left"
+              >
+                <span className="text-lg mb-1 block">👕</span>
+                <span className="text-sm font-medium">Oversized</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileSearchOpen(false);
+                  navigate('/shop?search=custom');
+                }}
+                className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg transition-colors text-left"
+              >
+                <span className="text-lg mb-1 block">🎨</span>
+                <span className="text-sm font-medium">Custom</span>
+              </button>
+              <button
+                onClick={() => {
+                  setIsMobileSearchOpen(false);
+                  navigate('/shop');
+                }}
+                className="bg-gray-800 hover:bg-gray-700 text-white p-3 rounded-lg transition-colors text-left"
+              >
+                <span className="text-lg mb-1 block">🛍️</span>
+                <span className="text-sm font-medium">All Products</span>
+              </button>
             </div>
           </div>
         </div>

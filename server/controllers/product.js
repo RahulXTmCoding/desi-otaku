@@ -698,8 +698,10 @@ exports.getDeletedProducts = async (req, res) => {
   }
 };
 
-// Filtered products endpoint
+// Optimized filtered products endpoint with advanced search
 exports.getFilteredProducts = async (req, res) => {
+  const startTime = Date.now();
+  
   try {
     const {
       search,
@@ -717,92 +719,105 @@ exports.getFilteredProducts = async (req, res) => {
       limit = 12
     } = req.query;
 
-    // Build filter object - exclude soft deleted products by default
-    const filter = { isDeleted: { $ne: true } };
+    // Create cache key for Redis caching
+    const cacheKey = `search:${JSON.stringify({
+      search, category, subcategory, productType, minPrice, maxPrice, 
+      tags, sizes, availability, sortBy, sortOrder, page, limit
+    })}`;
 
-    // Search filter (name, description, or tags)
-    if (search) {
-      filter.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } }
-      ];
+    // Try Redis cache first
+    try {
+      await redisService.connect();
+      const cachedResult = await redisService.get(cacheKey);
+      
+      if (cachedResult) {
+        console.log(`🔥 SEARCH CACHE HIT: ${search || 'filters'} (${Date.now() - startTime}ms)`);
+        return res.json({
+          ...cachedResult,
+          _cached: true,
+          _cacheAge: Date.now() - cachedResult._cachedAt
+        });
+      }
+    } catch (redisError) {
+      console.log('Redis cache miss or error:', redisError.message);
     }
 
-    // Category and subcategory filter with proper ObjectId handling
-    if (subcategory) {
-      // If subcategory is specified, filter by subcategory
+    console.log(`💾 SEARCH CACHE MISS: ${search || 'filters'} - executing optimized query`);
+
+    // Use aggregation pipeline for optimal performance
+    const pipeline = [];
+    
+    // Stage 1: Build base filter conditions (these are ANDed together)
+    const baseConditions = { 
+      isDeleted: { $ne: true },
+      isActive: { $ne: false }
+    };
+
+    // === STEP 1: Apply Category Filters (Base Constraint) ===
+    if (subcategory && subcategory !== 'all') {
       const mongoose = require("mongoose");
       if (mongoose.Types.ObjectId.isValid(subcategory)) {
-        filter.subcategory = mongoose.Types.ObjectId(subcategory);
+        baseConditions.subcategory = mongoose.Types.ObjectId(subcategory);
       } else {
-        // If not a valid ObjectId, try to find category by name/slug
+        // Find subcategory by name
+        const Category = require("../models/category");
         try {
-          const Category = require("../models/category");
-          const categoryDoc = await Category.findOne({ 
-            $or: [
-              { name: { $regex: new RegExp(subcategory, 'i') } },
-              { slug: subcategory }
-            ],
+          const subCat = await Category.findOne({ 
+            name: { $regex: new RegExp(subcategory, 'i') },
             isActive: true 
           });
-          if (categoryDoc) {
-            filter.subcategory = categoryDoc._id;
+          if (subCat) {
+            baseConditions.subcategory = subCat._id;
           } else {
-            // Category not found, return empty results gracefully
-            filter._id = null;
             return res.json({
               products: [],
-              pagination: {
-                currentPage: parseInt(page),
-                totalPages: 0,
-                totalProducts: 0,
-                hasMore: false
-              }
+              pagination: { currentPage: parseInt(page), totalPages: 0, totalProducts: 0, hasMore: false }
             });
           }
         } catch (err) {
-          console.error('Error finding subcategory:', err);
-          filter._id = null; // This will return no results
+          console.error('Subcategory lookup error:', err);
+          return res.json({
+            products: [],
+            pagination: { currentPage: parseInt(page), totalPages: 0, totalProducts: 0, hasMore: false }
+          });
         }
       }
     } else if (category && category !== 'all') {
-      // If only category is specified, get all products in that category AND its subcategories
-      try {
-        const Category = require("../models/category");
-        const mongoose = require("mongoose");
-        let categoryId = null;
-        
-        // Check if category is a valid ObjectId
-        if (mongoose.Types.ObjectId.isValid(category)) {
-          categoryId = mongoose.Types.ObjectId(category);
-        } else {
-          // Try to find category by name or slug
+      const mongoose = require("mongoose");
+      const Category = require("../models/category");
+      
+      let categoryId = null;
+      
+      // Handle category by ID or name
+      if (mongoose.Types.ObjectId.isValid(category)) {
+        categoryId = mongoose.Types.ObjectId(category);
+      } else {
+        // Find category by name (supports "anime" finding "Animew")
+        try {
           const categoryDoc = await Category.findOne({ 
-            $or: [
-              { name: { $regex: new RegExp(category, 'i') } },
-              { slug: category }
-            ],
+            name: { $regex: new RegExp(category, 'i') },
             isActive: true 
           });
           
           if (categoryDoc) {
             categoryId = categoryDoc._id;
           } else {
-            // Category not found, return empty results gracefully
             return res.json({
               products: [],
-              pagination: {
-                currentPage: parseInt(page),
-                totalPages: 0,
-                totalProducts: 0,
-                hasMore: false
-              }
+              pagination: { currentPage: parseInt(page), totalPages: 0, totalProducts: 0, hasMore: false }
             });
           }
+        } catch (err) {
+          console.error('Category lookup error:', err);
+          return res.json({
+            products: [],
+            pagination: { currentPage: parseInt(page), totalPages: 0, totalProducts: 0, hasMore: false }
+          });
         }
-        
-        // Get all subcategories of this category
+      }
+      
+      // Get subcategories for this category
+      try {
         const subcategories = await Category.find({ 
           parentCategory: categoryId,
           isActive: true 
@@ -810,131 +825,247 @@ exports.getFilteredProducts = async (req, res) => {
         
         const subcategoryIds = subcategories.map(sub => sub._id);
         
-        // Filter products by main category OR any of its subcategories
         if (subcategoryIds.length > 0) {
-          filter.$or = [
+          // Products in main category OR any of its subcategories
+          baseConditions.$or = [
             { category: categoryId },
             { subcategory: { $in: subcategoryIds } }
           ];
         } else {
-          // No subcategories, just filter by category
-          filter.category = categoryId;
+          // Just the main category
+          baseConditions.category = categoryId;
         }
       } catch (err) {
-        console.error('Error getting subcategories:', err);
-        // Return empty results gracefully instead of crashing
-        return res.json({
-          products: [],
-          pagination: {
-            currentPage: parseInt(page),
-            totalPages: 0,
-            totalProducts: 0,
-            hasMore: false
-          }
-        });
+        console.error('Subcategory fetch error:', err);
+        baseConditions.category = categoryId;
       }
     }
 
-    // Product type filter - handle both old string values and new ObjectIds
+    // === STEP 2: Apply Product Type Filter ===
     if (productType && productType !== 'all') {
-      try {
-        const mongoose = require("mongoose");
-        
-        // Check if productType is a valid ObjectId
-        if (mongoose.Types.ObjectId.isValid(productType)) {
-          // For ObjectId productType, just filter by the ObjectId
-          filter.productType = mongoose.Types.ObjectId(productType);
-        } else {
-          // For string productType (legacy support)
-          filter.productType = productType;
-        }
-      } catch (typeErr) {
-        console.error('ProductType filter error:', typeErr);
-        // If error, don't add productType filter
+      const mongoose = require("mongoose");
+      if (mongoose.Types.ObjectId.isValid(productType)) {
+        baseConditions.productType = mongoose.Types.ObjectId(productType);
+      } else {
+        baseConditions.productType = productType;
       }
     }
 
-    // Price range filter
+    // === STEP 3: Apply Price Range Filter ===
     if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = parseFloat(minPrice);
-      if (maxPrice) filter.price.$lte = parseFloat(maxPrice);
+      baseConditions.price = {};
+      if (minPrice) baseConditions.price.$gte = parseFloat(minPrice);
+      if (maxPrice) baseConditions.price.$lte = parseFloat(maxPrice);
     }
 
-    // Tags filter
+    // === STEP 4: Apply Tags Filter ===
     if (tags) {
       const tagArray = Array.isArray(tags) ? tags : tags.split(',');
-      filter.tags = { $in: tagArray };
+      baseConditions.tags = { $in: tagArray };
     }
 
-    // Size filter - products that have the selected sizes with stock > 0
+    // === STEP 5: Apply Stock Availability Filter ===
+    if (availability === 'instock') {
+      baseConditions.totalStock = { $gt: 0 };
+    } else if (availability === 'outofstock') {
+      baseConditions.totalStock = { $eq: 0 };
+    }
+
+    // === STEP 6: Apply Size Filter ===
     if (sizes) {
       const sizeArray = Array.isArray(sizes) ? sizes : sizes.split(',');
-      const sizeFilters = sizeArray.map(size => {
-        return { [`sizeStock.${size}`]: { $gt: 0 } };
-      });
+      const sizeConditions = sizeArray.map(size => ({
+        [`sizeStock.${size}`]: { $gt: 0 }
+      }));
       
-      // If we already have $or from search, we need to combine conditions properly
-      if (filter.$or) {
-        // Wrap existing $or conditions and size filters in an $and
-        const existingOr = filter.$or;
-        delete filter.$or;
-        filter.$and = [
+      // Size filter must be satisfied (OR between different sizes)
+      if (baseConditions.$or && !baseConditions.category) {
+        // If we already have $or from category, we need to combine properly
+        const existingOr = baseConditions.$or;
+        delete baseConditions.$or;
+        baseConditions.$and = [
           { $or: existingOr },
-          { $or: sizeFilters }
+          { $or: sizeConditions }
         ];
+      } else if (baseConditions.$or) {
+        // We have category $or, need to add size constraint
+        if (!baseConditions.$and) baseConditions.$and = [];
+        baseConditions.$and.push({ $or: sizeConditions });
       } else {
-        // Otherwise just use $or for size filters
-        filter.$or = sizeFilters;
+        // No existing $or, can add size $or directly
+        baseConditions.$or = sizeConditions;
       }
     }
 
-    // Availability filter
-    if (availability) {
-      if (availability === 'instock') {
-        filter.totalStock = { $gt: 0 };
-      } else if (availability === 'outofstock') {
-        filter.totalStock = { $eq: 0 };
+    // === STEP 7: Apply Search WITHIN the Above Constraints ===
+    let finalMatchConditions = baseConditions;
+    
+    if (search) {
+      const searchTerm = search.trim();
+      const searchWords = searchTerm.split(/\s+/).filter(word => word.length > 0);
+      
+      // Check if search matches any category names (for intelligent category search)
+      const Category = require("../models/category");
+      let matchingCategories = [];
+      try {
+        matchingCategories = await Category.find({
+          name: { $regex: new RegExp(searchTerm, 'i') },
+          isActive: true 
+        }).select('_id');
+      } catch (err) {
+        console.error('Category search lookup error:', err);
+      }
+      
+      let searchConditions;
+      
+      if (searchWords.length === 1) {
+        // Single word search with intelligent category matching
+        const singleWord = searchWords[0];
+        
+        // Use regex search for better compatibility with complex queries
+        const productSearchConditions = [
+          { name: { $regex: singleWord, $options: 'i' } },
+          { description: { $regex: singleWord, $options: 'i' } },
+          { tags: { $regex: singleWord, $options: 'i' } }
+        ];
+        
+        // If search term matches category names, include products from those categories
+        if (matchingCategories.length > 0) {
+          const categoryIds = matchingCategories.map(cat => cat._id);
+          productSearchConditions.push({ category: { $in: categoryIds } });
+        }
+        
+        searchConditions = { $or: productSearchConditions };
+      } else {
+        // Multi-word search - each word must be found somewhere
+        const wordConditions = searchWords.map(word => ({
+          $or: [
+            { name: { $regex: word, $options: 'i' } },
+            { description: { $regex: word, $options: 'i' } },
+            { tags: { $regex: word, $options: 'i' } }
+          ]
+        }));
+        
+        searchConditions = { $and: wordConditions };
+      }
+      
+      // Smart combination logic
+      if (Object.keys(baseConditions).length > 2) { // More than just isDeleted and isActive
+        // If we already have a category filter AND search matches that same category,
+        // don't double-filter - just show all products in that category
+        const hasExistingCategoryFilter = baseConditions.category || baseConditions.$or;
+        const searchMatchesExistingCategory = matchingCategories.some(cat => {
+          return baseConditions.category && cat._id.equals(baseConditions.category);
+        });
+        
+        if (hasExistingCategoryFilter && searchMatchesExistingCategory) {
+          // User selected "Anime" category and searched "anime" - show all Anime products
+          finalMatchConditions = baseConditions;
+          console.log('🎯 Smart match: Search term matches selected category, showing all category products');
+        } else {
+          // Normal case: apply search within existing filters
+          finalMatchConditions = {
+            $and: [
+              baseConditions,
+              searchConditions
+            ]
+          };
+        }
+      } else {
+        // No other filters, just use search conditions
+        finalMatchConditions = {
+          ...baseConditions,
+          ...searchConditions
+        };
       }
     }
 
-    // Calculate pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    console.log('🔍 Final MongoDB Query:', JSON.stringify(finalMatchConditions, null, 2));
 
-    // Build sort object
-    let sort = {};
+    pipeline.push({ $match: finalMatchConditions });
+
+    // Stage 2: Lookup category and productType
+    pipeline.push(
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category"
+        }
+      },
+      {
+        $lookup: {
+          from: "producttypes",
+          localField: "productType", 
+          foreignField: "_id",
+          as: "productType"
+        }
+      }
+    );
+
+    // Stage 3: Add category name search ONLY if no category filter was applied
+    if (search && !category && !subcategory) {
+      const searchTerm = search.trim();
+      pipeline.push({
+        $match: {
+          $or: [
+            // Already matched in stage 1
+            { _id: { $exists: true } },
+            // Additional category name matching
+            { "category.name": { $regex: searchTerm, $options: 'i' } },
+            { "productType.displayName": { $regex: searchTerm, $options: 'i' } }
+          ]
+        }
+      });
+    }
+
+    // Stage 5: Sort
+    let sortStage = {};
     switch (sortBy) {
       case 'price':
-        sort.price = sortOrder === 'desc' ? -1 : 1;
+        sortStage.price = sortOrder === 'desc' ? -1 : 1;
         break;
       case 'newest':
-        sort.createdAt = -1;
+        sortStage.createdAt = -1;
         break;
       case 'bestselling':
-        sort.sold = -1;
+        sortStage.sold = -1;
         break;
       case 'name':
-        sort.name = sortOrder === 'desc' ? -1 : 1;
+        sortStage.name = sortOrder === 'desc' ? -1 : 1;
         break;
       default:
-        sort._id = -1; // Default sort by newest
+        sortStage.createdAt = -1;
     }
+    pipeline.push({ $sort: sortStage });
 
-    // Execute query
+    // Stage 6: Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    pipeline.push({ $skip: skip }, { $limit: parseInt(limit) });
+
+    // Execute optimized aggregation
     const [products, totalCount] = await Promise.all([
-      Product.find(filter)
-        .select("-photo -images.data")
-        .populate("category")
-        .populate("productType")
-        .sort(sort)
-        .limit(parseInt(limit))
-        .skip(skip)
-        .lean(),
-      Product.countDocuments(filter)
+      Product.aggregate(pipeline),
+      Product.aggregate([
+        { $match: finalMatchConditions },
+        { $count: "total" }
+      ])
     ]);
 
-    // Clean up image data from response and add stock info
+    const total = totalCount[0]?.total || 0;
+
+    // Process results
     const cleanedProducts = products.map(product => {
+      // Handle populated fields
+      if (Array.isArray(product.category)) {
+        product.category = product.category[0] || null;
+      }
+      if (Array.isArray(product.productType)) {
+        product.productType = product.productType[0] || null;
+      }
+
+      // Clean up images
       if (product.images && product.images.length > 0) {
         product.images = product.images.map(img => ({
           _id: img._id,
@@ -945,7 +1076,7 @@ exports.getFilteredProducts = async (req, res) => {
         }));
       }
       
-      // Add stock availability info for each size
+      // Add size availability
       product.sizeAvailability = {};
       if (product.sizeStock) {
         ['S', 'M', 'L', 'XL', 'XXL'].forEach(size => {
@@ -956,20 +1087,37 @@ exports.getFilteredProducts = async (req, res) => {
       return product;
     });
 
-    res.json({
+    const result = {
       products: cleanedProducts,
       pagination: {
         currentPage: parseInt(page),
-        totalPages: Math.ceil(totalCount / parseInt(limit)),
-        totalProducts: totalCount,
-        hasMore: skip + products.length < totalCount
-      }
+        totalPages: Math.ceil(total / parseInt(limit)),
+        totalProducts: total,
+        hasMore: skip + products.length < total
+      },
+      _cachedAt: Date.now(),
+      _queryTime: Date.now() - startTime
+    };
+
+    // Cache successful results
+    try {
+      await redisService.set(cacheKey, result, 180); // 3 minutes cache
+      console.log(`✅ SEARCH CACHED: ${search || 'filters'} (${result._queryTime}ms)`);
+    } catch (cacheError) {
+      console.log('Cache save failed:', cacheError.message);
+    }
+
+    res.json({
+      ...result,
+      _cached: false
     });
+
   } catch (err) {
-    console.error('Filter error:', err);
+    console.error('Optimized search error:', err);
     return res.status(400).json({
-      error: "Failed to filter products",
-      details: err.message
+      error: "Search failed",
+      details: err.message,
+      _queryTime: Date.now() - startTime
     });
   }
 };

@@ -23,6 +23,7 @@ import { mockProducts, mockCategories } from '../data/mockData';
 import ProductGridItem from '../components/ProductGridItem';
 import QuickViewModal from '../components/QuickViewModal';
 import MobileFilterModal from '../components/MobileFilterModal';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface Product {
   _id: string;
@@ -80,6 +81,9 @@ const ShopWithBackendFilters: React.FC = () => {
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'newest');
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
   const [showFilters, setShowFilters] = useState(searchParams.get('filters') !== 'hidden');
+  
+  // Debounce search query for optimal performance
+  const debouncedSearchQuery = useDebounce(searchQuery, 500);
   
   // Use ref to track if we're updating from URL
   const isUpdatingFromURL = useRef(false);
@@ -178,7 +182,7 @@ const ShopWithBackendFilters: React.FC = () => {
   const filterParams = useMemo(() => {
     const sortParams = getSortParams(sortBy);
     return {
-      search: searchQuery || undefined,
+      search: debouncedSearchQuery || undefined,
       category: selectedCategory === 'all' ? undefined : selectedCategory,
       subcategory: selectedSubcategory === 'all' ? undefined : selectedSubcategory,
       productType: selectedProductType === 'all' ? undefined : selectedProductType,
@@ -192,7 +196,7 @@ const ShopWithBackendFilters: React.FC = () => {
       page: currentPage,
       limit: productsPerPage
     };
-  }, [searchQuery, selectedCategory, selectedSubcategory, selectedProductType, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage]);
+  }, [debouncedSearchQuery, selectedCategory, selectedSubcategory, selectedProductType, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage]);
 
   // Use React Query for filtered products (only when not in test mode)
   const { 
