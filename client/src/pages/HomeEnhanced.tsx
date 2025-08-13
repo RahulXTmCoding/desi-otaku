@@ -448,7 +448,7 @@ const HomeEnhanced: React.FC = () => {
           <div className="relative w-full h-auto">
             {/* Desktop Banner - Hidden on mobile */}
             <img 
-              src="https://lh3.googleusercontent.com/pw/AP1GczOMtcjOVEwiVZflRXXu5ILYzYSocjhlmR-eOQreI3byjS6-cAXl8ckBFB0681qcSfv3NAFdi_6mU88HzR2FMMyA27Oewgmlac32NlGO27H9dhOWvMlpHKbvM6p4XRAd83t7XZ4mMBn4vIKiak9cB6A=w1228-h454-s-no-gm?authuser=0"
+              src="https://lh3.googleusercontent.com/pw/AP1GczMz9wczz1nZhnDV7S0q4BqPe-R4WDVhBfVBP9umIH57lXJiXmd7mIfbnT3E2QrEZcEgi1GrghL08Lm8WlUVrUKFh_SRBbYC2nn9fwwv4u8dvsistSaq3g-wrgZZXa_3msday0WzAfgnQV9jdkXEumo=w1434-h530-s-no-gm?authuser=0"
               alt="Attars Clothing - Premium Fashion & Custom Designs"
               className="hidden md:block w-full h-auto object-cover"
               loading="eager"
