@@ -450,8 +450,9 @@ const HomeEnhanced: React.FC = () => {
             <img 
               src="https://lh3.googleusercontent.com/pw/AP1GczMz9wczz1nZhnDV7S0q4BqPe-R4WDVhBfVBP9umIH57lXJiXmd7mIfbnT3E2QrEZcEgi1GrghL08Lm8WlUVrUKFh_SRBbYC2nn9fwwv4u8dvsistSaq3g-wrgZZXa_3msday0WzAfgnQV9jdkXEumo=w1434-h530-s-no-gm?authuser=0"
               alt="Attars Clothing - Premium Fashion & Custom Designs"
-              className="hidden md:block w-full h-auto object-cover"
+              className="hidden md:block w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-opacity"
               loading="eager"
+              onClick={() => navigate('/shop')}
               onError={(e) => {
                 e.currentTarget.src = '/hq-banner.png';  
               }}
@@ -459,10 +460,11 @@ const HomeEnhanced: React.FC = () => {
             
             {/* Mobile Banner - Hidden on desktop */}
             <img 
-              src="https://lh3.googleusercontent.com/pw/AP1GczN8rbbFbksBm1KtoA9xk8rUJ8bIqMGPz6LXm0gQ29nPHG2cWWpI4mIcrVuHFgwoiVKACpsHL5_ymLx1SZK-yEJ29M1O9uLWOHs5ZsQ6p8aeqEXg4lYu_CyV8Gz1XwP5Il-6kGuH6obtb8l28dBeCCE=w1228-h619-s-no-gm?authuser=0"
+              src="https://lh3.googleusercontent.com/pw/AP1GczNTQ0F9iPKyZwjQxV2eLvmjQZ4g4QP9CAOY7dyGu7yBI9bT1InymDROp1sIgqrxmyXRcpMChNEIqr_E7KIKdW7aChLgfnpk16P70wb_TcMX6LXlrTMUfWrcjJkQc_BzcJbF0P6JjUZ3JmSVqXi8fzE=w1525-h913-s-no-gm?authuser=0"
               alt="Attars Clothing - Premium Fashion & Custom Designs Mobile"
-              className="block md:hidden w-full h-auto object-cover"
+              className="block md:hidden w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-opacity"
               loading="eager"
+              onClick={() => navigate('/shop')}
               onError={(e) => {
                 // Final fallback for mobile - show styled banner
                 // setShowStyledFallback(true);
@@ -472,7 +474,11 @@ const HomeEnhanced: React.FC = () => {
             
             {/* Styled Fallback Banner - Only shows when all images fail */}
             {showStyledFallback && (
-              <section className="block md:hidden relative px-6 py-20 overflow-hidden" style={{ backgroundColor: 'var(--color-surface)' }}>
+              <section 
+                className="block md:hidden relative px-6 py-20 overflow-hidden cursor-pointer hover:opacity-95 transition-opacity" 
+                style={{ backgroundColor: 'var(--color-surface)' }}
+                onClick={() => navigate('/shop')}
+              >
                 <div className="absolute top-10 right-10 grid grid-cols-4 gap-2">
                   {[...Array(16)].map((_, i) => (
                     <div key={i} className="w-2 h-2 bg-cyan-400 rounded-full opacity-60"></div>
@@ -491,13 +497,19 @@ const HomeEnhanced: React.FC = () => {
                   </p>
                   <div className="flex flex-col gap-3">
                     <button 
-                      onClick={() => navigate('/customize')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/customize');
+                      }}
                       className="bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-semibold hover:bg-yellow-300 transition-all transform hover:scale-105"
                     >
                       Create Custom Design
                     </button>
                     <button 
-                      onClick={() => navigate('/shop')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/shop');
+                      }}
                       className="border border-yellow-400 text-yellow-400 px-6 py-3 rounded-full font-semibold hover:bg-yellow-400 hover:text-gray-900 transition-all"
                     >
                       Shop Collection
@@ -511,10 +523,10 @@ const HomeEnhanced: React.FC = () => {
 
       
         {/* Most In Demand Categories */}
-        <section className="py-16">
+        <section className="py-8 sm:py-12 lg:py-16">
           <div className="w-[96%] mx-auto">
-              <div className="text-center mb-16">
-              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+              <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
                 OUR COLLECTION
               </h2>
               <div className="w-32 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-4"></div>
@@ -553,7 +565,7 @@ const HomeEnhanced: React.FC = () => {
         </section>
 
         {/* Shop By Anime */}
-        <section className="py-16" style={{ backgroundColor: 'var(--color-surface)' }}>
+        <section className="py-8 sm:py-12 lg:py-16" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="w-[96%] mx-auto">
             <h2 className="text-3xl font-bold text-center mb-12">Shop By Anime</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">

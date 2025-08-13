@@ -388,7 +388,7 @@ jobs:
             
             # Wait for new instances to be ready
             echo "⏳ Waiting 60 seconds for new instances to be ready..."
-            sleep 60
+            sleep 120
             
             # Test load balancer health endpoint
             MAX_ATTEMPTS=10

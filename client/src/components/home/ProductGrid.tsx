@@ -39,13 +39,13 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   const displayProducts = products.slice(0, maxItems);
 
   if (loading) {
-    return (
-      <div className="mb-16">
+  return (
+    <div className="mb-8 sm:mb-12 lg:mb-16">
         {/* Enhanced Section Header */}
         <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-            {title}
-          </h2>
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+          {title}
+        </h2>
           <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full"></div>
         </div>
 
@@ -65,10 +65,10 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   }
 
   return (
-    <div className="mb-16">
+    <div className="mb-8 sm:mb-12 lg:mb-16">
       {/* Enhanced Section Header */}
       <div className="text-center mb-12">
-        <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+        <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
           {title}
         </h2>
         <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-3"></div>

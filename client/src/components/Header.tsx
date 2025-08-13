@@ -531,70 +531,84 @@ const Header: React.FC = () => {
                   Home
                 </Link>
                 
-                {/* Mobile Shopping Sections */}
+                {/* Mobile Shopping Sections - Synced with Desktop Dropdown */}
                 <div className="px-6 py-3">
-                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Shop by Category</h3>
+                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">T-Shirts</h3>
                   <div className="space-y-1">
-                    <Link to="/shop?category=t-shirts" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      T-Shirts
+                    <Link to="/shop?category=printed-tshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      <span>🎨</span> Printed T-shirt
                     </Link>
-                    <Link to="/shop?category=oversized" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      Oversized Wear
+                    <Link to="/shop?category=oversized-tshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      <span>👕</span> Oversized T-shirt
                     </Link>
-                    <Link to="/shop?category=hoodies" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      Hoodies
-                    </Link>
-                    <Link to="/shop?category=jackets" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      Jackets
-                    </Link>
-                    <Link to="/shop?category=accessories" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      Accessories
+                    <Link to="/shop?category=plain-tshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      <span>✨</span> Plain T-shirt
                     </Link>
                   </div>
                 </div>
 
                 <div className="px-6 py-3 border-t border-gray-800">
-                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Premium Collections</h3>
+                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Winter Wear</h3>
+                  <div className="space-y-1">
+                    <Link to="/shop?category=hoodies" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      <span>🔥</span> Hoodies
+                    </Link>
+                    <Link to="/shop?category=sweatshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                      <span>❄️</span> Sweatshirts
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="px-6 py-3 border-t border-gray-800">
+                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Popular Anime</h3>
                   <div className="grid grid-cols-2 gap-1">
-                    <Link to="/shop?collection=casual" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Casual Wear
+                    <Link to="/shop?anime=naruto" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>🦊</span> Naruto
                     </Link>
-                    <Link to="/shop?collection=streetwear" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Streetwear
+                    <Link to="/shop?anime=one-piece" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>☠️</span> One Piece
                     </Link>
-                    <Link to="/shop?collection=vintage" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Vintage
+                    <Link to="/shop?anime=dragon-ball" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>🐉</span> Dragon Ball
                     </Link>
-                    <Link to="/shop?collection=minimalist" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Minimalist
+                    <Link to="/shop?anime=attack-on-titan" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>⚔️</span> Attack on Titan
                     </Link>
-                    <Link to="/shop?collection=premium" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Premium Line
+                    <Link to="/shop?anime=my-hero-academia" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>💪</span> My Hero Academia
                     </Link>
-                    <Link to="/shop?collection=limited" onClick={closeMobileMenu} className="block text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      Limited Edition
+                    <Link to="/shop?anime=demon-slayer" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>🌊</span> Demon Slayer
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="px-6 py-3 border-t border-gray-800">
+                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">More Anime</h3>
+                  <div className="grid grid-cols-2 gap-1">
+                    <Link to="/shop?anime=death-note" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>📓</span> Death Note
+                    </Link>
+                    <Link to="/shop?anime=tokyo-ghoul" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>👹</span> Tokyo Ghoul
+                    </Link>
+                    <Link to="/shop?anime=jujutsu-kaisen" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>👻</span> Jujutsu Kaisen
+                    </Link>
+                    <Link to="/shop?anime=hunter-x-hunter" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>🎯</span> Hunter x Hunter
+                    </Link>
+                    <Link to="/shop?anime=fullmetal-alchemist" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>⚗️</span> Fullmetal Alchemist
+                    </Link>
+                    <Link to="/shop?anime=one-punch-man" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>👊</span> One Punch Man
                     </Link>
                   </div>
                   <Link to="/shop" onClick={closeMobileMenu} className="block text-yellow-400 text-sm font-semibold hover:text-yellow-300 transition-colors py-2 mt-2">
                     View All Products →
                   </Link>
                 </div>
-
-                <Link
-                  to="/combo"
-                  onClick={closeMobileMenu}
-                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors border-t border-gray-800"
-                >
-                  COMBO
-                </Link>
-                
-                <Link
-                  to="/new-launch"
-                  onClick={closeMobileMenu}
-                  className="block px-6 py-3 text-green-400 hover:bg-gray-800 hover:text-green-300 transition-colors font-semibold"
-                >
-                  ✨ NEW LAUNCH
-                </Link>
                 
                 <Link
                   to="/customize"
