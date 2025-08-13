@@ -30,17 +30,17 @@ function setCache(key, data) {
 // Get analytics dashboard data with MongoDB aggregation
 exports.getAnalyticsDashboard = async (req, res) => {
   try {
-    const { period = 'month' } = req.query;
+    const { period = 'month', startDate: customStartDate, endDate: customEndDate } = req.query;
     
-    // Check cache first
-    const cacheKey = getCacheKey('dashboard', { period });
-    const cachedData = getFromCache(cacheKey);
+    // Check cache first (skip cache for custom dates to ensure fresh data)
+    const cacheKey = getCacheKey('dashboard', { period, startDate: customStartDate, endDate: customEndDate });
+    const cachedData = period !== 'custom' ? getFromCache(cacheKey) : null;
     if (cachedData) {
       return res.json(cachedData);
     }
     
-    // Get date range based on period
-    const { startDate, endDate, previousStartDate, previousEndDate } = getDateRange(period);
+    // Get date range based on period or custom dates
+    const { startDate, endDate, previousStartDate, previousEndDate } = getDateRange(period, customStartDate, customEndDate);
     
     // Use MongoDB aggregation for better performance
     const [currentMetrics, previousMetrics] = await Promise.all([
@@ -304,8 +304,85 @@ async function getRevenueChartData(period, startDate, endDate) {
       });
       break;
       
+    case 'custom':
+      // Custom date range - smart granularity
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff <= 1) {
+        // Single day - hourly data
+        for (let i = 0; i < 24; i++) {
+          labels.push(`${i}:00`);
+        }
+        const customHourlyData = await Order.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: startDate, $lte: endDate },
+              paymentStatus: 'Paid'
+            }
+          },
+          {
+            $group: {
+              _id: { $hour: '$createdAt' },
+              revenue: { $sum: '$amount' }
+            }
+          },
+          { $sort: { _id: 1 } }
+        ]);
+        
+        data = new Array(24).fill(0);
+        customHourlyData.forEach(item => {
+          if (item._id >= 0 && item._id < 24) {
+            data[item._id] = item.revenue;
+          }
+        });
+      } else {
+        // Multi-day - daily data
+        for (let i = 0; i < daysDiff; i++) {
+          const currentDay = new Date(start);
+          currentDay.setDate(start.getDate() + i);
+          labels.push(format(currentDay, 'MMM dd'));
+        }
+        
+        const customDailyData = await Order.aggregate([
+          {
+            $match: {
+              createdAt: { $gte: startDate, $lte: endDate },
+              paymentStatus: 'Paid'
+            }
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: '%Y-%m-%d',
+                  date: '$createdAt'
+                }
+              },
+              revenue: { $sum: '$amount' }
+            }
+          },
+          { $sort: { _id: 1 } }
+        ]);
+        
+        data = new Array(daysDiff).fill(0);
+        const dateMap = new Map();
+        customDailyData.forEach(item => {
+          dateMap.set(item._id, item.revenue);
+        });
+        
+        for (let i = 0; i < daysDiff; i++) {
+          const currentDay = new Date(start);
+          currentDay.setDate(start.getDate() + i);
+          const dateStr = format(currentDay, 'yyyy-MM-dd');
+          data[i] = dateMap.get(dateStr) || 0;
+        }
+      }
+      break;
+      
     default:
-      // Daily for custom range - last 30 days
+      // Default to last 30 days for unknown periods
       for (let i = 29; i >= 0; i--) {
         const date = new Date(endDate);
         date.setDate(date.getDate() - i);
@@ -624,9 +701,31 @@ async function getProductTypeBreakdownAggregation(startDate, endDate) {
 }
 
 // Helper function to get date ranges
-function getDateRange(period) {
+function getDateRange(period, customStartDate, customEndDate) {
   const now = new Date();
   let startDate, endDate, previousStartDate, previousEndDate;
+  
+  // Handle custom date range
+  if (period === 'custom' && customStartDate && customEndDate) {
+    // Ensure startDate starts at beginning of day
+    startDate = startOfDay(new Date(customStartDate));
+    // Ensure endDate includes the entire end day
+    endDate = endOfDay(new Date(customEndDate));
+    
+    console.log('🗓️ Custom date range (Optimized):', {
+      customStartDate,
+      customEndDate,
+      processedStartDate: startDate,
+      processedEndDate: endDate
+    });
+    
+    // Calculate previous period of same length for growth comparison
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    previousStartDate = startOfDay(subDays(startDate, daysDiff));
+    previousEndDate = endOfDay(subDays(endDate, daysDiff));
+    
+    return { startDate, endDate, previousStartDate, previousEndDate };
+  }
   
   switch (period) {
     case 'today':

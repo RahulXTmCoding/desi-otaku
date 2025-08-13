@@ -26,6 +26,10 @@ const Analytics: React.FC = () => {
   // State management
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('month');
+  
+  // Custom date range state
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [salesOverview, setSalesOverview] = useState<SalesOverview>({
     totalRevenue: 0,
     totalOrders: 0,
@@ -46,7 +50,14 @@ const Analytics: React.FC = () => {
 
   useEffect(() => {
     loadAnalyticsData();
-  }, [isTestMode, dateRange]);
+  }, [isTestMode, dateRange, customStartDate, customEndDate]);
+
+  const handleCustomDateChange = (startDate: string, endDate: string) => {
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+    setDateRange('custom');
+    // The useEffect will trigger loadAnalyticsData when dateRange changes
+  };
 
   const loadAnalyticsData = async (clearCache = false) => {
     setLoading(true);
@@ -75,7 +86,15 @@ const Analytics: React.FC = () => {
             });
           }
 
-          const response = await fetch(`${API}/analytics/dashboard?period=${dateRange}`, {
+          // Build analytics URL with date range
+          let analyticsUrl = `${API}/analytics/dashboard?period=${dateRange}`;
+          
+          // Add custom date parameters if applicable
+          if (dateRange === 'custom' && customStartDate && customEndDate) {
+            analyticsUrl += `&startDate=${customStartDate}&endDate=${customEndDate}`;
+          }
+
+          const response = await fetch(analyticsUrl, {
             headers: {
               Authorization: `Bearer ${token}`
             }
@@ -279,6 +298,7 @@ const Analytics: React.FC = () => {
               <DateRangeSelector
                 selectedRange={dateRange}
                 onRangeChange={setDateRange}
+                onCustomDateChange={handleCustomDateChange}
               />
               <button
                 onClick={() => loadAnalyticsData(true)}

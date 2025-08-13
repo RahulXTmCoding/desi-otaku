@@ -44,7 +44,7 @@ const ThemeSwitcher: React.FC = () => {
             onClick={() => setIsOpen(false)}
           />
           <div
-            className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg overflow-hidden z-50"
+            className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-40 sm:w-48 rounded-lg shadow-lg overflow-hidden z-50"
             style={{
               backgroundColor: theme.colors.surface,
               border: `1px solid ${theme.colors.border}`

@@ -18,8 +18,9 @@ import {
 import { isAutheticated } from "../auth/helper";
 import { deleteProduct, mockDeleteProduct } from "./helper/adminapicall";
 import { getFilteredProducts } from "../core/helper/shopApiCalls";
-import { getCategories } from "../core/helper/coreapicalls";
+import { getCategories, getProductTypes } from "../core/helper/coreapicalls";
 import { useDevMode } from "../context/DevModeContext";
+import { useDebounce } from "../hooks/useDebounce";
 import { mockProducts, getMockProductImage } from "../data/mockData";
 import { API } from "../backend";
 
@@ -43,9 +44,11 @@ const ManageProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
   const [deletedProducts, setDeletedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
+  const [productTypes, setProductTypes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || "");
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || "");
+  const searchTerm = useDebounce(searchInput, 500);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [permanentDeleteConfirm, setPermanentDeleteConfirm] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(searchParams.get('filters') === 'show');
@@ -57,6 +60,7 @@ const ManageProducts = () => {
     (searchParams.get('stock') as any) || 'all'
   );
   const [categoryFilter, setCategoryFilter] = useState<string>(searchParams.get('category') || 'all');
+  const [productTypeFilter, setProductTypeFilter] = useState<string>(searchParams.get('productType') || 'all');
   const [viewMode, setViewMode] = useState<'active' | 'deleted'>((searchParams.get('view') as any) || 'active');
   
   // Pagination
@@ -69,7 +73,7 @@ const ManageProducts = () => {
   const { isTestMode } = useDevMode();
   const auth = isAutheticated();
 
-  // Load categories on mount
+  // Load categories and product types on mount
   useEffect(() => {
     getCategories()
       .then((data: any) => {
@@ -78,6 +82,21 @@ const ManageProducts = () => {
         }
       })
       .catch((err: any) => console.log(err));
+      
+    getProductTypes()
+      .then((data: any) => {
+        if (data && !data.error) {
+          if (data.length === 0) {
+            // If no product types found, try to seed default types
+            console.log('No product types found, seeding defaults...');
+            // For now, just show empty dropdown - admin can manage product types separately
+          }
+          setProductTypes(data);
+        }
+      })
+      .catch((err: any) => {
+        console.log('Product Types Error:', err);
+      });
   }, []);
 
   // Update URL params whenever filters change
@@ -90,11 +109,12 @@ const ManageProducts = () => {
     if (priceFilter.max) params.set('priceMax', priceFilter.max);
     if (stockFilter !== 'all') params.set('stock', stockFilter);
     if (categoryFilter !== 'all') params.set('category', categoryFilter);
+    if (productTypeFilter !== 'all') params.set('productType', productTypeFilter);
     if (viewMode !== 'active') params.set('view', viewMode);
     if (currentPage > 1) params.set('page', currentPage.toString());
     
     setSearchParams(params);
-  }, [searchTerm, showFilters, priceFilter, stockFilter, categoryFilter, viewMode, currentPage, setSearchParams]);
+  }, [searchTerm, showFilters, priceFilter, stockFilter, categoryFilter, productTypeFilter, viewMode, currentPage, setSearchParams]);
 
   // Load products when filters change
   useEffect(() => {
@@ -103,12 +123,12 @@ const ManageProducts = () => {
     } else {
       loadDeletedProducts();
     }
-  }, [searchTerm, priceFilter, stockFilter, categoryFilter, currentPage, viewMode, isTestMode]);
+  }, [searchTerm, priceFilter, stockFilter, categoryFilter, productTypeFilter, currentPage, viewMode, isTestMode]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, priceFilter, stockFilter, categoryFilter, viewMode]);
+  }, [searchTerm, priceFilter, stockFilter, categoryFilter, productTypeFilter, viewMode]);
 
   const loadActiveProducts = async () => {
     setLoading(true);
@@ -169,45 +189,38 @@ const ManageProducts = () => {
     }
     
     try {
-      // Build filters for backend
-      const filters: any = {
-        page: currentPage,
-        limit: itemsPerPage,
-      };
+      // Use optimized admin endpoint
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
       
-      if (searchTerm) filters.search = searchTerm;
-      if (categoryFilter !== 'all') filters.category = categoryFilter;
+      if (searchTerm) params.append('search', searchTerm);
+      if (categoryFilter !== 'all') params.append('category', categoryFilter);
+      if (productTypeFilter !== 'all') params.append('productType', productTypeFilter);
+      if (priceFilter.min) params.append('minPrice', priceFilter.min);
+      if (priceFilter.max) params.append('maxPrice', priceFilter.max);
+      if (stockFilter !== 'all') params.append('stockStatus', stockFilter);
       
-      // Parse price range
-      if (priceFilter.min) filters.minPrice = parseInt(priceFilter.min);
-      if (priceFilter.max) filters.maxPrice = parseInt(priceFilter.max);
-      
-      // Map stock filter to backend query
-      if (stockFilter !== 'all') {
-        switch (stockFilter) {
-          case 'out-of-stock':
-            filters.minStock = 0;
-            filters.maxStock = 0;
-            break;
-          case 'low-stock':
-            filters.minStock = 1;
-            filters.maxStock = 10;
-            break;
-          case 'in-stock':
-            filters.minStock = 11;
-            break;
+      const response = await fetch(`${API}/admin/products?${params}`, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${auth && auth.token}`
         }
-      }
+      });
       
-      const data = await getFilteredProducts(filters);
+      const data = await response.json();
       
       if (data.error) {
         setError(data.error);
         setProducts([]);
       } else {
         setProducts(data.products || []);
-        setTotalProducts(data.totalProducts || 0);
-        setTotalPages(data.totalPages || 1);
+        setTotalProducts(data.pagination?.totalProducts || 0);
+        setTotalPages(data.pagination?.totalPages || 1);
       }
     } catch (err) {
       console.error('Error loading products:', err);
@@ -400,8 +413,8 @@ const ManageProducts = () => {
               <input
                 type="text"
                 placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white placeholder-gray-400"
               />
             </div>
@@ -470,16 +483,33 @@ const ManageProducts = () => {
                   ))}
                 </select>
               </div>
+
+              {/* Product Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Product Type</label>
+                <select
+                  value={productTypeFilter}
+                  onChange={(e) => setProductTypeFilter(e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
+                >
+                  <option value="all">All Product Types</option>
+                  {productTypes.map((type) => (
+                    <option key={type._id} value={type._id}>
+                      {type.displayName || type.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           )}
           
           {/* Active Filters Display */}
-          {(searchTerm || stockFilter !== 'all' || categoryFilter !== 'all' || priceFilter.min || priceFilter.max) && (
+          {(searchTerm || stockFilter !== 'all' || categoryFilter !== 'all' || productTypeFilter !== 'all' || priceFilter.min || priceFilter.max) && (
             <div className="mt-4 flex flex-wrap gap-2">
               {searchTerm && (
                 <span className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm flex items-center gap-2">
                   Search: {searchTerm}
-                  <button onClick={() => setSearchTerm('')} className="hover:text-yellow-300">×</button>
+                  <button onClick={() => setSearchInput('')} className="hover:text-yellow-300">×</button>
                 </span>
               )}
               {stockFilter !== 'all' && (
@@ -494,6 +524,12 @@ const ManageProducts = () => {
                   <button onClick={() => setCategoryFilter('all')} className="hover:text-yellow-300">×</button>
                 </span>
               )}
+              {productTypeFilter !== 'all' && (
+                <span className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm flex items-center gap-2">
+                  Type: {productTypes.find(type => type._id === productTypeFilter)?.displayName || productTypes.find(type => type._id === productTypeFilter)?.name || productTypeFilter}
+                  <button onClick={() => setProductTypeFilter('all')} className="hover:text-yellow-300">×</button>
+                </span>
+              )}
               {(priceFilter.min || priceFilter.max) && (
                 <span className="px-3 py-1 bg-yellow-400/20 text-yellow-400 rounded-full text-sm flex items-center gap-2">
                   Price: ₹{priceFilter.min || '0'} - ₹{priceFilter.max || '∞'}
@@ -502,9 +538,10 @@ const ManageProducts = () => {
               )}
               <button
                 onClick={() => {
-                  setSearchTerm('');
+                  setSearchInput('');
                   setStockFilter('all');
                   setCategoryFilter('all');
+                  setProductTypeFilter('all');
                   setPriceFilter({ min: '', max: '' });
                 }}
                 className="px-3 py-1 bg-gray-700 text-gray-300 rounded-full text-sm hover:bg-gray-600"

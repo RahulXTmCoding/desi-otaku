@@ -6,11 +6,11 @@ const { startOfDay, startOfWeek, startOfMonth, startOfYear, endOfDay, endOfWeek,
 // Get analytics dashboard data
 exports.getAnalyticsDashboard = async (req, res) => {
   try {
-    const { period = 'month' } = req.query;
+    const { period = 'month', startDate: customStartDate, endDate: customEndDate } = req.query;
     const userId = req.user._id; // Changed from req.auth to req.user
     
-    // Get date range based on period
-    const { startDate, endDate, previousStartDate, previousEndDate } = getDateRange(period);
+    // Get date range based on period or custom dates
+    const { startDate, endDate, previousStartDate, previousEndDate } = getDateRange(period, customStartDate, customEndDate);
     
     // Current period data
     const currentPeriodOrders = await Order.find({
@@ -88,9 +88,31 @@ exports.getAnalyticsDashboard = async (req, res) => {
 };
 
 // Helper function to get date ranges
-function getDateRange(period) {
+function getDateRange(period, customStartDate, customEndDate) {
   const now = new Date();
   let startDate, endDate, previousStartDate, previousEndDate;
+  
+  // Handle custom date range
+  if (period === 'custom' && customStartDate && customEndDate) {
+    // Ensure startDate starts at beginning of day
+    startDate = startOfDay(new Date(customStartDate));
+    // Ensure endDate includes the entire end day
+    endDate = endOfDay(new Date(customEndDate));
+    
+    console.log('🗓️ Custom date range:', {
+      customStartDate,
+      customEndDate,
+      processedStartDate: startDate,
+      processedEndDate: endDate
+    });
+    
+    // Calculate previous period of same length for growth comparison
+    const daysDiff = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+    previousStartDate = startOfDay(subDays(startDate, daysDiff));
+    previousEndDate = endOfDay(subDays(endDate, daysDiff));
+    
+    return { startDate, endDate, previousStartDate, previousEndDate };
+  }
   
   switch (period) {
     case 'today':
@@ -110,6 +132,14 @@ function getDateRange(period) {
       endDate = endOfMonth(now);
       previousStartDate = startOfMonth(subMonths(now, 1));
       previousEndDate = endOfMonth(subMonths(now, 1));
+      break;
+    case 'quarter':
+      // Quarter support
+      const currentQuarter = Math.floor(now.getMonth() / 3);
+      startDate = new Date(now.getFullYear(), currentQuarter * 3, 1);
+      endDate = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 0);
+      previousStartDate = new Date(now.getFullYear(), (currentQuarter - 1) * 3, 1);
+      previousEndDate = new Date(now.getFullYear(), currentQuarter * 3, 0);
       break;
     case 'year':
       startDate = startOfYear(now);
@@ -134,6 +164,68 @@ function generateRevenueChartData(orders, period, startDate, endDate) {
   const data = [];
   
   switch (period) {
+    case 'custom':
+      // Custom date range - daily data
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff <= 1) {
+        // Single day - hourly data
+        for (let i = 0; i < 24; i++) {
+          labels.push(`${i}:00`);
+          const hourOrders = orders.filter(order => {
+            const orderHour = new Date(order.createdAt).getHours();
+            return orderHour === i;
+          });
+          data.push(hourOrders.reduce((sum, order) => sum + order.amount, 0));
+        }
+      } else if (daysDiff <= 7) {
+        // Week or less - daily data
+        for (let i = 0; i < daysDiff; i++) {
+          const currentDay = new Date(start);
+          currentDay.setDate(start.getDate() + i);
+          labels.push(format(currentDay, 'MMM dd'));
+          
+          const dayOrders = orders.filter(order => {
+            const orderDate = new Date(order.createdAt);
+            return orderDate.toDateString() === currentDay.toDateString();
+          });
+          data.push(dayOrders.reduce((sum, order) => sum + order.amount, 0));
+        }
+      } else if (daysDiff <= 31) {
+        // Month or less - daily data
+        for (let i = 0; i < daysDiff; i++) {
+          const currentDay = new Date(start);
+          currentDay.setDate(start.getDate() + i);
+          labels.push(format(currentDay, 'MMM dd'));
+          
+          const dayOrders = orders.filter(order => {
+            const orderDate = new Date(order.createdAt);
+            return orderDate.toDateString() === currentDay.toDateString();
+          });
+          data.push(dayOrders.reduce((sum, order) => sum + order.amount, 0));
+        }
+      } else {
+        // More than a month - weekly data
+        const weeks = Math.ceil(daysDiff / 7);
+        for (let i = 0; i < weeks; i++) {
+          const weekStart = new Date(start);
+          weekStart.setDate(start.getDate() + (i * 7));
+          const weekEnd = new Date(weekStart);
+          weekEnd.setDate(weekStart.getDate() + 6);
+          
+          labels.push(`Week ${i + 1}`);
+          
+          const weekOrders = orders.filter(order => {
+            const orderDate = new Date(order.createdAt);
+            return orderDate >= weekStart && orderDate <= weekEnd;
+          });
+          data.push(weekOrders.reduce((sum, order) => sum + order.amount, 0));
+        }
+      }
+      break;
+      
     case 'today':
       // Hourly data
       for (let i = 0; i < 24; i++) {
@@ -173,6 +265,24 @@ function generateRevenueChartData(orders, period, startDate, endDate) {
           return orderDate >= weekStart && orderDate <= weekEnd;
         });
         data.push(weekOrders.reduce((sum, order) => sum + order.amount, 0));
+      }
+      break;
+      
+    case 'quarter':
+      // Monthly data for quarter
+      const quarterMonths = ['Month 1', 'Month 2', 'Month 3'];
+      const quarterStart = new Date(startDate);
+      
+      for (let i = 0; i < 3; i++) {
+        labels.push(quarterMonths[i]);
+        const monthStart = new Date(quarterStart.getFullYear(), quarterStart.getMonth() + i, 1);
+        const monthEnd = new Date(quarterStart.getFullYear(), quarterStart.getMonth() + i + 1, 0);
+        
+        const monthOrders = orders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate >= monthStart && orderDate <= monthEnd;
+        });
+        data.push(monthOrders.reduce((sum, order) => sum + order.amount, 0));
       }
       break;
       

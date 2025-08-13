@@ -12,11 +12,15 @@ import {
   AlertCircle,
   Loader,
   Search,
-  Filter
+  Filter,
+  Calendar,
+  RefreshCw
 } from 'lucide-react';
 import { isAutheticated } from '../auth/helper';
 import { getAllOrders, mockGetAllOrders, updateOrderStatus, mockUpdateOrderStatus } from './helper/adminapicall';
 import { useDevMode } from '../context/DevModeContext';
+import DateRangeSelector from './components/analytics/DateRangeSelector';
+import { API } from '../backend';
 
 interface Order {
   _id: string;
@@ -46,42 +50,195 @@ const AdminOrders: React.FC = () => {
   const token = authData && authData.token;
   const { isTestMode } = useDevMode();
   
+  // Enhanced state for backend filtering
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [dateRange, setDateRange] = useState('today'); // Default to today's orders
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
     loadOrders();
-  }, [isTestMode]);
+  }, [isTestMode, dateRange, statusFilter, searchQuery, currentPage]);
 
-  const loadOrders = async () => {
+  // Custom date range state
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
+
+  const getDateRangeParams = () => {
+    const today = new Date();
+    const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+    
+    // Handle custom date range
+    if (dateRange === 'custom' && customStartDate && customEndDate) {
+      const customStart = new Date(customStartDate);
+      customStart.setHours(0, 0, 0, 0);
+      const customEnd = new Date(customEndDate);
+      customEnd.setHours(23, 59, 59, 999);
+      
+      return {
+        startDate: customStart.toISOString(),
+        endDate: customEnd.toISOString()
+      };
+    }
+    
+    switch (dateRange) {
+      case 'today':
+        return {
+          startDate: startOfDay.toISOString(),
+          endDate: endOfDay.toISOString()
+        };
+      case 'week':
+        const weekStart = new Date(today);
+        weekStart.setDate(today.getDate() - today.getDay());
+        weekStart.setHours(0, 0, 0, 0);
+        return {
+          startDate: weekStart.toISOString(),
+          endDate: endOfDay.toISOString()
+        };
+      case 'month':
+        const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+        return {
+          startDate: monthStart.toISOString(),
+          endDate: endOfDay.toISOString()
+        };
+      case 'quarter':
+        const quarterStart = new Date(today.getFullYear(), Math.floor(today.getMonth() / 3) * 3, 1);
+        return {
+          startDate: quarterStart.toISOString(),
+          endDate: endOfDay.toISOString()
+        };
+      case 'year':
+        const yearStart = new Date(today.getFullYear(), 0, 1);
+        return {
+          startDate: yearStart.toISOString(),
+          endDate: endOfDay.toISOString()
+        };
+      default:
+        return {
+          startDate: startOfDay.toISOString(),
+          endDate: endOfDay.toISOString()
+        };
+    }
+  };
+
+  const handleCustomDateChange = (startDate: string, endDate: string) => {
+    setCustomStartDate(startDate);
+    setCustomEndDate(endDate);
+    setDateRange('custom');
+    setCurrentPage(1);
+    // The useEffect will trigger loadOrders when dateRange changes
+  };
+
+  const loadOrders = async (resetPage = false) => {
     setLoading(true);
     setError('');
 
+    if (resetPage) {
+      setCurrentPage(1);
+    }
+
     try {
       if (isTestMode) {
+        // Enhanced mock data with filtering
         const mockOrders = await mockGetAllOrders();
-        setOrders(mockOrders);
+        const { startDate, endDate } = getDateRangeParams();
+        
+        // Filter mock orders by date range
+        const filteredOrders = mockOrders.filter(order => {
+          const orderDate = new Date(order.createdAt);
+          return orderDate >= new Date(startDate) && orderDate <= new Date(endDate);
+        });
+        
+        setOrders(filteredOrders);
+        setTotalOrders(filteredOrders.length);
+        setTotalPages(1);
+        setHasMore(false);
       } else {
         if (user && token) {
-          const data = await getAllOrders(user._id, token);
+          // Use the existing getAllOrders helper with enhanced parameters
+          const { startDate, endDate } = getDateRangeParams();
+          
+          // Build enhanced API call URL with filters
+          const baseUrl = `${API}/order/all/${user._id}`;
+          const params = new URLSearchParams({
+            page: (resetPage ? 1 : currentPage).toString(),
+            limit: '20',
+            ...(statusFilter !== 'all' && { status: statusFilter }),
+            ...(searchQuery && { search: searchQuery }),
+            startDate,
+            endDate,
+            sortBy: 'createdAt',
+            sortOrder: 'desc'
+          });
+
+          console.log('🔍 Loading orders with params:', {
+            dateRange,
+            startDate,
+            endDate,
+            currentPage: resetPage ? 1 : currentPage,
+            statusFilter,
+            searchQuery
+          });
+
+          const response = await fetch(`${baseUrl}?${params}`, {
+            headers: {
+              'Accept': 'application/json',
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: Failed to fetch orders`);
+          }
+
+          const data = await response.json();
+          
+          console.log('📊 Orders API Response:', {
+            ordersCount: data.orders?.length || 0,
+            totalOrders: data.pagination?.totalOrders || 0,
+            currentPage: data.pagination?.currentPage || 1
+          });
+          
           if (data.error) {
             setError(data.error);
             setOrders([]);
           } else {
-            setOrders(data);
+            setOrders(data.orders || []);
+            setCurrentPage(data.pagination?.currentPage || 1);
+            setTotalPages(data.pagination?.totalPages || 1);
+            setTotalOrders(data.pagination?.totalOrders || 0);
+            setHasMore(data.pagination?.hasMore || false);
           }
         }
       }
     } catch (err) {
       console.error('Error loading orders:', err);
       setError('Failed to load orders');
+      setOrders([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setCurrentPage(1);
+    loadOrders(true);
+  };
+
+  const handleLoadMore = () => {
+    if (hasMore && !loading) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
@@ -155,19 +312,8 @@ const AdminOrders: React.FC = () => {
     });
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      order.transaction_id?.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesStatus = 
-      statusFilter === 'all' || 
-      order.status?.toLowerCase() === statusFilter.toLowerCase();
-    
-    return matchesSearch && matchesStatus;
-  });
+  // No frontend filtering - we're using backend filtering
+  const filteredOrders = orders;
 
   const orderStatuses = ['Received', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
@@ -176,13 +322,77 @@ const AdminOrders: React.FC = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Manage Orders</h1>
-          <p className="text-gray-400">View and manage all customer orders</p>
-          {isTestMode && (
-            <p className="text-yellow-400 text-sm mt-2">
-              🧪 Test Mode: Using sample orders
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">Manage Orders</h1>
+              <p className="text-gray-400">View and manage all customer orders</p>
+              {isTestMode && (
+                <p className="text-yellow-400 text-sm mt-2">
+                  🧪 Test Mode: Using sample orders
+                </p>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <DateRangeSelector
+                selectedRange={dateRange}
+                onRangeChange={setDateRange}
+                onCustomDateChange={handleCustomDateChange}
+              />
+              <button
+                onClick={handleRefresh}
+                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors flex items-center gap-2"
+                title="Refresh orders"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Debug Info */}
+        {isTestMode && (
+          <div className="bg-blue-900/20 border border-blue-500 rounded-lg p-4 mb-6">
+            <h3 className="text-blue-400 font-semibold mb-2">🔍 Debug Info</h3>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p><strong>Date Range:</strong> {dateRange}</p>
+                <p><strong>Custom Start:</strong> {customStartDate || 'Not set'}</p>
+                <p><strong>Custom End:</strong> {customEndDate || 'Not set'}</p>
+              </div>
+              <div>
+                <p><strong>API Date Params:</strong></p>
+                <pre className="text-xs bg-gray-800 p-2 rounded mt-1">
+                  {JSON.stringify(getDateRangeParams(), null, 2)}
+                </pre>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Order Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <p className="text-gray-400 text-sm">Total Orders</p>
+            <p className="text-2xl font-bold text-yellow-400">{totalOrders}</p>
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <p className="text-gray-400 text-sm">Current Page</p>
+            <p className="text-2xl font-bold text-blue-400">{currentPage} / {totalPages}</p>
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <p className="text-gray-400 text-sm">Date Range</p>
+            <p className="text-lg font-bold text-green-400 capitalize">
+              {dateRange === 'custom' && customStartDate && customEndDate 
+                ? `${new Date(customStartDate).toLocaleDateString()} - ${new Date(customEndDate).toLocaleDateString()}`
+                : dateRange
+              }
             </p>
-          )}
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
+            <p className="text-gray-400 text-sm">Showing</p>
+            <p className="text-lg font-bold text-purple-400">{filteredOrders.length} orders</p>
+          </div>
         </div>
 
         {/* Filters */}
@@ -377,6 +587,69 @@ const AdminOrders: React.FC = () => {
                 )}
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && filteredOrders.length > 0 && totalPages > 1 && (
+          <div className="mt-8 flex justify-center items-center gap-4">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              Previous
+            </button>
+            
+            <div className="flex gap-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`px-3 py-2 rounded-lg transition-colors ${
+                      currentPage === pageNum
+                        ? 'bg-yellow-400 text-gray-900 font-bold'
+                        : 'bg-gray-800 hover:bg-gray-700'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                );
+              })}
+            </div>
+            
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              Next
+            </button>
+          </div>
+        )}
+
+        {/* Load More Button for mobile-friendly experience */}
+        {!loading && hasMore && !isTestMode && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={handleLoadMore}
+              className="px-6 py-3 bg-yellow-400 hover:bg-yellow-300 text-gray-900 rounded-lg font-semibold transition-colors flex items-center gap-2 mx-auto"
+            >
+              <Package className="w-5 h-5" />
+              Load More Orders
+            </button>
           </div>
         )}
       </div>

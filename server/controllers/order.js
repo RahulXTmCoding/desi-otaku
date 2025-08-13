@@ -914,9 +914,9 @@ exports.getAllOrders = async (req, res) => {
     // Build query
     let query = {};
     
-    // Status filter
+    // Status filter (case-insensitive)
     if (status && status !== 'all') {
-      query.status = status;
+      query.status = { $regex: new RegExp(`^${status}$`, 'i') };
     }
     
     // Date range filter
@@ -942,14 +942,16 @@ exports.getAllOrders = async (req, res) => {
     // Pagination
     const skip = (page - 1) * limit;
     
-    // Execute query with population
+    // Execute query with minimal population for performance
     const [orders, totalCount] = await Promise.all([
       Order.find(query)
-        .populate('user', 'name email')
-        .populate('products.product', 'name price photoUrl images category productType')
+        .populate('user', 'name email') // Only essential user fields
+        .populate('products.product', 'name price') // Only essential product fields
+        .select('_id user products transaction_id amount address status createdAt updatedAt paymentStatus paymentMethod') // Only necessary order fields
         .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
         .skip(skip)
-        .limit(parseInt(limit)),
+        .limit(parseInt(limit))
+        .lean(), // Use lean() for better performance
       Order.countDocuments(query)
     ]);
     

@@ -82,3 +82,12 @@ export const getCategoryTree = () => {
     })
     .catch(err => console.log(err));
 };
+
+// Get all product types
+export const getProductTypes = () => {
+  return fetch(`${API}/producttypes`, { method: "GET" })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => console.log(err));
+};

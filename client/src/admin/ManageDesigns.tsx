@@ -21,6 +21,7 @@ import { getDesigns, deleteDesign, mockDeleteDesign } from "./helper/designapica
 import { getCategories } from "./helper/adminapicall";
 import { useDevMode } from "../context/DevModeContext";
 import { API } from "../backend";
+import { useDebounce } from "../hooks/useDebounce";
 
 interface Design {
   _id: string;
@@ -52,7 +53,8 @@ const ManageDesigns = () => {
   const [designs, setDesigns] = useState<Design[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || "");
+  const [searchInput, setSearchInput] = useState(searchParams.get('search') || "");
+  const searchQuery = useDebounce(searchInput, 500);
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || "all");
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || "newest");
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, designId: "", designName: "" });
@@ -229,8 +231,8 @@ const ManageDesigns = () => {
               <input
                 type="text"
                 placeholder="Search designs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
               />
             </div>
