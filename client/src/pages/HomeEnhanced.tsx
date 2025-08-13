@@ -443,65 +443,69 @@ const HomeEnhanced: React.FC = () => {
           <PromotionalCouponBanner />
         </div> */}
 
-        {/* Simple Banner with Inline Fallback */}
+        {/* Responsive Banner Section */}
         <section className="w-full">
           <div className="relative w-full h-auto">
-            {/* Banner with Multiple Fallbacks */}
-            {/* {!showStyledFallback ? ( */}
-              <img 
-                src="https://lh3.googleusercontent.com/pw/AP1GczOMtcjOVEwiVZflRXXu5ILYzYSocjhlmR-eOQreI3byjS6-cAXl8ckBFB0681qcSfv3NAFdi_6mU88HzR2FMMyA27Oewgmlac32NlGO27H9dhOWvMlpHKbvM6p4XRAd83t7XZ4mMBn4vIKiak9cB6A=w1228-h454-s-no-gm?authuser=0"
-                alt="Attars Clothing - Premium Fashion & Custom Designs"
-                className="w-full h-auto object-cover"
-                loading="eager"
-                onError={(e) => {
-                    // e.currentTarget.onerror = () => {
-                    //   setShowStyledFallback(true);
-                    // };
-                    e.currentTarget.src = '/hq-banner.png';  
-                }}
-              />
-            {/* ) : (
-                <section className="relative px-6 py-20 overflow-hidden" style={{ backgroundColor: 'var(--color-surface)' }}>
-          <div className="absolute top-10 right-10 grid grid-cols-4 gap-2">
-            {[...Array(16)].map((_, i) => (
-              <div key={i} className="w-2 h-2 bg-cyan-400 rounded-full opacity-60"></div>
-            ))}
-          </div>
+            {/* Desktop Banner - Hidden on mobile */}
+            <img 
+              src="https://lh3.googleusercontent.com/pw/AP1GczOMtcjOVEwiVZflRXXu5ILYzYSocjhlmR-eOQreI3byjS6-cAXl8ckBFB0681qcSfv3NAFdi_6mU88HzR2FMMyA27Oewgmlac32NlGO27H9dhOWvMlpHKbvM6p4XRAd83t7XZ4mMBn4vIKiak9cB6A=w1228-h454-s-no-gm?authuser=0"
+              alt="Attars Clothing - Premium Fashion & Custom Designs"
+              className="hidden md:block w-full h-auto object-cover"
+              loading="eager"
+              onError={(e) => {
+                e.currentTarget.src = '/hq-banner.png';  
+              }}
+            />
+            
+            {/* Mobile Banner - Hidden on desktop */}
+            <img 
+              src="https://lh3.googleusercontent.com/pw/AP1GczN8rbbFbksBm1KtoA9xk8rUJ8bIqMGPz6LXm0gQ29nPHG2cWWpI4mIcrVuHFgwoiVKACpsHL5_ymLx1SZK-yEJ29M1O9uLWOHs5ZsQ6p8aeqEXg4lYu_CyV8Gz1XwP5Il-6kGuH6obtb8l28dBeCCE=w1228-h619-s-no-gm?authuser=0"
+              alt="Attars Clothing - Premium Fashion & Custom Designs Mobile"
+              className="block md:hidden w-full h-auto object-cover"
+              loading="eager"
+              onError={(e) => {
+                // Final fallback for mobile - show styled banner
+                // setShowStyledFallback(true);
+                e.currentTarget.src = '/hq-mobile-banner.png';  
+              }}
+            />
+            
+            {/* Styled Fallback Banner - Only shows when all images fail */}
+            {showStyledFallback && (
+              <section className="block md:hidden relative px-6 py-20 overflow-hidden" style={{ backgroundColor: 'var(--color-surface)' }}>
+                <div className="absolute top-10 right-10 grid grid-cols-4 gap-2">
+                  {[...Array(16)].map((_, i) => (
+                    <div key={i} className="w-2 h-2 bg-cyan-400 rounded-full opacity-60"></div>
+                  ))}
+                </div>
 
-          <div className="relative w-[96%] mx-auto text-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6">
-              Express Your
-              <span className="block bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
-                Unique Style
-              </span>
-            </h1>
-            <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Premium fashion apparel with custom design options. Join the Attars community!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
-                onClick={() => navigate('/customize')}
-                className="bg-yellow-400 text-gray-900 px-8 py-4 rounded-full font-semibold hover:bg-yellow-300 transition-all transform hover:scale-105"
-              >
-                Create Custom Design
-              </button>
-              <button 
-                onClick={() => navigate('/shop')}
-                className="border border-yellow-400 text-yellow-400 px-8 py-4 rounded-full font-semibold hover:bg-yellow-400 hover:text-gray-900 transition-all"
-              >
-                Shop Collection
-              </button>
-              <button 
-                onClick={handleRandomSurprise}
-                className="border border-purple-400 text-purple-400 px-8 py-4 rounded-full font-semibold hover:bg-purple-400 hover:text-gray-900 transition-all flex items-center gap-2 group"
-              >
-                <Sparkles className="w-5 h-5 group-hover:animate-spin" />
-                Surprise Me!
-              </button>
-            </div>
-          </div>
-        </section>
-            )} */}
+                <div className="relative w-[96%] mx-auto text-center">
+                  <h1 className="text-3xl sm:text-4xl font-bold mb-6">
+                    Express Your
+                    <span className="block bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
+                      Unique Style
+                    </span>
+                  </h1>
+                  <p className="text-lg text-gray-300 mb-8">
+                    Premium fashion apparel with custom design options.
+                  </p>
+                  <div className="flex flex-col gap-3">
+                    <button 
+                      onClick={() => navigate('/customize')}
+                      className="bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-semibold hover:bg-yellow-300 transition-all transform hover:scale-105"
+                    >
+                      Create Custom Design
+                    </button>
+                    <button 
+                      onClick={() => navigate('/shop')}
+                      className="border border-yellow-400 text-yellow-400 px-6 py-3 rounded-full font-semibold hover:bg-yellow-400 hover:text-gray-900 transition-all"
+                    >
+                      Shop Collection
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
           </div>
         </section>
 
