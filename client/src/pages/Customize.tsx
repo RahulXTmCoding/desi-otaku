@@ -79,15 +79,23 @@ const Customize: React.FC = () => {
   const { data: tagsData } = useDesignTags();
   const { data: productsData } = useProducts();
 
-  // Handle test mode and real data
-  const designs = isTestMode ? [] : (designsData?.designs || designsData || []);
+  // Handle test mode and real data with proper array validation
+  const designs = isTestMode ? [] : (() => {
+    if (!designsData) return [];
+    if (Array.isArray(designsData)) return designsData;
+    if (designsData.designs && Array.isArray(designsData.designs)) return designsData.designs;
+    return [];
+  })();
   const loading = isTestMode ? false : designsLoading;
   const error = isTestMode ? '' : (designsError?.message || '');
   const totalPages = isTestMode ? 1 : (designsData?.pagination?.totalPages || 1);
-  const categories = isTestMode ? [] : (categoriesData || []);
-  const allTags = isTestMode ? [] : (tagsData?.filter((tag: string) => 
-    tag && tag.length > 2 && !tag.match(/^[0-9a-fA-F]{24}$/)
-  ) || []);
+  const categories = isTestMode ? [] : (Array.isArray(categoriesData) ? categoriesData : []);
+  const allTags = isTestMode ? [] : (() => {
+    if (!tagsData || !Array.isArray(tagsData)) return [];
+    return tagsData.filter((tag: string) => 
+      tag && tag.length > 2 && !tag.match(/^[0-9a-fA-F]{24}$/)
+    );
+  })();
 
   const tshirtColors = [
     { name: 'White', value: '#FFFFFF' },
