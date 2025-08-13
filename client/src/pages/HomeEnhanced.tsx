@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shuffle, Sparkles, X, Check, ShoppingCart, Heart, Headphones, Globe, Package, Award, Users, Zap } from 'lucide-react';
 import Base from '../core/Base';
 import PromotionalBanner from '../components/home/PromotionalBanner';
 import PromotionalCouponBanner from '../components/home/PromotionalCouponBanner';
-import ProductCarousel from '../components/home/ProductCarousel';
+import ProductGrid from '../components/home/ProductGrid';
 import CategoryCard from '../components/home/CategoryCard';
 import FeatureSection from '../components/home/FeatureSection';
 import ReviewCarousel from '../components/home/ReviewCarousel';
 import { useCart } from '../context/CartContext';
 import { useThemeClasses } from '../hooks/useThemeClasses';
-import { getFilteredProducts } from '../core/helper/shopApiCalls';
+import { useFilteredProducts } from '../hooks/useProducts';
 import { getCategories } from '../core/helper/coreapicalls';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
@@ -19,7 +19,7 @@ import QuickViewModal from '../components/QuickViewModal';
 import { toast } from 'react-hot-toast';
 import { addToWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
-import { getDesigns } from '../admin/helper/designapicall';
+import { getRandomDesign } from '../admin/helper/designapicall';
 import RealTShirtPreview from '../components/RealTShirtPreview';
 import SEOHead from '../components/SEOHead';
 import { PAGE_SEO_DATA, BASE_URL, ORGANIZATION_STRUCTURED_DATA } from '../seo/SEOConfig';
@@ -66,13 +66,8 @@ const HomeEnhanced: React.FC = () => {
   const { addToCart } = useCart();
   const { primary: primaryButtonClass, primaryHover: primaryButtonHoverClass } = useThemeClasses();
   const [showBanner, setShowBanner] = useState(true);
-  const [newProducts, setNewProducts] = useState<Product[]>([]);
-  const [trendingProducts, setTrendingProducts] = useState<Product[]>([]);
-  const [mostDemandProducts, setMostDemandProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [animeCategories, setAnimeCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   
   // Quick View Modal state
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -85,6 +80,36 @@ const HomeEnhanced: React.FC = () => {
   const [selectedRandomColor, setSelectedRandomColor] = useState<any>(null);
   const [selectedRandomSize, setSelectedRandomSize] = useState<string>('');
   const [addedToCart, setAddedToCart] = useState(false);
+
+  // Simple fallback banner state
+  const [showStyledFallback, setShowStyledFallback] = useState(false);
+
+  // Use React Query for products to prevent duplicate API calls
+  const newProductsQuery = useFilteredProducts({
+    sortBy: 'newest', 
+    sortOrder: 'desc', 
+    limit: 8
+  });
+
+  // Mock or real products
+  const newProducts = useMemo(() => {
+    if (isTestMode) {
+      return mockProducts.slice(0, 8).map((p, i) => ({ 
+        ...p, 
+        isNew: i < 5,
+        originalPrice: p.price * 1.2
+      }));
+    }
+    return newProductsQuery.data?.products?.map((p: Product, i: number) => ({ 
+      ...p, 
+      isNew: i < 5,
+      originalPrice: p.price * 1.2
+    })) || [];
+  }, [isTestMode, newProductsQuery.data]);
+
+  const loading = useMemo(() => {
+    return isTestMode ? false : newProductsQuery.isLoading;
+  }, [isTestMode, newProductsQuery.isLoading]);
 
   // Sample reviews data
   const reviews: Review[] = [
@@ -137,61 +162,10 @@ const HomeEnhanced: React.FC = () => {
     "dragon ball": "https://fansarmy.in/cdn/shop/files/COMBOCAROUSALIMAGES_7_1800x1800.jpg?v=1710585925"
   };
 
+  // Load categories only (products are handled by React Query)
   useEffect(() => {
-    loadAllProducts();
     loadCategories();
   }, [isTestMode]);
-
-  const loadAllProducts = async () => {
-    setLoading(true);
-    
-    if (isTestMode) {
-      // Use mock data
-      setTimeout(() => {
-        const allProducts = [...mockProducts];
-        
-        // Add variations for demo
-        const productsWithVariations = allProducts.map((product, index) => ({
-          ...product,
-          originalPrice: index % 3 === 0 ? product.price * 1.5 : undefined,
-          isNew: index < 5,
-          sold: Math.floor(Math.random() * 100)
-        }));
-        
-        setNewProducts(productsWithVariations.slice(0, 8));
-        setTrendingProducts(productsWithVariations.slice(4, 12));
-        setMostDemandProducts(productsWithVariations.slice(8, 12));
-        setLoading(false);
-      }, 500);
-    } else {
-      try {
-        const [newData, trendingData, demandData] = await Promise.all([
-          getFilteredProducts({ sortBy: 'newest', sortOrder: 'desc', limit: 8 }),
-          getFilteredProducts({ sortBy: 'sold', sortOrder: 'desc', limit: 8 }),
-          getFilteredProducts({ sortBy: 'popularity', sortOrder: 'desc', limit: 4 })
-        ]);
-
-        if (newData && newData.products) {
-          setNewProducts(newData.products.map((p: Product, i: number) => ({ 
-            ...p, 
-            isNew: i < 5,
-            originalPrice: p.price * 1.2
-          })));
-        }
-        if (trendingData && trendingData.products) {
-          setTrendingProducts(trendingData.products);
-        }
-        if (demandData && demandData.products) {
-          setMostDemandProducts(demandData.products);
-        }
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        setError('Failed to load products');
-        setLoading(false);
-      }
-    }
-  };
 
   const loadCategories = async () => {
     if (isTestMode) {
@@ -245,9 +219,8 @@ const HomeEnhanced: React.FC = () => {
       handleRandomDesign();
     } else {
       // Navigate to random product
-      const allProducts = [...newProducts, ...trendingProducts];
-      if (allProducts.length > 0) {
-        const randomProduct = allProducts[Math.floor(Math.random() * allProducts.length)];
+      if (newProducts.length > 0) {
+        const randomProduct = newProducts[Math.floor(Math.random() * newProducts.length)];
         navigate(`/product/${randomProduct._id}`);
       }
     }
@@ -262,12 +235,11 @@ const HomeEnhanced: React.FC = () => {
     await new Promise(resolve => setTimeout(resolve, 1500));
     
     try {
-      // Get all available designs
-      let designList = [];
+      let randomDesign;
       
       if (isTestMode) {
         // Use mock products as designs in test mode
-        designList = mockProducts.map(p => ({
+        const mockDesigns = mockProducts.map(p => ({
           _id: p._id,
           name: p.name,
           imageUrl: getMockProductImage(p._id),
@@ -275,19 +247,20 @@ const HomeEnhanced: React.FC = () => {
           category: p.category,
           isActive: true
         }));
+        randomDesign = mockDesigns[Math.floor(Math.random() * mockDesigns.length)];
       } else {
-        // Fetch real designs
-        const designsData = await getDesigns(1, 100, {});
-        designList = designsData.designs || designsData || [];
+        // OPTIMIZED: Get single random design from backend
+        randomDesign = await getRandomDesign();
       }
       
-      if (!Array.isArray(designList) || designList.length === 0) {
+      if (!randomDesign) {
+        console.log('No designs available');
         setIsGenerating(false);
+        toast.error('No designs available');
         return;
       }
       
-      // Random selections
-      const randomDesign = designList[Math.floor(Math.random() * designList.length)];
+      // Generate random color, size, and placement
       const colors = [
         { name: 'White', value: '#FFFFFF' },
         { name: 'Black', value: '#000000' },
@@ -316,7 +289,7 @@ const HomeEnhanced: React.FC = () => {
         size: randomSize,
         position: randomPosition,
         designPosition: randomDesignPosition,
-        price: 499 + 150 // Base + design price (single side only)
+        price: 499 + (randomDesign.price || 150) // Base + actual design price
       };
       
       setRandomSelection(selection);
@@ -326,14 +299,26 @@ const HomeEnhanced: React.FC = () => {
     } catch (error) {
       console.error('Error generating random design:', error);
       setIsGenerating(false);
+      toast.error('Failed to generate random design');
     }
   };
 
   const handleAddRandomToCart = async () => {
-    if (!randomSelection || !selectedRandomColor || !selectedRandomSize) return;
+    if (!randomSelection || !selectedRandomColor || !selectedRandomSize) {
+      toast.error('Please select color and size');
+      return;
+    }
     
     try {
       const designName = `${randomSelection.position === 'front' ? 'Front' : 'Back'}: ${randomSelection.design.name}`;
+      const designImageUrl = getDesignImageUrl(randomSelection.design);
+      
+      console.log('🛒 Adding to cart:', {
+        design: randomSelection.design,
+        designImageUrl,
+        position: randomSelection.position,
+        designPosition: randomSelection.designPosition
+      });
       
       const cartItem = {
         name: `Custom T-Shirt - ${designName}`,
@@ -345,21 +330,24 @@ const HomeEnhanced: React.FC = () => {
         customization: {
           frontDesign: randomSelection.position === 'front' ? {
             designId: randomSelection.design._id,
-            designImage: getDesignImageUrl(randomSelection.design),
+            designImage: designImageUrl,
             position: randomSelection.designPosition,
-            price: 150
+            price: randomSelection.design.price || 150
           } : undefined,
           backDesign: randomSelection.position === 'back' ? {
             designId: randomSelection.design._id,
-            designImage: getDesignImageUrl(randomSelection.design),
+            designImage: designImageUrl,
             position: randomSelection.designPosition,
-            price: 150
+            price: randomSelection.design.price || 150
           } : undefined
         }
       };
 
+      console.log('🛒 Cart item:', cartItem);
+      
       await addToCart(cartItem);
       setAddedToCart(true);
+      toast.success('Added to cart!');
       
       setTimeout(() => {
         setShowRandomModal(false);
@@ -369,15 +357,22 @@ const HomeEnhanced: React.FC = () => {
         setAddedToCart(false);
       }, 2000);
     } catch (error) {
-      console.error('Failed to add to cart:', error);
+      console.error('❌ Failed to add to cart:', error);
+      toast.error('Failed to add to cart: ' + (error.message || 'Unknown error'));
     }
   };
 
   const getDesignImageUrl = (design: any) => {
+    console.log('🖼️ Getting design image URL for:', design);
+    
     if (design.imageUrl && (design.imageUrl.startsWith('http') || design.imageUrl.startsWith('data:'))) {
+      console.log('✅ Using design.imageUrl:', design.imageUrl);
       return design.imageUrl;
     }
-    return `${API}/design/image/${design._id}`;
+    
+    const apiImageUrl = `${API}/design/image/${design._id}`;
+    console.log('🔗 Using API image URL:', apiImageUrl);
+    return apiImageUrl;
   };
 
   const tshirtColors = [
@@ -425,6 +420,7 @@ const HomeEnhanced: React.FC = () => {
     }
   };
 
+
   return (
     <Base title="" description="">
       <SEOHead 
@@ -447,8 +443,25 @@ const HomeEnhanced: React.FC = () => {
           <PromotionalCouponBanner />
         </div> */}
 
-        {/* Hero Section */}
-        <section className="relative px-6 py-20 overflow-hidden" style={{ backgroundColor: 'var(--color-surface)' }}>
+        {/* Simple Banner with Inline Fallback */}
+        <section className="w-full">
+          <div className="relative w-full h-auto">
+            {/* Banner with Multiple Fallbacks */}
+            {/* {!showStyledFallback ? ( */}
+              <img 
+                src="https://lh3.googleusercontent.com/pw/AP1GczOMtcjOVEwiVZflRXXu5ILYzYSocjhlmR-eOQreI3byjS6-cAXl8ckBFB0681qcSfv3NAFdi_6mU88HzR2FMMyA27Oewgmlac32NlGO27H9dhOWvMlpHKbvM6p4XRAd83t7XZ4mMBn4vIKiak9cB6A=w1228-h454-s-no-gm?authuser=0"
+                alt="Attars Clothing - Premium Fashion & Custom Designs"
+                className="w-full h-auto object-cover"
+                loading="eager"
+                onError={(e) => {
+                    // e.currentTarget.onerror = () => {
+                    //   setShowStyledFallback(true);
+                    // };
+                    e.currentTarget.src = '/hq-banner.png';  
+                }}
+              />
+            {/* ) : (
+                <section className="relative px-6 py-20 overflow-hidden" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="absolute top-10 right-10 grid grid-cols-4 gap-2">
             {[...Array(16)].map((_, i) => (
               <div key={i} className="w-2 h-2 bg-cyan-400 rounded-full opacity-60"></div>
@@ -488,11 +501,23 @@ const HomeEnhanced: React.FC = () => {
             </div>
           </div>
         </section>
+            )} */}
+          </div>
+        </section>
 
+      
         {/* Most In Demand Categories */}
         <section className="py-16">
           <div className="w-[96%] mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">OUR COLLECTION</h2>
+              <div className="text-center mb-16">
+              <h2 className="text-5xl font-bold mb-6 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+                OUR COLLECTION
+              </h2>
+              <div className="w-32 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-4"></div>
+              <p className="text-gray-400 text-xl max-w-3xl mx-auto leading-relaxed">
+                Explore our premium collection of carefully curated fashion pieces
+              </p>
+            </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
               {visualCategories.map((category, index) => (
                 <CategoryCard
@@ -508,15 +533,17 @@ const HomeEnhanced: React.FC = () => {
           </div>
         </section>
 
+
         {/* Newly Launched Products */}
         <section className="py-8" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="w-[96%] mx-auto">
-            <ProductCarousel
+            <ProductGrid
               title="Newly Launched"
               products={newProducts}
               viewAllLink="/shop?sort=newest"
               loading={loading}
               onQuickView={handleQuickView}
+              maxItems={8}
             />
           </div>
         </section>
@@ -817,7 +844,7 @@ const HomeEnhanced: React.FC = () => {
                       <p className="text-gray-400 text-sm">Total Price</p>
                       <p className="text-2xl font-bold text-yellow-400">₹{randomSelection.price}</p>
                       <p className="text-xs text-gray-500 mt-1">
-                        Base ₹499 + Design ₹150
+                        Base ₹499 + Design ₹{randomSelection.design.price || 150}
                       </p>
                     </div>
 

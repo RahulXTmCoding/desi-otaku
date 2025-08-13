@@ -167,6 +167,21 @@ export const toggleLikeDesign = (designId: string, like: boolean) => {
     .catch((err) => console.log(err));
 };
 
+// Get random design - OPTIMIZED for Surprise Me feature
+export const getRandomDesign = () => {
+  return fetch(`${API}/designs/random`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+    },
+  })
+    .then((response) => {
+      return response.json();
+    })
+    .catch((err) => console.log(err));
+};
+
 // Mock functions for test mode
 export const mockCreateDesign = (design: FormData) => {
   return new Promise((resolve) => {

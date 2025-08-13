@@ -389,6 +389,45 @@ exports.toggleLikeDesign = async (req, res) => {
   }
 };
 
+// Get random design - OPTIMIZED for Surprise Me feature
+exports.getRandomDesign = async (req, res) => {
+  try {
+    // Use MongoDB's $sample aggregation for true randomization
+    const randomDesigns = await Design.aggregate([
+      { 
+        $match: { 
+          isActive: { $ne: false } // Only active designs (handles undefined as true)
+        } 
+      },
+      { $sample: { size: 1 } }, // Get 1 random design efficiently
+      // Don't exclude any fields for random design - we need complete data for preview
+      // The slight performance hit is acceptable for a single random design
+    ]);
+    
+    if (randomDesigns.length === 0) {
+      return res.status(404).json({
+        error: "No designs available"
+      });
+    }
+    
+    const randomDesign = randomDesigns[0];
+    
+    // Optionally increment view count for analytics
+    Design.findByIdAndUpdate(
+      randomDesign._id,
+      { $inc: { 'popularity.views': 1 } },
+      { new: false }
+    ).exec().catch(err => console.log('View count update failed:', err));
+    
+    res.json(randomDesign);
+  } catch (err) {
+    console.error("Error getting random design:", err);
+    return res.status(400).json({
+      error: "Failed to get random design"
+    });
+  }
+};
+
 // Update design usage count (when ordered)
 exports.updateDesignUsage = async (designId) => {
   try {

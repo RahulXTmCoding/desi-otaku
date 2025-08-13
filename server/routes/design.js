@@ -13,7 +13,8 @@ const {
   getDesignsByCategory,
   getDesignsByTag,
   getAllTags,
-  toggleLikeDesign
+  toggleLikeDesign,
+  getRandomDesign
 } = require("../controllers/design");
 const { isSignedIn, isAuthenticated, isAdmin } = require("../controllers/auth");
 const { getUserById } = require("../controllers/user");
@@ -57,6 +58,7 @@ router.delete(
 router.get("/designs", getAllDesigns);
 router.get("/designs/popular", getPopularDesigns);
 router.get("/designs/featured", getFeaturedDesigns);
+router.get("/designs/random", getRandomDesign); // OPTIMIZED: Single random design
 router.get("/designs/category/:category", getDesignsByCategory);
 router.get("/designs/tag/:tag", getDesignsByTag);
 router.get("/designs/tags", getAllTags);
