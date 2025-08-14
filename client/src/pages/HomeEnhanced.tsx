@@ -460,7 +460,7 @@ const HomeEnhanced: React.FC = () => {
             
             {/* Mobile Banner - Hidden on desktop */}
             <img 
-              src="https://lh3.googleusercontent.com/pw/AP1GczNTQ0F9iPKyZwjQxV2eLvmjQZ4g4QP9CAOY7dyGu7yBI9bT1InymDROp1sIgqrxmyXRcpMChNEIqr_E7KIKdW7aChLgfnpk16P70wb_TcMX6LXlrTMUfWrcjJkQc_BzcJbF0P6JjUZ3JmSVqXi8fzE=w1525-h913-s-no-gm?authuser=0"
+              src="https://lh3.googleusercontent.com/pw/AP1GczPvITvGIZ94AKzAEdQHclFkX2mEKGzhjW0rfM-iJUKESfmRn1L8DTbuggtK3Zu7-l66NlfgJ5KA6VoX00hySNxrb_4mlyfLcBA9ElhoonaDbULlSCwL_fvonHN_KAKhbVg0MaghRHlif-H9MSfoqzE=w965-h913-s-no-gm?authuser=0"
               alt="Attars Clothing - Premium Fashion & Custom Designs Mobile"
               className="block md:hidden w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-opacity"
               loading="eager"
@@ -468,7 +468,7 @@ const HomeEnhanced: React.FC = () => {
               onError={(e) => {
                 // Final fallback for mobile - show styled banner
                 // setShowStyledFallback(true);
-                e.currentTarget.src = '/hq-mobile-banner.png';  
+                e.currentTarget.src = '/hq-mobile-banner-2.png';  
               }}
             />
             

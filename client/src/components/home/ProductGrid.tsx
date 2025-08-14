@@ -50,7 +50,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         </div>
 
         {/* Loading Skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 lg:gap-8">
           {[...Array(8)].map((_, i) => (
             <div key={i} className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-2xl p-6 animate-pulse border border-gray-700">
               <div className="h-64 bg-gray-700 rounded-xl mb-4"></div>
@@ -78,7 +78,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
       </div>
 
       {/* Products Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6 lg:gap-8 mb-10">
         {displayProducts.map((product, index) => (
           <div
             key={product._id}

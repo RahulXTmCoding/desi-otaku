@@ -828,7 +828,7 @@ const ShopWithBackendFilters: React.FC = () => {
             {/* Products Grid */}
             {!currentLoading && !currentError && currentProducts.length > 0 ? (
               <>
-                <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                <div className="grid gap-3 sm:gap-6 grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
                   {currentProducts.map(product => (
                     <ProductGridItem 
                       key={product._id} 

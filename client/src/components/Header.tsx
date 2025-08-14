@@ -229,17 +229,9 @@ const Header: React.FC = () => {
 
   return (
     <>
-      <nav className="relative z-50 flex items-center justify-between px-4 md:px-6 py-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="md:hidden p-2 transition-all hover:scale-110"
-          style={{ color: 'var(--color-text)' }}
-        >
-          {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
-
-        {/* Logo - Link to dashboard for admin, home for others */}
+      {/* Desktop Header - Hidden on Mobile */}
+      <nav className="hidden md:flex relative z-50 items-center justify-between px-6 py-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
+        {/* Desktop Logo - Left Side */}
         <Link to={auth && auth.user && auth.user.role === 1 ? "/admin/dashboard" : "/"} className="flex items-center space-x-3 group">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
@@ -247,7 +239,7 @@ const Header: React.FC = () => {
               <img src="/logo512.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
             </div>
           </div>
-          <div className="hidden sm:block">
+          <div>
             <div className="flex items-center gap-2">
               <span className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent tracking-wide" style={{ fontFamily: 'Playfair Display, serif' }}>
                 Attars
@@ -257,8 +249,8 @@ const Header: React.FC = () => {
           </div>
         </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-2 lg:space-x-4 xl:space-x-6 2xl:space-x-8">
+        {/* Desktop Navigation - Center */}
+        <div className="flex items-center space-x-2 lg:space-x-4 xl:space-x-6 2xl:space-x-8">
           {auth && auth.user && auth.user.role === 1 ? (
             // Admin Navigation
             <>
@@ -302,18 +294,6 @@ const Header: React.FC = () => {
               {/* Shopping Dropdown */}
               <ShoppingDropdown />
               
-              {/* <Link to="/combo" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
-                <span className="relative z-10">COMBO</span>
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
-              </Link>
-              
-              <Link to="/new-launch" className="relative group">
-                <div className="relative px-4 py-1.5 bg-gradient-to-r from-green-500 to-emerald-500 text-white rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
-                  ✨ NEW LAUNCH
-                  <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
-                </div>
-              </Link> */}
-              
               <Link to="/customize" className="relative group">
                 <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }} className="relative px-3 lg:px-4 py-1.5 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
                   <Palette className="inline-block w-4 h-4 mr-1" />
@@ -338,8 +318,8 @@ const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Right Side Icons */}
-        <div className="flex items-center space-x-2 md:space-x-3">
+        {/* Desktop Right Side Icons */}
+        <div className="flex items-center space-x-3">
           {/* Theme Switcher */}
           <ThemeSwitcher />
           
@@ -362,15 +342,7 @@ const Header: React.FC = () => {
                 <Heart className="w-5 h-5" />
               </Link>
               <button 
-                onClick={() => {
-                  // Check if on mobile device
-                  const isMobile = window.innerWidth < 768;
-                  if (isMobile) {
-                    navigate('/cart');
-                  } else {
-                    setIsCartOpen(true);
-                  }
-                }} 
+                onClick={() => setIsCartOpen(true)} 
                 className="relative p-2 rounded-lg transition-all group"
                 style={{ color: 'var(--color-text)', opacity: 0.8 }}
               >
@@ -398,7 +370,7 @@ const Header: React.FC = () => {
                 <div className="w-8 h-8 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center">
                   <User className="w-4 h-4 text-gray-900" />
                 </div>
-                <span className="text-sm font-medium text-white hidden md:block">
+                <span className="text-sm font-medium text-white">
                   {auth.user.name || 'Account'}
                 </span>
               </button>
@@ -427,6 +399,91 @@ const Header: React.FC = () => {
                 </button>
               </div>
             </div>
+          )}
+        </div>
+      </nav>
+
+      {/* Mobile Header - Hidden on Desktop */}
+      <nav className="md:hidden relative z-50 flex items-center px-4 py-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
+        {/* Mobile Left Section - Menu + Search */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            className="p-2 transition-all hover:scale-110"
+            style={{ color: 'var(--color-text)' }}
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+
+          {/* Search Button - Only show for non-admin customers on mobile */}
+          {(!auth || !auth.user || auth.user.role !== 1) && (
+            <button
+              onClick={() => setIsMobileSearchOpen(true)}
+              className="p-2 rounded-lg transition-all hover:scale-110"
+              style={{ color: 'var(--color-text)', opacity: 0.8 }}
+              title="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Mobile Center Section - Logo (Absolutely Centered) */}
+        <div className="absolute left-1/2 transform -translate-x-1/2">
+          <Link to={auth && auth.user && auth.user.role === 1 ? "/admin/dashboard" : "/"} className="flex items-center group">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
+              <div className="relative w-10 h-10 flex items-center justify-center transform group-hover:scale-110 transition-transform rounded-xl overflow-hidden">
+                <img src="/logo512.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
+              </div>
+            </div>
+          </Link>
+        </div>
+
+        {/* Mobile Right Section - Theme + Cart + User */}
+        <div className="flex items-center space-x-2 ml-auto">
+          {/* Theme Switcher */}
+          <ThemeSwitcher />
+          
+          {/* Only show wishlist and cart for non-admin users */}
+          {(!auth || !auth.user || auth.user.role !== 1) && (
+            <>
+              {/* Mobile wishlist - only when logged in */}
+              {auth && (
+                <Link to="/wishlist" className="relative p-2 rounded-lg transition-all" title="Wishlist" style={{ color: 'var(--color-text)', opacity: 0.8 }}>
+                  <Heart className="w-5 h-5" />
+                </Link>
+              )}
+              <button 
+                onClick={() => navigate('/cart')} 
+                className="relative p-2 rounded-lg transition-all group"
+                style={{ color: 'var(--color-text)', opacity: 0.8 }}
+              >
+                <ShoppingCart 
+                  className={`w-5 h-5 ${cartAnimation ? 'animate-bounce' : ''}`} 
+                />
+                {cartCount > 0 && (
+                  <span className={`absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-yellow-500 text-gray-900 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform ${
+                    cartAnimation ? 'animate-ping' : ''
+                  }`}>
+                    {cartCount}
+                  </span>
+                )}
+              </button>
+            </>
+          )}
+          
+          {/* Mobile User Authentication */}
+          {!auth ? (
+            <Link to="/signin" className="p-2 rounded-lg transition-all hover:scale-110" style={{ color: 'var(--color-text)', opacity: 0.8 }} title="Sign In">
+              <User className="w-5 h-5" />
+            </Link>
+          ) : (
+            <Link to={auth.user.role === 1 ? "/admin/dashboard" : "/user/dashboard"} className="p-2 rounded-lg transition-all hover:scale-110" title="Account">
+              <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center">
+                <User className="w-3 h-3 text-gray-900" />
+              </div>
+            </Link>
           )}
         </div>
       </nav>

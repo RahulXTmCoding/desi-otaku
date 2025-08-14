@@ -328,15 +328,15 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
           </div>
           
           {/* Product Info */}
-          <div className="p-4">
+          <div className="p-3 sm:p-4">
             <Link to={`/product/${product._id}`}>
-              <h3 className="font-semibold text-lg mb-1 line-clamp-1 hover:text-yellow-400 transition-colors">
+              <h3 className="font-semibold text-sm sm:text-lg mb-1 line-clamp-1 hover:text-yellow-400 transition-colors">
                 {product.name}
               </h3>
             </Link>
             
             {product.description && (
-              <p className="text-gray-400 text-sm mb-2 line-clamp-2">
+              <p className="text-gray-400 text-xs sm:text-sm mb-2 line-clamp-2 hidden sm:block">
                 {product.description}
               </p>
             )}
@@ -363,12 +363,12 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             {/* Price and Stock */}
             <div className="flex items-center justify-between">
               <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl font-bold text-yellow-400">₹{product.price}</span>
+                <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                  <span className="text-lg sm:text-2xl font-bold text-yellow-400">₹{product.price}</span>
                   {product.mrp && product.mrp > product.price && (
                     <>
-                      <span className="text-sm text-gray-400 line-through">₹{product.mrp}</span>
-                      <span className="text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+                      <span className="text-xs sm:text-sm text-gray-400 line-through">₹{product.mrp}</span>
+                      <span className="text-xs bg-green-500 text-white px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                         {product.discountPercentage || Math.round(((product.mrp - product.price) / product.mrp) * 100)}% OFF
                       </span>
                     </>
@@ -381,13 +381,13 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                 )}
               </div>
               {product.stock !== undefined && product.stock > 0 && product.stock < 10 && (
-                <span className="text-orange-400 text-sm">Only {product.stock} left!</span>
+                <span className="text-orange-400 text-xs sm:text-sm">Only {product.stock} left!</span>
               )}
             </div>
 
-            {/* Quantity Discount Badge */}
+            {/* Quantity Discount Badge - Hidden on mobile for space */}
             {quantityTiers.length > 0 && (
-              <div className="mt-3 p-2 bg-blue-500/10 rounded-lg border border-blue-500/20">
+              <div className="mt-3 p-2 bg-blue-500/10 rounded-lg border border-blue-500/20 hidden sm:block">
                 <div className="flex items-center gap-1 mb-1">
                   <Tag className="w-3 h-3 text-blue-400" />
                   <span className="text-xs font-medium text-blue-400">Bulk Discounts</span>
