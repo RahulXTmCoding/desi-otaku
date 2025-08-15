@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const Footer: React.FC = () => {
   return (
     <footer className="bg-gray-900 border-t border-gray-800 px-6 py-12">
-      <div className="max-w-7xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         <div>
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden">
@@ -45,6 +45,37 @@ const Footer: React.FC = () => {
             <li>
               <Link to="/shop?filter=new" className="hover:text-yellow-400 transition-colors">
                 New Arrivals
+              </Link>
+            </li>
+          </ul>
+        </div>
+
+        <div>
+          <h4 className="font-semibold mb-4 text-white">Customer Services</h4>
+          <ul className="space-y-2 text-gray-400 text-sm">
+            <li>
+              <Link to="/shipping-policy" className="hover:text-yellow-400 transition-colors">
+                Shipping Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/return-policy" className="hover:text-yellow-400 transition-colors">
+                Return and Replace Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/cancellation-policy" className="hover:text-yellow-400 transition-colors">
+                Cancellation Policy
+              </Link>
+            </li>
+            <li>
+              <Link to="/terms-of-service" className="hover:text-yellow-400 transition-colors">
+                Terms of Service
+              </Link>
+            </li>
+            <li>
+              <Link to="/privacy-policy" className="hover:text-yellow-400 transition-colors">
+                Privacy Policy
               </Link>
             </li>
           </ul>

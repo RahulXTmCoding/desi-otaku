@@ -31,6 +31,15 @@ const UserProfile = lazy(() => import('../user/UserProfile'));
 const MockupStudio = lazy(() => import('./MockupStudio'));
 const OrderTracking = lazy(() => import('./OrderTracking'));
 
+// Policy and Service Pages
+const SizeGuide = lazy(() => import('./SizeGuide'));
+const ShippingPolicy = lazy(() => import('./ShippingPolicy'));
+const ReturnPolicy = lazy(() => import('./ReturnPolicy'));
+const CancellationPolicy = lazy(() => import('./CancellationPolicy'));
+const ReturnPortal = lazy(() => import('./ReturnPortal'));
+const TermsOfService = lazy(() => import('./TermsOfService'));
+const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'));
+
 // Lazy load admin pages - these are heavy and rarely accessed by regular users
 const AdminDashBoard = lazy(() => import('./AdminDashBoard'));
 const AddCategory = lazy(() => import('../admin/AddCategory'));
@@ -89,6 +98,15 @@ export default function App() {
             <Route path="/mockup-studio" element={<MockupStudio />} />
             <Route path="/track-order" element={<OrderTracking />} />
             <Route path="/track/:token" element={<OrderTracking />} />
+            
+            {/* Policy and Service Pages */}
+            <Route path="/size-guide" element={<SizeGuide />} />
+            <Route path="/shipping-policy" element={<ShippingPolicy />} />
+            <Route path="/return-policy" element={<ReturnPolicy />} />
+            <Route path="/cancellation-policy" element={<CancellationPolicy />} />
+            <Route path="/return-portal" element={<ReturnPortal />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/user/dashboard" element={
               <PrivateRoute>
                 <UserDashBoardEnhanced />

@@ -28,9 +28,28 @@ const Contact: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
-    alert('Thank you for contacting us! We will get back to you soon.');
+    
+    // Create mailto link with form data
+    const subject = encodeURIComponent(`Contact Form: ${formData.subject}`);
+    const body = encodeURIComponent(
+      `Name: ${formData.name}\n` +
+      `Email: ${formData.email}\n` +
+      `Subject: ${formData.subject}\n\n` +
+      `Message:\n${formData.message}`
+    );
+    
+    // Open email client with pre-filled data
+    window.location.href = `mailto:hello@attars.club?subject=${subject}&body=${body}`;
+    
+    // Reset form
+    setFormData({
+      name: '',
+      email: '',
+      subject: '',
+      message: ''
+    });
+    
+    alert('Thank you for contacting us! Your email client will open with your message pre-filled.');
   };
 
   return (
@@ -154,8 +173,8 @@ const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
-                    <p className="text-gray-300">support@attarsclothing.com</p>
-                    <p className="text-gray-300">orders@attarsclothing.com</p>
+                    <p className="text-gray-300">hello@attars.club</p>
+                    <p className="text-gray-300">support@attars.club</p>
                   </div>
                 </div>
 
