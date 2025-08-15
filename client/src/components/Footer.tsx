@@ -63,16 +63,6 @@ const Footer: React.FC = () => {
                 Size Guide
               </Link>
             </li>
-            <li>
-              <Link to="/shipping" className="hover:text-yellow-400 transition-colors">
-                Shipping Info
-              </Link>
-            </li>
-            <li>
-              <Link to="/returns" className="hover:text-yellow-400 transition-colors">
-                Returns
-              </Link>
-            </li>
           </ul>
         </div>
 
