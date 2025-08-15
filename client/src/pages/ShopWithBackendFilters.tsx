@@ -485,7 +485,7 @@ const ShopWithBackendFilters: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="w-[96%] md:w-[90%] mx-auto px-4 py-8">
+      <div className="w-[96%] md:w-[90%] mx-auto md:px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar - Hidden on mobile, only visible on desktop */}
           <div className={`lg:w-80 hidden lg:block`}>

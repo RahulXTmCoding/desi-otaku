@@ -489,7 +489,7 @@ const ProductDetail: React.FC = () => {
       
       <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
       {/* Breadcrumb */}
-      <div className="w-[96%] md:w-[90%] mx-auto px-4 py-4">
+      <div className="w-[96%] md:w-[90%] mx-auto md:px-4 py-4">
         <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-textMuted)' }}>
           <button onClick={() => navigate('/')} className="transition-colors" 
             onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
@@ -505,7 +505,7 @@ const ProductDetail: React.FC = () => {
         </div>
       </div>
 
-      <div className="w-[96%] md:w-[90%] mx-auto px-4 py-8">
+      <div className="w-[96%] md:w-[90%] mx-auto md:px-4 py-8">
         <div className="grid md:grid-cols-2 gap-12">
           {/* Product Images */}
           <div>
@@ -979,7 +979,7 @@ const ProductDetail: React.FC = () => {
                 <p style={{ color: 'var(--color-textMuted)' }}>{product.description}</p>
                 <div className="mt-4">
                   <h4 className="font-semibold mb-2" style={{ color: 'var(--color-text)' }}>Material</h4>
-                  <p style={{ color: 'var(--color-textMuted)' }}>100% Cotton (180 GSM)</p>
+                  <p style={{ color: 'var(--color-textMuted)' }}>100% Cotton</p>
                 </div>
               </div>
             )}
