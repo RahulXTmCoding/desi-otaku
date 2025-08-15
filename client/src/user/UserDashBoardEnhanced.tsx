@@ -29,7 +29,7 @@ import {
   Gift
 } from 'lucide-react';
 import { isAutheticated, signout } from "../auth/helper";
-import { getOrders, mockGetOrders } from "../core/helper/orderHelper";
+import { getOrders, getAllOrders, mockGetOrders } from "../core/helper/orderHelper";
 import { getWishlist } from "../core/helper/wishlistHelper";
 import { getUserAddresses, addUserAddress, updateUserAddress, deleteUserAddress } from "../core/helper/addressHelper";
 import { updateUserProfile, changePassword, getUserDetails } from "../core/helper/userHelper";
@@ -125,6 +125,15 @@ const UserDashBoardEnhanced = () => {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   
+  // ✅ PAGINATION STATE
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [ordersPerPage] = useState(10);
+  const [hasNextPage, setHasNextPage] = useState(false);
+  const [hasPreviousPage, setHasPreviousPage] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
+  
   // Form states
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -162,22 +171,41 @@ const UserDashBoardEnhanced = () => {
 
   useEffect(() => {
     loadData();
-  }, [isTestMode, activeTab]);
+  }, [isTestMode, activeTab, currentPage, statusFilter]);
 
   const loadData = async () => {
     setLoading(true);
     setError('');
 
     try {
-      // Load orders
+      // Load orders with pagination
       if (activeTab === 'overview' || activeTab === 'orders') {
         if (isTestMode) {
           const mockData = await mockGetOrders();
           setOrders(mockData);
         } else if (user && token) {
-          const orderData = await getOrders(user._id, token);
+          const options = {
+            page: activeTab === 'overview' ? 1 : currentPage, // Overview always shows page 1
+            limit: activeTab === 'overview' ? 5 : ordersPerPage, // Overview shows fewer items
+            status: activeTab === 'overview' ? 'all' : statusFilter,
+            sortBy: 'createdAt',
+            sortOrder: 'desc' as const
+          };
+
+          const orderData = await getOrders(user._id, token, options);
+          
           if (!orderData.error) {
-            setOrders(orderData);
+            if (orderData.orders) {
+              // Paginated response
+              setOrders(orderData.orders);
+              setTotalPages(orderData.pagination?.totalPages || 1);
+              setTotalOrders(orderData.pagination?.totalOrders || 0);
+              setHasNextPage(orderData.pagination?.hasNextPage || false);
+              setHasPreviousPage(orderData.pagination?.hasPreviousPage || false);
+            } else {
+              // Legacy response format
+              setOrders(orderData);
+            }
           }
         }
       }
@@ -731,29 +759,29 @@ const UserDashBoardEnhanced = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       {/* Success/Error Messages */}
       {successMessage && (
-        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in">
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-4 md:px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in max-w-xs md:max-w-sm text-sm md:text-base">
           {successMessage}
         </div>
       )}
       {error && (
-        <div className="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in">
+        <div className="fixed top-4 right-4 bg-red-500 text-white px-4 md:px-6 py-3 rounded-lg shadow-lg z-50 animate-fade-in max-w-xs md:max-w-sm text-sm md:text-base">
           {error}
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="w-full mx-auto px-2 sm:px-4 lg:px-6 py-4 md:py-8">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent">
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2 bg-gradient-to-r from-yellow-400 to-yellow-200 bg-clip-text text-transparent">
             My Dashboard
           </h1>
-          <p className="text-gray-400">Manage your account and track your orders</p>
+          <p className="text-gray-400 text-sm md:text-base">Manage your account and track your orders</p>
         </div>
         
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Enhanced Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg sticky top-24">
+        <div className="flex flex-col lg:flex-row lg:gap-8">
+          {/* Enhanced Sidebar - Mobile Responsive */}
+          <div className="w-full lg:w-1/4 mb-6 lg:mb-0">
+            <div className="bg-gray-800 backdrop-blur rounded-2xl p-4 md:p-6 border border-gray-700 shadow-lg lg:sticky lg:top-24">
               {/* User Avatar & Info */}
               <div className="text-center mb-8">
                 <div className="relative inline-block">
@@ -804,8 +832,8 @@ const UserDashBoardEnhanced = () => {
             </div>
           </div>
 
-          {/* Main Content Area */}
-          <div className="lg:col-span-3">
+          {/* Main Content Area - Mobile Responsive */}
+          <div className="w-full lg:w-3/4">
             {/* Overview Tab */}
             {activeTab === 'overview' && (
               <div className="space-y-6">
@@ -893,12 +921,38 @@ const UserDashBoardEnhanced = () => {
             {/* Orders Tab */}
             {activeTab === 'orders' && (
               <div className="bg-gray-800 backdrop-blur rounded-2xl p-6 border border-gray-700 shadow-lg">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                   <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
                     <Package className="w-6 h-6 text-blue-400" />
                     Order History
                   </h2>
+                  
+                  {/* Status Filter */}
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-gray-400">Filter:</label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => {
+                        setStatusFilter(e.target.value);
+                        setCurrentPage(1); // Reset to first page
+                      }}
+                      className="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400"
+                    >
+                      <option value="all">All Orders</option>
+                      <option value="processing">Processing</option>
+                      <option value="shipped">Shipped</option>
+                      <option value="delivered">Delivered</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
                 </div>
+                
+                {/* Order Count */}
+                {totalOrders > 0 && (
+                  <div className="mb-4 text-sm text-gray-400">
+                    Showing {((currentPage - 1) * ordersPerPage) + 1} - {Math.min(currentPage * ordersPerPage, totalOrders)} of {totalOrders} orders
+                  </div>
+                )}
                 
                 {loading ? (
                   <div className="flex justify-center items-center py-12">
@@ -916,11 +970,80 @@ const UserDashBoardEnhanced = () => {
                     </button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {orders.map((order) => (
-                      <OrderCard key={order._id} order={order} />
-                    ))}
-                  </div>
+                  <>
+                    <div className="space-y-4">
+                      {orders.map((order) => (
+                        <OrderCard key={order._id} order={order} />
+                      ))}
+                    </div>
+                    
+                    {/* ✅ PAGINATION CONTROLS */}
+                    {totalPages > 1 && (
+                      <div className="flex flex-col sm:flex-row items-center justify-between mt-8 pt-6 border-t border-gray-700 gap-4">
+                        <div className="text-sm text-gray-400">
+                          Page {currentPage} of {totalPages}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          {/* Previous Button */}
+                          <button
+                            onClick={() => setCurrentPage(currentPage - 1)}
+                            disabled={!hasPreviousPage}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                              hasPreviousPage
+                                ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                                : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            ← Previous
+                          </button>
+                          
+                          {/* Page Numbers */}
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                              let pageNumber;
+                              if (totalPages <= 5) {
+                                pageNumber = i + 1;
+                              } else if (currentPage <= 3) {
+                                pageNumber = i + 1;
+                              } else if (currentPage >= totalPages - 2) {
+                                pageNumber = totalPages - 4 + i;
+                              } else {
+                                pageNumber = currentPage - 2 + i;
+                              }
+                              
+                              return (
+                                <button
+                                  key={pageNumber}
+                                  onClick={() => setCurrentPage(pageNumber)}
+                                  className={`w-10 h-10 rounded-lg transition-colors ${
+                                    currentPage === pageNumber
+                                      ? 'bg-yellow-400 text-gray-900 font-bold'
+                                      : 'bg-gray-700 hover:bg-gray-600 text-white'
+                                  }`}
+                                >
+                                  {pageNumber}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          
+                          {/* Next Button */}
+                          <button
+                            onClick={() => setCurrentPage(currentPage + 1)}
+                            disabled={!hasNextPage}
+                            className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                              hasNextPage
+                                ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                                : 'bg-gray-800 text-gray-500 cursor-not-allowed'
+                            }`}
+                          >
+                            Next →
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}

@@ -189,10 +189,10 @@ const OrderDetail = () => {
               <div className="space-y-4">
                 {order.products && order.products.length > 0 ? (
                   order.products.map((product, index) => (
-                    <div key={index} className="bg-gray-700/50 backdrop-blur p-6 rounded-xl border border-gray-600 hover:border-yellow-400/30 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/10">
-                      <div className="flex items-start space-x-4">
+                    <div key={index} className="bg-gray-700/50 backdrop-blur p-3 sm:p-4 rounded-xl border border-gray-600 hover:border-yellow-400/30 transition-all duration-300 hover:shadow-lg hover:shadow-yellow-400/10">
+                      <div className="flex items-start space-x-3">
                         {/* Product Image/Preview */}
-                        <div className="w-24 h-24 flex-shrink-0">
+                        <div className="w-16 md:w-24 h-24 flex-shrink-0 ">
                           {!product.product && (product.isCustom || product.customization || product.designId || product.customDesign) ? (
                             // Show custom t-shirt preview for custom designs (no product field means it's custom)
                             <div className="w-full h-full rounded-lg overflow-hidden bg-gray-600">
@@ -211,33 +211,32 @@ const OrderDetail = () => {
                               <img 
                                 src={(() => {
                                   // Direct photoUrl on product item
-                                  if (product.photoUrl) return product.photoUrl;
-                                  
-                                  // Check if product has images array (new multi-image system)
-                                  if (product.product.images && Array.isArray(product.product.images) && product.product.images.length > 0) {
-                                    const primaryImage = product.product.images.find((img: any) => img.isPrimary) || product.product.images[0];
-                                    if (primaryImage && primaryImage.url) {
-                                      return primaryImage.url;
-                                    }
-                                    // If no URL, use indexed endpoint
-                                    const primaryIndex = product.product.images.findIndex((img: any) => img.isPrimary);
-                                    const index = primaryIndex >= 0 ? primaryIndex : 0;
-                                    return `${API}/product/image/${product.product._id}/${index}`;
+                                   if (product.photoUrl) {
+                                    // ✅ CRITICAL FIX: Handle both relative and absolute URLs
+                                    const imageUrl = product.photoUrl.startsWith('/api/') 
+                                      ? `${API}${product.photoUrl.replace('/api', '')}`
+                                      : product.photoUrl.startsWith('http') 
+                                        ? product.photoUrl 
+                                        : `${API}${product.photoUrl}`;
+                                    console.log('📸 OrderDetail - Using item photoUrl:', product.photoUrl, '-> Full URL:', imageUrl);
+                                    return imageUrl;
                                   }
                                   
-                                  // Legacy photoUrl support
-                                  if (product.product.photoUrl) return product.product.photoUrl;
-                                  
-                                  // New indexed endpoint for products without images array
-                                  if (product.product._id) {
-                                    return `${API}/product/image/${product.product._id}/0`;
+                                  // ✅ PRIORITY 2: Product object with _id
+                                  if (product.product && typeof product.product === 'object' && product.product._id) {
+                                    const imageUrl = `${API}/product/image/${product.product._id}/0`;
+                                    console.log('📸 OrderDetail - Using product object _id:', imageUrl);
+                                    return imageUrl;
                                   }
                                   
-                                  // String product ID
-                                  if (typeof product.product === 'string') {
-                                    return `${API}/product/image/${product.product}/0`;
+                                  // ✅ PRIORITY 3: Product as string ID
+                                  if (typeof product.product === 'string' && product.product) {
+                                    const imageUrl = `${API}/product/image/${product.product}/0`;
+                                    console.log('📸 OrderDetail - Using product string ID:', imageUrl);
+                                    return imageUrl;
                                   }
                                   
+                                  console.log('❌ OrderDetail - No image source found, using placeholder');
                                   return '/placeholder.png';
                                 })()} 
                                 alt={product.name} 
@@ -264,15 +263,15 @@ const OrderDetail = () => {
                               {product.product ? (
                                 <Link 
                                   to={`/product/${product.product._id || product.product}`}
-                                  className="font-semibold text-lg text-white hover:text-yellow-400 transition-colors duration-200 flex items-center group"
+                                  className="font-semibold text-sm sm:text-base text-white hover:text-yellow-400 transition-colors duration-200 flex items-center group"
                                 >
                                   {product.name || 'Unknown Product'}
-                                  <ExternalLink className="w-4 h-4 ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                                  <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                                 </Link>
                               ) : (
-                                <p className="font-semibold text-lg text-white">{product.name || 'Unknown Product'}</p>
+                                <p className="font-semibold text-sm sm:text-base text-white">{product.name || 'Unknown Product'}</p>
                               )}
-                              <div className="flex items-center mt-2 space-x-4 text-sm text-gray-400">
+                              <div className="flex items-center mt-1 space-x-3 text-xs text-gray-400">
                                 {product.size && (
                                   <span className="flex items-center">
                                     Size: <span className="ml-1 text-white font-medium">{product.size}</span>
@@ -283,12 +282,12 @@ const OrderDetail = () => {
                                 </span>
                               </div>
                               {!product.product && (product.isCustom || product.customization || product.designId || product.customDesign) && (
-                                <div className="mt-2 space-y-1">
-                                  <span className="inline-flex items-center px-3 py-1 bg-yellow-400/20 text-yellow-400 text-xs font-medium rounded-full">
+                                <div className="mt-1 space-y-1">
+                                  <span className="inline-flex items-center px-2 py-0.5 bg-yellow-400/20 text-yellow-400 text-xs font-medium rounded-full">
                                     Custom Design
                                   </span>
                                   {product.customization && (product.customization.frontDesign?.designImage || product.customization.backDesign?.designImage) && (
-                                    <div className="text-xs text-gray-400 mt-1">
+                                    <div className="text-xs text-gray-400">
                                       {product.customization.frontDesign?.designImage && product.customization.backDesign?.designImage && (
                                         <span>Front & Back Design</span>
                                       )}
@@ -303,9 +302,9 @@ const OrderDetail = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="text-right">
-                              <p className="text-2xl font-bold text-white">₹{(product.price || 0) * (product.count || 1)}</p>
-                              <p className="text-sm text-gray-400 mt-1">₹{product.price || 0} each</p>
+                            <div className="text-right ml-2">
+                              <p className="text-lg sm:text-xl font-bold text-white">₹{(product.price || 0) * (product.count || 1)}</p>
+                              <p className="text-xs text-gray-400">₹{product.price || 0} each</p>
                             </div>
                           </div>
                         </div>

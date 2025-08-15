@@ -76,8 +76,38 @@ export const createOrder = (userId: string, token: string, orderData: Order) => 
     });
 };
 
-export const getOrders = (userId: string, token: string) => {
-  return fetch(`${API}/orders/user/${userId}`, {
+// ✅ NEW: Paginated order fetching with filters
+export const getOrders = (
+  userId: string, 
+  token: string, 
+  options: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {}
+) => {
+  const {
+    page = 1,
+    limit = 10,
+    status,
+    sortBy = 'createdAt',
+    sortOrder = 'desc'
+  } = options;
+
+  const queryParams = new URLSearchParams({
+    page: page.toString(),
+    limit: limit.toString(),
+    sortBy,
+    sortOrder
+  });
+
+  if (status && status !== 'all') {
+    queryParams.append('status', status);
+  }
+
+  return fetch(`${API}/orders/user/${userId}?${queryParams}`, {
     method: "GET",
     headers: {
       Accept: "application/json",

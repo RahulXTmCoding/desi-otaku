@@ -9,16 +9,52 @@ const telegramService = require("../services/telegramService");
 const AOVService = require("../services/aovService");
 
 exports.getOrderById = (req, res, next, id) => {
+  // ✅ SUPER FAST: Ultra-optimized order fetching for maximum speed
   Order.findById(id)
     .populate({
       path: "products.product",
-      select: "name price photoUrl images category productType"  // Removed photo to avoid sending binary data
+      select: "name price photoUrl category", // ✅ MINIMAL FIELDS ONLY
+      options: { lean: true },
+      populate: {
+        path: "category",
+        select: "name", // ✅ Only category name
+        options: { lean: true }
+      }
     })
     .populate("user", "email name")
+    .select("-__v") // ✅ Exclude version field
+    .lean() // ✅ Use lean for maximum performance
     .exec((err, order) => {
       if (err) {
         return res.status(400).json({
           err: "Order is not found",
+        });
+      }
+
+      // ✅ CRITICAL FIX: Ensure data consistency with getUserOrders
+      if (order && order.products) {
+        order.products = order.products.map(item => {
+          // ✅ ENSURE SAME STRUCTURE: Add photoUrl at item level like getUserOrders
+          let enhancedItem = { ...item };
+          
+          // Ensure photoUrl is available at item level for consistency with order history
+          if (!enhancedItem.photoUrl) {
+            if (item.product && typeof item.product === 'object' && item.product._id) {
+              enhancedItem.photoUrl = `/api/product/image/${item.product._id}/0`;
+            } else if (typeof item.product === 'string' && item.product) {
+              enhancedItem.photoUrl = `/api/product/image/${item.product}/0`;
+            }
+          }
+          
+          console.log('🔧 OrderDetail API - Enhanced item:', {
+            name: enhancedItem.name,
+            isCustom: enhancedItem.isCustom,
+            photoUrl: enhancedItem.photoUrl,
+            hasProduct: !!enhancedItem.product,
+            productId: enhancedItem.product?._id || enhancedItem.product
+          });
+          
+          return enhancedItem;
         });
       }
 
@@ -888,6 +924,10 @@ exports.createOrder = async (req, res) => {
 };
 
 exports.getAllOrders = async (req, res) => {
+  console.log('🚨 getAllOrders function called instead of getUserOrders!');
+  console.log('🚨 User ID:', req.params.userId);
+  console.log('🚨 Query params:', req.query);
+  
   try {
     const userId = req.params.userId;
     
@@ -1118,6 +1158,106 @@ exports.getOrder = (req, res) => {
   }
   
   return res.json(req.order);
+};
+
+// ✅ NEW: Get user's orders with pagination support
+exports.getUserOrders = async (req, res) => {
+  
+  try {
+    const userId = req.params.userId;
+    
+    // Ensure user can only access their own orders (unless admin)
+    if (req.profile.role !== 1 && req.profile._id.toString() !== userId) {
+      return res.status(403).json({
+        error: "Access denied. You can only view your own orders."
+      });
+    }
+    
+    // Extract pagination parameters
+    const {
+      page = 1,
+      limit = 10,
+      status,
+      sortBy = 'createdAt',
+      sortOrder = 'desc'
+    } = req.query;
+    
+    
+    // Build query
+    let query = { user: userId };
+    
+    // Status filter
+    if (status && status !== 'all') {
+      query.status = { $regex: new RegExp(`^${status}$`, 'i') };
+    }
+    
+    // Pagination calculations
+    const pageInt = parseInt(page);
+    const limitInt = parseInt(limit);
+    const skip = (pageInt - 1) * limitInt;
+    const sortDirection = sortOrder === 'desc' ? -1 : 1;
+    
+    
+
+    // ✅ OPTIMIZED: Minimal population for speed (like old userPurchaseList)
+    const [orders, totalCount] = await Promise.all([
+      Order.find(query)
+        .sort({ [sortBy]: sortDirection })
+        .skip(skip)
+        .limit(limitInt)
+        .populate("user", "_id name")
+        .populate("products.product", "name price photoUrl") // ✅ Minimal fields only
+        .lean()
+        .exec(), // ✅ Use exec() for consistency with old method
+      
+      Order.countDocuments(query)
+    ]);
+
+    
+    // ✅ ENHANCE: Add missing fields to improve frontend display
+    const enhancedOrders = orders.map(order => ({
+      ...order,
+      products: order.products.map(item => {
+        // ✅ CRITICAL: Ensure proper image URL resolution
+        let enhancedItem = { ...item };
+        
+        // If it's a regular product with populated product data
+        if (item.product && typeof item.product === 'object' && !item.isCustom) {
+          // Ensure photoUrl is available
+          if (!enhancedItem.photoUrl && item.product.photoUrl) {
+            enhancedItem.photoUrl = item.product.photoUrl;
+          }
+          
+          // Fallback to image endpoint if no photoUrl
+          if (!enhancedItem.photoUrl && item.product._id) {
+            enhancedItem.photoUrl = `/api/product/image/${item.product._id}/0`;
+          }
+        }
+        
+        return enhancedItem;
+      })
+    }));
+    
+    // ✅ RETURN PAGINATED RESPONSE
+    res.json({
+      orders: enhancedOrders,
+      pagination: {
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        totalOrders: totalCount,
+        ordersPerPage: parseInt(limit),
+        hasNextPage: skip + orders.length < totalCount,
+        hasPreviousPage: parseInt(page) > 1
+      }
+    });
+    
+  } catch (err) {
+    console.error('❌ Get user orders error:', err);
+    return res.status(400).json({
+      error: "Failed to fetch orders",
+      details: err.message
+    });
+  }
 };
 
 exports.getOrderStatus = (req, res) => {

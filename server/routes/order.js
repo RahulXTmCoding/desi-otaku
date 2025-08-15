@@ -10,6 +10,7 @@ const {
   createOrder,
   getAllOrders,
   getOrder,
+  getUserOrders,
   getOrderStatus,
   updateStatus,
   calculateShipping,
@@ -47,6 +48,19 @@ router.get(
   isAuthenticated,
   isAdmin,
   getAllOrders
+);
+
+// ✅ ADD: Route for getting user's orders with proper product population (MOVED BEFORE GENERIC ROUTE)
+router.get(
+  "/orders/user/:userId",
+  (req, res, next) => {
+    console.log(`🎯 ORDER ROUTE HIT: /orders/user/${req.params.userId}`);
+    console.log(`🎯 Query params:`, req.query);
+    next();
+  },
+  isSignedIn,
+  isAuthenticated,
+  getUserOrders
 );
 
 router.get(

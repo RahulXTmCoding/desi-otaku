@@ -185,23 +185,26 @@ exports.getProduct = async (req, res) => {
     // Cache miss - prepare product data
     const product = req.product.toObject();
     
-    // Remove image data for faster response and caching
-    if (product.images) {
-      product.images = product.images.map(img => ({
+    // ✅ FIX: Create clean version for API response WITHOUT modifying original data
+    const responseProduct = {
+      ...product,
+      images: product.images ? product.images.map(img => ({
         _id: img._id,
         url: img.url,
         isPrimary: img.isPrimary,
         order: img.order,
         caption: img.caption,
-        // Exclude binary data from cache
+        // ✅ CRITICAL: Keep binary data for image serving endpoint
+        hasData: !!(img.data && img.contentType),
+        // Don't include actual binary data in JSON response (too large)
         data: undefined,
-        contentType: undefined
-      }));
-    }
+        contentType: img.contentType // Keep contentType for reference
+      })) : []
+    };
     
-    // Add cache metadata
+    // Cache the clean version
     const cacheableProduct = {
-      ...product,
+      ...responseProduct,
       _cachedAt: Date.now(),
       _cacheKey: cacheKey
     };
@@ -225,18 +228,23 @@ exports.getProduct = async (req, res) => {
     
     // Fallback to original behavior if Redis fails
     const product = req.product.toObject();
-    if (product.images) {
-      product.images = product.images.map(img => ({
+    
+    // ✅ FIX: Don't remove binary data in fallback either
+    const responseProduct = {
+      ...product,
+      images: product.images ? product.images.map(img => ({
         _id: img._id,
         url: img.url,
         isPrimary: img.isPrimary,
         order: img.order,
         caption: img.caption,
+        hasData: !!(img.data && img.contentType),
         data: undefined,
-        contentType: undefined
-      }));
-    }
-    return res.json(product);
+        contentType: img.contentType
+      })) : []
+    };
+    
+    return res.json(responseProduct);
   }
 };
 
@@ -247,11 +255,13 @@ exports.getProductImage = (req, res, next) => {
   
   // Check if product exists
   if (!product) {
+    console.log('❌ IMAGE ENDPOINT: Product not found');
     return res.status(404).json({ error: "Product not found" });
   }
   
   // Check if product has images
   if (!product.images || product.images.length === 0) {
+    console.log('❌ IMAGE ENDPOINT: No images available for this product');
     return res.status(404).json({ error: "No images available for this product" });
   }
   
@@ -266,6 +276,7 @@ exports.getProductImage = (req, res, next) => {
   }
   
   if (!image) {
+    console.log('❌ IMAGE ENDPOINT: No image found at specified index/primary');
     return res.status(404).json({ error: "No image available for this product" });
   }
   
@@ -277,10 +288,12 @@ exports.getProductImage = (req, res, next) => {
   
   // If image has URL, redirect to it
   if (image.url) {
+    console.log('✅ IMAGE ENDPOINT: Redirecting to URL:', image.url);
     return res.redirect(image.url);
   }
   
   // No image data available
+  console.log('❌ IMAGE ENDPOINT: No image data or URL available');
   res.status(404).json({ error: "Image data not available" });
 };
 
