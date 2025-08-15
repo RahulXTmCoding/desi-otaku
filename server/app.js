@@ -95,13 +95,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-//My Routers
-// ✅ DEBUG: Add request logging to trace all API calls
-app.use("/api", (req, res, next) => {
-  console.log(`🌐 API Request: ${req.method} ${req.originalUrl} - Body:`, req.body ? 'Has Body' : 'No Body');
-  next();
-});
-
 app.use("/api", authRoutes);
 app.use("/api", userRoutes);
 app.use("/api", categoryRoutes);
