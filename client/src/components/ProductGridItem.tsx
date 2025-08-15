@@ -254,8 +254,8 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
         
         {/* Front of Card */}
         <div className="block" style={{ backfaceVisibility: 'hidden' }}>
-          {/* Image Container */}
-          <div className="aspect-square bg-gray-700 relative overflow-hidden">
+          {/* Image Container - Taller on mobile for bigger images */}
+          <div className="aspect-[3.6/5] sm:aspect-square bg-gray-700 relative overflow-hidden">
             <img 
               src={getImageUrl()}
               alt={product.name}
@@ -286,7 +286,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                 </button>
               )}
               
-              {showWishlistButton && (
+              {showWishlistButton && user && token && (
                 <button
                   onClick={handleWishlistToggle}
                   className={`p-3 rounded-full transition-colors ${
@@ -320,11 +320,11 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             )}
             
             {/* Category Badge */}
-            {product.category?.name && (
+            {/* {product.category?.name && (
               <div className="absolute top-2 left-2 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">
                 {product.category.name}
               </div>
-            )}
+            )} */}
           </div>
           
           {/* Product Info */}
@@ -412,28 +412,28 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
           </div>
         </div>
 
-        {/* Back of Card (Flipped) */}
+        {/* Back of Card (Flipped) - Mobile Responsive */}
         <div 
-          className="absolute inset-0 bg-gray-800 rounded-xl p-4 flex flex-col [transform:rotateY(180deg)]"
+          className="absolute inset-0 bg-gray-800 rounded-xl p-2 sm:p-4 flex flex-col [transform:rotateY(180deg)]"
           style={{ backfaceVisibility: 'hidden' }}
         >
           {/* Back Button */}
           <button
             onClick={handleBackToFront}
-            className="flex items-center gap-2 text-gray-400 hover:text-white mb-4"
+            className="flex items-center gap-1 sm:gap-2 text-gray-400 hover:text-white mb-2 sm:mb-4 text-xs sm:text-sm"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-3 h-3 sm:w-4 sm:h-4" />
             Back
           </button>
 
           {/* Product Info */}
-          <h3 className="font-semibold text-lg mb-2">{product.name}</h3>
-          <p className="text-2xl font-bold text-yellow-400 mb-4">₹{product.price}</p>
+          <h3 className="font-semibold text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-1">{product.name}</h3>
+          <p className="text-lg sm:text-2xl font-bold text-yellow-400 mb-2 sm:mb-4">₹{product.price}</p>
 
           {/* Size Selection */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-400 mb-2">Select Size:</p>
-            <div className="grid grid-cols-3 gap-2">
+          <div className="mb-2 sm:mb-4">
+            <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">Select Size:</p>
+            <div className="grid grid-cols-5 sm:grid-cols-3 gap-1 sm:gap-2">
               {availableSizes.map((size) => (
                 <button
                   key={size}
@@ -443,13 +443,14 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                     setSelectedSize(size);
                   }}
                   disabled={!isSizeAvailable(size)}
-                  className={`py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                  className={`py-1 sm:py-2 px-0.5 sm:px-3 rounded text-xs sm:text-sm font-medium transition-all ${
                     selectedSize === size
                       ? 'bg-yellow-400 text-gray-900'
                       : isSizeAvailable(size)
                       ? 'bg-gray-700 hover:bg-gray-600 text-white'
                       : 'bg-gray-700/50 text-gray-500 cursor-not-allowed'
                   }`}
+                  style={{ fontSize: '10px' }}
                 >
                   {size}
                 </button>
@@ -457,10 +458,10 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             </div>
           </div>
 
-          {/* Quantity Selection */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-400 mb-2">Quantity:</p>
-            <div className="flex items-center gap-3">
+          {/* Quantity Selection - More compact on mobile */}
+          <div className="mb-2 sm:mb-4">
+            <p className="text-xs sm:text-sm text-gray-400 mb-1 sm:mb-2">Quantity:</p>
+            <div className="flex items-center gap-2 sm:gap-3">
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -469,9 +470,9 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                 }}
                 className="p-1 bg-gray-700 hover:bg-gray-600 rounded"
               >
-                <Minus className="w-4 h-4" />
+                <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
-              <span className="w-12 text-center">{quantity}</span>
+              <span className="w-8 sm:w-12 text-center text-sm sm:text-base">{quantity}</span>
               <button
                 onClick={(e) => {
                   e.preventDefault();
@@ -480,37 +481,39 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                 }}
                 className="p-1 bg-gray-700 hover:bg-gray-600 rounded"
               >
-                <Plus className="w-4 h-4" />
+                <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
               </button>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2">
+          {/* Action Buttons - Stacked on mobile */}
+          <div className="flex flex-col sm:flex-row gap-1 sm:gap-2 mt-auto">
             <button
               onClick={handleAddToCart}
               disabled={!selectedSize}
-              className={`flex-1 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2 sm:py-3 rounded text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 selectedSize
                   ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
                   : 'bg-gray-700 text-gray-500 cursor-not-allowed'
               }`}
             >
-              <ShoppingCart className="w-4 h-4" />
-              {selectedSize ? 'Add to Cart' : 'Select Size'}
+              <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">{selectedSize ? 'Add to Cart' : 'Select Size'}</span>
+              <span className="sm:hidden">{selectedSize ? 'Add' : 'Size'}</span>
             </button>
             
             <button
               onClick={handleBuyNow}
               disabled={!selectedSize}
-              className={`flex-1 py-3 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 ${
+              className={`flex-1 py-2 sm:py-3 rounded text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 selectedSize
                   ? 'bg-green-500 hover:bg-green-600 text-white'
                   : 'bg-gray-700 text-gray-500 cursor-not-allowed'
               }`}
             >
-              <Zap className="w-4 h-4" />
-              Buy Now
+              <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Buy Now</span>
+              <span className="sm:hidden">Buy</span>
             </button>
           </div>
         </div>

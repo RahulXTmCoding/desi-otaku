@@ -900,22 +900,25 @@ const ProductDetail: React.FC = () => {
                 <Zap className="w-5 h-5" />
                 Buy Now
               </button>
-              <button 
-                onClick={handleWishlistToggle}
-                disabled={wishlistLoading}
-                className={`p-4 rounded-lg transition-colors`}
-                style={{
-                  backgroundColor: isWishlisted ? 'var(--color-error)' : 'var(--color-surface)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = isWishlisted ? '#dc2626' : 'var(--color-surfaceHover)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = isWishlisted ? 'var(--color-error)' : 'var(--color-surface)';
-                }}
-              >
-                <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
-              </button>
+              {/* Only show wishlist button if user is logged in */}
+              {userId && token && (
+                <button 
+                  onClick={handleWishlistToggle}
+                  disabled={wishlistLoading}
+                  className={`p-4 rounded-lg transition-colors`}
+                  style={{
+                    backgroundColor: isWishlisted ? 'var(--color-error)' : 'var(--color-surface)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = isWishlisted ? '#dc2626' : 'var(--color-surfaceHover)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = isWishlisted ? 'var(--color-error)' : 'var(--color-surface)';
+                  }}
+                >
+                  <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+                </button>
+              )}
             </div>
 
             {/* Success Message */}

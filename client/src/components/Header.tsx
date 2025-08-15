@@ -404,9 +404,9 @@ const Header: React.FC = () => {
       </nav>
 
       {/* Mobile Header - Hidden on Desktop */}
-      <nav className="md:hidden relative z-50 flex items-center px-4 py-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
+      <nav className="md:hidden relative z-50 flex items-center px-1 py-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
         {/* Mobile Left Section - Menu + Search */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center">
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 transition-all hover:scale-110"
@@ -441,7 +441,7 @@ const Header: React.FC = () => {
         </div>
 
         {/* Mobile Right Section - Theme + Cart + User */}
-        <div className="flex items-center space-x-2 ml-auto">
+        <div className="flex items-center ml-auto">
           {/* Theme Switcher */}
           <ThemeSwitcher />
           
