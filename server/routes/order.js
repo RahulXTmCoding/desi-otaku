@@ -8,6 +8,7 @@ const { updateStock } = require("../controllers/product");
 const {
   getOrderById,
   createOrder,
+  createOrderUnified,
   getAllOrders,
   getOrder,
   getUserOrders,
@@ -38,7 +39,7 @@ router.post(
   verifyPayment,
   pushOrderInPurchaseList,
   updateStock,
-  createOrder
+  createOrderUnified
 );
 
 //read

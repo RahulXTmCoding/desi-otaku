@@ -282,7 +282,7 @@ exports.pushOrderInPurchaseList = (req, res, next) => {
 // Get all saved addresses for a user
 exports.getUserAddresses = async (req, res) => {
   try {
-    const user = await User.findById(req.profile._id).select('addresses');
+    const user = await User.findById(req.profile._id).select('addresses email'); // ✅ Include email field
     
     if (!user) {
       return res.status(404).json({
@@ -290,7 +290,22 @@ exports.getUserAddresses = async (req, res) => {
       });
     }
     
-    res.json(user.addresses || []);
+    // ✅ Transform addresses to match frontend expectations
+    const transformedAddresses = (user.addresses || []).map(addr => ({
+      _id: addr._id,
+      fullName: addr.name,        // Transform 'name' back to 'fullName'
+      email: addr.email || user.email, // ✅ Use address email if available, fallback to user email
+      phone: addr.phone,
+      address: addr.addressLine1, // Transform 'addressLine1' back to 'address'
+      city: addr.city,
+      state: addr.state,
+      country: addr.country,
+      pinCode: addr.pinCode,
+      isDefault: addr.isDefault,
+      createdAt: addr.createdAt
+    }));
+    
+    res.json(transformedAddresses);
   } catch (err) {
     return res.status(400).json({
       error: "Failed to fetch addresses",
@@ -317,7 +332,15 @@ exports.addUserAddress = async (req, res) => {
     // Validate required fields
     if (!fullName || !phone || !address || !city || !state || !pinCode) {
       return res.status(400).json({
-        error: "Please provide all required address fields"
+        error: "Please provide all required address fields",
+        missingFields: {
+          fullName: !fullName,
+          phone: !phone,
+          address: !address,
+          city: !city,
+          state: !state,
+          pinCode: !pinCode
+        }
       });
     }
     
@@ -336,24 +359,40 @@ exports.addUserAddress = async (req, res) => {
       });
     }
     
-    // Add the new address
-    user.addresses.push({
-      fullName,
-      email: email || user.email,
+    // Add the new address (match schema field names)
+    const newAddress = {
+      name: fullName,           // ✅ Schema uses 'name', not 'fullName'
+      email: email || user.email, // ✅ Now email IS part of address schema
       phone,
-      address,
+      addressLine1: address,    // ✅ Schema uses 'addressLine1', not 'address'
       city,
       state,
       country: country || 'India',
       pinCode,
       isDefault: isDefault || user.addresses.length === 0 // First address is default
-    });
+    };
     
+    user.addresses.push(newAddress);
     await user.save();
+    
+    // ✅ Return transformed addresses to match frontend expectations
+    const transformedAddresses = user.addresses.map(addr => ({
+      _id: addr._id,
+      fullName: addr.name,        // Transform back to frontend format
+      email: email || user.email, // Include email from request or user
+      phone: addr.phone,
+      address: addr.addressLine1, // Transform back to frontend format
+      city: addr.city,
+      state: addr.state,
+      country: addr.country,
+      pinCode: addr.pinCode,
+      isDefault: addr.isDefault,
+      createdAt: addr.createdAt
+    }));
     
     res.json({
       message: "Address added successfully",
-      addresses: user.addresses
+      addresses: transformedAddresses
     });
   } catch (err) {
     return res.status(400).json({

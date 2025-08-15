@@ -12,6 +12,10 @@ const addressSchema = new Schema({
     type: String,
     required: true,
   },
+  email: {
+    type: String,
+    trim: true,
+  },
   phone: {
     type: String,
     required: true,

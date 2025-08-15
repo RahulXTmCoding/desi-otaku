@@ -334,6 +334,44 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
   }
 };
 
+// ✅ NEW: Unified order creation for logged-in users (uses createUnifiedOrder)
+exports.createOrderUnified = async (req, res) => {
+  try {
+    console.log('🔄 Creating unified order for logged-in user:', req.profile._id);
+    
+    // 🔒 SECURITY: Payment verification using existing middleware data
+    let paymentVerification = null;
+    if (req.payment) {
+      paymentVerification = {
+        type: 'razorpay',
+        payment: req.payment
+      };
+    }
+    
+    // ✅ Use the proven createUnifiedOrder function
+    const result = await exports.createUnifiedOrder(
+      req.body.order,
+      req.profile,
+      paymentVerification
+    );
+    
+    if (result.success) {
+      console.log('✅ Unified order created successfully:', result.order._id);
+      res.json(result.order);
+    } else {
+      throw new Error('Order creation failed');
+    }
+    
+  } catch (error) {
+    console.error('❌ Unified order creation failed:', error);
+    return res.status(400).json({
+      error: "Unable to save order in DB",
+      details: error.message
+    });
+  }
+};
+
+// ✅ DEPRECATED: Keep old function for reference but mark as deprecated
 exports.createOrder = async (req, res) => {
   try {
     console.log('Creating order with data:', JSON.stringify(req.body.order, null, 2));
@@ -422,8 +460,19 @@ exports.createOrder = async (req, res) => {
         validatedItem.photoUrl = item.photoUrl;
       }
       
-      // Check if it's a custom product
-      if (item.product === 'custom' || item.isCustom) {
+      // ✅ CRITICAL FIX: Use same robust custom product detection as createUnifiedOrder
+      const productId = item.product || item.productId;
+      const isTemporaryId = !productId || 
+                           productId === 'custom' || 
+                           typeof productId === 'string' && (
+                             productId.startsWith('temp_') || 
+                             productId.startsWith('custom') ||
+                             productId.length < 12 ||
+                             !/^[0-9a-fA-F]{24}$/.test(productId)
+                           );
+      
+      // Check if it's a custom product using robust detection
+      if (isTemporaryId || item.isCustom) {
         // Handle custom products
         validatedItem.isCustom = true;
         validatedItem.customDesign = item.customDesign || item.name;

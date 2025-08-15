@@ -88,6 +88,14 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
 
     // ✅ UNIFIED CALCULATION - Same logic for both user types
     // Use the actual payment method from request body
+    console.log('🔍 Calling calculateOrderAmountSecure with:', {
+      cartItemsCount: cartItems.length,
+      couponCode,
+      rewardPoints: isAuthenticated ? rewardPoints : null,
+      hasUser: !!req.user,
+      paymentMethod: req.body.paymentMethod || 'razorpay'
+    });
+    
     const serverAmount = await calculateOrderAmountSecure(
       cartItems, 
       couponCode, 
@@ -96,7 +104,10 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
       req.body.paymentMethod || 'razorpay' // ✅ CRITICAL FIX: Use actual payment method from frontend
     );
     
+    console.log('📊 Server amount calculation result:', serverAmount);
+    
     if (serverAmount.error) {
+      console.error('❌ Server amount calculation error:', serverAmount.error);
       return res.status(400).json({ error: serverAmount.error });
     }
     
@@ -745,30 +756,42 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
     
     // Validate each cart item server-side
     for (const item of cartItems) {
+      // ✅ CRITICAL FIX: Handle different product ID formats from frontend
+      let productId = item.product || item.productId;
+      
+      // Handle case where product is an object (extract _id)
+      if (typeof productId === 'object' && productId !== null) {
+        productId = productId._id || productId.id || null;
+      }
+      
       let validatedItem = {
-        productId: item.product || item.productId,
+        productId: productId,
         name: item.name,
-        quantity: parseInt(item.quantity) || 1,
+        quantity: parseInt(item.quantity) || parseInt(item.count) || 1,
         size: item.size || 'M'
       };
       
       console.log(`📦 Processing Item: ${item.name}`);
-      console.log(`   Frontend Price: ₹${item.price}, Quantity: ${item.quantity}`);
-      console.log(`   Product ID: ${item.product || item.productId}`);
+      console.log(`   Frontend Price: ₹${item.price}, Quantity: ${validatedItem.quantity}`);
+      console.log(`   Product ID: ${productId} (type: ${typeof productId})`);
+      console.log(`   Raw Product Field:`, item.product);
       
-      // ✅ CRITICAL FIX: Check for temporary/custom product IDs before database query
-      const productId = item.product || item.productId;
+      // ✅ CRITICAL FIX: Use EXACT same logic as working createUnifiedOrder
       const isTemporaryId = !productId || 
                            productId === 'custom' || 
                            typeof productId === 'string' && (
                              productId.startsWith('temp_') || 
                              productId.startsWith('custom') ||
-                             productId.length < 12 || // MongoDB ObjectIds are 24 hex chars or 12 bytes
-                             !/^[0-9a-fA-F]{24}$/.test(productId) // Not a valid ObjectId
+                             productId.length < 12 ||
+                             !/^[0-9a-fA-F]{24}$/.test(productId)
                            );
       
-      // Validate product exists and get current price (only for real products)
-      if (!isTemporaryId && productId && productId !== 'custom') {
+      // ✅ MISSING PIECE: Check item.isCustom flag like createUnifiedOrder does!
+      if (isTemporaryId || item.isCustom) {
+        console.log(`   🎨 CUSTOM PRODUCT DETECTED - isTemporaryId: ${isTemporaryId}, isCustom: ${item.isCustom}`);
+        // Handle custom products - skip database query
+      } else {
+        // Validate product exists and get current price (only for real products)
         try {
           const product = await Product.findById(productId);
           if (!product || product.isDeleted) {
