@@ -265,19 +265,19 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
           </div>
         ) : (
           <div>
-            <div className="flex gap-2">
+            <div className="space-y-2">
               <input
                 type="text"
                 value={couponCode}
                 onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                 placeholder="Enter coupon code"
-                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-400"
+                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-400"
                 disabled={couponLoading}
               />
               <button
                 onClick={handleApplyCoupon}
                 disabled={couponLoading || !couponCode.trim()}
-                className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                className="w-full bg-yellow-400 hover:bg-yellow-300 text-gray-900 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {couponLoading ? (
                   <Loader className="w-4 h-4 animate-spin" />

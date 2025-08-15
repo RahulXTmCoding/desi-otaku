@@ -112,24 +112,6 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
           </p>
         </div>
       )}
-
-      <button
-        onClick={onPlaceOrder}
-        disabled={loading}
-        className="mt-6 w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 py-3 rounded-lg font-bold disabled:cursor-not-allowed flex items-center justify-center gap-2"
-      >
-        {loading ? (
-          <>
-            <Loader className="w-5 h-5 animate-spin" />
-            Processing...
-          </>
-        ) : (
-          <>
-            <Shield className="w-5 h-5" />
-            Place Order • ₹{totalAmount}
-          </>
-        )}
-      </button>
     </>
   );
 });

@@ -371,47 +371,47 @@ const OrderConfirmationEnhanced: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-12">
-      <div className="max-w-4xl mx-auto px-4">
+    <div className="min-h-screen bg-gray-900 text-white py-8 md:py-12">
+      <div className="w-[96%] md:w-[90%] max-w-4xl mx-auto md:px-4">
         {/* Success Animation */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-green-500 rounded-full mb-6 animate-bounce">
-            <CheckCircle className="w-16 h-16 text-white" />
+        <div className="text-center mb-6 md:mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 md:w-24 md:h-24 bg-green-500 rounded-full mb-4 md:mb-6 animate-bounce">
+            <CheckCircle className="w-14 h-14 md:w-16 md:h-16 text-white" />
           </div>
-          <h1 className="text-4xl font-bold mb-3">Order Confirmed!</h1>
-          <p className="text-xl text-gray-300">Thank you for your purchase</p>
+          <h1 className="text-2xl md:text-4xl font-bold mb-2 md:mb-3">Order Confirmed!</h1>
+          <p className="text-lg md:text-xl text-gray-300">Thank you for your purchase</p>
         </div>
 
         {/* Account Creation Info for NEW Guest Users Only */}
         {isGuest && accountCreated && !accountExists && (
-          <div className="bg-blue-500/10 border border-blue-500 p-6 rounded-lg mb-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <UserPlus className="w-6 h-6 text-white" />
+          <div className="bg-blue-500/10 border border-blue-500 p-4 md:p-6 rounded-lg mb-6">
+            <div className="flex items-start gap-3 md:gap-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <UserPlus className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold mb-2 text-blue-400">Account Created Automatically!</h3>
-                <p className="text-gray-300 mb-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base md:text-lg font-bold mb-2 text-blue-400">Account Created Automatically!</h3>
+                <p className="text-sm md:text-base text-gray-300 mb-3">
                   We've created an account for you to track your order and save time on future purchases.
                 </p>
-                <div className="bg-gray-800 p-4 rounded-lg mb-3">
-                  <p className="text-sm text-gray-400 mb-1">Your account email:</p>
-                  <p className="font-mono text-yellow-400">{shippingInfo?.email}</p>
+                <div className="bg-gray-800 p-3 md:p-4 rounded-lg mb-3">
+                  <p className="text-xs md:text-sm text-gray-400 mb-1">Your account email:</p>
+                  <p className="font-mono text-sm md:text-base text-yellow-400 break-all">{shippingInfo?.email}</p>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-300">
+                  <p className="text-xs md:text-sm text-gray-300">
                     📧 Check your email for instructions to set your password
                   </p>
-                  <p className="text-sm text-gray-300">
+                  <p className="text-xs md:text-sm text-gray-300">
                     🔒 Use "Forgot Password" on the sign-in page to set a new password
                   </p>
-                  <p className="text-sm text-gray-300">
+                  <p className="text-xs md:text-sm text-gray-300">
                     📦 Your order and shipping address have been saved to your account
                   </p>
                 </div>
                 <Link 
                   to="/forgot-password" 
-                  className="inline-block mt-4 bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-2 rounded-lg font-bold transition-all"
+                  className="inline-block mt-4 bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-4 md:px-6 py-2 rounded-lg font-bold transition-all text-sm md:text-base"
                 >
                   Set Your Password
                 </Link>
@@ -422,22 +422,22 @@ const OrderConfirmationEnhanced: React.FC = () => {
 
         {/* Account Already Exists Info for RETURNING Guest Users */}
         {isGuest && accountExists && !accountCreated && (
-          <div className="bg-green-500/10 border border-green-500 p-6 rounded-lg mb-6">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
-                <Shield className="w-6 h-6 text-white" />
+          <div className="bg-green-500/10 border border-green-500 p-4 md:p-6 rounded-lg mb-6">
+            <div className="flex items-start gap-3 md:gap-4">
+              <div className="w-10 h-10 md:w-12 md:h-12 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <Shield className="w-5 h-5 md:w-6 md:h-6 text-white" />
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-bold mb-2 text-green-400">Great News! Order Linked to Your Account</h3>
-                <p className="text-gray-300 mb-3">
-                  We found your existing account with <span className="font-mono text-yellow-400">{shippingInfo?.email}</span> 
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base md:text-lg font-bold mb-2 text-green-400">Great News! Order Linked to Your Account</h3>
+                <p className="text-sm md:text-base text-gray-300 mb-3">
+                  We found your existing account with <span className="font-mono text-yellow-400 break-all">{shippingInfo?.email}</span> 
                   and automatically linked this order to it!
                 </p>
-                <div className="bg-gray-800 p-4 rounded-lg mb-3">
-                  <p className="text-sm text-gray-300 mb-2">
+                <div className="bg-gray-800 p-3 md:p-4 rounded-lg mb-3">
+                  <p className="text-xs md:text-sm text-gray-300 mb-2">
                     <strong>This order has been added to your account.</strong> You can now:
                   </p>
-                  <ul className="list-disc list-inside space-y-1 text-sm text-gray-300">
+                  <ul className="list-disc list-inside space-y-1 text-xs md:text-sm text-gray-300">
                     <li>View this order in your order history</li>
                     <li>Track shipment status</li>
                     <li>Download invoices</li>
@@ -445,23 +445,23 @@ const OrderConfirmationEnhanced: React.FC = () => {
                   </ul>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-300">
+                  <p className="text-xs md:text-sm text-gray-300">
                     ✅ <strong>No action needed!</strong> Just sign in to see all your orders
                   </p>
-                  <p className="text-sm text-gray-300">
+                  <p className="text-xs md:text-sm text-gray-300">
                     🔐 Forgot your password? Use the "Forgot Password" link on the sign-in page
                   </p>
                 </div>
-                <div className="flex gap-3 mt-4">
+                <div className="flex flex-col sm:flex-row gap-3 mt-4">
                   <Link 
                     to="/signin" 
-                    className="inline-block bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-6 py-2 rounded-lg font-bold transition-all"
+                    className="flex-1 text-center bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-4 md:px-6 py-2 rounded-lg font-bold transition-all text-sm md:text-base"
                   >
                     Sign In to View Orders
                   </Link>
                   <Link 
                     to="/forgot-password" 
-                    className="inline-block bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg font-bold transition-all"
+                    className="flex-1 text-center bg-gray-700 hover:bg-gray-600 text-white px-4 md:px-6 py-2 rounded-lg font-bold transition-all text-sm md:text-base"
                   >
                     Reset Password
                   </Link>
@@ -472,13 +472,13 @@ const OrderConfirmationEnhanced: React.FC = () => {
         )}
 
         {/* Order Details Card */}
-        <div className="bg-gray-800 rounded-2xl p-8 mb-6 border border-gray-700">
+        <div className="bg-gray-800 rounded-2xl p-4 md:p-8 mb-6 border border-gray-700">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
             <div>
-              <h2 className="text-2xl font-bold mb-2">Order Details</h2>
-              <div className="flex items-center gap-2">
-                <span className="text-gray-400">Order Number:</span>
-                <span className="font-mono text-yellow-400">{orderNumber}</span>
+              <h2 className="text-xl md:text-2xl font-bold mb-2">Order Details</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-gray-400 text-sm md:text-base">Order Number:</span>
+                <span className="font-mono text-yellow-400 text-sm md:text-base break-all">{orderNumber}</span>
                 <button
                   onClick={copyOrderNumber}
                   className="text-gray-400 hover:text-yellow-400 transition-colors"
@@ -486,7 +486,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
                 >
                   <Copy className="w-4 h-4" />
                 </button>
-                {copied && <span className="text-green-400 text-sm">Copied!</span>}
+                {copied && <span className="text-green-400 text-xs md:text-sm">Copied!</span>}
               </div>
             </div>
             <div className="flex flex-col items-end">
@@ -579,7 +579,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
         )}
 
         {/* What's Next */}
-        <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700">
+        <div className="bg-gray-800 rounded-2xl p-4 md:p-8 border border-gray-700">
           <h2 className="text-xl font-bold mb-6">What happens next?</h2>
           <div className="space-y-4">
             <div className="flex gap-4">

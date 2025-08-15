@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ChevronLeft, Package, CreditCard, MapPin, Truck, Percent, ShoppingBag } from 'lucide-react';
+import { ChevronLeft, Package, MapPin, Truck, Percent, ShoppingBag } from 'lucide-react';
+import { CreditCard, Smartphone, AlertCircle, Shield, Loader, Phone, CheckCircle } from 'lucide-react';
+
 import { useCart } from '../context/CartContext';
 import { isAutheticated } from '../auth/helper';
 import { loadRazorpayScript } from '../core/helper/razorpayHelper';
@@ -943,13 +945,31 @@ const CheckoutSinglePage: React.FC = () => {
                 </div>
               </div>
 
-              <button
+              {/* <button
                 onClick={handlePlaceOrderWithValidation}
                 disabled={loading || !selectedShipping || !validateShipping()}
                 className="w-full mt-6 bg-red-500 hover:bg-red-600 disabled:bg-gray-600 text-white disabled:text-gray-400 py-4 rounded-lg font-bold text-lg disabled:cursor-not-allowed transition-colors"
               >
                 {loading ? 'Processing...' : `Complete Order • ₹${getFinalAmount()}`}
-              </button>
+              </button> */}
+
+               <button
+                      onClick={handlePlaceOrderWithValidation}
+                      disabled={loading}
+                      className="mt-6 w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 py-3 rounded-lg font-bold disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader className="w-5 h-5 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <Shield className="w-5 h-5" />
+                          Place Order • ₹{getFinalAmount()}
+                        </>
+                      )}
+                    </button>
               
               <p className="text-xs text-gray-500 text-center mt-3">
                 By placing this order, you agree to our Terms & Conditions
