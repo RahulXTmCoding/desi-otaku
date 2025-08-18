@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import ScrollToTop from '../components/ScrollToTop';
 import PrivateRoute from "../auth/helper/PrivateRoutes";
 import AdminRoute from "../auth/helper/AdminRoutes";
+import GuestRoute from "../auth/helper/GuestRoutes";
 import DevModeToggle from '../components/DevModeToggle';
 
 // Lazy load all pages
@@ -92,10 +93,22 @@ export default function App() {
             <Route path="/checkout-old" element={<CheckoutFixed />} />
             <Route path="/order-confirmation" element={<OrderConfirmation />} />
             <Route path="/order-confirmation-enhanced" element={<OrderConfirmationEnhanced />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/signin" element={<Signin />} />
+            <Route path="/signup" element={
+              <GuestRoute>
+                <Signup />
+              </GuestRoute>
+            } />
+            <Route path="/signin" element={
+              <GuestRoute>
+                <Signin />
+              </GuestRoute>
+            } />
             <Route path="/auth-success" element={<AuthSuccess />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/forgot-password" element={
+              <GuestRoute>
+                <ForgotPassword />
+              </GuestRoute>
+            } />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/mockup-studio" element={<MockupStudio />} />
             <Route path="/track-order" element={<OrderTracking />} />
