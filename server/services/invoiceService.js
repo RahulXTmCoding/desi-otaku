@@ -4,6 +4,25 @@ const path = require('path');
 const Invoice = require('../models/invoice');
 const DiscountCalculator = require('../utils/discountCalculator');
 
+// ✅ PRODUCTION FIX: Add PhantomJS configuration
+let phantomPath;
+try {
+  const phantomjs = require('phantomjs-prebuilt');
+  phantomPath = phantomjs.path;
+} catch (error) {
+  console.log('PhantomJS prebuilt not available, using environment variable');
+  phantomPath = process.env.PHANTOM_PATH || null;
+}
+
+// Company configuration from environment variables
+const COMPANY_CONFIG = {
+  name: process.env.COMPANY_NAME || 'Attars',
+  address: process.env.COMPANY_ADDRESS || 'Jhansi, UP, India',
+  gstNumber: process.env.COMPANY_GST || null,
+  email: process.env.COMPANY_EMAIL || 'hello@attars.club',
+  phone: process.env.COMPANY_PHONE || '+91-8853517446'
+};
+
 class InvoiceService {
   constructor() {
     this.invoicesDir = path.join(__dirname, '../public/invoices');
@@ -208,7 +227,6 @@ class InvoiceService {
         <!-- Header -->
         <div class="invoice-header">
           <div class="invoice-title">Tax Invoice</div>
-          <div class="barcode-section">||||| |||| | || ||| || ||<br>83921986969</div>
         </div>
 
         <!-- Invoice Details -->
@@ -344,9 +362,6 @@ class InvoiceService {
                 Authorized Signatory
               </div>
             </div>
-            <div class="qr-placeholder">
-              QR Code
-            </div>
           </div>
 
           <div class="declaration">
@@ -375,9 +390,10 @@ class InvoiceService {
     return new Promise((resolve, reject) => {
       console.log(`🔄 Generating PDF for invoice ${invoice.invoiceNumber} using html-pdf`);
       
-      // html-pdf options for better rendering
+      // ✅ PRODUCTION FIX: html-pdf options with PhantomJS path
       const options = {
         format: 'A4',
+        phantomPath: phantomPath, // ✅ This fixes the production error
         border: {
           top: '10mm',
           right: '10mm',
@@ -390,14 +406,21 @@ class InvoiceService {
         footer: {
           height: '0mm'
         },
-        timeout: 30000,
+        timeout: process.env.NODE_ENV === 'production' ? 60000 : 30000, // Longer timeout for production
         type: 'pdf',
         quality: '75',
         httpHeaders: {
           'User-Agent': 'Invoice Generator'
         },
-        renderDelay: 1000
+        renderDelay: process.env.NODE_ENV === 'production' ? 2000 : 1000 // Extra delay for production
       };
+
+      // ✅ Log PhantomJS configuration for debugging
+      console.log(`📄 PDF Generation Config:`, {
+        phantomPath: phantomPath ? 'Available' : 'Missing',
+        environment: process.env.NODE_ENV || 'development',
+        timeout: options.timeout
+      });
 
       pdf.create(html, options).toFile(filePath, async (err, result) => {
         if (err) {
@@ -551,6 +574,8 @@ class InvoiceService {
         billingAddress,
         shippingAddress: billingAddress, // Same as billing for now
         items,
+        // ✅ Use configurable company details instead of hardcoded values
+        company: COMPANY_CONFIG,
         amounts: {
           // ✅ FIXED: Use discount calculator amounts for consistency
           grossAmount: grossAmount,

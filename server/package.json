@@ -37,6 +37,7 @@
     "passport": "^0.7.0",
     "passport-facebook": "^3.0.0",
     "passport-google-oauth20": "^2.0.0",
+    "phantomjs-prebuilt": "^2.1.16",
     "puppeteer": "^24.15.0",
     "razorpay": "^2.9.6",
     "redis": "^5.8.0",
