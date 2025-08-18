@@ -161,7 +161,7 @@ exports.getInvoiceByOrderId = async (req, res) => {
   }
 };
 
-// Download invoice PDF
+// Download invoice as HTML for frontend PDF conversion
 exports.downloadInvoicePDF = async (req, res) => {
   try {
     const { invoiceId } = req.params;
@@ -174,35 +174,24 @@ exports.downloadInvoicePDF = async (req, res) => {
       });
     }
     
-    if (!invoice.files.pdfPath || !invoice.files.pdfUrl) {
-      return res.status(404).json({
-        error: 'PDF not available for this invoice'
-      });
-    }
+    console.log(`🔄 Serving invoice HTML for frontend conversion: ${invoice.invoiceNumber}`);
     
-    // Check if file exists
-    try {
-      await fs.access(invoice.files.pdfPath);
-    } catch (error) {
-      // File doesn't exist, regenerate it
-      console.log('PDF file not found, regenerating...');
-      await invoiceService.regeneratePDF(invoiceId);
-    }
+    // Generate fresh HTML content
+    const invoiceHTML = invoiceService.generateInvoiceHTML(invoice);
     
-    const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    // Set headers for frontend PDF conversion
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('X-Invoice-Number', invoice.invoiceNumber);
+    res.setHeader('X-Invoice-Filename', `invoice-${invoice.invoiceNumber}.pdf`);
     res.setHeader('Cache-Control', 'no-cache');
     
-    // Stream the file
-    const fileBuffer = await fs.readFile(invoice.files.pdfPath);
-    res.send(fileBuffer);
+    // Send HTML for frontend conversion
+    res.send(invoiceHTML);
     
   } catch (error) {
-    console.error('Download PDF error:', error);
+    console.error('Download invoice HTML error:', error);
     res.status(500).json({
-      error: 'Failed to download invoice PDF',
+      error: 'Failed to generate invoice',
       details: error.message
     });
   }
@@ -522,7 +511,7 @@ exports.bulkCreateInvoices = async (req, res) => {
   }
 };
 
-// Download invoice PDF by order ID
+// Download invoice HTML by order ID for frontend PDF conversion
 exports.downloadInvoiceByOrderId = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -582,39 +571,25 @@ exports.downloadInvoiceByOrderId = async (req, res) => {
       });
     }
     
-    // Check if PDF exists, if not try to generate it
-    if (!invoice.files.pdfPath || !invoice.files.pdfUrl) {
-      console.log('PDF not available, generating...');
-      await invoiceService.generatePDF(invoice);
-    }
+    console.log(`🔄 Serving invoice HTML for frontend conversion: ${invoice.invoiceNumber}`);
     
-    // Check if PDF file exists on filesystem
-    try {
-      await fs.access(invoice.files.pdfPath);
-    } catch (error) {
-      // PDF file doesn't exist, fallback to HTML
-      console.log('PDF file not found, serving HTML version');
-      const invoiceHTML = invoiceService.generateInvoiceHTML(invoice);
-      
-      res.setHeader('Content-Type', 'text/html');
-      res.setHeader('Content-Disposition', `inline; filename="invoice-${invoice.invoiceNumber}.html"`);
-      return res.send(invoiceHTML);
-    }
+    // Generate fresh HTML content for frontend conversion
+    const invoiceHTML = invoiceService.generateInvoiceHTML(invoice);
     
-    // Serve the PDF file
-    const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
-    
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    // Set headers for frontend PDF conversion
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('X-Invoice-Number', invoice.invoiceNumber);
+    res.setHeader('X-Invoice-Filename', `invoice-${invoice.invoiceNumber}.pdf`);
+    res.setHeader('X-Order-Id', orderId);
     res.setHeader('Cache-Control', 'no-cache');
     
-    const fileBuffer = await fs.readFile(invoice.files.pdfPath);
-    res.send(fileBuffer);
+    // Send HTML for frontend conversion
+    res.send(invoiceHTML);
     
   } catch (error) {
     console.error('Download invoice error:', error);
     res.status(500).json({
-      error: 'Failed to download invoice',
+      error: 'Failed to generate invoice',
       details: error.message
     });
   }

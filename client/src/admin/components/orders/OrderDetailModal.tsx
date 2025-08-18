@@ -8,6 +8,7 @@ import CartTShirtPreview from '../../../components/CartTShirtPreview';
 import { getProductImageUrl } from './utils/imageHelper';
 import { API } from '../../../backend';
 import OrderDiscountBreakdown from '../../../components/OrderDiscountBreakdown';
+import PDFGenerator from '../../../utils/pdfGenerator';
 
 interface OrderDetailModalProps {
   order: Order;
@@ -214,20 +215,14 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
             <button
               onClick={async () => {
                 try {
-                  const response = await fetch(`${API}/invoice/order/${order._id}/download`);
-                  if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `invoice-${order._id}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                  }
+                  await PDFGenerator.downloadInvoiceFromServer(
+                    `${API}/invoice/order/${order._id}/download`,
+                    `invoice-${order._id}.pdf`
+                  );
+                  toast.success('Invoice download started');
                 } catch (error) {
                   console.error('Download error:', error);
+                  toast.error('Failed to download invoice');
                 }
               }}
               className="px-6 py-3 bg-yellow-400 hover:bg-yellow-300 text-gray-900 rounded-lg transition-colors flex items-center gap-2"

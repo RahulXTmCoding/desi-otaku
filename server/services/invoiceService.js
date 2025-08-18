@@ -371,97 +371,32 @@ class InvoiceService {
     `;
   }
 
-  // Generate PDF from HTML using Puppeteer (ARM64 compatible)
-  async generatePDF(invoice) {
+  // Generate invoice HTML for frontend PDF conversion
+  async generateInvoiceData(invoice) {
+    console.log(`🔄 Preparing invoice ${invoice.invoiceNumber} for frontend PDF generation`);
+    
+    // Generate HTML content
     const html = this.generateInvoiceHTML(invoice);
-    const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
-    const filePath = path.join(this.invoicesDir, fileName);
+    
+    // Update invoice with metadata (no PDF file yet)
+    invoice.files.pdfPath = null;
+    invoice.files.pdfUrl = null;
+    invoice.status = 'Generated'; // Mark as generated, PDF will be created on frontend
+    await invoice.save();
 
-    try {
-      console.log(`🔄 Generating PDF for invoice ${invoice.invoiceNumber} using Puppeteer`);
-      
-      // Launch Puppeteer with production-optimized settings for ARM64 compatibility
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: [
-          '--no-sandbox',
-          '--disable-setuid-sandbox',
-          '--disable-dev-shm-usage',
-          '--disable-accelerated-2d-canvas',
-          '--no-first-run',
-          '--no-zygote',
-          '--single-process', // Important for production environments
-          '--disable-gpu',
-          '--disable-web-security',
-          '--disable-features=VizDisplayCompositor'
-        ],
-        timeout: 60000
-      });
+    console.log(`✅ Invoice HTML prepared for frontend: ${invoice.invoiceNumber}`);
+    return {
+      success: true,
+      html: html,
+      invoiceNumber: invoice.invoiceNumber,
+      fileName: `invoice-${invoice.invoiceNumber}.pdf`,
+      method: 'frontend-conversion'
+    };
+  }
 
-      const page = await browser.newPage();
-      
-      // Set content and wait for fonts/images to load
-      await page.setContent(html, { 
-        waitUntil: ['load', 'domcontentloaded', 'networkidle0'],
-        timeout: 30000
-      });
-
-      // Generate PDF with A4 format
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        margin: {
-          top: '10mm',
-          right: '10mm',
-          bottom: '10mm',
-          left: '10mm'
-        },
-        printBackground: true,
-        preferCSSPageSize: true
-      });
-
-      await browser.close();
-
-      // Save PDF to file
-      await fs.writeFile(filePath, pdfBuffer);
-
-      // Update invoice with file information
-      invoice.files.pdfPath = filePath;
-      invoice.files.pdfUrl = `/invoices/${fileName}`;
-      await invoice.save();
-
-      console.log(`✅ Invoice PDF generated successfully with Puppeteer: ${fileName}`);
-      return {
-        success: true,
-        filePath,
-        fileName,
-        pdfUrl: invoice.files.pdfUrl
-      };
-
-    } catch (error) {
-      console.error(`❌ Puppeteer PDF generation error:`, error.message);
-      
-      // ✅ FALLBACK: Create invoice without PDF if generation fails
-      console.log(`⚠️ PDF generation failed, creating invoice without PDF`);
-      
-      try {
-        // Update invoice without PDF
-        invoice.files.pdfPath = null;
-        invoice.files.pdfUrl = null;
-        invoice.status = 'Draft'; // Mark as draft since PDF failed
-        await invoice.save();
-
-        // Return success but without PDF
-        return {
-          success: true,
-          filePath: null,
-          fileName: null,
-          pdfUrl: null,
-          warning: 'Invoice created without PDF due to generation issues'
-        };
-      } catch (dbError) {
-        throw new Error(`Failed to save invoice without PDF: ${dbError.message}`);
-      }
-    }
+  // Legacy method name for compatibility - now returns HTML for frontend conversion
+  async generatePDF(invoice) {
+    return await this.generateInvoiceData(invoice);
   }
 
   // Create invoice from order (GST-inclusive pricing with product MRP)

@@ -17,6 +17,7 @@ import { useCart } from '../context/CartContext';
 import { isAutheticated, signup, authenticate } from '../auth/helper';
 import { API } from '../backend';
 import OrderDiscountBreakdown from '../components/OrderDiscountBreakdown';
+import PDFGenerator from '../utils/pdfGenerator';
 
 const OrderConfirmationEnhanced: React.FC = () => {
   // Immediate test to see if component loads
@@ -261,7 +262,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
   console.log(`   couponDiscount: ₹${couponDiscount} (from: ${orderStateData?.couponDiscount ? 'orderStateData.couponDiscount' : 'default'})`);
   console.log(`   quantityDiscount: ₹${quantityDiscount} (from: ${orderStateData?.quantityDiscount ? 'orderStateData.quantityDiscount' : orderStateData?.aovDiscount ? 'orderStateData.aovDiscount' : 'default'})`);
   
-  // ✅ FIXED: Try multiple approaches to download invoice
+  // ✅ UPDATED: Use new HTML-to-PDF conversion system
   const handleDownloadInvoice = async () => {
     if (!orderNumber) {
       setDownloadError('Order number not available');
@@ -278,75 +279,19 @@ const OrderConfirmationEnhanced: React.FC = () => {
     });
     
     try {
-      // ✅ Strategy 1: Try with the order ID we have
-      let response = await fetch(`${API}/invoice/order/${orderNumber}/download`);
+      // Try with order number first, then payment ID if available
+      let invoiceUrl = `${API}/invoice/order/${orderNumber}/download`;
       
-      // ✅ Strategy 2: If that fails, try with payment ID
-      if (!response.ok && orderStateData?.paymentDetails?.razorpay_payment_id) {
-        console.log('🔄 Trying with payment ID...');
-        response = await fetch(`${API}/invoice/order/${orderStateData.paymentDetails.razorpay_payment_id}/download`);
-      }
-      
-      // ✅ Strategy 3: If that fails, try to create invoice first
-      if (!response.ok && response.status === 404) {
-        console.log('🔄 Invoice not found, trying to create it first...');
-        const createResponse = await fetch(`${API}/invoice/order/${orderNumber}/create`, {
-          method: 'POST'
-        });
-        
-        if (createResponse.ok) {
-          console.log('✅ Invoice created, now downloading...');
-          response = await fetch(`${API}/invoice/order/${orderNumber}/download`);
+      try {
+        await PDFGenerator.downloadInvoiceFromServer(invoiceUrl, `invoice-${orderNumber}.pdf`);
+      } catch (firstError) {
+        // If that fails and we have a payment ID, try with payment ID
+        if (orderStateData?.paymentDetails?.razorpay_payment_id) {
+          console.log('🔄 Trying with payment ID...');
+          invoiceUrl = `${API}/invoice/order/${orderStateData.paymentDetails.razorpay_payment_id}/download`;
+          await PDFGenerator.downloadInvoiceFromServer(invoiceUrl, `invoice-${orderNumber}.pdf`);
         } else {
-          // Try creating with payment ID
-          if (orderStateData?.paymentDetails?.razorpay_payment_id) {
-            const createWithPaymentResponse = await fetch(`${API}/invoice/order/${orderStateData.paymentDetails.razorpay_payment_id}/create`, {
-              method: 'POST'
-            });
-            
-            if (createWithPaymentResponse.ok) {
-              console.log('✅ Invoice created with payment ID, now downloading...');
-              response = await fetch(`${API}/invoice/order/${orderStateData.paymentDetails.razorpay_payment_id}/download`);
-            }
-          }
-        }
-      }
-      
-      if (response.ok) {
-        const contentType = response.headers.get('Content-Type');
-        
-        if (contentType?.includes('text/html')) {
-          // ✅ HTML invoice - open in new tab
-          const invoiceUrl = response.url;
-          window.open(invoiceUrl, '_blank', 'width=800,height=900,scrollbars=yes,resizable=yes');
-        } else if (contentType?.includes('application/pdf')) {
-          // ✅ PDF invoice - download as file
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `invoice-${orderNumber}.pdf`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          window.URL.revokeObjectURL(url);
-        } else {
-          // ✅ JSON response with invoice data
-          const data = await response.json();
-          if (data.downloadUnavailable) {
-            alert(`${data.message}\n\nInvoice Number: ${data.invoice.invoiceNumber}\nCustomer: ${data.invoice.customer.name}\nAmount: ₹${data.invoice.amounts.grandTotal}`);
-          } else {
-            throw new Error('Unexpected response format');
-          }
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        
-        // ✅ Better error messages
-        if (response.status === 404) {
-          throw new Error('Invoice not found. This might be because the order is still being processed. Please try again in a few minutes.');
-        } else {
-          throw new Error(errorData.error || `Invoice download failed (${response.status}). Please try again.`);
+          throw firstError;
         }
       }
     } catch (error: any) {

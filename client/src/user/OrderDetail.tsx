@@ -5,6 +5,7 @@ import { API } from "../backend";
 import { Loader, Package, Truck, CreditCard, MapPin, ChevronLeft, ExternalLink, Download, Loader2 } from "lucide-react";
 import CartTShirtPreview from "../components/CartTShirtPreview";
 import OrderDiscountBreakdown from "../components/OrderDiscountBreakdown";
+import PDFGenerator from "../utils/pdfGenerator";
 
 const OrderDetail = () => {
   const [order, setOrder] = useState(null);
@@ -75,7 +76,7 @@ const OrderDetail = () => {
     fetchOrderDetail();
   }, [auth, orderId]);
 
-  // ✅ FIX: Add download invoice functionality for user order detail page
+  // ✅ UPDATED: Use new HTML-to-PDF conversion system
   const handleDownloadInvoice = async () => {
     if (!order?._id) {
       setDownloadError('Order ID not available');
@@ -86,21 +87,10 @@ const OrderDetail = () => {
     setDownloadError('');
     
     try {
-      const response = await fetch(`${API}/invoice/order/${order._id}/download`);
-      
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `invoice-${order._id}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
-      } else {
-        throw new Error('Invoice not ready yet. Please try again in a few minutes.');
-      }
+      await PDFGenerator.downloadInvoiceFromServer(
+        `${API}/invoice/order/${order._id}/download`, 
+        `invoice-${order._id}.pdf`
+      );
     } catch (error: any) {
       console.error('Download invoice error:', error);
       setDownloadError(error.message || 'Failed to download invoice. Please try again.');
