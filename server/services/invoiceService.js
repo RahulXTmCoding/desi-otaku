@@ -1,18 +1,8 @@
-const pdf = require('html-pdf');
+const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 const path = require('path');
 const Invoice = require('../models/invoice');
 const DiscountCalculator = require('../utils/discountCalculator');
-
-// ✅ PRODUCTION FIX: Add PhantomJS configuration
-let phantomPath;
-try {
-  const phantomjs = require('phantomjs-prebuilt');
-  phantomPath = phantomjs.path;
-} catch (error) {
-  console.log('PhantomJS prebuilt not available, using environment variable');
-  phantomPath = process.env.PHANTOM_PATH || null;
-}
 
 // Company configuration from environment variables
 const COMPANY_CONFIG = {
@@ -381,94 +371,97 @@ class InvoiceService {
     `;
   }
 
-  // Generate PDF from HTML using html-pdf (more reliable than Puppeteer)
+  // Generate PDF from HTML using Puppeteer (ARM64 compatible)
   async generatePDF(invoice) {
     const html = this.generateInvoiceHTML(invoice);
     const fileName = `invoice-${invoice.invoiceNumber}.pdf`;
     const filePath = path.join(this.invoicesDir, fileName);
 
-    return new Promise((resolve, reject) => {
-      console.log(`🔄 Generating PDF for invoice ${invoice.invoiceNumber} using html-pdf`);
+    try {
+      console.log(`🔄 Generating PDF for invoice ${invoice.invoiceNumber} using Puppeteer`);
       
-      // ✅ PRODUCTION FIX: html-pdf options with PhantomJS path
-      const options = {
+      // Launch Puppeteer with production-optimized settings for ARM64 compatibility
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process', // Important for production environments
+          '--disable-gpu',
+          '--disable-web-security',
+          '--disable-features=VizDisplayCompositor'
+        ],
+        timeout: 60000
+      });
+
+      const page = await browser.newPage();
+      
+      // Set content and wait for fonts/images to load
+      await page.setContent(html, { 
+        waitUntil: ['load', 'domcontentloaded', 'networkidle0'],
+        timeout: 30000
+      });
+
+      // Generate PDF with A4 format
+      const pdfBuffer = await page.pdf({
         format: 'A4',
-        phantomPath: phantomPath, // ✅ This fixes the production error
-        border: {
+        margin: {
           top: '10mm',
           right: '10mm',
           bottom: '10mm',
           left: '10mm'
         },
-        header: {
-          height: '0mm'
-        },
-        footer: {
-          height: '0mm'
-        },
-        timeout: process.env.NODE_ENV === 'production' ? 60000 : 30000, // Longer timeout for production
-        type: 'pdf',
-        quality: '75',
-        httpHeaders: {
-          'User-Agent': 'Invoice Generator'
-        },
-        renderDelay: process.env.NODE_ENV === 'production' ? 2000 : 1000 // Extra delay for production
+        printBackground: true,
+        preferCSSPageSize: true
+      });
+
+      await browser.close();
+
+      // Save PDF to file
+      await fs.writeFile(filePath, pdfBuffer);
+
+      // Update invoice with file information
+      invoice.files.pdfPath = filePath;
+      invoice.files.pdfUrl = `/invoices/${fileName}`;
+      await invoice.save();
+
+      console.log(`✅ Invoice PDF generated successfully with Puppeteer: ${fileName}`);
+      return {
+        success: true,
+        filePath,
+        fileName,
+        pdfUrl: invoice.files.pdfUrl
       };
 
-      // ✅ Log PhantomJS configuration for debugging
-      console.log(`📄 PDF Generation Config:`, {
-        phantomPath: phantomPath ? 'Available' : 'Missing',
-        environment: process.env.NODE_ENV || 'development',
-        timeout: options.timeout
-      });
+    } catch (error) {
+      console.error(`❌ Puppeteer PDF generation error:`, error.message);
+      
+      // ✅ FALLBACK: Create invoice without PDF if generation fails
+      console.log(`⚠️ PDF generation failed, creating invoice without PDF`);
+      
+      try {
+        // Update invoice without PDF
+        invoice.files.pdfPath = null;
+        invoice.files.pdfUrl = null;
+        invoice.status = 'Draft'; // Mark as draft since PDF failed
+        await invoice.save();
 
-      pdf.create(html, options).toFile(filePath, async (err, result) => {
-        if (err) {
-          console.error(`❌ html-pdf generation error:`, err.message);
-          
-          // ✅ FALLBACK: Create invoice without PDF if generation fails
-          console.log(`⚠️ PDF generation failed, creating invoice without PDF`);
-          
-          try {
-            // Update invoice without PDF
-            invoice.files.pdfPath = null;
-            invoice.files.pdfUrl = null;
-            invoice.status = 'Draft'; // Mark as draft since PDF failed
-            await invoice.save();
-
-            // Return success but without PDF
-            resolve({
-              success: true,
-              filePath: null,
-              fileName: null,
-              pdfUrl: null,
-              warning: 'Invoice created without PDF due to generation issues'
-            });
-          } catch (dbError) {
-            reject(new Error(`Failed to save invoice without PDF: ${dbError.message}`));
-          }
-          return;
-        }
-
-        try {
-          // Update invoice with file information
-          invoice.files.pdfPath = filePath;
-          invoice.files.pdfUrl = `/invoices/${fileName}`;
-          await invoice.save();
-
-          console.log(`✅ Invoice PDF generated successfully: ${fileName}`);
-          resolve({
-            success: true,
-            filePath,
-            fileName,
-            pdfUrl: invoice.files.pdfUrl
-          });
-        } catch (dbError) {
-          console.error('Failed to update invoice with PDF info:', dbError);
-          reject(new Error(`PDF generated but failed to update database: ${dbError.message}`));
-        }
-      });
-    });
+        // Return success but without PDF
+        return {
+          success: true,
+          filePath: null,
+          fileName: null,
+          pdfUrl: null,
+          warning: 'Invoice created without PDF due to generation issues'
+        };
+      } catch (dbError) {
+        throw new Error(`Failed to save invoice without PDF: ${dbError.message}`);
+      }
+    }
   }
 
   // Create invoice from order (GST-inclusive pricing with product MRP)
