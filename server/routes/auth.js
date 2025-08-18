@@ -35,6 +35,40 @@ router.get("/testroute", isSignedIn, (req, res) => {
 // Google Auth Routes
 router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
+// ✅ FIXED: Google OAuth callback with proper GET method and Passport flow
+router.get('/auth/google/callback', 
+  passport.authenticate('google', { 
+    failureRedirect: `${process.env.CLIENT_URL}/login?error=oauth_failed` 
+  }),
+  (req, res) => {
+    try {
+      // Generate JWT token for the authenticated user
+      const token = jwt.sign(
+        { 
+          _id: req.user._id,
+          email: req.user.email,
+          role: req.user.role || 0
+        }, 
+        process.env.SECRET, 
+        { expiresIn: '7d' }
+      );
+      
+      // Redirect to frontend with token
+      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+      res.redirect(`${clientUrl}/auth-success?token=${token}&user=${encodeURIComponent(JSON.stringify({
+        _id: req.user._id,
+        name: req.user.name,
+        email: req.user.email,
+        role: req.user.role || 0
+      }))}`);
+    } catch (error) {
+      console.error('OAuth callback error:', error);
+      res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
+    }
+  }
+);
+
+// Keep the POST route for client-side OAuth (alternative method)
 router.post('/auth/google/callback', (req, res) => {
     const { token } = req.body;
     // Here you would typically verify the token with Google, but for now we'll just decode it

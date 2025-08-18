@@ -83,7 +83,10 @@ var userSchema = new Schema(
 
     encry_password: {
       type: String,
-      required: true,
+      required: function() {
+        // Only require password for non-OAuth users
+        return !this.googleId && !this.facebookId;
+      },
     },
 
     salt: String,
