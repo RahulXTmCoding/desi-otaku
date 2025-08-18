@@ -1,9 +1,13 @@
 const Wishlist = require("../models/wishlist");
 const Product = require("../models/product");
 
-// Get user's wishlist
+// Get user's wishlist with pagination
 exports.getWishlist = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const skip = (page - 1) * limit;
+
     let wishlist = await Wishlist.findOne({ user: req.profile._id })
       .populate({
         path: 'products.product',
@@ -21,21 +25,40 @@ exports.getWishlist = async (req, res) => {
     }
 
     // Filter out null products (if any were soft-deleted)
-    wishlist.products = wishlist.products.filter(item => item.product);
+    const validProducts = wishlist.products.filter(item => item.product);
+    
+    // Calculate pagination
+    const totalItems = validProducts.length;
+    const totalPages = Math.ceil(totalItems / limit);
+    const hasNextPage = page < totalPages;
+    const hasPreviousPage = page > 1;
+
+    // Apply pagination
+    const paginatedProducts = validProducts.slice(skip, skip + limit);
 
     // Add photo URLs for products
-    const wishlistWithPhotos = {
-      ...wishlist.toObject(),
-      products: wishlist.products.map(item => ({
-        ...item.toObject(),
-        product: {
-          ...item.product.toObject(),
-          photoUrl: item.product.photoUrl || `/api/product/image/${item.product._id}`
-        }
-      }))
+    const productsWithPhotos = paginatedProducts.map(item => ({
+      ...item.toObject(),
+      product: {
+        ...item.product.toObject(),
+        photoUrl: item.product.photoUrl || `/api/product/image/${item.product._id}`
+      }
+    }));
+
+    // Return paginated response
+    const response = {
+      products: productsWithPhotos,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalItems,
+        itemsPerPage: limit,
+        hasNextPage,
+        hasPreviousPage
+      }
     };
 
-    res.json(wishlistWithPhotos);
+    res.json(response);
   } catch (err) {
     return res.status(400).json({
       error: "Failed to get wishlist",

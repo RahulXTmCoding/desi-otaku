@@ -99,7 +99,7 @@ const multiplier = await AOVService.calculateLoyaltyMultiplier(orderAmount)
   </div>
   <div className="flex flex-wrap gap-1">
     {quantityTiers.slice(0, 2).map((tier, index) => (
-      <span key={index} className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded">
+      <span key={index} className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
         {tier.minQuantity}+ items: {tier.discount}% off
       </span>
     ))}

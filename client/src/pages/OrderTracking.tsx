@@ -273,10 +273,10 @@ const OrderTracking: React.FC = () => {
           {/* New Magic Link */}
           {magicLink && (
             <div className="bg-blue-900/30 border border-blue-500 rounded-lg p-4 mb-6">
-              <h3 className="text-blue-300 font-semibold mb-2">🔗 New Secure Link Generated</h3>
+              <h3 className="text-blue-400 font-semibold mb-2">🔗 New Secure Link Generated</h3>
               <p className="text-blue-200 text-sm mb-3">Bookmark this link for easy access:</p>
               <div className="bg-gray-800 p-3 rounded border">
-                <code className="text-blue-300 text-sm break-all">{magicLink}</code>
+                <code className="text-blue-400 text-sm break-all">{magicLink}</code>
               </div>
             </div>
           )}

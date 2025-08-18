@@ -29,7 +29,7 @@ import {
   Gift
 } from 'lucide-react';
 import { isAutheticated, signout } from "../auth/helper";
-import { getOrders, getAllOrders, mockGetOrders } from "../core/helper/orderHelper";
+import { getOrders, mockGetOrders } from "../core/helper/orderHelper";
 import { getWishlist } from "../core/helper/wishlistHelper";
 import { getUserAddresses, addUserAddress, updateUserAddress, deleteUserAddress } from "../core/helper/addressHelper";
 import { updateUserProfile, changePassword, getUserDetails } from "../core/helper/userHelper";
@@ -134,6 +134,14 @@ const UserDashBoardEnhanced = () => {
   const [hasPreviousPage, setHasPreviousPage] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
   
+  // ✅ WISHLIST PAGINATION STATE
+  const [wishlistCurrentPage, setWishlistCurrentPage] = useState(1);
+  const [wishlistTotalPages, setWishlistTotalPages] = useState(1);
+  const [wishlistTotalItems, setWishlistTotalItems] = useState(0);
+  const [wishlistPerPage] = useState(12);
+  const [wishlistHasNextPage, setWishlistHasNextPage] = useState(false);
+  const [wishlistHasPreviousPage, setWishlistHasPreviousPage] = useState(false);
+  
   // Form states
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
@@ -171,7 +179,7 @@ const UserDashBoardEnhanced = () => {
 
   useEffect(() => {
     loadData();
-  }, [isTestMode, activeTab, currentPage, statusFilter]);
+  }, [isTestMode, activeTab, currentPage, statusFilter, wishlistCurrentPage]);
 
   const loadData = async () => {
     setLoading(true);

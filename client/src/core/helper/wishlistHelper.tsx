@@ -87,8 +87,8 @@ export const removeFromWishlist = (userId: string, token: string, productId: str
     .catch(err => console.log(err));
 };
 
-// Get wishlist
-export const getWishlist = (userId: string, token: string) => {
+// Get wishlist with pagination support
+export const getWishlist = (userId: string, token: string, options?: { page?: number; limit?: number }) => {
   const isDevMode = localStorage.getItem("devMode") === "test";
   
   if (isDevMode) {
@@ -102,13 +102,48 @@ export const getWishlist = (userId: string, token: string) => {
       };
     });
     
+    // Apply pagination for mock data
+    if (options?.page && options?.limit) {
+      const page = options.page;
+      const limit = options.limit;
+      const skip = (page - 1) * limit;
+      const totalItems = wishlistProducts.length;
+      const totalPages = Math.ceil(totalItems / limit);
+      const paginatedProducts = wishlistProducts.slice(skip, skip + limit);
+      
+      return Promise.resolve({
+        products: paginatedProducts,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalItems,
+          itemsPerPage: limit,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1
+        }
+      });
+    }
+    
+    // Return all items if no pagination
     return Promise.resolve({
       products: wishlistProducts,
       user: userId
     });
   }
 
-  return fetch(`${API}/wishlist/${userId}`, {
+  // Build query parameters
+  const queryParams = new URLSearchParams();
+  if (options?.page) {
+    queryParams.append('page', options.page.toString());
+  }
+  if (options?.limit) {
+    queryParams.append('limit', options.limit.toString());
+  }
+  
+  const queryString = queryParams.toString();
+  const url = `${API}/wishlist/${userId}${queryString ? `?${queryString}` : ''}`;
+
+  return fetch(url, {
     method: "GET",
     headers: {
       Accept: "application/json",
