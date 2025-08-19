@@ -328,12 +328,6 @@ jobs:
               "ScaleInProtectedInstances": "Refresh",
               "StandbyInstances": "Terminate"
             }' \
-            --desired-configuration '{
-              "LaunchTemplate": {
-                "LaunchTemplateName": "fashion-backend-production-template",
-                "$Latest": true
-              }
-            }' \
             --query 'InstanceRefreshId' --output text)
           
           echo "✅ Instance refresh initiated:"
