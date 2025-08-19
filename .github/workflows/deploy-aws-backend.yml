@@ -331,8 +331,9 @@ jobs:
           echo "🔧 Configuring instance refresh parameters..."
           REFRESH_ID=$(aws autoscaling start-instance-refresh \
             --auto-scaling-group-name $ASG_NAME \
+            --strategy Rolling \
             --preferences '{
-              "MinHealthyPercentage": 75,
+              "MinHealthyPercentage": 100,
               "InstanceWarmup": 600,
               "CheckpointPercentages": [25, 50, 75, 100],
               "CheckpointDelay": 300,
