@@ -4,18 +4,13 @@
 interface PDFOptions {
   filename?: string;
   format?: 'A4' | 'Letter';
-  margin?: {
-    top?: string;
-    right?: string;
-    bottom?: string;
-    left?: string;
-  };
+  orientation?: 'portrait' | 'landscape';
 }
 
 class PDFGenerator {
   /**
-   * Convert HTML content to PDF and download it
-   * Uses browser's print capabilities for reliable PDF generation
+   * Primary method: Generate and download PDF using jsPDF + html2canvas
+   * This actually downloads a PDF file instead of opening print dialog
    */
   static async downloadHTMLAsPDF(
     htmlContent: string, 
@@ -24,136 +19,251 @@ class PDFGenerator {
     const {
       filename = 'invoice.pdf',
       format = 'A4',
-      margin = { top: '10mm', right: '10mm', bottom: '10mm', left: '10mm' }
+      orientation = 'portrait'
     } = options;
 
     try {
-      console.log('🔄 Converting HTML to PDF using browser API...');
+      console.log('🔄 Generating PDF download using jsPDF + html2canvas...');
 
-      // Create a hidden iframe for PDF generation
+      // Dynamic import for dependencies
+      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
+        import('jspdf'),
+        import('html2canvas')
+      ]);
+
+      // Create a new window/iframe for proper rendering
       const iframe = document.createElement('iframe');
       iframe.style.position = 'absolute';
       iframe.style.top = '-9999px';
       iframe.style.left = '-9999px';
       iframe.style.width = '210mm'; // A4 width
       iframe.style.height = '297mm'; // A4 height
+      iframe.style.border = 'none';
+      iframe.style.visibility = 'hidden';
+      
       document.body.appendChild(iframe);
 
       // Wait for iframe to load
       await new Promise<void>((resolve) => {
         iframe.onload = () => resolve();
         
-        // Write HTML content to iframe
+        // Write complete HTML document to iframe
         const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
         if (iframeDoc) {
-          iframeDoc.open();
-          iframeDoc.write(htmlContent);
-          iframeDoc.close();
+          // Extract just the HTML content if it includes <html> tags
+          let processedHTML = htmlContent;
+          if (htmlContent.includes('<!DOCTYPE html>')) {
+            // Full HTML document
+            iframeDoc.open();
+            iframeDoc.write(htmlContent);
+            iframeDoc.close();
+          } else {
+            // Just HTML fragment - wrap it
+            const wrappedHTML = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <meta charset="UTF-8">
+                <style>
+                  body { 
+                    margin: 0; 
+                    padding: 20px; 
+                    font-family: Arial, sans-serif; 
+                    background: white;
+                    color: black;
+                  }
+                </style>
+              </head>
+              <body>
+                ${htmlContent}
+              </body>
+              </html>
+            `;
+            iframeDoc.open();
+            iframeDoc.write(wrappedHTML);
+            iframeDoc.close();
+          }
         }
       });
 
-      // Add print styles for better PDF output
-      const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-      if (iframeDoc) {
-        const printStyles = iframeDoc.createElement('style');
-        printStyles.textContent = `
-          @media print {
-            @page {
-              size: ${format};
-              margin: ${margin.top} ${margin.right} ${margin.bottom} ${margin.left};
-            }
-            body { 
-              -webkit-print-color-adjust: exact !important;
-              color-adjust: exact !important;
-              print-color-adjust: exact !important;
-            }
-            .invoice-container {
-              margin: 0 !important;
-              border: none !important;
-              box-shadow: none !important;
-            }
-          }
-        `;
-        iframeDoc.head.appendChild(printStyles);
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Get the body element from iframe
+      const iframeBody = iframe.contentDocument?.body;
+      if (!iframeBody) {
+        throw new Error('Could not access iframe content');
       }
 
-      // Give browser time to render
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('📄 Iframe content loaded, generating canvas...');
 
-      // Focus the iframe and trigger print
-      iframe.contentWindow?.focus();
-      iframe.contentWindow?.print();
+      // Convert iframe content to canvas with better options
+      const canvas = await html2canvas(iframeBody, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        foreignObjectRendering: true,
+        logging: true, // Enable logging for debugging
+        width: iframeBody.scrollWidth,
+        height: iframeBody.scrollHeight,
+        windowWidth: 794, // A4 width in pixels
+        windowHeight: 1123 // A4 height in pixels
+      });
 
-      // Clean up after a delay
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
+      console.log('🖼️ Canvas generated:', {
+        width: canvas.width,
+        height: canvas.height,
+        dataURL: canvas.toDataURL('image/png').substring(0, 100) + '...'
+      });
 
-      console.log('✅ PDF download initiated successfully');
+      // Check if canvas has content
+      if (canvas.width === 0 || canvas.height === 0) {
+        throw new Error('Generated canvas is empty - HTML content may not have rendered properly');
+      }
+
+      // Calculate PDF dimensions
+      const imgWidth = format === 'A4' ? 210 : 216; // mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      // Create PDF document
+      const pdf = new jsPDF({
+        orientation: orientation,
+        unit: 'mm',
+        format: format.toLowerCase()
+      });
+
+      // Add image to PDF
+      const imgData = canvas.toDataURL('image/png', 0.95);
+      
+      // Handle multi-page PDFs if content is too long
+      const pageHeight = format === 'A4' ? 297 : 279; // mm
+      if (imgHeight <= pageHeight) {
+        // Single page
+        pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      } else {
+        // Multi-page
+        let remainingHeight = imgHeight;
+        let position = 0;
+        
+        while (remainingHeight > 0) {
+          const pageImgHeight = Math.min(pageHeight, remainingHeight);
+          
+          if (position > 0) {
+            pdf.addPage();
+          }
+          
+          pdf.addImage(
+            imgData, 
+            'PNG', 
+            0, 
+            -position, 
+            imgWidth, 
+            imgHeight
+          );
+          
+          remainingHeight -= pageHeight;
+          position += pageHeight;
+        }
+      }
+      
+      // Download the PDF
+      pdf.save(filename);
+
+      // Clean up
+      document.body.removeChild(iframe);
+
+      console.log('✅ PDF downloaded successfully:', filename);
 
     } catch (error) {
       console.error('❌ PDF generation failed:', error);
-      throw new Error('Failed to generate PDF. Please try again.');
+      console.error('Error details:', error);
+      throw new Error('Failed to generate PDF. Please try again or contact support if the issue persists.');
     }
   }
 
   /**
-   * Alternative method using jsPDF for environments where print() doesn't work
-   * Requires html2canvas and jsPDF dependencies
+   * Fallback method using browser's print-to-PDF (for modern browsers)
    */
-  static async downloadHTMLAsPDFAlternative(
+  static async downloadHTMLAsPDFPrint(
     htmlContent: string,
     options: PDFOptions = {}
   ): Promise<void> {
     const { filename = 'invoice.pdf' } = options;
 
     try {
-      // Dynamic import for optional dependencies
-      const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
-        import('jspdf'),
-        import('html2canvas')
-      ]);
+      console.log('🔄 Using browser print-to-PDF fallback...');
 
-      console.log('🔄 Converting HTML to PDF using jsPDF + html2canvas...');
+      // Check if browser supports print-to-PDF
+      if (!window.print) {
+        throw new Error('Browser does not support print functionality');
+      }
 
-      // Create temporary div for rendering
-      const tempDiv = document.createElement('div');
-      tempDiv.innerHTML = htmlContent;
-      tempDiv.style.position = 'absolute';
-      tempDiv.style.top = '-9999px';
-      tempDiv.style.left = '-9999px';
-      tempDiv.style.width = '794px'; // A4 width in pixels at 96 DPI
-      tempDiv.style.background = 'white';
-      document.body.appendChild(tempDiv);
+      // Create a new window with the invoice content
+      const printWindow = window.open('', '_blank', 'width=800,height=600');
+      if (!printWindow) {
+        throw new Error('Could not open print window');
+      }
 
-      // Convert to canvas
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff'
-      });
-
-      // Create PDF
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210; // A4 width in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // Write HTML content with print styles
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Invoice</title>
+          <style>
+            @media print {
+              @page {
+                size: A4;
+                margin: 10mm;
+              }
+              body {
+                font-family: Arial, sans-serif;
+                font-size: 12pt;
+                line-height: 1.4;
+                color: #000;
+                background: #fff;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+              }
+              .no-print {
+                display: none !important;
+              }
+            }
+            body {
+              font-family: Arial, sans-serif;
+              font-size: 14px;
+              line-height: 1.4;
+              color: #000;
+              background: #fff;
+              margin: 0;
+              padding: 20px;
+            }
+          </style>
+        </head>
+        <body>
+          ${htmlContent}
+          <script>
+            window.onload = function() {
+              setTimeout(function() {
+                window.print();
+                setTimeout(function() {
+                  window.close();
+                }, 1000);
+              }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `);
       
-      const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-      
-      // Download
-      pdf.save(filename);
+      printWindow.document.close();
 
-      // Clean up
-      document.body.removeChild(tempDiv);
-
-      console.log('✅ PDF downloaded successfully with jsPDF');
+      console.log('✅ Print dialog opened for PDF generation');
 
     } catch (error) {
-      console.error('❌ Alternative PDF generation failed:', error);
-      // Fallback to browser print
-      await this.downloadHTMLAsPDF(htmlContent, options);
+      console.error('❌ Print fallback failed:', error);
+      throw error;
     }
   }
 
@@ -170,7 +280,7 @@ class PDFGenerator {
       const response = await fetch(invoiceUrl);
       
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
+        throw new Error(`Server error: ${response.status} - ${response.statusText}`);
       }
 
       // Get filename from headers if not provided
@@ -179,40 +289,73 @@ class PDFGenerator {
       
       const finalFilename = filename || 
                            headerFilename || 
-                           `invoice-${invoiceNumber || 'download'}.pdf`;
+                           `invoice-${invoiceNumber || Date.now()}.pdf`;
 
       // Get HTML content
       const htmlContent = await response.text();
 
-      // Convert to PDF
+      // Validate that we received HTML content
+      if (!htmlContent || !htmlContent.includes('invoice')) {
+        throw new Error('Invalid invoice content received from server');
+      }
+
+      console.log('✅ Invoice HTML fetched successfully');
+
+      // Convert to PDF using primary method
       await this.downloadHTMLAsPDF(htmlContent, {
         filename: finalFilename
       });
 
     } catch (error) {
       console.error('❌ Invoice download failed:', error);
-      throw error;
+      
+      // Provide user-friendly error message
+      if (error.message.includes('Server error: 404')) {
+        throw new Error('Invoice not found. Please try again in a few minutes or contact support.');
+      } else if (error.message.includes('Server error: 500')) {
+        throw new Error('Invoice generation error. Please try again or contact support.');
+      } else {
+        throw new Error(`Invoice download failed: ${error.message}`);
+      }
     }
   }
 
   /**
-   * Smart PDF download - tries browser print first, falls back to jsPDF
+   * Smart PDF download with automatic fallback
    */
   static async smartPDFDownload(
     htmlContent: string,
     options: PDFOptions = {}
   ): Promise<void> {
     try {
-      // Try browser print first (most reliable)
+      // Try primary method (jsPDF + html2canvas)
       await this.downloadHTMLAsPDF(htmlContent, options);
     } catch (error) {
-      console.log('⚠️ Browser print failed, trying alternative method...');
+      console.log('⚠️ Primary PDF method failed, trying fallback...');
       try {
-        await this.downloadHTMLAsPDFAlternative(htmlContent, options);
-      } catch (altError) {
+        // Fallback to browser print-to-PDF
+        await this.downloadHTMLAsPDFPrint(htmlContent, options);
+      } catch (fallbackError) {
         console.error('❌ All PDF generation methods failed');
-        throw new Error('Unable to generate PDF. Please try using a different browser or contact support.');
+        throw new Error('Unable to generate PDF. Please try refreshing the page or using a different browser.');
       }
+    }
+  }
+
+  /**
+   * Check if PDF generation is supported
+   */
+  static isSupported(): boolean {
+    try {
+      // Check for required browser APIs
+      return (
+        typeof document !== 'undefined' &&
+        typeof window !== 'undefined' &&
+        typeof fetch !== 'undefined' &&
+        'createElement' in document
+      );
+    } catch {
+      return false;
     }
   }
 }

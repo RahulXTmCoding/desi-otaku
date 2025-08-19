@@ -8,6 +8,7 @@ import ProductGrid from '../components/home/ProductGrid';
 import CategoryCard from '../components/home/CategoryCard';
 import FeatureSection from '../components/home/FeatureSection';
 import ReviewCarousel from '../components/home/ReviewCarousel';
+import ProgressiveBanner from '../components/ProgressiveBanner';
 import { useCart } from '../context/CartContext';
 import { useThemeClasses } from '../hooks/useThemeClasses';
 import { useFilteredProducts } from '../hooks/useProducts';
@@ -80,9 +81,6 @@ const HomeEnhanced: React.FC = () => {
   const [selectedRandomColor, setSelectedRandomColor] = useState<any>(null);
   const [selectedRandomSize, setSelectedRandomSize] = useState<string>('');
   const [addedToCart, setAddedToCart] = useState(false);
-
-  // Simple fallback banner state
-  const [showStyledFallback, setShowStyledFallback] = useState(false);
 
   // Use React Query for products to prevent duplicate API calls
   const newProductsQuery = useFilteredProducts({
@@ -443,83 +441,15 @@ const HomeEnhanced: React.FC = () => {
           <PromotionalCouponBanner />
         </div> */}
 
-        {/* Responsive Banner Section */}
-        <section className="w-full">
-          <div className="relative w-full h-auto">
-            {/* Desktop Banner - Hidden on mobile */}
-            <img 
-              src="https://lh3.googleusercontent.com/pw/AP1GczMz9wczz1nZhnDV7S0q4BqPe-R4WDVhBfVBP9umIH57lXJiXmd7mIfbnT3E2QrEZcEgi1GrghL08Lm8WlUVrUKFh_SRBbYC2nn9fwwv4u8dvsistSaq3g-wrgZZXa_3msday0WzAfgnQV9jdkXEumo=w1434-h530-s-no-gm?authuser=0"
-              alt="Attars Clothing - Premium Fashion & Custom Designs"
-              className="hidden md:block w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-opacity"
-              loading="eager"
-              onClick={() => navigate('/shop')}
-              onError={(e) => {
-                e.currentTarget.src = '/hq-banner.png';  
-              }}
-            />
-            
-            {/* Mobile Banner - Hidden on desktop */}
-            <img 
-              src="https://lh3.googleusercontent.com/pw/AP1GczPvITvGIZ94AKzAEdQHclFkX2mEKGzhjW0rfM-iJUKESfmRn1L8DTbuggtK3Zu7-l66NlfgJ5KA6VoX00hySNxrb_4mlyfLcBA9ElhoonaDbULlSCwL_fvonHN_KAKhbVg0MaghRHlif-H9MSfoqzE=w965-h913-s-no-gm?authuser=0"
-              alt="Attars Clothing - Premium Fashion & Custom Designs Mobile"
-              className="block md:hidden w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-opacity"
-              loading="eager"
-              onClick={() => navigate('/shop')}
-              onError={(e) => {
-                // Final fallback for mobile - show styled banner
-                // setShowStyledFallback(true);
-                e.currentTarget.src = '/hq-mobile-banner-2.png';  
-              }}
-            />
-            
-            {/* Styled Fallback Banner - Only shows when all images fail */}
-            {showStyledFallback && (
-              <section 
-                className="block md:hidden relative px-6 py-20 overflow-hidden cursor-pointer hover:opacity-95 transition-opacity" 
-                style={{ backgroundColor: 'var(--color-surface)' }}
-                onClick={() => navigate('/shop')}
-              >
-                <div className="absolute top-10 right-10 grid grid-cols-4 gap-2">
-                  {[...Array(16)].map((_, i) => (
-                    <div key={i} className="w-2 h-2 bg-cyan-400 rounded-full opacity-60"></div>
-                  ))}
-                </div>
-
-                <div className="relative w-[96%] mx-auto text-center">
-                  <h1 className="text-3xl sm:text-4xl font-bold mb-6">
-                    Express Your
-                    <span className="block bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
-                      Unique Style
-                    </span>
-                  </h1>
-                  <p className="text-lg text-gray-300 mb-8">
-                    Premium fashion apparel with custom design options.
-                  </p>
-                  <div className="flex flex-col gap-3">
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate('/customize');
-                      }}
-                      className="bg-yellow-400 text-gray-900 px-6 py-3 rounded-full font-semibold hover:bg-yellow-300 transition-all transform hover:scale-105"
-                    >
-                      Create Custom Design
-                    </button>
-                    <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate('/shop');
-                      }}
-                      className="border border-yellow-400 text-yellow-400 px-6 py-3 rounded-full font-semibold hover:bg-yellow-400 hover:text-gray-900 transition-all"
-                    >
-                      Shop Collection
-                    </button>
-                  </div>
-                </div>
-              </section>
-            )}
-          </div>
-        </section>
+        {/* Progressive Banner Section - Optimized Loading */}
+        <ProgressiveBanner
+          highQualityDesktop="https://lh3.googleusercontent.com/pw/AP1GczMz9wczz1nZhnDV7S0q4BqPe-R4WDVhBfVBP9umIH57lXJiXmd7mIfbnT3E2QrEZcEgi1GrghL08Lm8WlUVrUKFh_SRBbYC2nn9fwwv4u8dvsistSaq3g-wrgZZXa_3msday0WzAfgnQV9jdkXEumo=w1434-h530-s-no-gm?authuser=0"
+          highQualityMobile="https://lh3.googleusercontent.com/pw/AP1GczPvITvGIZ94AKzAEdQHclFkX2mEKGzhjW0rfM-iJUKESfmRn1L8DTbuggtK3Zu7-l66NlfgJ5KA6VoX00hySNxrb_4mlyfLcBA9ElhoonaDbULlSCwL_fvonHN_KAKhbVg0MaghRHlif-H9MSfoqzE=w965-h913-s-no-gm?authuser=0"
+          finalFallbackDesktop="/hq-banner.png"
+          finalFallbackMobile="/hq-mobile-banner-2.png"
+          alt="Attars Clothing - Premium Fashion & Custom Designs"
+          onClick={() => navigate('/shop')}
+        />
 
       
         {/* Most In Demand Categories */}

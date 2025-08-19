@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test PDF Generation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <h1>PDF Generation Test</h1>
+    
+    <div id="test-content" style="border: 1px solid black; padding: 20px; margin: 20px; font-family: Arial;">
+        <h2>Sample Invoice Content</h2>
+        <p><strong>Invoice Number:</strong> INV-2024-001</p>
+        <p><strong>Date:</strong> August 19, 2025</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+            <thead>
+                <tr style="background-color: #f0f0f0;">
+                    <th style="border: 1px solid black; padding: 8px;">Item</th>
+                    <th style="border: 1px solid black; padding: 8px;">Quantity</th>
+                    <th style="border: 1px solid black; padding: 8px;">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Custom T-Shirt</td>
+                    <td style="border: 1px solid black; padding: 8px;">2</td>
+                    <td style="border: 1px solid black; padding: 8px;">₹499</td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid black; padding: 8px;">Shipping</td>
+                    <td style="border: 1px solid black; padding: 8px;">1</td>
+                    <td style="border: 1px solid black; padding: 8px;">₹50</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p style="text-align: right; font-weight: bold; font-size: 18px;">
+            Total: ₹549
+        </p>
+    </div>
+    
+    <button id="download-pdf" style="background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer;">
+        Download Test PDF
+    </button>
+    
+    <button id="test-invoice-api" style="background: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-left: 10px;">
+        Test Invoice API
+    </button>
+    
+    <div id="status" style="margin-top: 20px; padding: 10px; border-radius: 5px;"></div>
+
+    <script>
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.style.backgroundColor = type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : '#d1ecf1';
+            statusDiv.style.color = type === 'error' ? '#721c24' : type === 'success' ? '#155724' : '#0c5460';
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        // Simplified PDF generation function for testing
+        async function generateTestPDF() {
+            try {
+                showStatus('🔄 Generating PDF...', 'info');
+                
+                const element = document.getElementById('test-content');
+                const canvas = await html2canvas(element, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                });
+                
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                
+                const imgWidth = 210;
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+                pdf.save('test-invoice.pdf');
+                
+                showStatus('✅ PDF downloaded successfully!', 'success');
+                
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                showStatus(`❌ PDF generation failed: ${error.message}`, 'error');
+            }
+        }
+
+        // Test the actual invoice API
+        async function testInvoiceAPI() {
+            try {
+                showStatus('🔄 Testing invoice API...', 'info');
+                
+                // Test with a mock order ID - this will likely fail but we can see the response
+                const response = await fetch('http://localhost:8000/api/invoice/order/test/download');
+                
+                if (response.ok) {
+                    const htmlContent = await response.text();
+                    showStatus(`✅ Invoice API responded with ${htmlContent.length} characters`, 'success');
+                    console.log('Invoice HTML preview:', htmlContent.substring(0, 500) + '...');
+                } else {
+                    showStatus(`⚠️ Invoice API returned ${response.status}: ${response.statusText}`, 'error');
+                }
+                
+            } catch (error) {
+                console.error('API test error:', error);
+                showStatus(`❌ API test failed: ${error.message}`, 'error');
+            }
+        }
+
+        document.getElementById('download-pdf').addEventListener('click', generateTestPDF);
+        document.getElementById('test-invoice-api').addEventListener('click', testInvoiceAPI);
+        
+        showStatus('Ready to test PDF generation', 'info');
+    </script>
+</body>
+</html>
