@@ -6,7 +6,6 @@ const {
   getUserById,
   getUser,
   updateUser,
-  userPurchaseList,
   getUserProfile,
   updatePassword,
   updateAddress,
