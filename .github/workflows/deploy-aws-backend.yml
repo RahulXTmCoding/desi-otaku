@@ -297,6 +297,18 @@ jobs:
             --value "${{ secrets.NODE_ENV }}" \
             --type "String" \
             --overwrite
+
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/PRODUCTION_BACKEND_URL" \
+            --value "${{ secrets.PRODUCTION_BACKEND_URL }}" \
+            --type "String" \
+            --overwrite
+
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/PRODUCTION_CLIENT_URL" \
+            --value "${{ secrets.PRODUCTION_CLIENT_URL }}" \
+            --type "String" \
+            --overwrite
           
           echo "✅ All parameters updated successfully in Parameter Store"
 
@@ -385,7 +397,7 @@ jobs:
               --output text)
             
             case $STATUS in
-              "Successful"|"Successful 100")
+              "Successful"|"Successful 100"|"Successful 100 None 0 None")
                 echo ""
                 echo "🎉 ZERO-DOWNTIME DEPLOYMENT COMPLETED SUCCESSFULLY!"
                 echo "=============================================="

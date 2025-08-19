@@ -22,6 +22,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
 }) => {
   const navigate = useNavigate();
   const [isHighQualityLoaded, setIsHighQualityLoaded] = useState(false);
+  const [showHighQuality, setShowHighQuality] = useState(false);
   const [hasHighQualityError, setHasHighQualityError] = useState(false);
   const [showStyledFallback, setShowStyledFallback] = useState(false);
 
@@ -31,6 +32,10 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
     const desktopImg = new Image();
     desktopImg.onload = () => {
       setIsHighQualityLoaded(true);
+      // Small delay to ensure high-quality image is rendered before starting fade-out
+      setTimeout(() => {
+        setShowHighQuality(true);
+      }, 50);
     };
     desktopImg.onerror = () => {
       setHasHighQualityError(true);
@@ -181,73 +186,69 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
 
   return (
     <section className={`w-full ${className}`}>
-      <div className="relative w-full h-auto">
+      <div className="relative w-full">
         {/* Desktop Banner - Hidden on mobile */}
-        <div className="hidden md:block relative">
-          {/* CSS placeholder - shows immediately */}
-          <div className={`transition-all duration-700 ${isHighQualityLoaded ? 'opacity-0 absolute inset-0' : 'opacity-100'}`}>
+        <div className="hidden md:block relative overflow-hidden">
+          {/* Set fixed aspect ratio container to prevent layout shift */}
+          <div className="relative w-full" style={{ aspectRatio: '1434/530' }}>
+            {/* Low-quality placeholder - shows immediately, fades out after high-quality is visible */}
             <img 
               src="/lq-banner.png"
-              alt="Attars Clothing - Premium Fashion & Custom Designs Mobile"
-              className="block w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-opacity"
+              alt="Loading banner..."
+              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-1000 ease-in-out ${
+                showHighQuality ? 'opacity-0' : 'opacity-100'
+              }`}
               loading="eager"
-              onClick={() => navigate('/shop')}
+              onClick={handleClick}
               onError={(e) => {
-                // Final fallback for mobile - show styled banner
-                // setShowStyledFallback(true);
-                e.currentTarget.src = '/lq-banner.png';  
+                e.currentTarget.src = finalFallbackDesktop;
               }}
             />
+            
+            {/* High-quality image - appears immediately when loaded */}
+            <img 
+              src={currentDesktopSrc}
+              alt={alt}
+              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-500 ease-in-out ${
+                isHighQualityLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              loading="lazy"
+              onClick={handleClick}
+              onError={() => handleImageError(false)}
+            />
           </div>
-          
-          {/* High-quality image - shows when loaded */}
-          <img 
-            src={currentDesktopSrc}
-            alt={alt}
-            className={`w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-all duration-700 ${
-              isHighQualityLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
-            }`}
-            loading="lazy"
-            onClick={handleClick}
-            onError={() => handleImageError(false)}
-            style={{
-              transition: 'opacity 0.7s ease-in-out'
-            }}
-          />
         </div>
         
         {/* Mobile Banner - Hidden on desktop */}
-        <div className="block md:hidden relative">
-          {/* CSS placeholder - shows immediately */}
-          <div className={`transition-all duration-700 ${isHighQualityLoaded ? 'opacity-0 absolute inset-0' : 'opacity-100'}`}>
+        <div className="block md:hidden relative overflow-hidden">
+          {/* Set fixed aspect ratio container to prevent layout shift */}
+          <div className="relative w-full" style={{ aspectRatio: '965/913' }}>
+            {/* Low-quality placeholder - shows immediately, fades out after high-quality is visible */}
             <img 
               src="/lq-mobile-banner.png"
-              alt="Attars Clothing - Premium Fashion & Custom Designs Mobile"
-              className="block md:hidden w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-opacity"
+              alt="Loading banner..."
+              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-1000 ease-in-out ${
+                showHighQuality ? 'opacity-0' : 'opacity-100'
+              }`}
               loading="eager"
-              onClick={() => navigate('/shop')}
+              onClick={handleClick}
               onError={(e) => {
-                // Final fallback for mobile - show styled banner
-                // setShowStyledFallback(true);
-                e.currentTarget.src = '/lq-mobile-banner.png';  
+                e.currentTarget.src = finalFallbackMobile;
               }}
             />
+            
+            {/* High-quality image - appears immediately when loaded */}
+            <img 
+              src={currentMobileSrc}
+              alt={`${alt} Mobile`}
+              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-500 ease-in-out ${
+                isHighQualityLoaded ? 'opacity-100' : 'opacity-0'
+              }`}
+              loading="lazy"
+              onClick={handleClick}
+              onError={() => handleImageError(true)}
+            />
           </div>
-          
-          {/* High-quality image - shows when loaded */}
-          <img 
-            src={currentMobileSrc}
-            alt={`${alt} Mobile`}
-            className={`w-full h-auto object-cover cursor-pointer hover:opacity-95 transition-all duration-700 ${
-              isHighQualityLoaded ? 'opacity-100' : 'opacity-0 absolute inset-0'
-            }`}
-            loading="lazy"
-            onClick={handleClick}
-            onError={() => handleImageError(true)}
-            style={{
-              transition: 'opacity 0.7s ease-in-out'
-            }}
-          />
         </div>
       </div>
     </section>

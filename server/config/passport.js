@@ -20,7 +20,9 @@ passport.deserializeUser(async (id, done) => {
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-  callbackURL: '/api/auth/google/callback'
+  callbackURL: process.env.NODE_ENV === 'production' 
+    ? `${process.env.PRODUCTION_BACKEND_URL}/api/auth/google/callback`
+    : `${process.env.BACKEND_URL || 'http://localhost:8000'}/api/auth/google/callback`
 },
 async (accessToken, refreshToken, profile, done) => {
   try {
@@ -46,7 +48,9 @@ async (accessToken, refreshToken, profile, done) => {
 passport.use(new FacebookStrategy({
   clientID: process.env.FACEBOOK_APP_ID,
   clientSecret: process.env.FACEBOOK_APP_SECRET,
-  callbackURL: '/api/auth/facebook/callback',
+  callbackURL: process.env.NODE_ENV === 'production' 
+    ? `${process.env.PRODUCTION_BACKEND_URL}/api/auth/facebook/callback`
+    : `${process.env.BACKEND_URL || 'http://localhost:8000'}/api/auth/facebook/callback`,
   profileFields: ['id', 'displayName', 'photos', 'email']
 },
 async (accessToken, refreshToken, profile, done) => {
