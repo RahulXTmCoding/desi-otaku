@@ -15,6 +15,7 @@ import { getRandomDesign } from '../admin/helper/designapicall';
 import { API } from '../backend';
 import RealTShirtPreview from './RealTShirtPreview';
 import { toast } from 'react-hot-toast';
+import '../styles/adaptive-logo.css';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -234,18 +235,10 @@ const Header: React.FC = () => {
         {/* Desktop Logo - Left Side */}
         <Link to={auth && auth.user && auth.user.role === 1 ? "/admin/dashboard" : "/"} className="flex items-center space-x-3 group">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
-            <div className="relative w-10 h-10 flex items-center justify-center transform group-hover:scale-110 transition-transform rounded-xl overflow-hidden">
-              <img src="/logo512.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
+            {/* <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div> */}
+            <div className="relative w-36  flex items-center justify-center ">
+              <img src="/brand.png" alt="Attars Clothing Logo" className="w-36 object-contain logo-adaptive" />
             </div>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent tracking-wide" style={{ fontFamily: 'Playfair Display, serif' }}>
-                Attars
-              </span>
-            </div>
-            <p className="text-xs text-gray-400 -mt-1 hidden lg:block font-light tracking-wide" style={{ fontFamily: 'Inter, sans-serif' }}>Premium Fashion Store</p>
           </div>
         </Link>
 
@@ -426,15 +419,16 @@ const Header: React.FC = () => {
               <Search className="w-5 h-5" />
             </button>
           )}
+          <ThemeSwitcher />
         </div>
 
         {/* Mobile Center Section - Logo (Absolutely Centered) */}
         <div className="absolute left-1/2 transform -translate-x-1/2">
           <Link to={auth && auth.user && auth.user.role === 1 ? "/admin/dashboard" : "/"} className="flex items-center group">
             <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div>
-              <div className="relative w-10 h-10 flex items-center justify-center transform group-hover:scale-110 transition-transform rounded-xl overflow-hidden">
-                <img src="/logo512.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
+              {/* <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div> */}
+              <div className="relative w-28 flex items-center justify-center transform group-hover:scale-110 transition-transform rounded-xl overflow-hidden">
+                <img src="/brand.png" alt="Attars Clothing Logo" className="w-28 h-10 object-contain logo-adaptive" />
               </div>
             </div>
           </Link>
@@ -443,7 +437,7 @@ const Header: React.FC = () => {
         {/* Mobile Right Section - Theme + Cart + User */}
         <div className="flex items-center ml-auto">
           {/* Theme Switcher */}
-          <ThemeSwitcher />
+        
           
           {/* Only show wishlist and cart for non-admin users */}
           {(!auth || !auth.user || auth.user.role !== 1) && (
@@ -509,10 +503,9 @@ const Header: React.FC = () => {
           {/* Mobile Menu Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 flex items-center justify-center rounded-lg overflow-hidden">
-                <img src="/logo512.png" alt="Attars Clothing Logo" className="w-8 h-8 object-contain" />
+              <div className="w-28 flex items-center justify-center rounded-lg overflow-hidden">
+                <img src="/brand.png" alt="Attars Clothing Logo" className="w-28 object-contain logo-adaptive" />
               </div>
-              <span className="text-xl font-bold text-white">Attars</span>
             </div>
             <button
               onClick={closeMobileMenu}

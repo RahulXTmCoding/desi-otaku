@@ -1,0 +1,64 @@
+/* Theme-Adaptive Logo Styles */
+
+.logo-adaptive {
+  transition: filter 0.3s ease;
+}
+
+/* Dark Theme - Invert to white */
+.theme-dark .logo-adaptive {
+  filter: invert(1) brightness(1.1);
+}
+
+/* Light Theme - Keep original (black) */
+.theme-light .logo-adaptive {
+  filter: none;
+}
+
+/* Midnight Theme - Convert to sky blue accent */
+.theme-midnight .logo-adaptive {
+  filter: invert(1) brightness(1.1);
+  /* brightness(0) saturate(100%) invert(69%) sepia(51%) saturate(2878%) hue-rotate(169deg) brightness(101%) contrast(101%); */
+}
+
+/* Cyberpunk Theme - Convert to neon green */
+.theme-cyberpunk .logo-adaptive {
+  filter: invert(1) brightness(1.1);
+  /* brightness(0) saturate(100%) invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%); */
+}
+
+/* Sakura Theme - Convert to pink accent */
+.theme-sakura .logo-adaptive {
+  filter: brightness(1.5) saturate(100%) sepia(10%) saturate(1502%) hue-rotate(326deg) brightness(90%) contrast(97%); 
+}
+
+/* Hover effects for better interactivity */
+/* .logo-adaptive:hover {
+  filter: brightness(1.2) !important;
+  transition: filter 0.2s ease;
+} */
+
+/* Additional refinements for mobile */
+@media (max-width: 768px) {
+  .logo-adaptive {
+    filter: brightness(1.1);
+  }
+  
+  .theme-dark .logo-adaptive {
+    filter: invert(1) brightness(1.2);
+  }
+  
+  .theme-midnight .logo-adaptive {
+    filter: invert(1) brightness(1.2); 
+    /* brightness(0) saturate(100%) invert(69%) sepia(51%) saturate(2878%) hue-rotate(169deg) brightness(110%) contrast(101%); */
+  }
+  
+  .theme-cyberpunk .logo-adaptive {
+    filter: invert(1) brightness(1.2); 
+    /* brightness(0) saturate(100%) invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(125%) contrast(119%); */
+  }
+  
+  .theme-sakura .logo-adaptive {
+    filter: brightness(1.5) saturate(100%) sepia(10%) saturate(1502%) hue-rotate(326deg) brightness(90%) contrast(97%); 
+    /* brightness(0) saturate(100%) invert(25%) sepia(93%) saturate(1352%) hue-rotate(326deg) brightness(105%) contrast(97%); */
+  }
+}

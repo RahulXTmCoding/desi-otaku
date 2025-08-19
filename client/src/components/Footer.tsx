@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import '../styles/adaptive-logo.css';
 
 const Footer: React.FC = () => {
   return (
@@ -7,12 +8,9 @@ const Footer: React.FC = () => {
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
         <div>
           <div className="flex items-center space-x-3 mb-4">
-            <div className="w-10 h-10 flex items-center justify-center rounded-xl overflow-hidden">
-              <img src="/logo512.png" alt="Attars Clothing Logo" className="w-10 h-10 object-contain" />
+            <div className="w-32  flex items-center justify-center overflow-hidden">
+              <img src="/brand.png" alt="Attars Clothing Logo" className="w-32 object-contain logo-adaptive" />
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-yellow-400 to-yellow-500 bg-clip-text text-transparent tracking-wide" style={{ fontFamily: 'Playfair Display, serif' }}>
-              Attars
-            </span>
           </div>
           <p className="text-gray-400 text-sm">
             Your one-stop shop for premium fashion and contemporary designs.
