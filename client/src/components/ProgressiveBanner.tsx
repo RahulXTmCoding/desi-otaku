@@ -28,23 +28,42 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
 
   // Preload high-quality images
   const preloadHighQualityImages = useCallback(() => {
-    // Preload desktop high-quality image
-    const desktopImg = new Image();
-    desktopImg.onload = () => {
+    const isMobile = window.innerWidth < 768; // md breakpoint
+    
+    // Common completion handler
+    const handleImageLoaded = () => {
       setIsHighQualityLoaded(true);
       // Small delay to ensure high-quality image is rendered before starting fade-out
       setTimeout(() => {
         setShowHighQuality(true);
       }, 50);
     };
-    desktopImg.onerror = () => {
+    
+    const handleImageError = () => {
       setHasHighQualityError(true);
     };
-    desktopImg.src = highQualityDesktop;
 
-    // Preload mobile high-quality image
-    const mobileImg = new Image();
-    mobileImg.src = highQualityMobile;
+    if (isMobile) {
+      // On mobile, prioritize mobile image loading
+      const mobileImg = new Image();
+      mobileImg.onload = handleImageLoaded;
+      mobileImg.onerror = handleImageError;
+      mobileImg.src = highQualityMobile;
+      
+      // Preload desktop image in background (lower priority)
+      const desktopImg = new Image();
+      desktopImg.src = highQualityDesktop;
+    } else {
+      // On desktop, prioritize desktop image loading
+      const desktopImg = new Image();
+      desktopImg.onload = handleImageLoaded;
+      desktopImg.onerror = handleImageError;
+      desktopImg.src = highQualityDesktop;
+      
+      // Preload mobile image in background (lower priority)
+      const mobileImg = new Image();
+      mobileImg.src = highQualityMobile;
+    }
   }, [highQualityDesktop, highQualityMobile]);
 
   useEffect(() => {
