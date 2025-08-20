@@ -31,12 +31,14 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
     const isMobile = window.innerWidth < 768; // md breakpoint
     
     // Common completion handler
-    const handleImageLoaded = () => {
-      setIsHighQualityLoaded(true);
-      // Small delay to ensure high-quality image is rendered before starting fade-out
-      setTimeout(() => {
-        setShowHighQuality(true);
-      }, 50);
+    const handleImageLoaded = (delay) => { 
+      return (() => {
+        setIsHighQualityLoaded(true);
+        // Small delay to ensure high-quality image is rendered before starting fade-out
+        setTimeout(() => {
+          setShowHighQuality(true);
+        }, delay);
+      });
     };
     
     const handleImageError = () => {
@@ -46,7 +48,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
     if (isMobile) {
       // On mobile, prioritize mobile image loading
       const mobileImg = new Image();
-      mobileImg.onload = handleImageLoaded;
+      mobileImg.onload = handleImageLoaded(2000);
       mobileImg.onerror = handleImageError;
       mobileImg.src = highQualityMobile;
       
@@ -56,7 +58,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
     } else {
       // On desktop, prioritize desktop image loading
       const desktopImg = new Image();
-      desktopImg.onload = handleImageLoaded;
+      desktopImg.onload = handleImageLoaded(500);
       desktopImg.onerror = handleImageError;
       desktopImg.src = highQualityDesktop;
       
