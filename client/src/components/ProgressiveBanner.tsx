@@ -58,7 +58,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
     } else {
       // On desktop, prioritize desktop image loading
       const desktopImg = new Image();
-      desktopImg.onload = handleImageLoaded(500);
+      desktopImg.onload = handleImageLoaded(1000);
       desktopImg.onerror = handleImageError;
       desktopImg.src = highQualityDesktop;
       
