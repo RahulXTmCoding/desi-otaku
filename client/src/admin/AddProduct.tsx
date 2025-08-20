@@ -19,7 +19,7 @@ import {
   Ruler
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
-import { createaProduct, getCategories, mockCreateProduct } from "./helper/adminapicall";
+import { createaProduct, getCategories, getCategoryTree, mockCreateProduct } from "./helper/adminapicall";
 import { getAllProductTypes } from "./helper/productTypeApiCalls";
 import { useDevMode } from "../context/DevModeContext";
 import { mockCategories } from "../data/mockData";
@@ -54,16 +54,23 @@ const AddProduct = () => {
     name: "",
     description: "",
     price: "",
+    mrp: "",
     tags: "",
     productType: "",
     categories: [] as any[],
     productTypes: [] as any[],
     category: "",
+    subcategory: "",
     loading: false,
     error: "",
     createdProduct: "",
     formData: new FormData(),
   });
+
+  // Hierarchical category state
+  const [categoryTree, setCategoryTree] = useState<any[]>([]);
+  const [selectedMainCategory, setSelectedMainCategory] = useState("");
+  const [availableSubcategories, setAvailableSubcategories] = useState<any[]>([]);
 
   const [sizeStock, setSizeStock] = useState<SizeStock>({
     S: "0",
@@ -76,6 +83,7 @@ const AddProduct = () => {
   const [images, setImages] = useState<ImageItem[]>([]);
   const [imageInputType, setImageInputType] = useState<'file' | 'url'>('file');
   const [imageUrl, setImageUrl] = useState("");
+  const [loadedImages, setLoadedImages] = useState<any[]>([]);
 
   const {
     name,
@@ -97,8 +105,9 @@ const AddProduct = () => {
       setValues({ ...values, categories: mockCategories, formData: new FormData() });
     } else {
       try {
-        const [categoriesData, typesData] = await Promise.all([
+        const [categoriesData, categoryTreeData, typesData] = await Promise.all([
           getCategories(),
+          getCategoryTree(),
           getAllProductTypes(true)
         ]);
         
@@ -111,6 +120,11 @@ const AddProduct = () => {
             productTypes: Array.isArray(typesData) ? typesData : [],
             formData: new FormData() 
           });
+          
+          // Set hierarchical category data
+          if (categoryTreeData && !categoryTreeData.error) {
+            setCategoryTree(categoryTreeData);
+          }
         }
       } catch (err) {
         setValues({ ...values, error: "Failed to load data" });
@@ -118,9 +132,79 @@ const AddProduct = () => {
     }
   };
 
+  // Handle main category selection
+  const handleMainCategoryChange = (selectedCategoryId: string) => {
+    setSelectedMainCategory(selectedCategoryId);
+    setValues({ ...values, category: selectedCategoryId, subcategory: "" });
+    
+    // Find selected category in tree and get its subcategories
+    const selectedCategory = categoryTree.find(cat => cat._id === selectedCategoryId);
+    if (selectedCategory && selectedCategory.subcategories) {
+      setAvailableSubcategories(selectedCategory.subcategories);
+    } else {
+      setAvailableSubcategories([]);
+    }
+  };
+
+  // Handle subcategory selection
+  const handleSubcategoryChange = (selectedSubcategoryId: string) => {
+    setValues({ ...values, subcategory: selectedSubcategoryId });
+  };
+
   useEffect(() => {
     preload();
   }, [isTestMode]);
+
+  // Comprehensive image URL generation logic (same as ProductGridItem)
+  const getImageUrl = (imageData: any, index: number = 0): string => {
+    console.log("=== getImageUrl Debug ===");
+    console.log("Image data:", imageData);
+    console.log("Index:", index);
+    
+    // Handle different image data structures
+    let imageUrl = '';
+    
+    if (typeof imageData === 'string') {
+      imageUrl = imageData;
+    } else if (imageData && typeof imageData === 'object') {
+      // Handle array of image objects or single image object
+      if (Array.isArray(imageData) && imageData.length > 0) {
+        const imageItem = imageData[index] || imageData[0];
+        imageUrl = imageItem?.url || imageItem?.preview || imageItem;
+      } else {
+        imageUrl = imageData.url || imageData.preview || imageData.photoUrl || imageData;
+      }
+    }
+    
+    console.log("Extracted imageUrl:", imageUrl);
+    
+    if (!imageUrl) {
+      console.log("No image URL found, returning placeholder");
+      return '/placeholder.png';
+    }
+    
+    // Handle different URL types
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      console.log("Direct URL detected:", imageUrl);
+      return imageUrl;
+    } else if (imageUrl.startsWith('/api/')) {
+      const processedUrl = `${import.meta.env.VITE_API_URL}${imageUrl.substring(4)}`;
+      console.log("API endpoint detected, processed to:", processedUrl);
+      return processedUrl;
+    } else if (imageUrl.startsWith('data:')) {
+      console.log("Base64 data URL detected");
+      return imageUrl;
+    } else if (imageUrl.startsWith('/')) {
+      const processedUrl = `${import.meta.env.VITE_API_URL}${imageUrl}`;
+      console.log("Root path detected, processed to:", processedUrl);
+      return processedUrl;
+    } else {
+      // Assume it's a relative path that needs API base
+      const processedUrl = `${import.meta.env.VITE_API_URL}/${imageUrl}`;
+      console.log("Relative path detected, processed to:", processedUrl);
+      return processedUrl;
+    }
+  };
 
   const addImage = () => {
     if (imageInputType === 'url' && imageUrl) {
@@ -220,7 +304,9 @@ const AddProduct = () => {
         name,
         description,
         price,
+        mrp: values.mrp,
         category,
+        subcategory: values.subcategory, // Add subcategory field
         tags,
         productType,
         sizeStock
@@ -273,13 +359,19 @@ const AddProduct = () => {
           name: "",
           description: "",
           price: "",
+          mrp: "",
           tags: "",
+          category: "",
+          subcategory: "",
           loading: false,
           createdProduct: data.name,
           formData: new FormData(),
         });
         setImages([]);
         setSizeStock({ S: "0", M: "0", L: "0", XL: "0", XXL: "0" });
+        // Reset hierarchical category state
+        setSelectedMainCategory("");
+        setAvailableSubcategories([]);
         setTimeout(() => {
           setValues(prev => ({ ...prev, createdProduct: "" }));
         }, 3000);
@@ -324,7 +416,7 @@ const AddProduct = () => {
             </p>
           )}
           {/* Debug button - only in development */}
-          {process.env.NODE_ENV === 'development' && (
+          {import.meta.env.DEV && (
             <>
               <button
                 type="button"
@@ -399,38 +491,63 @@ const AddProduct = () => {
             {/* Display current images */}
             {images.length > 0 && (
               <div className="grid grid-cols-3 gap-4 mb-4">
-                {images.map((img) => (
-                  <div key={img.id} className="relative group">
-                    <img 
-                      src={img.preview} 
-                      alt="Product" 
-                      className="w-full h-32 object-cover rounded-lg"
-                    />
-                    {img.isPrimary && (
-                      <span className="absolute top-2 left-2 bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded font-semibold">
-                        Primary
-                      </span>
-                    )}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
-                      {!img.isPrimary && (
+                {images.map((img, index) => {
+                  console.log(`=== Image ${index + 1} Display Debug ===`);
+                  console.log("Image object:", img);
+                  
+                  // Use comprehensive URL logic for displaying images
+                  let displayUrl = '';
+                  if (img.file) {
+                    // For file uploads, use the preview (base64)
+                    displayUrl = img.preview;
+                    console.log("Using file preview:", displayUrl.substring(0, 50) + '...');
+                  } else if (img.url) {
+                    // For URL images, use the comprehensive URL logic
+                    displayUrl = getImageUrl(img.url);
+                    console.log("Using comprehensive URL logic result:", displayUrl);
+                  } else {
+                    // Fallback to preview
+                    displayUrl = img.preview || '/placeholder.png';
+                    console.log("Using fallback:", displayUrl);
+                  }
+                  
+                  return (
+                    <div key={img.id} className="relative group">
+                      <img 
+                        src={displayUrl} 
+                        alt="Product" 
+                        className="w-full h-32 object-cover rounded-lg"
+                        onError={(e) => {
+                          console.log("Image failed to load:", displayUrl);
+                          e.currentTarget.src = '/placeholder.png';
+                        }}
+                      />
+                      {img.isPrimary && (
+                        <span className="absolute top-2 left-2 bg-yellow-400 text-gray-900 text-xs px-2 py-1 rounded font-semibold">
+                          Primary
+                        </span>
+                      )}
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center gap-2">
+                        {!img.isPrimary && (
+                          <button
+                            type="button"
+                            onClick={() => setPrimaryImage(img.id)}
+                            className="bg-yellow-400 text-gray-900 p-2 rounded-lg hover:bg-yellow-300"
+                          >
+                            <Image className="w-4 h-4" />
+                          </button>
+                        )}
                         <button
                           type="button"
-                          onClick={() => setPrimaryImage(img.id)}
-                          className="bg-yellow-400 text-gray-900 p-2 rounded-lg hover:bg-yellow-300"
+                          onClick={() => removeImage(img.id)}
+                          className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
                         >
-                          <Image className="w-4 h-4" />
+                          <X className="w-4 h-4" />
                         </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => removeImage(img.id)}
-                        className="bg-red-500 text-white p-2 rounded-lg hover:bg-red-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
             
@@ -566,11 +683,28 @@ const AddProduct = () => {
             </div>
           </div>
 
-          {/* Price and Category Row */}
+          {/* MRP and Selling Price Row */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Price (₹)
+                MRP (₹) <span className="text-gray-500 text-xs">Maximum Retail Price</span>
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="number"
+                  value={values.mrp || ""}
+                  onChange={handleChange("mrp")}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                  placeholder="1199"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Higher MRP creates better discount perception</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Selling Price (₹) <span className="text-gray-500 text-xs">Customer pays this amount</span>
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -583,30 +717,86 @@ const AddProduct = () => {
                   required
                 />
               </div>
+              {values.mrp && price && (
+                <p className="text-xs text-green-400 mt-1">
+                  Discount: ₹{parseInt(values.mrp) - parseInt(price)} ({Math.round(((parseInt(values.mrp) - parseInt(price)) / parseInt(values.mrp)) * 100)}% off)
+                </p>
+              )}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Category
-              </label>
+          {/* Two-Level Category Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              Category Selection
+            </label>
+            
+            {/* Main Category Dropdown */}
+            <div className="mb-4">
+              <label className="block text-xs text-gray-400 mb-2">Main Category</label>
               <div className="relative">
                 <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <select
-                  value={category}
-                  onChange={handleChange("category")}
+                  value={selectedMainCategory}
+                  onChange={(e) => handleMainCategoryChange(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white appearance-none cursor-pointer"
                   required
                 >
-                  <option value="">Select Category</option>
-                  {categories &&
-                    categories.map((cate: any, index: number) => (
-                      <option key={index} value={cate._id}>
-                        {cate.name}
-                      </option>
-                    ))}
+                  <option value="">Select Main Category</option>
+                  {categoryTree.map((mainCat: any) => (
+                    <option key={mainCat._id} value={mainCat._id}>
+                      {mainCat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
+
+            {/* Subcategory Dropdown - Only show if main category selected and has subcategories */}
+            {selectedMainCategory && availableSubcategories.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-xs text-gray-400 mb-2">
+                  Subcategory <span className="text-gray-500">(optional)</span>
+                </label>
+                <div className="relative">
+                  <Archive className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    value={values.subcategory}
+                    onChange={(e) => handleSubcategoryChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white appearance-none cursor-pointer"
+                  >
+                    <option value="">No Subcategory (Main Category Only)</option>
+                    {availableSubcategories.map((subCat: any) => (
+                      <option key={subCat._id} value={subCat._id}>
+                        {subCat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Selected Category Display */}
+            {selectedMainCategory && (
+              <div className="bg-gray-700/50 rounded-lg p-3 text-sm">
+                <span className="text-gray-400">Selected: </span>
+                <span className="text-yellow-400 font-medium">
+                  {categoryTree.find(cat => cat._id === selectedMainCategory)?.name}
+                </span>
+                {values.subcategory && (
+                  <>
+                    <span className="text-gray-400 mx-2">→</span>
+                    <span className="text-blue-400 font-medium">
+                      {availableSubcategories.find(sub => sub._id === values.subcategory)?.name}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+            
+            <p className="text-xs text-gray-500 mt-2">
+              First select a main category (e.g., "Anime"), then optionally choose a subcategory (e.g., "Naruto") for better organization.
+            </p>
           </div>
 
           {/* Size-based Stock */}

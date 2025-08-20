@@ -98,12 +98,21 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
     }
     
     if ((product as any).images && (product as any).images.length > 0) {
-      const primaryImage = (product as any).images.find((img: any) => img.isPrimary) || (product as any).images[0];
-      if (primaryImage.url) {
-        return primaryImage.url;
+      
+      const primaryImage = (product as any).images.find((img: any) => img.isPrimary);
+       
+      if (!primaryImage) {
+        console.log("No primary image found, using first image");
+      }
+      
+      const imageToUse = primaryImage || (product as any).images[0];
+        
+      if (imageToUse.url) {
+        return imageToUse.url;
       } else {
-        const imageIndex = (product as any).images.indexOf(primaryImage);
-        return `${API}/product/image/${product._id}/${imageIndex}`;
+        const imageIndex = (product as any).images.indexOf(imageToUse);
+        const apiUrl = `${API}/product/image/${product._id}/${imageIndex}`;
+        return apiUrl;
       }
     }
     

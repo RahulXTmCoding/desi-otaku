@@ -115,7 +115,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
           <img
             src={getImageUrl()}
             alt={product.name}
-            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
+            className="w-full h-full group-hover:scale-110 transition-transform duration-500"
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/placeholder.png';
               (e.target as HTMLImageElement).onerror = null;
@@ -214,9 +214,32 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
 
         {/* Price and Actions */}
         <div className="flex items-center justify-between mt-4">
-          <span className="text-2xl font-bold text-yellow-400">
-            ₹{product.price}
-          </span>
+          <div className="flex flex-col">
+            {/* MRP and Selling Price */}
+            <div className="flex items-center gap-2">
+              {product.mrp && product.mrp > product.price ? (
+                <>
+                  <span className="text-sm text-gray-400 line-through">
+                    ₹{product.mrp}
+                  </span>
+                  <span className="text-lg font-bold text-yellow-400">
+                    ₹{product.price}
+                  </span>
+                </>
+              ) : (
+                <span className="text-lg font-bold text-yellow-400">
+                  ₹{product.price}
+                </span>
+              )}
+            </div>
+            
+            {/* Discount Badge */}
+            {product.mrp && product.mrp > product.price && (
+              <span className="text-xs text-green-400 font-medium">
+                Save ₹{product.mrp - product.price} ({Math.round(((product.mrp - product.price) / product.mrp) * 100)}% off)
+              </span>
+            )}
+          </div>
           
           {isInCart && (
             <span className="text-green-500 text-sm animate-pulse">

@@ -767,20 +767,26 @@ exports.getFilteredProducts = async (req, res) => {
     };
 
     // === STEP 1: Apply Category Filters (Base Constraint) ===
+    const mongoose = require("mongoose");
+    const Category = require("../models/category");
+    
+    // Handle combined category + subcategory filtering
     if (subcategory && subcategory !== 'all') {
-      const mongoose = require("mongoose");
+      let subcategoryId = null;
+      let parentCategoryId = null;
+      
+      // Find subcategory by ID or name
       if (mongoose.Types.ObjectId.isValid(subcategory)) {
-        baseConditions.subcategory = mongoose.Types.ObjectId(subcategory);
+        subcategoryId = mongoose.Types.ObjectId(subcategory);
       } else {
-        // Find subcategory by name
-        const Category = require("../models/category");
         try {
           const subCat = await Category.findOne({ 
             name: { $regex: new RegExp(subcategory, 'i') },
             isActive: true 
           });
           if (subCat) {
-            baseConditions.subcategory = subCat._id;
+            subcategoryId = subCat._id;
+            parentCategoryId = subCat.parentCategory;
           } else {
             return res.json({
               products: [],
@@ -795,17 +801,52 @@ exports.getFilteredProducts = async (req, res) => {
           });
         }
       }
-    } else if (category && category !== 'all') {
-      const mongoose = require("mongoose");
-      const Category = require("../models/category");
       
+      // If both category and subcategory are specified, verify they match
+      if (category && category !== 'all') {
+        let categoryId = null;
+        
+        if (mongoose.Types.ObjectId.isValid(category)) {
+          categoryId = mongoose.Types.ObjectId(category);
+        } else {
+          try {
+            const categoryDoc = await Category.findOne({ 
+              name: { $regex: new RegExp(category, 'i') },
+              isActive: true 
+            });
+            if (categoryDoc) {
+              categoryId = categoryDoc._id;
+            }
+          } catch (err) {
+            console.error('Category lookup error:', err);
+          }
+        }
+        
+        // Verify subcategory belongs to the specified category
+        if (categoryId && parentCategoryId && !parentCategoryId.equals(categoryId)) {
+          console.log('Subcategory does not belong to specified category');
+          return res.json({
+            products: [],
+            pagination: { currentPage: parseInt(page), totalPages: 0, totalProducts: 0, hasMore: false }
+          });
+        }
+        
+        // Filter by subcategory (which implicitly includes the category constraint)
+        baseConditions.subcategory = subcategoryId;
+      } else {
+        // Only subcategory specified, filter by subcategory
+        baseConditions.subcategory = subcategoryId;
+      }
+      
+    } else if (category && category !== 'all') {
+      // Only category specified, include main category and all its subcategories
       let categoryId = null;
       
       // Handle category by ID or name
       if (mongoose.Types.ObjectId.isValid(category)) {
         categoryId = mongoose.Types.ObjectId(category);
       } else {
-        // Find category by name (supports "anime" finding "Animew")
+        // Find category by name (supports "anime" finding "Anime")
         try {
           const categoryDoc = await Category.findOne({ 
             name: { $regex: new RegExp(category, 'i') },

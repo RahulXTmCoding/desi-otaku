@@ -283,6 +283,7 @@ const ShopWithBackendFilters: React.FC = () => {
     
     if (searchQuery) params.set('search', searchQuery);
     if (selectedCategory !== 'all') params.set('category', selectedCategory);
+    if (selectedSubcategory !== 'all') params.set('subcategory', selectedSubcategory);
     if (selectedProductType !== 'all') params.set('type', selectedProductType);
     if (selectedSizes.length > 0) params.set('sizes', selectedSizes.join(','));
     if (selectedAvailability !== 'all') params.set('availability', selectedAvailability);
@@ -302,7 +303,7 @@ const ShopWithBackendFilters: React.FC = () => {
     if (currentParams !== newParams) {
       setSearchParams(params, { replace: true });
     }
-  }, [searchQuery, selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, showFilters, searchParams, setSearchParams]);
+  }, [searchQuery, selectedCategory, selectedSubcategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, showFilters, searchParams, setSearchParams]);
 
   // Load categories and product types on mount
   useEffect(() => {
@@ -424,6 +425,7 @@ const ShopWithBackendFilters: React.FC = () => {
         break;
       case 'category':
         setSelectedCategory(value);
+        setSelectedSubcategory('all'); // Reset subcategory when main category changes
         break;
       case 'productType':
         setSelectedProductType(value);

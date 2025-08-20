@@ -36,6 +36,7 @@ interface Product {
   _id: string;
   name: string;
   price: number;
+  mrp?: number;
   description: string;
   category: {
     _id: string;
@@ -467,8 +468,12 @@ const ProductDetail: React.FC = () => {
     );
   }
 
-  const originalPrice = Math.round(product.price * 1.33);
-  const discount = Math.round(((originalPrice - product.price) / originalPrice) * 100);
+  // Use actual MRP if available, otherwise calculate for display
+  const displayMRP = product.mrp && product.mrp > product.price ? product.mrp : Math.round(product.price * 1.33);
+  const actualDiscount = product.mrp && product.mrp > product.price ? 
+    Math.round(((product.mrp - product.price) / product.mrp) * 100) : 
+    Math.round(((displayMRP - product.price) / displayMRP) * 100);
+  const savings = displayMRP - product.price;
 
   return (
     <>
@@ -706,13 +711,40 @@ const ProductDetail: React.FC = () => {
               </div>
             )}
 
-            {/* Price */}
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>₹{product.price}</span>
-              <span className="text-xl line-through" style={{ color: 'var(--color-textMuted)' }}>₹{originalPrice}</span>
-              <span className="px-2 py-1 rounded text-sm font-semibold" style={{ backgroundColor: 'var(--color-success)', color: 'white' }}>
-                {discount}% OFF
-              </span>
+            {/* Price with Professional MRP Display */}
+            <div className="mb-6">
+              <div className="flex items-baseline gap-3 mb-2">
+                <span className="text-3xl font-bold" style={{ color: 'var(--color-primary)' }}>
+                  ₹{product.price.toLocaleString('en-IN')}
+                </span>
+                {(product.mrp && product.mrp > product.price) && (
+                  <>
+                    <span className="text-xl line-through opacity-60" style={{ color: 'var(--color-textMuted)' }}>
+                      ₹{product.mrp.toLocaleString('en-IN')}
+                    </span>
+                    <span className="px-3 py-1 rounded-full text-sm font-bold bg-gradient-to-r from-green-500 to-green-600 text-white">
+                      {actualDiscount}% OFF
+                    </span>
+                  </>
+                )}
+              </div>
+              
+              {(product.mrp && product.mrp > product.price) && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-green-600">
+                    You save ₹{savings.toLocaleString('en-IN')}
+                  </span>
+                  <span className="text-xs px-2 py-1 rounded" style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-textMuted)' }}>
+                    MRP ₹{product.mrp.toLocaleString('en-IN')}
+                  </span>
+                </div>
+              )}
+              
+              {(!product.mrp || product.mrp <= product.price) && (
+                <div className="text-sm" style={{ color: 'var(--color-textMuted)' }}>
+                  Best price guaranteed
+                </div>
+              )}
             </div>
 
             {/* Description */}

@@ -29,8 +29,8 @@ export const useSimilarProducts = (productId: string, limit: number = 4) => {
     queryKey: ['similarProducts', productId, limit],
     queryFn: () => getSimilarProducts(productId, limit),
     enabled: !!productId, // Only run if productId exists
-    staleTime: 1 * 60 * 1000, // 1 minute (short TTL for fresh recommendations)
-    gcTime: 3 * 60 * 1000, // 3 minutes in cache
+    staleTime: 1 * 60 * 1000, // 1 minute (short TTL for fresh recommendations) 
+    gcTime: 5 * 60 * 1000, // 5 minutes max cache as requested
     retry: 2,
     refetchOnWindowFocus: false,
   });
@@ -64,7 +64,7 @@ export const useProducts = () => {
       }
     },
     staleTime: 2 * 60 * 1000, // 2 minutes (home page cache)
-    gcTime: 8 * 60 * 1000, // 8 minutes in cache (matches backend TTL)
+    gcTime: 5 * 60 * 1000, // 5 minutes max cache as requested
     retry: 2,
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
@@ -101,15 +101,25 @@ export const useProduct = (productId: string) => {
       try {
         const data = await getProduct(productId);
         const endTime = Date.now();
+        
+        // Check if product is newly launched (within last 7 days)
+        const createdAt = new Date(data.createdAt);
+        const now = new Date();
+        const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        const isNewlyLaunched = daysSinceCreation <= 7;
+        
         if (import.meta.env.DEV) {
           console.log(`✅ API CALL COMPLETED for product: ${productId} (${endTime - startTime}ms)`);
           console.log(`📦 Product data received:`, { 
             id: data._id, 
             name: data.name, 
+            isNewlyLaunched,
+            daysSinceCreation: Math.round(daysSinceCreation),
             size: JSON.stringify(data).length + ' bytes' 
           });
-          console.log(`💾 Saving to localStorage cache for future use`);
+          console.log(`💾 Cache TTL: ${isNewlyLaunched ? '2min/5min (new)' : '5min/10min (older)'}`);
         }
+        
         return data;
       } catch (error) {
         const endTime = Date.now();
@@ -120,8 +130,9 @@ export const useProduct = (productId: string) => {
       }
     },
     enabled: !!productId,
-    staleTime: 10 * 60 * 1000, // 10 minutes - data stays fresh longer
-    gcTime: 30 * 60 * 1000, // 30 minutes in cache
+    // Use moderate cache times that work for both new and old products
+    staleTime: 5 * 60 * 1000, // 5 minutes (balanced for all products)
+    gcTime: 10 * 60 * 1000, // 10 minutes max cache (meets requirement)
     retry: 2,
     // Prevent unnecessary refetches but allow initial fetch
     refetchOnWindowFocus: false,
@@ -214,7 +225,7 @@ export const useFilteredProducts = (params: FilteredProductsParams) => {
     queryKey: createCacheKey(params),
     queryFn: () => getFilteredProducts(params),
     staleTime: 3 * 60 * 1000, // 3 minutes (shop data changes more frequently)
-    gcTime: 10 * 60 * 1000, // 10 minutes in cache
+    gcTime: 5 * 60 * 1000, // 5 minutes max cache
     retry: 2,
     refetchOnWindowFocus: false,
     // Enable background refetch to keep data fresh
@@ -317,8 +328,8 @@ export const useDesigns = (params: DesignFilterParams) => {
       if (params.tag) filters.tag = params.tag;
       return getDesigns(params.page || 1, params.limit || 50, filters);
     },
-    staleTime: 10 * 60 * 1000, // 10 minutes (longer TTL for designs)
-    gcTime: 30 * 60 * 1000, // 30 minutes in cache
+    staleTime: 3 * 60 * 1000, // 3 minutes (faster updates for designs)
+    gcTime: 5 * 60 * 1000, // 5 minutes max cache
     retry: 2,
     refetchOnWindowFocus: false,
     refetchOnReconnect: true,

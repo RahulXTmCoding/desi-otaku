@@ -8,7 +8,9 @@ exports.createProductJson = async (req, res) => {
       name,
       description,
       price,
+      mrp,
       category,
+      subcategory,
       productType,
       tags,
       sizeStock,
@@ -29,7 +31,9 @@ exports.createProductJson = async (req, res) => {
       name,
       description,
       price,
+      mrp: mrp || null,
       category,
+      subcategory: subcategory || null,
       productType,
       tags: tags ? tags.split(',').map(t => t.trim()) : []
     });
@@ -113,7 +117,9 @@ exports.updateProductJson = async (req, res) => {
       name,
       description,
       price,
+      mrp,
       category,
+      subcategory,
       productType,
       tags,
       sizeStock,
@@ -129,7 +135,9 @@ exports.updateProductJson = async (req, res) => {
     product.name = name || product.name;
     product.description = description || product.description;
     product.price = price || product.price;
+    product.mrp = mrp !== undefined ? mrp : product.mrp;
     product.category = category || product.category;
+    product.subcategory = subcategory !== undefined ? subcategory : product.subcategory;
     product.productType = productType || product.productType;
     product.tags = tags ? tags.split(',').map(t => t.trim()) : product.tags;
 

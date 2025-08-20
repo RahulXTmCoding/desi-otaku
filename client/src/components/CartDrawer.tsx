@@ -300,9 +300,29 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                           </div>
                         </div>
 
-                        {/* Price */}
+                        {/* Price with Optional MRP Display */}
                         <div className="text-right">
-                          <p className="font-bold" style={{ color: 'var(--color-primary)' }}>₹{item.price}</p>
+                          <div className="space-y-1">
+                            <p className="font-bold" style={{ color: 'var(--color-primary)' }}>
+                              ₹{item.price.toLocaleString('en-IN')}
+                            </p>
+                            {(item as any).mrp && (item as any).mrp > item.price && (
+                              <>
+                                <p className="text-xs line-through opacity-60" style={{ color: 'var(--color-textMuted)' }}>
+                                  ₹{((item as any).mrp).toLocaleString('en-IN')}
+                                </p>
+                                <p className="text-xs text-green-600 font-medium">
+                                  Save ₹{((item as any).mrp - item.price).toLocaleString('en-IN')}
+                                </p>
+                              </>
+                            )}
+                            {/* Show price per item if quantity > 1 */}
+                            {item.quantity > 1 && (
+                              <p className="text-xs" style={{ color: 'var(--color-textMuted)' }}>
+                                ₹{item.price} each
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </div>
 

@@ -107,6 +107,20 @@ export const getCategories = () => {
     });
 };
 
+// Get hierarchical category tree (main categories with subcategories)
+export const getCategoryTree = () => {
+  return fetch(`${API}/categories/tree`, {
+    method: "GET"
+  })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => {
+      console.log(err);
+      return { error: "Failed to connect to server" };
+    });
+};
+
 // Delete a category
 export const deleteCategory = (categoryId: string, userId: string, token: string) => {
   return fetch(`${API}/category/${categoryId}/${userId}`, {

@@ -860,8 +860,20 @@ const CheckoutSinglePage: React.FC = () => {
                       </div>
                       
                       <div className="text-right">
-                        <p className="font-semibold">₹{item.price}</p>
-                        <p className="text-xs text-gray-400">each</p>
+                        <div className="space-y-1">
+                          <p className="font-semibold">₹{item.price}</p>
+                          {(item as any).mrp && (item as any).mrp > item.price && (
+                            <>
+                              <p className="text-xs line-through opacity-60 text-gray-400">
+                                ₹{((item as any).mrp).toLocaleString('en-IN')}
+                              </p>
+                              <p className="text-xs text-green-400 font-medium">
+                                Save ₹{((item as any).mrp - item.price).toLocaleString('en-IN')}
+                              </p>
+                            </>
+                          )}
+                          <p className="text-xs text-gray-400">each</p>
+                        </div>
                       </div>
                     </div>
                   );

@@ -19,7 +19,7 @@ import {
   Plus
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
-import { getProduct, getCategories, mockUpdateProduct } from "./helper/adminapicall";
+import { getProduct, getCategories, getCategoryTree, mockUpdateProduct } from "./helper/adminapicall";
 import { updateProductWithImages } from "./helper/productApiHelper";
 import { getAllProductTypes } from "./helper/productTypeApiCalls";
 import { useDevMode } from "../context/DevModeContext";
@@ -56,16 +56,23 @@ const UpdateProduct = () => {
     name: "",
     description: "",
     price: "",
+    mrp: "",
     tags: "",
     productType: "",
     categories: [] as any[],
     productTypes: [] as any[],
     category: "",
+    subcategory: "",
     loading: false,
     error: "",
     updatedProduct: "",
     formData: new FormData(),
   });
+
+  // Hierarchical category state
+  const [categoryTree, setCategoryTree] = useState<any[]>([]);
+  const [selectedMainCategory, setSelectedMainCategory] = useState("");
+  const [availableSubcategories, setAvailableSubcategories] = useState<any[]>([]);
 
   const [sizeStock, setSizeStock] = useState<SizeStock>({
     S: "0",
@@ -147,47 +154,97 @@ const UpdateProduct = () => {
         const productTypeId = data.productType?._id || data.productType || "";
         
         // Set values
+        console.log("=== MRP Debug in UpdateProduct ===");
+        console.log("Full product data received:", data);
+        console.log("MRP value from backend:", data.mrp);
+        console.log("MRP type:", typeof data.mrp);
+        
         setValues(prev => ({
           ...prev,
           name: data.name,
           description: data.description,
           price: data.price,
+          mrp: data.mrp || "",
           category: data.category._id,
+          subcategory: data.subcategory?._id || data.subcategory || "",
           tags: data.tags ? data.tags.join(", ") : "",
           productType: productTypeId,
           formData: new FormData(),
         }));
+        
+        console.log("Values state after setting MRP:", {
+          mrp: data.mrp || "",
+          price: data.price
+        });
 
         // Set size stock
         if (data.sizeStock) {
           setSizeStock(data.sizeStock);
         }
 
-        // Load existing images
+        // Load existing images using the same logic as ProductGridItem
+        const loadedImages: ImageItem[] = [];
+        
         if (data.images && data.images.length > 0) {
-          const existingImages = data.images.map((img: any, index: number) => ({
-            id: `existing-${index}`,
-            preview: img.url || `${API}/product/image/${productId}/${index}`,
-            isPrimary: !!img.isPrimary, // Use the actual isPrimary value from the database
-            existingImage: true
-          }));
-          
-          // If no image is marked as primary, make the first one primary
-          const hasPrimary = existingImages.some(img => img.isPrimary);
-          if (!hasPrimary && existingImages.length > 0) {
-            existingImages[0].isPrimary = true;
+          data.images.forEach((img: any, index: number) => {
+            let imageUrl = '';
+            
+            // Use same logic as ProductGridItem for getting image URL
+            if (img.url) {
+              // Direct URL
+              if (img.url.startsWith('http')) {
+                imageUrl = img.url;
+              } else if (img.url.startsWith('/api/')) {
+                imageUrl = `${API}${img.url.substring(4)}`;
+              } else {
+                imageUrl = img.url;
+              }
+            } else {
+              // Database image with index
+              imageUrl = `${API}/product/image/${productId}/${index}`;
+            }
+            
+            loadedImages.push({
+              id: `existing-${index}`,
+              preview: imageUrl,
+              isPrimary: !!img.isPrimary,
+              existingImage: true
+            });
+          });
+        } else if (data.photoUrl) {
+          // Handle legacy photoUrl
+          let imageUrl = '';
+          if (data.photoUrl.startsWith('http')) {
+            imageUrl = data.photoUrl;
+          } else if (data.photoUrl.startsWith('/api/')) {
+            imageUrl = `${API}${data.photoUrl.substring(4)}`;
+          } else {
+            imageUrl = data.photoUrl;
           }
           
-          setImages(existingImages);
+          loadedImages.push({
+            id: 'legacy-1',
+            preview: imageUrl,
+            isPrimary: true,
+            existingImage: true
+          });
         } else {
           // Fallback to old photo endpoint for backward compatibility
-          setImages([{
+          loadedImages.push({
             id: 'legacy-1',
             preview: `${API}/product/image/${productId}`,
             isPrimary: true,
             existingImage: true
-          }]);
+          });
         }
+        
+        // Ensure at least one image is primary
+        const hasPrimary = loadedImages.some(img => img.isPrimary);
+        if (!hasPrimary && loadedImages.length > 0) {
+          loadedImages[0].isPrimary = true;
+        }
+        
+        setImages(loadedImages);
         
         setIsLoadingProduct(false);
       } catch (err) {
@@ -205,8 +262,9 @@ const UpdateProduct = () => {
       }));
     } else {
       try {
-        const [categoriesData, typesData] = await Promise.all([
+        const [categoriesData, categoryTreeData, typesData] = await Promise.all([
           getCategories(),
+          getCategoryTree(),
           getAllProductTypes(true)
         ]);
         
@@ -218,6 +276,11 @@ const UpdateProduct = () => {
             categories: categoriesData,
             productTypes: Array.isArray(typesData) ? typesData : [],
           }));
+          
+          // Set hierarchical category data
+          if (categoryTreeData && !categoryTreeData.error) {
+            setCategoryTree(categoryTreeData);
+          }
         }
       } catch (err) {
         setValues((prev) => ({ ...prev, error: "Failed to load data" }));
@@ -225,11 +288,70 @@ const UpdateProduct = () => {
     }
   };
 
+  // Handle main category selection
+  const handleMainCategoryChange = (selectedCategoryId: string) => {
+    setSelectedMainCategory(selectedCategoryId);
+    setValues({ ...values, category: selectedCategoryId, subcategory: "" });
+    
+    // Find selected category in tree and get its subcategories
+    const selectedCategory = categoryTree.find(cat => cat._id === selectedCategoryId);
+    if (selectedCategory && selectedCategory.subcategories) {
+      setAvailableSubcategories(selectedCategory.subcategories);
+    } else {
+      setAvailableSubcategories([]);
+    }
+  };
+
+  // Handle subcategory selection
+  const handleSubcategoryChange = (selectedSubcategoryId: string) => {
+    setValues({ ...values, subcategory: selectedSubcategoryId });
+  };
+
   useEffect(() => {
     if (productId) {
       preload(productId);
     }
   }, [productId, isTestMode]);
+
+  // Initialize hierarchical category state when data is loaded
+  useEffect(() => {
+    if (categoryTree.length > 0 && category) {
+      // Find the main category for the product's category
+      let mainCategoryId = category;
+      let subcategoryId = values.subcategory;
+      
+      // Check if the category is actually a subcategory
+      for (const mainCat of categoryTree) {
+        if (mainCat.subcategories) {
+          const foundSubcat = mainCat.subcategories.find((sub: any) => sub._id === category);
+          if (foundSubcat) {
+            // The product's category is actually a subcategory
+            mainCategoryId = mainCat._id;
+            subcategoryId = category;
+            break;
+          }
+        }
+      }
+      
+      // Set the main category
+      setSelectedMainCategory(mainCategoryId);
+      
+      // Find and set available subcategories
+      const selectedCategory = categoryTree.find(cat => cat._id === mainCategoryId);
+      if (selectedCategory && selectedCategory.subcategories) {
+        setAvailableSubcategories(selectedCategory.subcategories);
+      }
+      
+      // Update values if needed
+      if (mainCategoryId !== category || subcategoryId !== values.subcategory) {
+        setValues(prev => ({
+          ...prev,
+          category: mainCategoryId,
+          subcategory: subcategoryId || ""
+        }));
+      }
+    }
+  }, [categoryTree, category, values.subcategory]);
 
   const addImage = () => {
     if (imageInputType === 'url' && imageUrl) {
@@ -313,7 +435,9 @@ const UpdateProduct = () => {
         name,
         description,
         price,
+        mrp: values.mrp,
         category,
+        subcategory: values.subcategory, // Add subcategory field
         tags,
         productType,
         sizeStock
@@ -332,6 +456,15 @@ const UpdateProduct = () => {
           existingImagesToKeep.push(originalIndex);
         }
       });
+      
+      console.log("=== IMAGE REMOVAL DEBUG ===");
+      console.log("All images in state:", images.map(img => ({ id: img.id, existingImage: img.existingImage })));
+      console.log("Existing images filtered:", existingImages.map(img => ({ id: img.id })));
+      console.log("Existing images to keep (indices):", existingImagesToKeep);
+      console.log("Images that will be removed:", 
+        // Show which original indices are NOT in the keep list
+        Array.from({ length: 10 }, (_, i) => i).filter(i => !existingImagesToKeep.includes(i))
+      );
       
       // Prepare URL images
       const urlImages = newUrlImages.map((img) => ({
@@ -661,11 +794,28 @@ const UpdateProduct = () => {
             </div>
           </div>
 
-          {/* Price and Category Row */}
+          {/* MRP and Selling Price Row */}
           <div className="grid md:grid-cols-2 gap-6 mb-6">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Price (₹)
+                MRP (₹) <span className="text-gray-500 text-xs">Maximum Retail Price</span>
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="number"
+                  value={values.mrp || ""}
+                  onChange={handleChange("mrp")}
+                  className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                  placeholder="1199"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">Higher MRP creates better discount perception</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Selling Price (₹) <span className="text-gray-500 text-xs">Customer pays this amount</span>
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -678,30 +828,86 @@ const UpdateProduct = () => {
                   required
                 />
               </div>
+              {values.mrp && price && (
+                <p className="text-xs text-green-400 mt-1">
+                  Discount: ₹{parseInt(values.mrp) - parseInt(price)} ({Math.round(((parseInt(values.mrp) - parseInt(price)) / parseInt(values.mrp)) * 100)}% off)
+                </p>
+              )}
             </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Category
-              </label>
+          {/* Two-Level Category Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              Category Selection
+            </label>
+            
+            {/* Main Category Dropdown */}
+            <div className="mb-4">
+              <label className="block text-xs text-gray-400 mb-2">Main Category</label>
               <div className="relative">
                 <Tag className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <select
-                  value={category}
-                  onChange={handleChange("category")}
+                  value={selectedMainCategory}
+                  onChange={(e) => handleMainCategoryChange(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white appearance-none cursor-pointer"
                   required
                 >
-                  <option value="">Select Category</option>
-                  {categories &&
-                    categories.map((cate: any, index: number) => (
-                      <option key={index} value={cate._id}>
-                        {cate.name}
-                      </option>
-                    ))}
+                  <option value="">Select Main Category</option>
+                  {categoryTree.map((mainCat: any) => (
+                    <option key={mainCat._id} value={mainCat._id}>
+                      {mainCat.name}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
+
+            {/* Subcategory Dropdown - Only show if main category selected and has subcategories */}
+            {selectedMainCategory && availableSubcategories.length > 0 && (
+              <div className="mb-4">
+                <label className="block text-xs text-gray-400 mb-2">
+                  Subcategory <span className="text-gray-500">(optional)</span>
+                </label>
+                <div className="relative">
+                  <Archive className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    value={values.subcategory}
+                    onChange={(e) => handleSubcategoryChange(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white appearance-none cursor-pointer"
+                  >
+                    <option value="">No Subcategory (Main Category Only)</option>
+                    {availableSubcategories.map((subCat: any) => (
+                      <option key={subCat._id} value={subCat._id}>
+                        {subCat.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* Selected Category Display */}
+            {selectedMainCategory && (
+              <div className="bg-gray-700/50 rounded-lg p-3 text-sm">
+                <span className="text-gray-400">Selected: </span>
+                <span className="text-yellow-400 font-medium">
+                  {categoryTree.find(cat => cat._id === selectedMainCategory)?.name}
+                </span>
+                {values.subcategory && (
+                  <>
+                    <span className="text-gray-400 mx-2">→</span>
+                    <span className="text-blue-400 font-medium">
+                      {availableSubcategories.find(sub => sub._id === values.subcategory)?.name}
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
+            
+            <p className="text-xs text-gray-500 mt-2">
+              First select a main category (e.g., "Anime"), then optionally choose a subcategory (e.g., "Naruto") for better organization.
+            </p>
           </div>
 
           {/* Size-based Stock */}
