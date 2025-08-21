@@ -8,6 +8,8 @@ interface MobileFilterModalProps {
   setSearchQuery: (value: string) => void;
   selectedCategory: string;
   setSelectedCategory: (value: string) => void;
+  selectedSubcategory: string;
+  setSelectedSubcategory: (value: string) => void;
   selectedProductType: string;
   setSelectedProductType: (value: string) => void;
   selectedSizes: string[];
@@ -19,9 +21,11 @@ interface MobileFilterModalProps {
   sortBy: string;
   setSortBy: (value: string) => void;
   categories: any[];
+  subcategories: any[];
   productTypes: any[];
   activeFilterCount: number;
   clearFilters: () => void;
+  loadSubcategories: (categoryId: string) => void;
 }
 
 const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
@@ -31,6 +35,8 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
   setSearchQuery,
   selectedCategory,
   setSelectedCategory,
+  selectedSubcategory,
+  setSelectedSubcategory,
   selectedProductType,
   setSelectedProductType,
   selectedSizes,
@@ -42,9 +48,11 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
   sortBy,
   setSortBy,
   categories,
+  subcategories,
   productTypes,
   activeFilterCount,
-  clearFilters
+  clearFilters,
+  loadSubcategories
 }) => {
   const [activeTab, setActiveTab] = useState<'filters' | 'sort'>('filters');
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
@@ -219,7 +227,13 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
                   {categoryOptions.map(category => (
                     <button
                       key={category.id}
-                      onClick={() => setSelectedCategory(category.id)}
+                      onClick={() => {
+                        setSelectedCategory(category.id);
+                        setSelectedSubcategory('all');
+                        if (category.id !== 'all') {
+                          loadSubcategories(category.id);
+                        }
+                      }}
                       className={`p-3 rounded-lg text-sm font-medium transition-colors ${
                         selectedCategory === category.id
                           ? 'bg-yellow-400 text-gray-900'
@@ -231,6 +245,38 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
                   ))}
                 </div>
               </div>
+
+              {/* Subcategories */}
+              {selectedCategory !== 'all' && subcategories.length > 0 && (
+                <div>
+                  <h3 className="font-semibold mb-3 text-yellow-400">Subcategories</h3>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setSelectedSubcategory('all')}
+                      className={`p-3 rounded-lg text-sm font-medium transition-colors ${
+                        selectedSubcategory === 'all'
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      All Subcategories
+                    </button>
+                    {subcategories.map(subcategory => (
+                      <button
+                        key={subcategory._id}
+                        onClick={() => setSelectedSubcategory(subcategory._id)}
+                        className={`p-3 rounded-lg text-sm font-medium transition-colors ${
+                          selectedSubcategory === subcategory._id
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        {subcategory.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Product Types */}
               <div>

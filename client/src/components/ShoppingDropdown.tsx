@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronDown, Shirt, Package, Star, Zap, Sparkles, Heart, Shield, Crown, TrendingUp, Flame } from 'lucide-react';
 
@@ -39,9 +39,9 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
       description: "Premium quality cotton tees",
       featured: true,
       items: [
-        { name: "Printed T-shirt", link: "/shop?category=printed-tshirt", badge: "Popular", icon: "🎨" },
-        { name: "Oversized T-shirt", link: "/shop?category=oversized-tshirt", badge: "Trending", icon: "👕" },
-        { name: "Plain T-shirt", link: "/shop?category=plain-tshirt", icon: "✨" }
+        { name: "Printed T-shirt", link: "/shop?type=6866c0feb7d12a687483eff3", badge: "Popular", icon: "🎨" },
+        { name: "Oversized T-shirt", link: "/shop?type=6866c0feb7d12a687483eff9", badge: "Trending", icon: "👕" },
+        { name: "Plain T-shirt", link: "/shop?type=68a6bf8e30db6bf0b3cbb3ac", icon: "✨" }
       ]
     },
     {
@@ -51,8 +51,8 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
       description: "Cozy and warm apparel",
       featured: true,
       items: [
-        { name: "Hoodies", link: "/shop?category=hoodies", badge: "Hot", icon: "🔥" },
-        { name: "Sweatshirts", link: "/shop?category=sweatshirt", icon: "❄️" }
+        { name: "Hoodies", link: "/shop?type=6866c0feb7d12a687483eff7", badge: "Hot", icon: "🔥" },
+        // { name: "Sweatshirts", link: "/shop?category=sweatshirt", icon: "❄️" }
       ]
     }
   ];
@@ -84,18 +84,18 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
 
   // Popular anime categories with emojis and colors
   const animeCategories = [
-    { name: "Naruto", link: "/shop?anime=naruto", popular: true, emoji: "🦊", color: "from-orange-400 to-yellow-500" },
-    { name: "One Piece", link: "/shop?anime=one-piece", popular: true, emoji: "☠️", color: "from-blue-400 to-cyan-500" },
-    { name: "Dragon Ball", link: "/shop?anime=dragon-ball", popular: true, emoji: "🐉", color: "from-orange-500 to-red-500" },
-    { name: "Attack on Titan", link: "/shop?anime=attack-on-titan", popular: true, emoji: "⚔️", color: "from-gray-600 to-red-600" },
-    { name: "My Hero Academia", link: "/shop?anime=my-hero-academia", popular: true, emoji: "💪", color: "from-green-400 to-blue-500" },
-    { name: "Demon Slayer", link: "/shop?anime=demon-slayer", popular: true, emoji: "🌊", color: "from-blue-500 to-purple-500" },
-    { name: "Death Note", link: "/shop?anime=death-note", emoji: "📓" },
-    { name: "Tokyo Ghoul", link: "/shop?anime=tokyo-ghoul", emoji: "👹" },
-    { name: "Jujutsu Kaisen", link: "/shop?anime=jujutsu-kaisen", emoji: "👻" },
-    { name: "Hunter x Hunter", link: "/shop?anime=hunter-x-hunter", emoji: "🎯" },
-    { name: "Fullmetal Alchemist", link: "/shop?anime=fullmetal-alchemist", emoji: "⚗️" },
-    { name: "One Punch Man", link: "/shop?anime=one-punch-man", emoji: "👊" }
+    { name: "Naruto", link: "/shop?category=68644353659ea7d89d2a0427", popular: true, emoji: "🦊", color: "from-orange-400 to-yellow-500" },
+    { name: "One Piece", link: "/shop?category=one-piece", popular: true, emoji: "☠️", color: "from-blue-400 to-cyan-500" },
+    { name: "Dragon Ball", link: "/shop?category=dragon-ball", popular: true, emoji: "🐉", color: "from-orange-500 to-red-500" },
+    { name: "Attack on Titan", link: "/shop?category=attack-on-titan", popular: true, emoji: "⚔️", color: "from-gray-600 to-red-600" },
+    { name: "My Hero Academia", link: "/shop?category=my-hero-academia", popular: true, emoji: "💪", color: "from-green-400 to-blue-500" },
+    { name: "Demon Slayer", link: "/shop?category=demon-slayer", popular: true, emoji: "🌊", color: "from-blue-500 to-purple-500" },
+    { name: "Death Note", link: "/shop?category=death-note", emoji: "📓" },
+    { name: "Tokyo Ghoul", link: "/shop?category=tokyo-ghoul", emoji: "👹" },
+    { name: "Jujutsu Kaisen", link: "/shop?category=jujutsu-kaisen", emoji: "👻" },
+    { name: "Hunter x Hunter", link: "/shop?category=hunter-x-hunter", emoji: "🎯" },
+    { name: "Fullmetal Alchemist", link: "/shop?category=fullmetal-alchemist", emoji: "⚗️" },
+    { name: "One Punch Man", link: "/shop?category=one-punch-man", emoji: "👊" }
   ];
 
   return (

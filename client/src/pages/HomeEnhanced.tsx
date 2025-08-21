@@ -124,27 +124,27 @@ const HomeEnhanced: React.FC = () => {
       name: "T-Shirts", 
       icon: "👕", 
       image: "https://fansarmy.in/cdn/shop/files/COMBOCAROUSALIMAGES_7_1800x1800.jpg?v=1710585925", 
-      link: "/shop?type=tshirt",
+      link: "/shop?type=6866c0feb7d12a687483eff3",
       productCount: 156
     },
     { 
       name: "Hoodies", 
       icon: "🧥", 
       image: "https://fansarmy.in/cdn/shop/products/136_1800x1800.jpg?v=1673854564", 
-      link: "/shop?type=hoodie",
+      link: "/shop?type=6866c0feb7d12a687483eff7",
       productCount: 89
     },
     { 
       name: "Oversized Tees", 
       icon: "🎁", 
       image: "https://fansarmy.in/cdn/shop/files/2_77968a83-e420-4a49-a355-2488f4776a10_1800x1800.jpg?v=1716963525", 
-      link: "/shop?type=combo",
+      link: "/shop?type=6866c0feb7d12a687483eff9",
       productCount: 45
     },
     { 
       name: "Custom Design", 
       icon: "🎨", 
-      image: "/api/placeholder/300/200", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczMdc0OBCzA_04DPzLJ3HbYonMgEIvqsoOfP7tEqNV0TOl0vWapcQQbZkAzWZVlPYxPenktQ36NGXGyJiAY6wuYohJfM4QcLEMlsstKVd7NVtJ-Hb9KXO8oVJOvTB0Uiw8mQrlSCuZgDCKxi2gymGVkg=w1369-h913-s-no-gm?authuser=0", 
       link: "/customize",
       productCount: undefined
     }
@@ -511,18 +511,18 @@ const HomeEnhanced: React.FC = () => {
               ) : (
                 // Fallback static anime categories if none loaded from backend
                 [
-                  { name: "Naruto", slug: "naruto" },
-                  { name: "One Piece", slug: "one-piece" },
-                  { name: "Demon Slayer", slug: "demon-slayer" },
-                  { name: "Attack on Titan", slug: "attack-on-titan" },
-                  { name: "Jujutsu Kaisen", slug: "jujutsu-kaisen" },
-                  { name: "Dragon Ball", slug: "dragon-ball" }
+                  { name: "Naruto", _id: "68a608c4f8ae7a6fb4109b60", parentId:"68644353659ea7d89d2a0427" },
+                  { name: "One Piece", _id: "one-piece", parentId:"" },
+                  { name: "Demon Slayer", _id: "demon-slayer", parentId:"" },
+                  { name: "Attack on Titan", _id: "attack-on-titan", parentId:"" },
+                  { name: "Jujutsu Kaisen", _id: "jujutsu-kaisen", parentId:"" },
+                  { name: "Dragon Ball", _id: "dragon-ball", parentId:"" }
                 ].map((anime, index) => (
                   <CategoryCard
                     key={index}
                     name={anime.name}
                     image={animeImages[anime.name.toLowerCase()] || "/api/placeholder/200/200"}
-                    link={`/shop?search=${encodeURIComponent(anime.name)}`}
+                    link={`/shop?category=${anime.parentId}&subcategory=${anime._id}`}
                   />
                 ))
               )}

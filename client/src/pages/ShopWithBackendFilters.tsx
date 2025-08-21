@@ -962,6 +962,8 @@ const ShopWithBackendFilters: React.FC = () => {
         setSearchQuery={setSearchQuery}
         selectedCategory={selectedCategory}
         setSelectedCategory={setSelectedCategory}
+        selectedSubcategory={selectedSubcategory}
+        setSelectedSubcategory={setSelectedSubcategory}
         selectedProductType={selectedProductType}
         setSelectedProductType={setSelectedProductType}
         selectedSizes={selectedSizes}
@@ -973,9 +975,11 @@ const ShopWithBackendFilters: React.FC = () => {
         sortBy={sortBy}
         setSortBy={setSortBy}
         categories={categories}
+        subcategories={subcategories}
         productTypes={productTypes}
         activeFilterCount={activeFilterCount}
         clearFilters={clearFilters}
+        loadSubcategories={loadSubcategories}
       />
 
       {/* Quick View Modal */}

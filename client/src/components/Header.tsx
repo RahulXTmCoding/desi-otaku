@@ -585,13 +585,13 @@ const Header: React.FC = () => {
                 <div className="px-6 py-3">
                   <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">T-Shirts</h3>
                   <div className="space-y-1">
-                    <Link to="/shop?category=printed-tshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                    <Link to="/shop?type=6866c0feb7d12a687483eff3" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
                       <span>🎨</span> Printed T-shirt
                     </Link>
-                    <Link to="/shop?category=oversized-tshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                    <Link to="/shop?type=6866c0feb7d12a687483eff9" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
                       <span>👕</span> Oversized T-shirt
                     </Link>
-                    <Link to="/shop?category=plain-tshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                    <Link to="/shop?type=68a6bf8e30db6bf0b3cbb3ac" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
                       <span>✨</span> Plain T-shirt
                     </Link>
                   </div>
@@ -600,19 +600,19 @@ const Header: React.FC = () => {
                 <div className="px-6 py-3 border-t border-gray-800">
                   <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Winter Wear</h3>
                   <div className="space-y-1">
-                    <Link to="/shop?category=hoodies" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                    <Link to="/shop?type=6866c0feb7d12a687483eff7" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
                       <span>🔥</span> Hoodies
                     </Link>
-                    <Link to="/shop?category=sweatshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
+                    {/* <Link to="/shop?category=sweatshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
                       <span>❄️</span> Sweatshirts
-                    </Link>
+                    </Link> */}
                   </div>
                 </div>
 
                 <div className="px-6 py-3 border-t border-gray-800">
                   <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Popular Anime</h3>
                   <div className="grid grid-cols-2 gap-1">
-                    <Link to="/shop?anime=naruto" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    <Link to="/shop?category=68644353659ea7d89d2a0427" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>🦊</span> Naruto
                     </Link>
                     <Link to="/shop?anime=one-piece" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
