@@ -15,7 +15,7 @@ class EmailService {
       this.initializeNodemailer();
     }
 
-    this.from = process.env.EMAIL_FROM || 'Attars <noreply@attarsclothing.com>';
+    this.from = process.env.EMAIL_FROM || 'Attars <noreply@attars.club>';
   }
 
   initializeBrevo() {
@@ -45,7 +45,7 @@ class EmailService {
       // Store SDK reference for creating emails
       this.SibApiV3Sdk = SibApiV3Sdk;
       
-      this.senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@attarsclothing.com';
+      this.senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@attars.club';
       this.senderName = process.env.BREVO_SENDER_NAME || 'Attars';
       
       console.log('✅ Brevo API initialized successfully with key:', process.env.BREVO_API_KEY.substring(0, 8) + '...');
@@ -253,7 +253,7 @@ class EmailService {
           </div>
           <div class="footer">
             <p>&copy; 2025 Attars. All rights reserved.</p>
-            <p>You received this email because you signed up at attarsclothing.com</p>
+            <p>You received this email because you signed up at attars.club</p>
           </div>
         </div>
       </body>
