@@ -6,6 +6,7 @@ import { useCart } from '../context/CartContext';
 import { useAOV } from '../context/AOVContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
+import { generateLightColorWithOpacity } from '../utils/colorUtils';
 
 interface Product {
   _id: string;
@@ -120,7 +121,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
   };
 
   const handleImageError = () => {
-    setImageError(true);
+    setImageError(false);
   };
 
   const handleQuickAddToCart = (e: React.MouseEvent) => {
@@ -264,7 +265,10 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
         {/* Front of Card */}
         <div className="block" style={{ backfaceVisibility: 'hidden' }}>
           {/* Image Container - Taller on mobile for bigger images */}
-          <div className="aspect-[3.6/5] sm:aspect-square bg-gray-700 relative overflow-hidden">
+          <div 
+            className="aspect-[3.6/5] sm:aspect-square relative overflow-hidden"
+            style={{ backgroundColor: generateLightColorWithOpacity(product._id, 0.2) }}
+          >
             <img 
               src={getImageUrl()}
               alt={product.name}

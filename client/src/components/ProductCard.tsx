@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
+import { generateLightColorWithOpacity } from '../utils/colorUtils';
 
 interface ProductCardProps {
   product: any;
@@ -110,7 +111,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
   return (
     <div className="bg-gray-800 rounded-2xl overflow-hidden group hover:shadow-xl transition-all duration-300 hover:scale-105">
       {/* Image Container */}
-      <div className="relative aspect-square overflow-hidden bg-gray-700">
+      <div 
+        className="relative aspect-square overflow-hidden"
+        style={{ backgroundColor: generateLightColorWithOpacity(product._id, 0.2) }}
+      >
         <Link to={`/product/${product._id}`}>
           <img
             src={getImageUrl()}
