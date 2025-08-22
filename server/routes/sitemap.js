@@ -7,6 +7,19 @@ const ProductType = require('../models/productType');
 // Sitemap generation utilities (adapted from frontend)
 const BASE_URL = 'https://attars.club';
 
+// XML entity escaping function
+const escapeXml = (unsafe) => {
+  return unsafe.replace(/[<>&'"]/g, function (c) {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case '\'': return '&#39;';
+      case '"': return '&quot;';
+    }
+  });
+};
+
 const generateSitemapXML = (urls) => {
   const today = new Date().toISOString().split('T')[0];
   
@@ -16,7 +29,7 @@ const generateSitemapXML = (urls) => {
   
   const urlElements = urls.map(({ url, changefreq, priority, lastmod }) => `
   <url>
-    <loc>${BASE_URL}${url}</loc>
+    <loc>${escapeXml(BASE_URL + url)}</loc>
     <lastmod>${lastmod || today}</lastmod>
     <changefreq>${changefreq}</changefreq>
     <priority>${priority}</priority>
