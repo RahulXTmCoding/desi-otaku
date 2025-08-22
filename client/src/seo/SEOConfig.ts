@@ -9,25 +9,27 @@ export interface SEOPageData {
   structuredData?: any;
 }
 
-export const BASE_URL = 'https://attarsclothing.com'; // Update with your actual domain
+export const BASE_URL = 'https://attars.club'; // Production domain
 
 export const DEFAULT_SEO = {
-  siteName: 'Attars Clothing - Premium Fashion India',
-  defaultTitle: 'Attars Clothing - Premium Fashion India | Designer Apparel, T-Shirts, Hoodies & More',
-  defaultDescription: 'Discover premium fashion at Attars Clothing India. Shop our exclusive collection of designer t-shirts, hoodies, oversized clothing, and luxury apparel. Fast delivery across India with premium quality guaranteed.',
+  siteName: 'Attars Clothing - Premium Streetwear India',
+  defaultTitle: 'Attars Clothing - Premium Streetwear India | Anime, Indian Culture, TV Shows & Original Designs',
+  defaultDescription: 'Discover premium streetwear at Attars Clothing India. Shop our exclusive collection of anime merchandise, Indian culture designs, TV show apparel, and original streetwear. High-quality premium fashion with fast delivery across India.',
   defaultKeywords: [
+    'premium streetwear india',
+    'attars clothing',
+    'anime merchandise india',
+    'indian culture apparel',
+    'tv show merchandise india',
+    'original streetwear designs',
     'premium fashion india',
     'designer clothing india',
-    'attars clothing',
-    'premium apparel india',
-    'designer t-shirts india',
-    'luxury fashion india',
+    'streetwear brand india',
+    'anime t-shirts india',
     'premium hoodies india',
     'oversized clothing india',
-    'designer wear india',
-    'premium brand india',
-    'luxury apparel india',
-    'fashion store india'
+    'contemporary streetwear',
+    'designer apparel india'
   ],
   defaultOgImage: '/og-image.jpg',
   twitterHandle: '@attarsclothing',
@@ -37,42 +39,87 @@ export const DEFAULT_SEO = {
 // Dynamic Category Templates for Scalable SEO
 export const CATEGORY_SEO_TEMPLATES = {
   tshirts: {
-    title: 'Premium T-Shirts India - Designer Cotton Tees | Attars Clothing',
-    description: 'Shop premium t-shirts India at Attars Clothing. Designer cotton tees, luxury prints, and custom designs. Free shipping across India. Sizes S-XXL available.',
+    title: 'Premium T-Shirts India - Anime, Culture & Original Designs | Attars Clothing',
+    description: 'Shop premium t-shirts India at Attars Clothing. Anime merchandise, Indian culture designs, TV show apparel, and original streetwear. Premium quality with free shipping across India.',
     keywords: [
       'premium t-shirts india',
-      'designer t-shirts india',
-      'luxury t-shirts india',
-      'premium cotton tees india',
+      'anime t-shirts india',
+      'indian culture t-shirts',
+      'tv show merchandise india',
+      'original design t-shirts',
+      'streetwear t-shirts india',
       'designer tees india',
-      'custom t-shirts india',
       'premium clothing india'
     ]
   },
   hoodies: {
-    title: 'Designer Hoodies India - Premium Sweatshirts & Hoodies | Attars Clothing',
-    description: 'Shop designer hoodies India at Attars Clothing. Premium sweatshirts, luxury hoodies, and comfortable designs. Express delivery across India.',
+    title: 'Premium Hoodies India - Anime, Streetwear & Designer Sweatshirts | Attars Clothing',
+    description: 'Shop premium hoodies India at Attars Clothing. Anime hoodies, streetwear designs, Indian culture prints, and original contemporary sweatshirts. Express delivery across India.',
     keywords: [
-      'designer hoodies india',
       'premium hoodies india',
-      'luxury sweatshirts india',
-      'premium hoodies india',
+      'anime hoodies india',
+      'streetwear hoodies india',
       'designer sweatshirts india',
-      'winter wear india',
+      'indian culture hoodies',
+      'original design hoodies',
+      'contemporary streetwear india',
       'premium clothing india'
     ]
   },
   oversized: {
-    title: 'Oversized Clothing India - Premium Loose Fit Fashion | Attars Clothing',
-    description: 'Shop oversized clothing India at Attars Clothing. Premium loose fit t-shirts, hoodies, and contemporary streetwear. Comfortable luxury fashion.',
+    title: 'Oversized Streetwear India - Premium Loose Fit Fashion | Attars Clothing',
+    description: 'Shop oversized streetwear India at Attars Clothing. Premium loose fit t-shirts, hoodies, anime designs, and contemporary streetwear. Comfortable luxury fashion.',
     keywords: [
-      'oversized clothing india',
+      'oversized streetwear india',
       'oversized t-shirts india',
       'oversized hoodies india',
       'loose fit clothing india',
-      'streetwear india',
       'premium oversized india',
-      'contemporary fashion india'
+      'contemporary streetwear',
+      'anime oversized clothing',
+      'designer oversized india'
+    ]
+  },
+  anime: {
+    title: 'Anime Merchandise India - Premium Anime T-Shirts & Hoodies | Attars Clothing',
+    description: 'Shop premium anime merchandise India at Attars Clothing. High-quality anime t-shirts, hoodies, and streetwear with authentic designs. Express delivery across India.',
+    keywords: [
+      'anime merchandise india',
+      'anime t-shirts india',
+      'anime hoodies india',
+      'anime clothing india',
+      'anime streetwear india',
+      'premium anime apparel',
+      'anime fashion india',
+      'otaku merchandise india'
+    ]
+  },
+  'indian-culture': {
+    title: 'Indian Culture Apparel - Premium Heritage Streetwear | Attars Clothing',
+    description: 'Shop Indian culture apparel at Attars Clothing. Premium heritage designs, cultural streetwear, and contemporary Indian fashion. Celebrate culture with style.',
+    keywords: [
+      'indian culture apparel',
+      'heritage streetwear india',
+      'cultural clothing india',
+      'indian design t-shirts',
+      'premium cultural wear',
+      'traditional modern fashion',
+      'india pride clothing',
+      'desi streetwear'
+    ]
+  },
+  'tv-shows': {
+    title: 'TV Show Merchandise India - Premium Pop Culture Apparel | Attars Clothing',
+    description: 'Shop TV show merchandise India at Attars Clothing. Premium pop culture apparel, series-inspired designs, and contemporary entertainment fashion.',
+    keywords: [
+      'tv show merchandise india',
+      'pop culture apparel india',
+      'series merchandise india',
+      'entertainment clothing',
+      'premium pop culture wear',
+      'tv series t-shirts india',
+      'show inspired fashion',
+      'pop culture streetwear'
     ]
   },
   // Future categories - ready for expansion
