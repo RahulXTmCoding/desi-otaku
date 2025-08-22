@@ -27,6 +27,7 @@ import { isAutheticated } from '../auth/helper';
 import { productCache } from '../utils/productCache';
 import SEOHead from '../components/SEOHead';
 import { SEOUtils } from '../seo/SEOUtils';
+import { generateLightColorWithOpacity } from '../utils/colorUtils';
 
 // Lazy load heavy components to improve initial page load
 const ProductReviews = lazy(() => import('../components/ProductReviews'));
@@ -515,7 +516,10 @@ const ProductDetail: React.FC = () => {
           {/* Product Images */}
           <div>
             <div className="relative rounded-2xl overflow-hidden mb-4" style={{ backgroundColor: 'var(--color-surface)' }}>
-              <div className="aspect-square relative" style={{ backgroundColor: 'var(--color-surfaceHover)' }}>
+              <div 
+                className="aspect-square relative" 
+                style={{ backgroundColor: generateLightColorWithOpacity(product._id, 0.2) }}
+              >
                 {/* Main Image */}
                 <img 
                   src={productImages.length > 0 && productImages[currentImageIndex]?.url 
@@ -581,7 +585,7 @@ const ProductDetail: React.FC = () => {
                     onClick={() => setCurrentImageIndex(index)}
                     className={`rounded-lg p-2 border-2 transition-all`}
                     style={{ 
-                      backgroundColor: 'var(--color-surface)',
+                      backgroundColor: generateLightColorWithOpacity(product._id, 0.15),
                       borderColor: currentImageIndex === index ? 'var(--color-primary)' : 'var(--color-border)'
                     }}
                   >
@@ -600,7 +604,7 @@ const ProductDetail: React.FC = () => {
                 <button
                   className="rounded-lg p-2 border-2"
                   style={{ 
-                    backgroundColor: 'var(--color-surface)',
+                    backgroundColor: generateLightColorWithOpacity(product._id, 0.15),
                     borderColor: 'var(--color-primary)'
                   }}
                 >
