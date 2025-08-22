@@ -55,6 +55,7 @@ export const useOrderHandler = ({
 }: OrderHandlerProps) => {
   const navigate = useNavigate();
   const [showProcessingModal, setShowProcessingModal] = useState(false);
+  const [isProcessingComplete, setIsProcessingComplete] = useState(false); // ✅ NEW: Track when order processing is done
   const [pendingNavigation, setPendingNavigation] = useState<any>(null);
   
   const handlePlaceOrder = async () => {
@@ -123,6 +124,9 @@ export const useOrderHandler = ({
         }
       });
     } else if (paymentMethod === 'cod') {
+      // ✅ NEW: Show processing modal for COD orders too
+      setShowProcessingModal(true);
+      
       // COD implementation for both authenticated and guest users
       console.log('🎯 CREATING COD ORDER:', {
         userType: isGuest ? 'guest' : 'authenticated',
@@ -132,6 +136,8 @@ export const useOrderHandler = ({
       });
 
       if (!isTestMode && !codVerification?.otpVerified) {
+        // ✅ Hide modal on error
+        setShowProcessingModal(false);
         throw new Error('Phone verification required for COD orders');
       }
 
@@ -168,93 +174,109 @@ export const useOrderHandler = ({
 
       let orderResult;
       
-      if (isGuest) {
-        console.log('👤 Creating guest COD order...');
-        
-        const response = await fetch(`${API}/cod/order/guest/create`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            ...orderData,
-            guestInfo: {
-              name: shippingInfo.fullName,
-              email: shippingInfo.email,
-              phone: shippingInfo.phone
-            }
-          })
-        });
-        
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to create COD order');
+      try {
+        if (isGuest) {
+          console.log('👤 Creating guest COD order...');
+          
+          const response = await fetch(`${API}/cod/order/guest/create`, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ...orderData,
+              guestInfo: {
+                name: shippingInfo.fullName,
+                email: shippingInfo.email,
+                phone: shippingInfo.phone
+              }
+            })
+          });
+          
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to create COD order');
+          }
+          
+          orderResult = data.order;
+          console.log('✅ Guest COD order created successfully:', orderResult._id);
+          
+        } else {
+          console.log('🔐 Creating authenticated user COD order...');
+          
+          const response = await fetch(`${API}/cod/order/create`, {
+            method: 'POST',
+            headers: {
+              Accept: 'application/json',
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${(auth as any).token}`
+            },
+            body: JSON.stringify(orderData)
+          });
+          
+          const data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to create COD order');
+          }
+          
+          orderResult = data.order;
+          console.log('✅ Authenticated COD order created successfully:', orderResult._id);
         }
-        
-        orderResult = data.order;
-        console.log('✅ Guest COD order created successfully:', orderResult._id);
-        
-      } else {
-        console.log('🔐 Creating authenticated user COD order...');
-        
-        const response = await fetch(`${API}/cod/order/create`, {
-          method: 'POST',
-          headers: {
-            Accept: 'application/json',
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${(auth as any).token}`
-          },
-          body: JSON.stringify(orderData)
-        });
-        
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to create COD order');
-        }
-        
-        orderResult = data.order;
-        console.log('✅ Authenticated COD order created successfully:', orderResult._id);
-      }
 
-      // Navigate to confirmation page
-      console.log('🎉 COD ORDER CREATION SUCCESSFUL - NAVIGATING TO CONFIRMATION');
-      
-      const navigationState = {
-        orderId: orderResult._id,
-        orderDetails: orderResult,
-        shippingInfo,
-        paymentMethod: 'cod',
-        finalAmount: totalAmount,
-        originalAmount: getTotalAmount() + (selectedShipping?.rate || 0),
-        subtotal: getTotalAmount(),
-        couponDiscount: appliedDiscount.coupon ? appliedDiscount.coupon.discount : 0,
-        quantityDiscount: 0, // COD orders don't have quantity discounts in this flow
-        rewardPointsUsed: isGuest ? 0 : (appliedDiscount.rewardPoints?.points || 0),
-        rewardDiscount: isGuest ? 0 : (appliedDiscount.rewardPoints?.discount || 0),
-        // ✅ NEW: Include online payment discount (0 for COD but needed for consistency)
-        onlinePaymentDiscount: 0,
-        shippingCost: selectedShipping?.rate || 0,
-        appliedCoupon: appliedDiscount.coupon,
-        appliedRewardPoints: isGuest ? null : appliedDiscount.rewardPoints,
-        isGuest,
-        isBuyNow,
-        createdAt: new Date().toISOString(),
-        paymentSuccess: true,
-        orderCreated: true,
-        codOrder: true
-      };
-      
-      navigate('/order-confirmation-enhanced', { 
-        state: navigationState,
-        replace: true 
-      });
-      
-      // Clear cart after successful navigation
-      if (!isBuyNow) {
-        clearCart()
-          .then(() => console.log('✅ Cart cleared after successful COD order'))
-          .catch((error) => console.error('Cart clear error (non-blocking):', error));
+        // ✅ SUCCESS: COD Order created successfully, store navigation data for modal completion
+        console.log('🎉 COD ORDER CREATION SUCCESSFUL - PREPARING NAVIGATION');
+        
+        const navigationState = {
+          orderId: orderResult._id,
+          orderDetails: orderResult,
+          shippingInfo,
+          paymentMethod: 'cod',
+          finalAmount: totalAmount,
+          originalAmount: getTotalAmount() + (selectedShipping?.rate || 0),
+          subtotal: getTotalAmount(),
+          couponDiscount: appliedDiscount.coupon ? appliedDiscount.coupon.discount : 0,
+          quantityDiscount: 0, // COD orders don't have quantity discounts in this flow
+          rewardPointsUsed: isGuest ? 0 : (appliedDiscount.rewardPoints?.points || 0),
+          rewardDiscount: isGuest ? 0 : (appliedDiscount.rewardPoints?.discount || 0),
+          // ✅ NEW: Include online payment discount (0 for COD but needed for consistency)
+          onlinePaymentDiscount: 0,
+          shippingCost: selectedShipping?.rate || 0,
+          appliedCoupon: appliedDiscount.coupon,
+          appliedRewardPoints: isGuest ? null : appliedDiscount.rewardPoints,
+          isGuest,
+          isBuyNow,
+          createdAt: new Date().toISOString(),
+          paymentSuccess: true,
+          orderCreated: true,
+          codOrder: true
+        };
+        
+        // ✅ NEW: Store navigation data for when modal completes, don't navigate immediately
+        setPendingNavigation({
+          path: '/order-confirmation-enhanced',
+          state: navigationState
+        });
+        
+        // ✅ NEW: Mark processing as complete to trigger modal completion
+        setIsProcessingComplete(true);
+        
+        // Clear cart after successful order processing (but before navigation)
+        if (!isBuyNow) {
+          clearCart()
+            .then(() => console.log('✅ Cart cleared after successful COD order'))
+            .catch((error) => console.error('Cart clear error (non-blocking):', error));
+        }
+        
+      } catch (error: any) {
+        console.error('❌ COD ORDER CREATION FAILED:', error);
+        
+        // ✅ Hide processing modal on error
+        setShowProcessingModal(false);
+        setIsProcessingComplete(false); // ✅ Reset processing state
+        
+        // Re-throw error to be handled by the calling function
+        throw error;
       }
       
     } else if (paymentMethod === 'razorpay') {
@@ -355,6 +377,9 @@ export const useOrderHandler = ({
         },
         async (paymentData: any) => {
           console.log('🎯 PAYMENT SUCCESS CALLBACK TRIGGERED:', paymentData);
+          
+          // ✅ NEW: Show processing modal immediately after successful payment
+          setShowProcessingModal(true);
           
           // ✅ CRITICAL FIX: Wait for order creation to complete BEFORE navigating
           console.log('🔄 PROCESSING ORDER CREATION...');
@@ -471,8 +496,8 @@ export const useOrderHandler = ({
               console.log('✅ Authenticated order created successfully:', orderResult._id);
             }
             
-            // ✅ SUCCESS: Order created successfully, now navigate
-            console.log('🎉 ORDER CREATION SUCCESSFUL - NAVIGATING TO CONFIRMATION');
+            // ✅ SUCCESS: Order created successfully, store navigation data for modal completion
+            console.log('🎉 ORDER CREATION SUCCESSFUL - PREPARING NAVIGATION');
             
             // ✅ FIXED: Get final discount data from the created order or calculate it
             const serverSubtotal = orderResult.originalAmount || getTotalAmount();
@@ -509,19 +534,16 @@ export const useOrderHandler = ({
               orderCreated: true
             };
             
-            console.log('🎯 FINAL NAVIGATION STATE:', {
-              orderId: navigationState.orderId,
-              finalAmount: navigationState.finalAmount,
-              rewardPointsUsed: navigationState.rewardPointsUsed,
-              rewardDiscount: navigationState.rewardDiscount
+            // ✅ NEW: Store navigation data for when modal completes, don't navigate immediately
+            setPendingNavigation({
+              path: '/order-confirmation-enhanced',
+              state: navigationState
             });
             
-            navigate('/order-confirmation-enhanced', { 
-              state: navigationState,
-              replace: true 
-            });
+            // ✅ NEW: Mark processing as complete to trigger modal completion
+            setIsProcessingComplete(true);
             
-            // Clear cart after successful navigation
+            // Clear cart after successful order processing (but before navigation)
             if (!isBuyNow) {
               clearCart()
                 .then(() => console.log('✅ Cart cleared after successful order'))
@@ -530,6 +552,10 @@ export const useOrderHandler = ({
             
           } catch (error: any) {
             console.error('❌ ORDER CREATION FAILED:', error);
+            
+            // ✅ Hide processing modal on error
+            setShowProcessingModal(false);
+            setIsProcessingComplete(false); // ✅ Reset processing state
             
             // ✅ SHOW ERROR INSTEAD OF NAVIGATING TO SUCCESS PAGE
             alert(`Order creation failed: ${error.message}\n\nYour payment was successful, but we couldn't create your order. Please contact customer support with your payment ID: ${paymentData.razorpay_payment_id}`);
@@ -552,11 +578,12 @@ export const useOrderHandler = ({
     console.log('🎯 MODAL COMPLETE TRIGGERED');
     console.log('🎯 PENDING NAVIGATION AT MODAL COMPLETE:', pendingNavigation);
     setShowProcessingModal(false);
+    setIsProcessingComplete(false); // ✅ Reset for next use
     if (pendingNavigation) {
       console.log('✅ Navigating to order confirmation with pending navigation');
       console.log('🎯 NAVIGATION PATH:', pendingNavigation.path);
       console.log('🎯 NAVIGATION STATE KEYS:', Object.keys(pendingNavigation.state || {}));
-      navigate(pendingNavigation.path, { state: pendingNavigation.state });
+      navigate(pendingNavigation.path, { state: pendingNavigation.state, replace: true  });
       setPendingNavigation(null);
     } else {
       // ✅ CRITICAL FIX: Always try to navigate to order confirmation on success
@@ -600,6 +627,7 @@ export const useOrderHandler = ({
       <PaymentProcessingModal 
         isOpen={showProcessingModal} 
         onComplete={handleModalComplete}
+        isProcessingComplete={isProcessingComplete} // ✅ NEW: Pass processing completion state
       />
     )
   };

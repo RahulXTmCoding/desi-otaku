@@ -4,9 +4,10 @@ import { CheckCircle, Loader2, CreditCard, Package, Mail } from 'lucide-react';
 interface PaymentProcessingModalProps {
   isOpen: boolean;
   onComplete: () => void;
+  isProcessingComplete?: boolean; // ✅ NEW: External control of completion
 }
 
-const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({ isOpen, onComplete }) => {
+const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({ isOpen, onComplete, isProcessingComplete = false }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
 
@@ -38,19 +39,29 @@ const PaymentProcessingModal: React.FC<PaymentProcessingModalProps> = ({ isOpen,
       return;
     }
 
-    const progressTimer = setTimeout(() => {
-      if (currentStep < steps.length - 1) {
-        setCurrentStep(prev => prev + 1);
-      } else {
-        setIsComplete(true);
-        setTimeout(() => {
-          onComplete();
-        }, 300);
-      }
-    }, steps[currentStep]?.duration || 1000);
+    // ✅ NEW: Check if processing is externally completed
+    if (isProcessingComplete && !isComplete) {
+      setIsComplete(true);
+      setTimeout(() => {
+        onComplete();
+      }, 300);
+      return;
+    }
 
-    return () => clearTimeout(progressTimer);
-  }, [isOpen, currentStep, onComplete]);
+    // ✅ MODIFIED: Only cycle through steps if not externally completed
+    if (!isProcessingComplete) {
+      const progressTimer = setTimeout(() => {
+        if (currentStep < steps.length - 1) {
+          setCurrentStep(prev => prev + 1);
+        } else {
+          // ✅ CHANGED: Don't auto-complete, wait for external signal
+          // Just stay on the last step until isProcessingComplete becomes true
+        }
+      }, steps[currentStep]?.duration || 1000);
+
+      return () => clearTimeout(progressTimer);
+    }
+  }, [isOpen, currentStep, onComplete, isProcessingComplete, isComplete]);
 
   if (!isOpen) return null;
 
