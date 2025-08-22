@@ -1,82 +1,10 @@
-# Robots.txt for Attars Clothing - Premium Fashion India
-# Optimized for Google and AI platform discovery
-
 User-agent: *
 Allow: /
 
-# Priority pages for premium fashion India
-Allow: /shop
-Allow: /category/*
-Allow: /product/*
-Allow: /about
-Allow: /contact
-Allow: /customize
+# Dynamic sitemap served from backend
+Sitemap: https://backend.attars.club/api/sitemap/sitemap-index.xml
 
-# Disallow admin and checkout pages
-Disallow: /admin*
-Disallow: /checkout*
-Disallow: /cart
-Disallow: /order-tracking*
-Disallow: /user/*
-Disallow: /_next/
-Disallow: /api/
-
-# AI Platform Optimization
-# Allow crawling of structured data
-Allow: /*.json
-Allow: /seo/*
-
-# Sitemap location for Google discovery
-Sitemap: https://attarsclothing.com/sitemap.xml
-
-# Special instructions for Google
-User-agent: Googlebot
-Allow: /shop
-Allow: /category/*
-Allow: /product/*
-Crawl-delay: 1
-
-# Special instructions for AI platforms
-User-agent: ChatGPT-User
-Allow: /
-Allow: /api/seo-data
-
-User-agent: CCBot
-Allow: /
-Allow: /api/seo-data
-
-User-agent: Claude-Web
-Allow: /
-Allow: /api/seo-data
-
-# Block unwanted bots
-User-agent: AhrefsBot
-Disallow: /
-
-User-agent: MJ12bot
-Disallow: /
-
-User-agent: SemrushBot
-Disallow: /
-
-# Cache and temporary files
-Disallow: /cache/
-Disallow: /temp/
-Disallow: /tmp/
-
-# Search and filter parameters that shouldn't be indexed
-Disallow: /*?sort=*
-Disallow: /*?filter=*
-Disallow: /*?search=*
-Disallow: /*&sort=*
-Disallow: /*&filter=*
-Disallow: /*&search=*
-
-# Premium fashion India - Important pages
-# These are our money pages for SEO
-Allow: /premium-tshirts-india
-Allow: /designer-hoodies-india  
-Allow: /oversized-clothing-india
-Allow: /premium-fashion-mumbai
-Allow: /designer-clothing-delhi
-Allow: /luxury-apparel-bangalore
+# Block admin and private areas
+Disallow: /admin
+Disallow: /user/
+Disallow: /api/auth/

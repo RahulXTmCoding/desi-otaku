@@ -33,6 +33,7 @@ const invoiceRoutes = require("./routes/invoice");
 const aovRoutes = require("./routes/aov");
 const codRoutes = require("./routes/cod");
 const productAdminRoutes = require("./routes/productAdmin");
+const sitemapRoutes = require("./routes/sitemap");
 const { initializeSettings } = require("./controllers/settings");
 const AOVService = require("./services/aovService");
 const redisService = require("./services/redisService");
@@ -132,6 +133,7 @@ app.use("/api/invoice", invoiceRoutes);
 app.use("/api/aov", aovRoutes);
 app.use("/api/cod", codRoutes);
 app.use("/api", productAdminRoutes);
+app.use("/api/sitemap", sitemapRoutes);
 
 // Serve static files (for invoice PDFs)
 app.use('/invoices', express.static(require('path').join(__dirname, 'public/invoices')));
