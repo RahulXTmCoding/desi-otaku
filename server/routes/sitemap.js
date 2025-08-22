@@ -32,9 +32,11 @@ const generateSitemapIndex = (sitemapFiles) => {
   const sitemapindexOpen = '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
   const sitemapindexClose = '</sitemapindex>';
   
+  // Sitemap index should point to backend domain where sitemaps are served
+  const BACKEND_URL = 'https://backend.attars.club';
   const sitemapElements = sitemapFiles.map(file => `
   <sitemap>
-    <loc>${BASE_URL}/api/sitemap/${file}</loc>
+    <loc>${BACKEND_URL}/api/sitemap/${file}</loc>
     <lastmod>${today}</lastmod>
   </sitemap>`).join('');
   

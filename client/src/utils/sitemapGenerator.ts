@@ -50,8 +50,9 @@ export const staticPages: SitemapUrl[] = [
 // Dynamic category fetching from backend API with real data parsing
 export const fetchDynamicCategoryPages = async (): Promise<SitemapUrl[]> => {
   try {
-    // Fetch real dynamic filter data from backend
-    const response = await fetch(`${BASE_URL}/api/sitemap/dynamic-data`);
+    // Fetch real dynamic filter data from backend domain
+    const BACKEND_URL = 'https://backend.attars.club';
+    const response = await fetch(`${BACKEND_URL}/api/sitemap/dynamic-data`);
     if (!response.ok) {
       throw new Error('Failed to fetch dynamic filter data');
     }

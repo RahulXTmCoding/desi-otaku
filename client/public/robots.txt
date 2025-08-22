@@ -1,8 +1,8 @@
 User-agent: *
 Allow: /
 
-# Dynamic sitemap (replace static reference)
-Sitemap: https://attars.club/api/sitemap/sitemap-index.xml
+# Dynamic sitemap served from backend
+Sitemap: https://backend.attars.club/api/sitemap/sitemap-index.xml
 
 # Block admin and private areas
 Disallow: /admin
