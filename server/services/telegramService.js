@@ -94,17 +94,12 @@ class TelegramService {
     const orderDate = new Date(order.createdAt).toLocaleString('en-IN');
     const itemCount = order.products?.length || 0;
 
-    // Check for custom items
-    const hasCustomItems = order.products?.some(item => 
-      item.isCustom || item.customization || item.product === null
-    );
-
     // Generate items list
     const itemsList = this.generateItemsList(order.products);
 
-    // Priority indicators
-    const priorityEmoji = orderTotal > 2000 ? '🔥' : hasCustomItems ? '🎨' : '📦';
-    const priorityText = orderTotal > 2000 ? 'HIGH VALUE' : hasCustomItems ? 'CUSTOM DESIGN' : 'STANDARD';
+    // Simplified priority indicators - only high value vs regular
+    const priorityEmoji = orderTotal > 2000 ? '🔥' : '📦';
+    const priorityText = orderTotal > 2000 ? 'HIGH VALUE ORDER' : 'NEW ORDER';
 
     // Links
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -135,8 +130,6 @@ ${order.address || 'Address not provided'}
 💳 <b>Payment:</b> ${order.paymentStatus || 'Pending'}
 ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.shippingCost}` : '📦 <b>Shipping:</b> FREE'}
 
-${hasCustomItems ? '⚠️ <b>CUSTOM ORDER - EXTRA ATTENTION REQUIRED!</b>' : ''}
-
 🔗 <b>Quick Actions:</b>
 • <a href="${adminOrderUrl}">Admin Panel</a>
 • <a href="${trackingUrl}">Order Tracking</a>
@@ -164,11 +157,26 @@ ${hasCustomItems ? '⚠️ <b>CUSTOM ORDER - EXTRA ATTENTION REQUIRED!</b>' : ''
       itemDetails += `   📏 Size: ${itemSize} | 🎨 Color: ${itemColor}\n`;
       itemDetails += `   💰 ₹${itemPrice} x ${itemQuantity} = ₹${itemTotal}`;
 
-      // Add product link if it's a regular product
-      if (item.product && item.product !== 'custom') {
+      // Add product link if it's a regular product with valid ID
+      // Handle both populated (object) and non-populated (string) product references
+      const productId = typeof item.product === 'object' && item.product?._id 
+        ? item.product._id 
+        : item.product;
+      
+      if (productId && 
+          productId !== 'custom' && 
+          productId !== null && 
+          productId !== undefined && 
+          productId !== '' &&
+          typeof productId === 'string' &&
+          productId.length >= 20) { // MongoDB ObjectId is 24 chars, but allow some flexibility
+        
         const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-        const productUrl = `${clientUrl}/product/${item.product}`;
+        const productUrl = `${clientUrl}/product/${productId}`;
         itemDetails += `\n   🔗 <a href="${productUrl}">View Product</a>`;
+      } else if (!item.isCustom && !item.customization && item.product !== 'custom') {
+        // For regular products without valid IDs, show placeholder
+        itemDetails += `\n   📦 Product Link: Not Available`;
       }
 
       // Add custom design indicators
