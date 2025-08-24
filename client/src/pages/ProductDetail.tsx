@@ -806,11 +806,11 @@ const ProductDetail: React.FC = () => {
                           Out
                         </span>
                       )}
-                      {isLowStock && (
+                      {/* {isLowStock && (
                         <span className="absolute -top-1 -right-1 text-xs bg-orange-500 text-white px-1 rounded">
                           {sizeStockCount}
                         </span>
-                      )}
+                      )} */}
                     </button>
                   );
                 })}
@@ -823,16 +823,28 @@ const ProductDetail: React.FC = () => {
                 {selectedSize && product.sizeStock ? (
                   <>
                     Stock for size {selectedSize}: 
-                    <span style={{ color: product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 5 ? 'var(--color-success)' : 'var(--color-warning)' }}>
+                    <span className={`font-bold ${
+                      product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 5 
+                        ? 'text-green-800 dark:text-green-400' // Good stock - darker for light theme
+                        : product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
+                        ? 'text-orange-800 dark:text-orange-400' // Low stock - darker for light theme 
+                        : 'text-red-800 dark:text-red-400' // Out of stock - darker for light theme
+                    }`}>
                       {' '}{product.sizeStock[selectedSize as keyof typeof product.sizeStock]} available
                     </span>
                   </>
                 ) : (
-                  <>
-                    Total Stock: <span style={{ color: product.stock > 5 ? 'var(--color-success)' : 'var(--color-warning)' }}>
+                    <>
+                    Total Stock: <span className={`font-bold ${
+                      product.stock > 5 
+                        ? 'text-green-800 dark:text-green-400' // Good stock - darker for light theme
+                        : product.stock > 0
+                        ? 'text-orange-800 dark:text-orange-400' // Low stock - darker for light theme
+                        : 'text-red-800 dark:text-red-400' // Out of stock - darker for light theme
+                    }`}>
                       {product.stock > 0 ? `${product.stock} available` : 'Out of stock'}
                     </span>
-                  </>
+                    </>
                 )}
               </p>
             </div>

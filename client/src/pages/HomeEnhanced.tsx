@@ -622,17 +622,35 @@ const HomeEnhanced: React.FC = () => {
         <ReviewCarousel reviews={reviews} />
 
         {/* CTA Section */}
-        <section className="py-20 bg-gradient-to-r from-purple-900 via-blue-900 to-purple-900">
-          <div className="w-[96%] mx-auto text-center">
-            <h2 className="text-4xl font-bold mb-6">
+        <section className="py-20 relative overflow-hidden" style={{ backgroundColor: 'var(--color-surface)' }}>
+          {/* Background Gradient Overlay */}
+          <div 
+            className="absolute inset-0 opacity-20"
+            style={{
+              background: `linear-gradient(135deg, var(--color-primary), var(--color-primary), var(--color-background))`
+            }}
+          />
+          
+          <div className="w-[96%] mx-auto text-center relative z-10">
+            <h2 
+              className="text-4xl font-bold mb-6"
+              style={{ color: 'var(--color-text)' }}
+            >
               Join The Fashion Revolution
             </h2>
-            <p className="text-xl text-gray-300 mb-8">
+            <p 
+              className="text-xl mb-8"
+              style={{ color: 'var(--color-textMuted)' }}
+            >
               Get exclusive deals and be the first to know about new drops
             </p>
             <button 
               onClick={() => navigate('/signup')}
-              className="bg-yellow-400 text-gray-900 px-8 py-4 rounded-full font-semibold hover:bg-yellow-300 transition-all transform hover:scale-105"
+              className={`${primaryButtonClass} ${primaryButtonHoverClass} px-8 py-4 rounded-full font-semibold transition-all transform hover:scale-105`}
+              style={{
+                backgroundColor: 'var(--color-primary)',
+                color: 'var(--color-primaryText)'
+              }}
             >
               Sign Up Now
             </button>

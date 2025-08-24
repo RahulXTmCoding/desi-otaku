@@ -217,23 +217,21 @@ const ShopWithBackendFilters: React.FC = () => {
         setAllProducts(prev => [...prev, ...filteredProductsData.products]);
       }
       
-      // Update hasMore based on pagination info - more conservative logic
+      // Update hasMore based on pagination info - simplified and reliable logic
       const pagination = filteredProductsData.pagination;
       const receivedProducts = filteredProductsData.products;
       
+      // Always trust the API's hasMore value if provided
       if (pagination && pagination.hasMore !== undefined) {
-        // Trust explicit hasMore from API
         setHasMore(pagination.hasMore);
-      } else if (pagination && pagination.totalPages) {
-        // Check if we're at the last page
+      } 
+      // Fallback to page count comparison
+      else if (pagination && pagination.totalPages) {
         setHasMore(currentPage < pagination.totalPages);
-      } else {
-        // Fallback: only set hasMore to false if we got fewer products than requested
-        // This prevents flickering by being more conservative
-        if (receivedProducts.length < productsPerPage) {
-          setHasMore(false);
-        }
-        // If we got a full page, keep hasMore as true (don't change it)
+      } 
+      // Final fallback - if we got fewer products than requested, we're at the end
+      else {
+        setHasMore(receivedProducts.length >= productsPerPage);
       }
       
       setIsLoadingMore(false);
@@ -362,19 +360,22 @@ const ShopWithBackendFilters: React.FC = () => {
     }
   };
 
-  // Infinite scroll handler using window scroll (disabled for now since we're using React Query)
+  // Infinite scroll handler using window scroll
   const handleScroll = useCallback(() => {
-    if (isLoadingMore || !hasMore || currentLoading) return;
+    // Prevent loading if already loading, no more content, or initial page is loading
+    if (isLoadingMore || !hasMore || currentLoading || isFetching) return;
     
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollHeight = document.documentElement.scrollHeight;
     const clientHeight = window.innerHeight;
     
-    // If user has scrolled to within 300px of the bottom
-    if (scrollTop + clientHeight >= scrollHeight - 300) {
+    // If user has scrolled to within 200px of the bottom
+    if (scrollTop + clientHeight >= scrollHeight - 200) {
+      console.log('🔄 Infinite scroll triggered - loading next page');
+      setIsLoadingMore(true);
       setCurrentPage(prev => prev + 1);
     }
-  }, [isLoadingMore, hasMore, currentLoading]);
+  }, [isLoadingMore, hasMore, currentLoading, isFetching]);
   
   // Add scroll event listener to window
   useEffect(() => {
