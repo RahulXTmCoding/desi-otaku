@@ -639,21 +639,21 @@ const Header: React.FC = () => {
                     {/* <Link to="/shop?anime=death-note" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>📓</span> Death Note
                     </Link> */}
-                    <Link to="/shop?anime=tokyo-ghoul" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    {/* <Link to="/shop?anime=tokyo-ghoul" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>👹</span> Tokyo Ghoul
-                    </Link>
+                    </Link> */}
                     <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadf0bd5f01939e0e67d46" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>👻</span> Jujutsu Kaisen
                     </Link>
-                    <Link to="/shop?anime=hunter-x-hunter" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68ab4e52dd9c0e0d154317db" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>🎯</span> Hunter x Hunter
                     </Link>
-                    <Link to="/shop?anime=fullmetal-alchemist" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    {/* <Link to="/shop?anime=fullmetal-alchemist" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>⚗️</span> Fullmetal Alchemist
                     </Link>
                     <Link to="/shop?anime=one-punch-man" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>👊</span> One Punch Man
-                    </Link>
+                    </Link> */}
                   </div>
                   <Link to="/shop" onClick={closeMobileMenu} className="block text-yellow-400 text-sm font-semibold hover:text-yellow-300 transition-colors py-2 mt-2">
                     View All Products →

@@ -84,18 +84,17 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
 
   // Popular anime categories with emojis and colors
   const animeCategories = [
-    { name: "Naruto", link: "/shop?category=68644353659ea7d89d2a0427", popular: true, emoji: "🦊", color: "from-orange-400 to-yellow-500" },
-    { name: "One Piece", link: "/shop?category=one-piece", popular: true, emoji: "☠️", color: "from-blue-400 to-cyan-500" },
-    { name: "Dragon Ball", link: "/shop?category=dragon-ball", popular: true, emoji: "🐉", color: "from-orange-500 to-red-500" },
-    { name: "Attack on Titan", link: "/shop?category=attack-on-titan", popular: true, emoji: "⚔️", color: "from-gray-600 to-red-600" },
-    { name: "My Hero Academia", link: "/shop?category=my-hero-academia", popular: true, emoji: "💪", color: "from-green-400 to-blue-500" },
-    { name: "Demon Slayer", link: "/shop?category=demon-slayer", popular: true, emoji: "🌊", color: "from-blue-500 to-purple-500" },
-    { name: "Death Note", link: "/shop?category=death-note", emoji: "📓" },
-    { name: "Tokyo Ghoul", link: "/shop?category=tokyo-ghoul", emoji: "👹" },
-    { name: "Jujutsu Kaisen", link: "/shop?category=jujutsu-kaisen", emoji: "👻" },
-    { name: "Hunter x Hunter", link: "/shop?category=hunter-x-hunter", emoji: "🎯" },
-    { name: "Fullmetal Alchemist", link: "/shop?category=fullmetal-alchemist", emoji: "⚗️" },
-    { name: "One Punch Man", link: "/shop?category=one-punch-man", emoji: "👊" }
+    { name: "Naruto", link: "/shop?category=68644353659ea7d89d2a0427&subcategory=68a608c4f8ae7a6fb4109b60", popular: true, emoji: "🦊", color: "from-orange-400 to-yellow-500" },
+    { name: "One Piece", link: "/shop?category=68644353659ea7d89d2a0427&subcategory=68aadeafd5f01939e0e67d34", popular: true, emoji: "☠️", color: "from-blue-400 to-cyan-500" },
+    { name: "Dragon Ball", link: "/shop?category=68644353659ea7d89d2a0427&subcategory=68aadee6d5f01939e0e67d40", popular: true, emoji: "🐉", color: "from-orange-500 to-red-500" },
+    { name: "Attack on Titan", link: "/shop?category=68644353659ea7d89d2a0427&subcategory=68aadecbd5f01939e0e67d3a", popular: true, emoji: "⚔️", color: "from-gray-600 to-red-600" },
+    { name: "Demon Slayer", link: "/shop?category=68644353659ea7d89d2a0427&subcategory=68aade98d5f01939e0e67d2e", popular: true, emoji: "🌊", color: "from-blue-500 to-purple-500" },
+    { name: "Jujutsu Kaisen", link: "/shop?category=68644353659ea7d89d2a0427&subcategory=68aadf0bd5f01939e0e67d46", emoji: "👻" },
+    { name: "Hunter x Hunter", link: "/shop?category=68644353659ea7d89d2a0427&subcategory=68ab4e52dd9c0e0d154317db", emoji: "🎯" },
+    // { name: "Death Note", link: "/shop?category=death-note", emoji: "📓" },
+    { name: "Tokyo Ghoul", link: "/shop?category=68644353659ea7d89d2a0427&subcategory=68aadf47d5f01939e0e67d4c", emoji: "👹" }
+    // { name: "Fullmetal Alchemist", link: "/shop?category=fullmetal-alchemist", emoji: "⚗️" },
+    // { name: "One Punch Man", link: "/shop?category=one-punch-man", emoji: "👊" }
   ];
 
   return (

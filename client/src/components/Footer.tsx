@@ -21,13 +21,13 @@ const Footer: React.FC = () => {
           <h4 className="font-semibold mb-4 text-white">Shop</h4>
           <ul className="space-y-2 text-gray-400 text-sm">
             <li>
-              <Link to="/shop?category=fashion" className="hover:text-yellow-400 transition-colors">
-                Fashion Collection
+              <Link to="/shop?type=6866c0feb7d12a687483eff3" className="hover:text-yellow-400 transition-colors">
+                Printed Tees
               </Link>
             </li>
             <li>
-              <Link to="/shop?category=brand" className="hover:text-yellow-400 transition-colors">
-                Brand Designs
+              <Link to="/shop?type=6866c0feb7d12a687483eff7" className="hover:text-yellow-400 transition-colors">
+                Hoodies
               </Link>
             </li>
             <li>
