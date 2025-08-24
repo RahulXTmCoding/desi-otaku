@@ -512,11 +512,11 @@ const HomeEnhanced: React.FC = () => {
                 // Fallback static anime categories if none loaded from backend
                 [
                   { name: "Naruto", _id: "68a608c4f8ae7a6fb4109b60", parentId:"68644353659ea7d89d2a0427" },
-                  { name: "One Piece", _id: "one-piece", parentId:"" },
-                  { name: "Demon Slayer", _id: "demon-slayer", parentId:"" },
-                  { name: "Attack on Titan", _id: "attack-on-titan", parentId:"" },
-                  { name: "Jujutsu Kaisen", _id: "jujutsu-kaisen", parentId:"" },
-                  { name: "Dragon Ball", _id: "dragon-ball", parentId:"" }
+                  { name: "One Piece", _id: "68aadeafd5f01939e0e67d34", parentId:"68644353659ea7d89d2a0427" },
+                  { name: "Demon Slayer", _id: "68aade98d5f01939e0e67d2e", parentId:"68644353659ea7d89d2a0427" },
+                  { name: "Attack on Titan", _id: "68aadecbd5f01939e0e67d3a", parentId:"68644353659ea7d89d2a0427" },
+                  { name: "Jujutsu Kaisen", _id: "68aadf0bd5f01939e0e67d46", parentId:"68644353659ea7d89d2a0427" },
+                  { name: "Dragon Ball", _id: "68aadee6d5f01939e0e67d40", parentId:"68644353659ea7d89d2a0427" }
                 ].map((anime, index) => (
                   <CategoryCard
                     key={index}

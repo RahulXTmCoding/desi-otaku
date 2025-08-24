@@ -612,22 +612,22 @@ const Header: React.FC = () => {
                 <div className="px-6 py-3 border-t border-gray-800">
                   <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Popular Anime</h3>
                   <div className="grid grid-cols-2 gap-1">
-                    <Link to="/shop?category=68644353659ea7d89d2a0427" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68a608c4f8ae7a6fb4109b60" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>🦊</span> Naruto
                     </Link>
-                    <Link to="/shop?anime=one-piece" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadeafd5f01939e0e67d34" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>☠️</span> One Piece
                     </Link>
-                    <Link to="/shop?anime=dragon-ball" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadee6d5f01939e0e67d40" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>🐉</span> Dragon Ball
                     </Link>
-                    <Link to="/shop?anime=attack-on-titan" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadecbd5f01939e0e67d3a" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>⚔️</span> Attack on Titan
                     </Link>
-                    <Link to="/shop?anime=my-hero-academia" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>💪</span> My Hero Academia
+                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadf47d5f01939e0e67d4c" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                      <span>👹</span> Tokyo Ghoul
                     </Link>
-                    <Link to="/shop?anime=demon-slayer" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aade98d5f01939e0e67d2e" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>🌊</span> Demon Slayer
                     </Link>
                   </div>
@@ -636,13 +636,13 @@ const Header: React.FC = () => {
                 <div className="px-6 py-3 border-t border-gray-800">
                   <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">More Anime</h3>
                   <div className="grid grid-cols-2 gap-1">
-                    <Link to="/shop?anime=death-note" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    {/* <Link to="/shop?anime=death-note" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>📓</span> Death Note
-                    </Link>
+                    </Link> */}
                     <Link to="/shop?anime=tokyo-ghoul" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>👹</span> Tokyo Ghoul
                     </Link>
-                    <Link to="/shop?anime=jujutsu-kaisen" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
+                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadf0bd5f01939e0e67d46" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
                       <span>👻</span> Jujutsu Kaisen
                     </Link>
                     <Link to="/shop?anime=hunter-x-hunter" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
