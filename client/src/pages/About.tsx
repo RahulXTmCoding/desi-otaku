@@ -236,7 +236,7 @@ const About: React.FC = () => {
               <div className="relative">
                 <div className="relative bg-gradient-to-br from-yellow-100 to-orange-100 p-8 rounded-3xl border-2 border-yellow-400">
                   <img 
-                    src="https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894"
+                    src="https://lh3.googleusercontent.com/pw/AP1GczNH2EhydhiGYwH3642qzuWFiNF00bDHOGJFueTb27cEvKVKkyOpC540ujfMmNzm8bpiL9_Eg6MaR2Di46LG7TNUAD7rVbvBerMjMTwNQL_fy9NQ3HWzxJT12dMFNpfu9ol5pZ-8UMXexm-TBzIXXLQ=w888-h945-s-no-gm?authuser=0"
                     alt="High Quality T-Shirt"
                     className="w-full h-96 object-cover rounded-2xl shadow-2xl"
                   />

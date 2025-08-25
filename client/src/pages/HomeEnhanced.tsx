@@ -565,12 +565,12 @@ const HomeEnhanced: React.FC = () => {
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl p-4 transform -rotate-6 hover:rotate-0 transition-transform">
-                    <img src="https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894" alt="Anime Tee 1" className="rounded-lg" />
+                    <img src="https://lh3.googleusercontent.com/pw/AP1GczM-g5B7K3QvkbQ7riB-9DXBkvNKIPf_4rFjIggOpYbQLTnj89FQBLF7ciAc2uRpyTjXjVAjXDg541yKe3Y2Khf4e3yGa44029C6RP5WuE5nGJGMy51_RbUT1wf7ZPdU3acNoRW4UY4Kh2fLm458GFDH=w680-h945-s-no-gm?authuser=0" alt="Anime Tee 1" className="rounded-lg" />
                   </div>
                 </div>
                 <div className="space-y-4 pt-8">
                   <div className="bg-gradient-to-br from-gray-200 to-white rounded-2xl p-4 transform rotate-3 hover:rotate-0 transition-transform">
-                    <img src="https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894" alt="Anime Tee 2" className="rounded-lg" />
+                    <img src="https://lh3.googleusercontent.com/pw/AP1GczMyT2YItSqWJRGBK70US_zpD7B3jqIOOnU_Dqm3emDy4IHZHDiMiO23LHMfnSiHuSqGzvMMgCkMp6LQBLWDYgZxnc8odcKyZFxpn_Nd0K6NINYiv540DkXkvqsZkvOinAuQPrV4UYUllzbUdjiBAjNe=w687-h945-s-no-gm?authuser=0" alt="Anime Tee 2" className="rounded-lg" />
                   </div>
                   <div className="text-center">
                     <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-yellow-400 bg-clip-text text-transparent">ATTARS</h3>
@@ -580,7 +580,7 @@ const HomeEnhanced: React.FC = () => {
                 </div>
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-green-500 to-teal-500 rounded-2xl p-4 transform rotate-6 hover:rotate-0 transition-transform">
-                    <img src="https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894" alt="Anime Tee 3" className="rounded-lg" />
+                    <img src="https://lh3.googleusercontent.com/pw/AP1GczNgWXvNBxyGFElB0fURWK6kkPJh7aBkdXcADmOqB_4BMzy9nt8rlsz1OSP8-ovFriAmmR04Z6QA11caWhELwUAZgZ6W1ussfzLchr_KcWVsR1jqtJ2VGBQ1vZxKvFhqGWI-VbPn4OWVe4kKN-ib3tb0=w751-h945-s-no-gm?authuser=0" alt="Anime Tee 3" className="rounded-lg" />
                   </div>
                 </div>
               </div>
