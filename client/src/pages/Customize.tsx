@@ -91,9 +91,25 @@ const Customize: React.FC = () => {
   const totalPages = isTestMode ? 1 : (designsData?.pagination?.totalPages || 1);
   const categories = isTestMode ? [] : (Array.isArray(categoriesData) ? categoriesData : []);
   const allTags = isTestMode ? [] : (() => {
-    if (!tagsData || !Array.isArray(tagsData)) return [];
-    return tagsData.filter((tag: string) => 
-      tag && tag.length > 2 && !tag.match(/^[0-9a-fA-F]{24}$/)
+    // Ensure tagsData exists and is an array before filtering
+    if (!tagsData) return [];
+    
+    // Handle different possible data structures
+    let tags = [];
+    if (Array.isArray(tagsData)) {
+      tags = tagsData;
+    } else if (tagsData.tags && Array.isArray(tagsData.tags)) {
+      tags = tagsData.tags;
+    } else {
+      return [];
+    }
+    
+    // Filter tags with proper validation
+    return tags.filter((tag: string) => 
+      tag && 
+      typeof tag === 'string' && 
+      tag.length > 2 && 
+      !tag.match(/^[0-9a-fA-F]{24}$/)
     );
   })();
 
