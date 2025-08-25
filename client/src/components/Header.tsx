@@ -231,7 +231,7 @@ const Header: React.FC = () => {
   return (
     <>
       {/* Desktop Header - Hidden on Mobile */}
-      <nav className="hidden md:flex relative z-50 items-center justify-between px-6 py-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
+      <nav className="hidden md:flex sticky top-0 z-50 items-center justify-between px-6 py-4 shadow-lg backdrop-blur-md" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
         {/* Desktop Logo - Left Side */}
         <Link to={auth && auth.user && auth.user.role === 1 ? "/admin/dashboard" : "/"} className="flex items-center space-x-3 group">
           <div className="relative">
@@ -397,7 +397,7 @@ const Header: React.FC = () => {
       </nav>
 
       {/* Mobile Header - Hidden on Desktop */}
-      <nav className="md:hidden relative z-50 flex items-center px-1 py-4 shadow-lg" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
+      <nav className="md:hidden sticky top-0 z-50 flex items-center px-1 py-4 shadow-lg backdrop-blur-md" style={{ backgroundColor: 'var(--color-background)', borderBottom: '1px solid var(--color-border)' }}>
         {/* Mobile Left Section - Menu + Search */}
         <div className="flex items-center">
           <button

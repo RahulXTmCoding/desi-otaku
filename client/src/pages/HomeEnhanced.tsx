@@ -144,7 +144,7 @@ const HomeEnhanced: React.FC = () => {
     { 
       name: "Custom Design", 
       icon: "🎨", 
-      image: "https://lh3.googleusercontent.com/pw/AP1GczPxrCBM2OL5K7jWB3BSrw0XyUVkEgNEFwRvKrSRF6rJ33H8hPUgqrobNCWyFKlfsicbyTC-p6iWzdapY1rscfPzCA8po9PvJbqG8d3MPKiyqTDdyNv2f0SBEg4WYa8bONxKkyApfQGHddFu_7mIsPzC=w743-h922-s-no-gm?authuser=0", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczNP_FabP2L8e5i75ipuq7cVMQyqJ0Py0l9OQnGGGPQOx42EbklKLaEzTZ1m71vteF2kvgmy6qOyQ1lUWZSLJ98q69zqBJG7Fmm_MNfowsRSSWt_2IUTntD4F8BFKgOGXmxVHbd0w8GExdHc9cmo7tm6=w743-h922-s-no-gm?authuser=0", 
       link: "/customize",
       productCount: undefined
     }
