@@ -123,28 +123,28 @@ const HomeEnhanced: React.FC = () => {
     { 
       name: "T-Shirts", 
       icon: "👕", 
-      image: "https://fansarmy.in/cdn/shop/files/COMBOCAROUSALIMAGES_7_1800x1800.jpg?v=1710585925", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczO3K6So5vUlVJniFEi0qZbYxt_PAJvcwgf7ppcNXp2EwzZMLpV2mxBZT0CDIDUM3Aee3gQSbo3t5-stTLAZZThaf26Xrq4KArsqowi8aypAQnoLYIfXdo3RVmVtrmy0fPZtzwP8m3JsAlEIVr8dLd6u=w735-h945-s-no-gm?authuser=0", 
       link: "/shop?type=6866c0feb7d12a687483eff3",
       productCount: 156
     },
     { 
       name: "Hoodies", 
       icon: "🧥", 
-      image: "https://fansarmy.in/cdn/shop/products/136_1800x1800.jpg?v=1673854564", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczOfUIxYo1LpvSr11jQPid8x3mUJuUvU-MOx4Y71tW9wnt43T6X3jjlFO9ToklMkpWe2G6PM4qYVQciIF-utOq7zE307R6EtW1rlPykIhXN0kGt1OriJmDezQcTCEDGop6s0EudKslWmmsXcoHfLQefA=w750-h750-s-no-gm?authuser=0", 
       link: "/shop?type=6866c0feb7d12a687483eff7",
       productCount: 89
     },
     { 
       name: "Oversized Tees", 
       icon: "🎁", 
-      image: "https://fansarmy.in/cdn/shop/files/2_77968a83-e420-4a49-a355-2488f4776a10_1800x1800.jpg?v=1716963525", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczOufC4vtOOrNzXK3QYy85NoISiimLzL9y0clut1yTkhFGWt3ExgiOWSnDCl2xXKJytcePLrCHdbbcuTlZWhaUliuEqwC_qjql2z_RmNl9R66w9vtFs1pJnmS73C3OmFEtRABUY6D5JikDd56-68aTCw=w735-h945-s-no-gm?authuser=0", 
       link: "/shop?type=6866c0feb7d12a687483eff9",
       productCount: 45
     },
     { 
       name: "Custom Design", 
       icon: "🎨", 
-      image: "https://lh3.googleusercontent.com/pw/AP1GczMdc0OBCzA_04DPzLJ3HbYonMgEIvqsoOfP7tEqNV0TOl0vWapcQQbZkAzWZVlPYxPenktQ36NGXGyJiAY6wuYohJfM4QcLEMlsstKVd7NVtJ-Hb9KXO8oVJOvTB0Uiw8mQrlSCuZgDCKxi2gymGVkg=w1369-h913-s-no-gm?authuser=0", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczPxrCBM2OL5K7jWB3BSrw0XyUVkEgNEFwRvKrSRF6rJ33H8hPUgqrobNCWyFKlfsicbyTC-p6iWzdapY1rscfPzCA8po9PvJbqG8d3MPKiyqTDdyNv2f0SBEg4WYa8bONxKkyApfQGHddFu_7mIsPzC=w743-h922-s-no-gm?authuser=0", 
       link: "/customize",
       productCount: undefined
     }
@@ -152,12 +152,12 @@ const HomeEnhanced: React.FC = () => {
 
   // Placeholder anime images - these would be replaced with actual category images
   const animeImages: { [key: string]: string } = {
-    "naruto": "https://fansarmy.in/cdn/shop/products/itachitshirt_d3e14ec9-aa4a-4046-a863-f4be5fba667c_1800x1800.jpg?v=1639554509",
-    "one piece": "https://fansarmy.in/cdn/shop/products/onepiecetshirt_1800x1800.jpg?v=1634797894",
-    "demon slayer": "https://fansarmy.in/cdn/shop/products/23_1800x1800.jpg?v=1653574998",
-    "attack on titan": "https://fansarmy.in/cdn/shop/products/attack-on-titan-logo-tshirt-black-front-402728_l_1800x1800.jpg?v=1630592280",
-    "jujutsu kaisen": "https://fansarmy.in/cdn/shop/products/jujutsukaisentshirt_3ba65438-bd96-4e3c-9740-b773be6ca35b_1800x1800.jpg?v=1634803587",
-    "dragon ball": "https://fansarmy.in/cdn/shop/files/COMBOCAROUSALIMAGES_7_1800x1800.jpg?v=1710585925"
+    "naruto": "https://lh3.googleusercontent.com/pw/AP1GczNY8NaKs1RIyOjofmNt2MhwjklzuHD26vgbCdpgrmXj9T5AfUUpiPy4zicM7Ve-Lt7QSSgMAUBLbkVJLomnYkxGVGDC3TZNx3sw3NLIdXkB0AjaIQn4VbGlNQKPrTvUd-sOK46BKPR4Cr1dd-yhPqYj=w887-h945-s-no-gm?authuser=0",
+    "one piece": "https://lh3.googleusercontent.com/pw/AP1GczPjwB-VOZvgM7fQX50kf3g8Zif3HoARyFobN6-yW7USUKjJ9Nchdy8B6H4X3lQWKWJyx5Ix7YaOwEpqcyBZu5i1fHYDRrdtv2ZvBqQtQBatoWCkES09D3uOvF6RN1oPuqXmi9yCiX-S6h6e0RhAAEbH=w735-h945-s-no-gm?authuser=0",
+    "demon slayer": "https://lh3.googleusercontent.com/pw/AP1GczPhNzAnUZuDSMlBzwcXYK0fNGky5Eqr2U4Ak3R4xiWUn-kJEmPmKm9lrCzdCEIw1w31X5cJjiUjY0nmguzyxMCzHHI-eUqeZ5Zsw20WMy9tedh1o_dy6BkDPi1SRQXkMBnnReWEg5GvsgWR2DZNcU-g=w496-h945-s-no-gm?authuser=0",
+    "attack on titan": "https://lh3.googleusercontent.com/pw/AP1GczMRXixzq4Yw96E6GWhpTZM88wjnx6sQnv63RtNufmXIdBmu6bdJGU5l_bTBO8qIlQGbFkaaGHi1WXlID1mjGagMfwjYsB-WT28OSPEoOZ6flIY5-V0M0_FWXvqg2EgzHIKfsoKYNAYd-r3KuFJJmFvt=w735-h945-s-no-gm?authuser=0",
+    "jujutsu kaisen": "https://lh3.googleusercontent.com/pw/AP1GczPBKwasqiA7NGhuseMTzAemgFmtNO6k5qrr5SUHlHvSdYprtJunXlsTQUuUm-y9FWrBiMIBsRIJxU3puhG8wXl4Z-Ucf3f7fjFBIDnuQg4QZ_3tiHMfEZLO8-GmOfW9HNYuDl1lLj7xofc_IEIFe1Ix=w735-h945-s-no-gm?authuser=0",
+    "dragon ball": "https://lh3.googleusercontent.com/pw/AP1GczP_MnjsBnaSYbj_sfV5IFfc59rT0k-_a5qDRUfTW5MAt9le3C7hQxV4xItIfSTQJUvV1KuPZo-Y2WUVVsuO-3YdZFqgoYIkfZDjYXUBj10lmHJl1v1kf-tgUJ1rVvgsdRwvHzuaT3yCvmPh-yND1alK=w735-h945-s-no-gm?authuser=0"
   };
 
   // Load categories only (products are handled by React Query)
