@@ -28,22 +28,22 @@ const ShippingPolicy: React.FC = () => {
 
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Free Shipping */}
-          <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-2xl p-8">
+          <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-400/30 rounded-2xl p-8 shadow-lg">
             <div className="flex items-center mb-6">
               <Package className="w-6 h-6 text-green-400 mr-3" />
               <h2 className="text-2xl font-bold text-white">Free Shipping</h2>
             </div>
             <div className="grid md:grid-cols-2 gap-6">
-              <div>
+              <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <h3 className="text-lg font-semibold mb-3 text-yellow-400">Domestic Orders</h3>
-                <p className="text-white mb-4">
+                <p className="text-gray-100 mb-4">
                   ✅ Free shipping on all orders above ₹999<br/>
                   ✅ Standard shipping ₹79 for orders below ₹999<br/>
                 </p>
               </div>
-              <div>
+              <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <h3 className="text-lg font-semibold mb-3 text-yellow-400">Premium Benefits</h3>
-                <p className="text-white">
+                <p className="text-gray-100">
                   ✅ Priority processing<br/>
                   ✅ Tracking updates<br/>
                   ✅ Insurance coverage included

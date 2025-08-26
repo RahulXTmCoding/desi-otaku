@@ -29,26 +29,26 @@ const PrivacyPolicy: React.FC = () => {
 
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Overview */}
-          <div className="bg-gradient-to-r from-blue-500/10 to-green-500/10 border border-blue-500/20 rounded-2xl p-8">
+          <div className="bg-gradient-to-r from-blue-500/20 to-green-500/20 border border-blue-400/30 rounded-2xl p-8 shadow-lg">
             <div className="flex items-center mb-6">
               <Eye className="w-6 h-6 text-blue-400 mr-3" />
               <h2 className="text-2xl font-bold text-white">Privacy Overview</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center">
+              <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <Lock className="w-8 h-8 text-green-400 mx-auto mb-3" />
                 <h3 className="font-semibold text-green-400 mb-2">Secure</h3>
-                <p className="text-white text-sm">Your data is encrypted and protected</p>
+                <p className="text-gray-100 text-sm">Your data is encrypted and protected</p>
               </div>
-              <div className="text-center">
+              <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <Database className="w-8 h-8 text-blue-400 mx-auto mb-3" />
                 <h3 className="font-semibold text-blue-400 mb-2">Minimal</h3>
-                <p className="text-white text-sm">We collect only what's necessary</p>
+                <p className="text-gray-100 text-sm">We collect only what's necessary</p>
               </div>
-              <div className="text-center">
+              <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <Globe className="w-8 h-8 text-yellow-400 mx-auto mb-3" />
                 <h3 className="font-semibold text-yellow-400 mb-2">Transparent</h3>
-                <p className="text-white text-sm">Clear about how we use your data</p>
+                <p className="text-gray-100 text-sm">Clear about how we use your data</p>
               </div>
             </div>
           </div>

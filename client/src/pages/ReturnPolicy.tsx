@@ -28,32 +28,32 @@ const ReturnPolicy: React.FC = () => {
 
         <div className="max-w-4xl mx-auto space-y-8">
           {/* Easy Returns Highlight */}
-          <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-500/20 rounded-2xl p-8">
+          <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-400/30 rounded-2xl p-8 shadow-lg">
             <div className="flex items-center mb-6">
               <CheckCircle className="w-6 h-6 text-green-400 mr-3" />
               <h2 className="text-2xl font-bold text-white">Easy Returns</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="bg-yellow-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg">
+              <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+                <div className="bg-yellow-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg shadow-md">
                   7
                 </div>
                 <h3 className="font-semibold text-yellow-400 mb-2">Days Return</h3>
-                <p className="text-white text-sm">Return within 7 days of delivery</p>
+                <p className="text-gray-100 text-sm">Return within 7 days of delivery</p>
               </div>
-              <div className="text-center">
-                <div className="bg-blue-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg">
+              <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+                <div className="bg-blue-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg shadow-md">
                   ₹0
                 </div>
                 <h3 className="font-semibold text-blue-400 mb-2">Free Returns</h3>
-                <p className="text-white text-sm">No return shipping charges</p>
+                <p className="text-gray-100 text-sm">No return shipping charges</p>
               </div>
-              <div className="text-center">
-                <div className="bg-green-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg">
+              <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
+                <div className="bg-green-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg shadow-md">
                   ✓
                 </div>
                 <h3 className="font-semibold text-green-400 mb-2">Easy Process</h3>
-                <p className="text-white text-sm">Simple online return process</p>
+                <p className="text-gray-100 text-sm">Simple online return process</p>
               </div>
             </div>
           </div>
