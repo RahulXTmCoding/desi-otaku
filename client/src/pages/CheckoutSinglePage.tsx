@@ -957,15 +957,15 @@ const CheckoutSinglePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* <button
-                onClick={handlePlaceOrderWithValidation}
+              <button
+                onClick={() => {}}
                 disabled={loading || !selectedShipping || !validateShipping()}
                 className="w-full mt-6 bg-red-500 hover:bg-red-600 disabled:bg-gray-600 text-white disabled:text-gray-400 py-4 rounded-lg font-bold text-lg disabled:cursor-not-allowed transition-colors"
               >
-                {loading ? 'Processing...' : `Complete Order • ₹${getFinalAmount()}`}
-              </button> */}
+                Launching Soon
+              </button>
 
-               <button
+               {/* <button
                       onClick={handlePlaceOrderWithValidation}
                       disabled={loading}
                       className="mt-6 w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 py-3 rounded-lg font-bold disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -981,7 +981,7 @@ const CheckoutSinglePage: React.FC = () => {
                           Place Order • ₹{getFinalAmount()}
                         </>
                       )}
-                    </button>
+                    </button> */}
               
               <p className="text-xs text-gray-500 text-center mt-3">
                 By placing this order, you agree to our Terms & Conditions
