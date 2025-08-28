@@ -443,7 +443,7 @@ const HomeEnhanced: React.FC = () => {
 
         {/* Progressive Banner Section - Optimized Loading */}
         <ProgressiveBanner
-          highQualityDesktop="https://lh3.googleusercontent.com/pw/AP1GczPVGGlnvhUzVTBe_g6HKJS1kkTx9Vd6omaUfkINIztoj-nJ_iai1Gy7C_KH7aMb0ViCaxE2G8pYCFrNll2hDtF53hgTA6pUbNnDeNkPTFLAI38bDYb9wIlwY4smsoAiMUsiL7caHoTyZZCbydNMpPVU=w1669-h618-s-no-gm?authuser=0"
+          highQualityDesktop="https://lh3.googleusercontent.com/pw/AP1GczNA60H0aJduGWIvmmGjmDCHOu0g8d9UzuKUNmWq--wjuz2FaJCgsUZFyjo9DAAaL1xA3aozhLv-IvicfHMlsM_VgDZ-8XSi15DitxRMrcGNdRiJRyx0XTsXc7Z9iWx9N-0p6kCCGYQOrtNIejgSCW3D=w1669-h576-s-no-gm?authuser=0"
           highQualityMobile="https://lh3.googleusercontent.com/pw/AP1GczPvITvGIZ94AKzAEdQHclFkX2mEKGzhjW0rfM-iJUKESfmRn1L8DTbuggtK3Zu7-l66NlfgJ5KA6VoX00hySNxrb_4mlyfLcBA9ElhoonaDbULlSCwL_fvonHN_KAKhbVg0MaghRHlif-H9MSfoqzE=w965-h913-s-no-gm?authuser=0"
           finalFallbackDesktop="/lq-banner.png"
           finalFallbackMobile="/lq-mobile-banner.png"
