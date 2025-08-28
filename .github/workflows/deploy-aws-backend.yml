@@ -309,6 +309,25 @@ jobs:
             --value "${{ secrets.PRODUCTION_CLIENT_URL }}" \
             --type "String" \
             --overwrite
+
+          # Telegram
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/TELEGRAM_NOTIFICATIONS_ENABLED" \
+            --value "${{ secrets.TELEGRAM_NOTIFICATIONS_ENABLED }}" \
+            --type "String" \
+            --overwrite
+
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/TELEGRAM_BOT_TOKEN" \
+            --value "${{ secrets.TELEGRAM_BOT_TOKEN }}" \
+            --type "String" \
+            --overwrite
+
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/TELEGRAM_ADMIN_CHAT_ID" \
+            --value "${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}" \
+            --type "String" \
+            --overwrite
           
           echo "✅ All parameters updated successfully in Parameter Store"
 
