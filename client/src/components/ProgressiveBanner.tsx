@@ -25,8 +25,24 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
   const [showHighQuality, setShowHighQuality] = useState(false);
   const [hasHighQualityError, setHasHighQualityError] = useState(false);
   const [showStyledFallback, setShowStyledFallback] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
-  // Preload high-quality images
+  // Detect device type on mount and window resize
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    // Check initially
+    checkIsMobile();
+    
+    // Listen for window resize
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
+  // Preload high-quality images - Only load the image needed for current device
   const preloadHighQualityImages = useCallback(() => {
     const isMobile = window.innerWidth < 768; // md breakpoint
     
@@ -46,25 +62,17 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
     };
 
     if (isMobile) {
-      // On mobile, prioritize mobile image loading
+      // On mobile, ONLY load mobile image (saves bandwidth)
       const mobileImg = new Image();
       mobileImg.onload = handleImageLoaded(2000);
       mobileImg.onerror = handleImageError;
       mobileImg.src = highQualityMobile;
-      
-      // Preload desktop image in background (lower priority)
-      const desktopImg = new Image();
-      desktopImg.src = highQualityDesktop;
     } else {
-      // On desktop, prioritize desktop image loading
+      // On desktop, ONLY load desktop image (saves bandwidth)
       const desktopImg = new Image();
       desktopImg.onload = handleImageLoaded(1000);
       desktopImg.onerror = handleImageError;
       desktopImg.src = highQualityDesktop;
-      
-      // Preload mobile image in background (lower priority)
-      const mobileImg = new Image();
-      mobileImg.src = highQualityMobile;
     }
   }, [highQualityDesktop, highQualityMobile]);
 
@@ -208,69 +216,72 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
   return (
     <section className={`w-full ${className}`}>
       <div className="relative w-full">
-        {/* Desktop Banner - Hidden on mobile */}
-        <div className="hidden md:block relative overflow-hidden">
-          {/* Set fixed aspect ratio container to prevent layout shift */}
-          <div className="relative w-full" style={{ aspectRatio: '1434/530' }}>
-            {/* Low-quality placeholder - shows immediately, fades out after high-quality is visible */}
-            <img 
-              src="/lq-banner.png"
-              alt="Loading banner..."
-              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-1000 ease-in-out ${
-                showHighQuality ? 'opacity-0' : 'opacity-100'
-              }`}
-              loading="eager"
-              onClick={handleClick}
-              onError={(e) => {
-                e.currentTarget.src = finalFallbackDesktop;
-              }}
-            />
-            
-            {/* High-quality image - appears immediately when loaded */}
-            <img 
-              src={currentDesktopSrc}
-              alt={alt}
-              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-500 ease-in-out ${
-                isHighQualityLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
-              loading="lazy"
-              onClick={handleClick}
-              onError={() => handleImageError(false)}
-            />
+        {/* Conditionally render ONLY the appropriate device images */}
+        {!isMobile ? (
+          // Desktop Banner - Only rendered on desktop
+          <div className="relative overflow-hidden">
+            <div className="relative w-full" style={{ aspectRatio: '1434/530' }}>
+              {/* Low-quality placeholder */}
+              <img 
+                src="/lq-banner.png"
+                alt="Loading banner..."
+                className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-1000 ease-in-out ${
+                  showHighQuality ? 'opacity-0' : 'opacity-100'
+                }`}
+                loading="eager"
+                onClick={handleClick}
+                onError={(e) => {
+                  e.currentTarget.src = finalFallbackDesktop;
+                }}
+              />
+              
+              {/* High-quality desktop image */}
+              <img 
+                src={currentDesktopSrc}
+                alt={alt}
+                className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-500 ease-in-out ${
+                  isHighQualityLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+                loading="eager"
+                fetchPriority="high"
+                onClick={handleClick}
+                onError={() => handleImageError(false)}
+              />
+            </div>
           </div>
-        </div>
-        
-        {/* Mobile Banner - Hidden on desktop */}
-        <div className="block md:hidden relative overflow-hidden">
-          {/* Set fixed aspect ratio container to prevent layout shift */}
-          <div className="relative w-full" style={{ aspectRatio: '965/913' }}>
-            {/* Low-quality placeholder - shows immediately, fades out after high-quality is visible */}
-            <img 
-              src="/lq-mobile-banner.png"
-              alt="Loading banner..."
-              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-1000 ease-in-out ${
-                showHighQuality ? 'opacity-0' : 'opacity-100'
-              }`}
-              loading="eager"
-              onClick={handleClick}
-              onError={(e) => {
-                e.currentTarget.src = finalFallbackMobile;
-              }}
-            />
-            
-            {/* High-quality image - appears immediately when loaded */}
-            <img 
-              src={currentMobileSrc}
-              alt={`${alt} Mobile`}
-              className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-500 ease-in-out ${
-                isHighQualityLoaded ? 'opacity-100' : 'opacity-0'
-              }`}
-              loading="lazy"
-              onClick={handleClick}
-              onError={() => handleImageError(true)}
-            />
+        ) : (
+          // Mobile Banner - Only rendered on mobile
+          <div className="relative overflow-hidden">
+            <div className="relative w-full" style={{ aspectRatio: '965/913' }}>
+              {/* Low-quality placeholder */}
+              <img 
+                src="/lq-mobile-banner.png"
+                alt="Loading banner..."
+                className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-1000 ease-in-out ${
+                  showHighQuality ? 'opacity-0' : 'opacity-100'
+                }`}
+                loading="eager"
+                onClick={handleClick}
+                onError={(e) => {
+                  e.currentTarget.src = finalFallbackMobile;
+                }}
+              />
+              
+              {/* High-quality mobile image */}
+              <img 
+                src={currentMobileSrc}
+                alt={`${alt} Mobile`}
+                className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-500 ease-in-out ${
+                  isHighQualityLoaded ? 'opacity-100' : 'opacity-0'
+                }`}
+                loading="eager"
+                fetchPriority="high"
+                onClick={handleClick}
+                onError={() => handleImageError(true)}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </section>
   );

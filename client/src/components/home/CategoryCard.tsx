@@ -48,6 +48,36 @@ const getCardGradient = (categoryName: string): string => {
   }
 };
 
+const getAccessibleAltText = (name: string): string => {
+  const lowerName = name.toLowerCase();
+  
+  // For anime categories
+  if (['naruto', 'one piece', 'demon slayer', 'attack on titan', 'jujutsu kaisen', 'dragon ball'].some(anime => 
+    lowerName.includes(anime.replace(' ', '')))) {
+    return `${name} anime merchandise collection`;
+  }
+  
+  // For product types
+  if (lowerName.includes('custom')) {
+    return `${name} studio preview`;
+  }
+  
+  if (lowerName.includes('t-shirt') || lowerName.includes('tshirt')) {
+    return `${name} collection showcase`;
+  }
+  
+  if (lowerName.includes('hoodie')) {
+    return `${name} collection preview`;
+  }
+  
+  if (lowerName.includes('oversized')) {
+    return `${name} collection display`;
+  }
+  
+  // Default for other categories
+  return `${name} collection showcase`;
+};
+
 const CategoryCard: React.FC<CategoryCardProps> = ({ 
   name, 
   icon, 
@@ -63,7 +93,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
             <div className="relative h-80 sm:h-96 overflow-hidden" style={{ background: getCardGradient(name) }}>
               <img 
                 src={image} 
-                alt={name}
+                alt={getAccessibleAltText(name)}
                 className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
               />
               {/* <div className="absolute inset-0 bg-gradient-to-t to-transparent"></div> */}

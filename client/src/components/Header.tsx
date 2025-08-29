@@ -323,6 +323,7 @@ const Header: React.FC = () => {
               className="p-2 rounded-lg transition-all hover:scale-110"
               style={{ color: 'var(--color-text)', opacity: 0.8 }}
               title="Search"
+              aria-label="Search products"
             >
               <Search className="w-5 h-5" />
             </button>
@@ -338,6 +339,7 @@ const Header: React.FC = () => {
                 onClick={() => setIsCartOpen(true)} 
                 className="relative p-2 rounded-lg transition-all group"
                 style={{ color: 'var(--color-text)', opacity: 0.8 }}
+                aria-label={`Shopping cart${cartCount > 0 ? ` (${cartCount} items)` : ''}`}
               >
                 <ShoppingCart 
                   className={`w-5 h-5 ${cartAnimation ? 'animate-bounce' : ''}`} 
@@ -404,6 +406,7 @@ const Header: React.FC = () => {
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="p-2 transition-all hover:scale-110"
             style={{ color: 'var(--color-text)' }}
+            aria-label={isMobileMenuOpen ? "Close mobile menu" : "Open mobile menu"}
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
