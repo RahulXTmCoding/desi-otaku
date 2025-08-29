@@ -17,19 +17,19 @@ initializeAuth();
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryProvider>
-      <SEOProvider>
-        <ThemeProvider>
-          <DevModeProvider>
-            <AOVProvider>
-              <BrowserRouter>
+      <ThemeProvider>
+        <DevModeProvider>
+          <AOVProvider>
+            <BrowserRouter>
+              <SEOProvider>
                 <CartProvider>
                   <App />
                 </CartProvider>
-              </BrowserRouter>
-            </AOVProvider>
-          </DevModeProvider>
-        </ThemeProvider>
-      </SEOProvider>
+              </SEOProvider>
+            </BrowserRouter>
+          </AOVProvider>
+        </DevModeProvider>
+      </ThemeProvider>
     </QueryProvider>
   </React.StrictMode>,
 )

@@ -243,7 +243,6 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
                   isHighQualityLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
                 loading="eager"
-                fetchPriority="high"
                 onClick={handleClick}
                 onError={() => handleImageError(false)}
               />
@@ -275,7 +274,6 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
                   isHighQualityLoaded ? 'opacity-100' : 'opacity-0'
                 }`}
                 loading="eager"
-                fetchPriority="high"
                 onClick={handleClick}
                 onError={() => handleImageError(true)}
               />
