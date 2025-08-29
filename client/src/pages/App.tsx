@@ -7,10 +7,11 @@ import PrivateRoute from "../auth/helper/PrivateRoutes";
 import AdminRoute from "../auth/helper/AdminRoutes";
 import GuestRoute from "../auth/helper/GuestRoutes";
 import DevModeToggle from '../components/DevModeToggle';
+import Home from './HomeEnhanced';
 
 // Lazy load all pages
-const HomeEnhanced = lazy(() => import('./HomeEnhanced'));
-const Home = lazy(() => import('../core/Home'));
+// const HomeEnhanced = lazy(() => import('./HomeEnhanced'));
+// const Home = lazy(() => import('../core/Home'));
 const ShopWithBackendFilters = lazy(() => import('../pages/ShopWithBackendFilters'));
 const About = lazy(() => import('./About'));
 const Contact = lazy(() => import('../pages/Contact'));
@@ -81,7 +82,7 @@ export default function App() {
       <main className="flex-grow">
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/" element={<HomeEnhanced />} />
+            <Route path="/" element={<Home />} />
             <Route path="/shop" element={<ShopWithBackendFilters />} />
             <Route path="/about" element={<About />} />
             <Route path="/product/:id" element={<ProductDetail />} />
