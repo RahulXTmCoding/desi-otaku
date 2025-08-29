@@ -25,15 +25,24 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
   const [showHighQuality, setShowHighQuality] = useState(false);
   const [hasHighQualityError, setHasHighQualityError] = useState(false);
   const [showStyledFallback, setShowStyledFallback] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  // Initialize with proper mobile detection to prevent layout shift
+  const [isMobile, setIsMobile] = useState(() => {
+    // Check if window is available (client-side)
+    if (typeof window !== 'undefined') {
+      return window.innerWidth < 768;
+    }
+    // Default to mobile for SSR to prevent hydration mismatch
+    return true;
+  });
 
   // Detect device type on mount and window resize
   useEffect(() => {
     const checkIsMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
     };
     
-    // Check initially
+    // Check initially (in case SSR default was wrong)
     checkIsMobile();
     
     // Listen for window resize
