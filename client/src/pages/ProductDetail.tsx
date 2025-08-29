@@ -177,23 +177,113 @@ const ProductDetail: React.FC = () => {
   
   const defaultSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
-  const defaultFeatures = [
-    "100% Premium Cotton",
-    "High-quality digital print",
-    "Pre-shrunk fabric",
-    "Double-stitched seams",
-    "Comfortable regular fit"
-  ];
+  // Dynamic product type detection and descriptions
+  const getProductType = (product: Product): 'printed-tee' | 'oversized' | 'hoodie' | 'default' => {
+    const category = product?.productType?.name?.toLowerCase() || '';
+    
+    if (category.includes('hoodie')) {
+      return 'hoodie';
+    } else if (category.includes('oversized')) {
+      return 'oversized';
+    } else if (category.includes('tshirt') || category.includes('t-shirt')) {
+      return 'printed-tee';
+    }
+    return 'default';
+  };
 
-  const defaultCareInstructions = [
-    "Machine wash cold with similar colors",
-    "Do not bleach",
-    "Tumble dry low",
-    "Iron on reverse side",
-    "Do not dry clean"
-  ];
+  const getProductDescriptions = (productType: string) => {
+    switch (productType) {
+      case 'printed-tee':
+        return {
+          material: "100% Cotton 220 GSM Premium Tees",
+          features: [
+            "100% Cotton 220 GSM premium fabric",
+            "Pre-shrunk for perfect fit",
+            "Bio-washed for extra softness",
+            "High-quality digital print",
+            "Double-stitched seams for durability",
+            "Comfortable regular fit",
+            "Fade-resistant colors"
+          ],
+          careInstructions: [
+            "Machine wash cold with similar colors",
+            "Do not bleach",
+            "Tumble dry low",
+            "Iron on reverse side",
+            "Do not dry clean"
+          ]
+        };
+      
+      case 'oversized':
+        return {
+          material: "240 GSM French Terry",
+          features: [
+            "240 GSM French Terry fabric",
+            "Pre-shrunk for perfect fit", 
+            "Bio-washed for premium feel",
+            "Relaxed oversized fit",
+            "Super soft and comfortable",
+            "High-quality print/embroidery",
+            "Reinforced shoulder seams"
+          ],
+          careInstructions: [
+            "Machine wash cold with similar colors",
+            "Do not bleach",
+            "Tumble dry low heat",
+            "Iron on low heat if needed",
+            "Do not dry clean"
+          ]
+        };
+      
+      case 'hoodie':
+        return {
+          material: "350 GSM Cotton",
+          features: [
+            "350 GSM premium cotton blend",
+            "Heavyweight fabric for warmth",
+            "Soft fleece inner lining",
+            "Adjustable drawstring hood",
+            "Kangaroo pocket design",
+            "Pre-shrunk and bio-washed",
+            "Durable ribbed cuffs and hem"
+          ],
+          careInstructions: [
+            "Machine wash cold with similar colors",
+            "Do not bleach",
+            "Tumble dry medium heat",
+            "Iron on medium heat if needed",
+            "Do not dry clean"
+          ]
+        };
+      
+      default:
+        return {
+          material: "100% Premium Cotton",
+          features: [
+            "100% Premium Cotton",
+            "High-quality digital print",
+            "Pre-shrunk fabric",
+            "Double-stitched seams",
+            "Comfortable regular fit"
+          ],
+          careInstructions: [
+            "Machine wash cold with similar colors",
+            "Do not bleach",
+            "Tumble dry low",
+            "Iron on reverse side",
+            "Do not dry clean"
+          ]
+        };
+    }
+  };
 
-  const defaultMaterial = "100% Cotton (180 GSM)";
+  // Get dynamic descriptions based on product type
+  const productType = product ? getProductType(product) : 'default';
+  const productDescriptions = getProductDescriptions(productType);
+  
+  const defaultFeatures = productDescriptions.features;
+  const defaultCareInstructions = productDescriptions.careInstructions;
+  const defaultMaterial = productDescriptions.material;
 
   // Initialize defaults immediately when product loads (non-blocking)
   useEffect(() => {
@@ -1027,7 +1117,16 @@ const ProductDetail: React.FC = () => {
                 <p style={{ color: 'var(--color-textMuted)' }}>{product.description}</p>
                 <div className="mt-4">
                   <h4 className="font-semibold mb-2" style={{ color: 'var(--color-text)' }}>Material</h4>
-                  <p style={{ color: 'var(--color-textMuted)' }}>100% Cotton</p>
+                  <p style={{ color: 'var(--color-textMuted)' }}>{product.material || defaultMaterial}</p>
+                  {productType !== 'default' && (
+                    <div className="mt-2 p-3 rounded-lg" style={{ backgroundColor: 'var(--color-surface)' }}>
+                      <p className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
+                        Product Type: {productType === 'printed-tee' ? 'Premium T-Shirt' : 
+                                     productType === 'oversized' ? 'Oversized Fit' : 
+                                     productType === 'hoodie' ? 'Hoodie/Sweatshirt' : 'Standard'}
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
