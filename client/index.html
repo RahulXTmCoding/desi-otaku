@@ -62,26 +62,22 @@
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Playfair+Display:wght@400;500;800&display=swap" rel="stylesheet">
     </noscript>
     
-    <!-- Critical CSS (Inlined for LCP) -->
+    <!-- Critical CSS (Minimal for LCP) -->
     <style>
       :root {
         --color-background: #111827;
         --color-surface: #1f2937;
         --color-text: #f9fafb;
-        --color-textMuted: #9ca3af;
         --color-primary: #991B1B;
-        --color-primaryText: #111827;
-        --color-border: #374151;
       }
       
       * { box-sizing: border-box; margin: 0; padding: 0; }
       
       body {
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background-color: var(--color-background) !important;
-        color: var(--color-text) !important;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background-color: var(--color-background);
+        color: var(--color-text);
         line-height: 1.6;
-        font-display: swap;
       }
       
       #root {
@@ -90,39 +86,14 @@
         flex-direction: column;
       }
       
-      /* Critical above-the-fold styles */
-      .bg-black { background-color: var(--color-background) !important; }
-      .text-white { color: var(--color-text) !important; }
-      .w-full { width: 100%; }
-      .h-full { height: 100%; }
-      .flex { display: flex; }
-      .flex-col { flex-direction: column; }
-      .items-center { align-items: center; }
-      .justify-center { justify-content: center; }
-      .relative { position: relative; }
-      .absolute { position: absolute; }
-      .inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
-      .object-cover { object-fit: cover; }
-      .cursor-pointer { cursor: pointer; }
-      .transition-opacity { transition: opacity 0.3s ease; }
-      
-      /* Font loading optimization */
-      @font-face {
-        font-family: 'Inter';
-        font-style: normal;
-        font-weight: 400;
-        font-display: swap;
-        src: local('Inter'), local('Inter-Regular');
-      }
-      
-      @font-face {
-        font-family: 'Playfair Display';
-        font-style: normal;
-        font-weight: 600;
-        font-display: swap;
-        src: local('Playfair Display'), local('PlayfairDisplay-SemiBold');
-      }
+      /* Loading state */
+      .loading { opacity: 0; }
+      .loaded { opacity: 1; transition: opacity 0.3s ease; }
     </style>
+    
+    <!-- Load non-critical CSS asynchronously -->
+    <link rel="preload" href="/src/index.css" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="/src/index.css"></noscript>
     
     <!-- Schema.org Markup -->
     <script type="application/ld+json">
@@ -149,17 +120,26 @@
     }
     </script>
     
-    <!-- Google Analytics 4 -->
-    <!-- Replace G-XXXXXXXXXX with your actual Google Analytics tracking ID -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-59F1CDXX1M"></script>
+    <!-- Google Analytics 4 - Optimized Loading -->
     <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-59F1CDXX1M', {
-        page_title: 'Attars Clothing - Premium Streetwear India',
-        page_location: window.location.href,
-        anonymize_ip: true
+      // Defer GA loading to improve performance
+      window.addEventListener('load', function() {
+        // Load GA after page load
+        var script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-59F1CDXX1M';
+        document.head.appendChild(script);
+        
+        script.onload = function() {
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-59F1CDXX1M', {
+            page_title: 'Attars Clothing - Premium Streetwear India',
+            page_location: window.location.href,
+            anonymize_ip: true
+          });
+        };
       });
     </script>
     
