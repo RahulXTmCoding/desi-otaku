@@ -237,7 +237,7 @@ const Header: React.FC = () => {
           <div className="relative">
             {/* <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div> */}
             <div className="relative w-36  flex items-center justify-center ">
-              <img src="/brand.png" alt="Attars Clothing Logo" className="w-36 object-contain logo-adaptive" />
+              <img src="/brand.png" alt="Attars Club Logo" className="w-36 object-contain logo-adaptive" />
             </div>
           </div>
         </Link>
@@ -428,7 +428,7 @@ const Header: React.FC = () => {
             <div className="relative">
               {/* <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div> */}
               <div className="relative w-28 flex items-center justify-center transform group-hover:scale-110 transition-transform rounded-xl overflow-hidden">
-                <img src="/brand.png" alt="Attars Clothing Logo" className="w-28 h-10 object-contain logo-adaptive" />
+                <img src="/brand.png" alt="Attars Club Logo" className="w-28 h-10 object-contain logo-adaptive" />
               </div>
             </div>
           </Link>
@@ -504,7 +504,7 @@ const Header: React.FC = () => {
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
             <div className="flex items-center space-x-2">
               <div className="w-28 flex items-center justify-center rounded-lg overflow-hidden">
-                <img src="/brand.png" alt="Attars Clothing Logo" className="w-28 object-contain logo-adaptive" />
+                <img src="/brand.png" alt="Attars Club Logo" className="w-28 object-contain logo-adaptive" />
               </div>
             </div>
             <button

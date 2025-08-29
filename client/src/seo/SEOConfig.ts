@@ -12,17 +12,21 @@ export interface SEOPageData {
 export const BASE_URL = 'https://attars.club'; // Production domain
 
 export const DEFAULT_SEO = {
-  siteName: 'Attars Clothing - Premium Streetwear India',
-  defaultTitle: 'Attars Clothing - Premium Streetwear India | Anime, Indian Culture, TV Shows & Original Designs',
-  defaultDescription: 'Discover premium streetwear at Attars Clothing India. Shop our exclusive collection of anime merchandise, Indian culture designs, TV show apparel, and original streetwear. High-quality premium fashion with fast delivery across India.',
+  siteName: 'Attars Club - Premium Fashion India',
+  defaultTitle: 'Attars Club - Premium Fashion India | Attars',
+  defaultDescription: 'Attars Club - Premium fashion destination in India. Shop at Attars for exclusive Streetwear, Anime, Indian Culture, TV Shows & Original Designs. Attars Fashion brings you the best in contemporary style with fast delivery across India.',
   defaultKeywords: [
-    'premium streetwear india',
+    'attars',
+    'attars club',
+    'attars fashion',
     'attars clothing',
+    'attars india',
+    'premium fashion india',
+    'premium streetwear india',
     'anime merchandise india',
     'indian culture apparel',
     'tv show merchandise india',
     'original streetwear designs',
-    'premium fashion india',
     'designer clothing india',
     'streetwear brand india',
     'anime t-shirts india',
@@ -32,16 +36,21 @@ export const DEFAULT_SEO = {
     'designer apparel india'
   ],
   defaultOgImage: '/og-image.jpg',
-  twitterHandle: '@attarsclothing',
+  twitterHandle: '@attars.club',
   facebookAppId: '', // Add your Facebook App ID
 };
 
 // Dynamic Category Templates for Scalable SEO
 export const CATEGORY_SEO_TEMPLATES = {
   tshirts: {
-    title: 'Premium T-Shirts India - Anime, Culture & Original Designs | Attars Clothing',
-    description: 'Shop premium t-shirts India at Attars Clothing. Anime merchandise, Indian culture designs, TV show apparel, and original streetwear. Premium quality with free shipping across India.',
+    title: 'T-Shirts at Attars - Premium Anime & Culture Designs | Attars Club',
+    description: 'Shop premium t-shirts at Attars Club. Browse Attars Fashion collection - anime merchandise, Indian culture designs, TV show apparel. Attars Clothing delivers premium quality across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars t-shirts',
       'premium t-shirts india',
       'anime t-shirts india',
       'indian culture t-shirts',
@@ -53,9 +62,14 @@ export const CATEGORY_SEO_TEMPLATES = {
     ]
   },
   hoodies: {
-    title: 'Premium Hoodies India - Anime, Streetwear & Designer Sweatshirts | Attars Clothing',
-    description: 'Shop premium hoodies India at Attars Clothing. Anime hoodies, streetwear designs, Indian culture prints, and original contemporary sweatshirts. Express delivery across India.',
+    title: 'Hoodies at Attars - Premium Anime & Streetwear | Attars Club',
+    description: 'Shop premium hoodies at Attars Club. Explore Attars Fashion hoodie collection - anime hoodies, streetwear designs, Indian culture prints. Attars Clothing delivers contemporary sweatshirts across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars hoodies',
       'premium hoodies india',
       'anime hoodies india',
       'streetwear hoodies india',
@@ -67,9 +81,14 @@ export const CATEGORY_SEO_TEMPLATES = {
     ]
   },
   oversized: {
-    title: 'Oversized Streetwear India - Premium Loose Fit Fashion | Attars Clothing',
-    description: 'Shop oversized streetwear India at Attars Clothing. Premium loose fit t-shirts, hoodies, anime designs, and contemporary streetwear. Comfortable luxury fashion.',
+    title: 'Oversized Fashion at Attars - Premium Loose Fit | Attars Club',
+    description: 'Shop oversized streetwear at Attars Club. Discover Attars Fashion oversized collection - loose fit t-shirts, hoodies, anime designs. Attars Clothing offers comfortable luxury fashion across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars oversized',
       'oversized streetwear india',
       'oversized t-shirts india',
       'oversized hoodies india',
@@ -81,9 +100,14 @@ export const CATEGORY_SEO_TEMPLATES = {
     ]
   },
   anime: {
-    title: 'Anime Merchandise India - Premium Anime T-Shirts & Hoodies | Attars Clothing',
-    description: 'Shop premium anime merchandise India at Attars Clothing. High-quality anime t-shirts, hoodies, and streetwear with authentic designs. Express delivery across India.',
+    title: 'Anime Merchandise at Attars - Premium Anime Fashion | Attars Club',
+    description: 'Shop premium anime merchandise at Attars Club. Browse Attars Fashion anime collection - authentic anime t-shirts, hoodies, and streetwear. Attars Clothing delivers high-quality anime apparel across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars anime',
       'anime merchandise india',
       'anime t-shirts india',
       'anime hoodies india',
@@ -95,9 +119,14 @@ export const CATEGORY_SEO_TEMPLATES = {
     ]
   },
   'indian-culture': {
-    title: 'Indian Culture Apparel - Premium Heritage Streetwear | Attars Clothing',
-    description: 'Shop Indian culture apparel at Attars Clothing. Premium heritage designs, cultural streetwear, and contemporary Indian fashion. Celebrate culture with style.',
+    title: 'Indian Culture Apparel at Attars - Premium Heritage | Attars Club',
+    description: 'Shop Indian culture apparel at Attars Club. Explore Attars Fashion heritage collection - cultural streetwear, traditional modern designs. Attars Clothing celebrates Indian culture with premium fashion.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars indian culture',
       'indian culture apparel',
       'heritage streetwear india',
       'cultural clothing india',
@@ -109,9 +138,14 @@ export const CATEGORY_SEO_TEMPLATES = {
     ]
   },
   'tv-shows': {
-    title: 'TV Show Merchandise India - Premium Pop Culture Apparel | Attars Clothing',
-    description: 'Shop TV show merchandise India at Attars Clothing. Premium pop culture apparel, series-inspired designs, and contemporary entertainment fashion.',
+    title: 'TV Show Merchandise at Attars - Premium Pop Culture | Attars Club',
+    description: 'Shop TV show merchandise at Attars Club. Browse Attars Fashion pop culture collection - series-inspired designs, entertainment fashion. Attars Clothing delivers premium pop culture apparel across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars tv shows',
       'tv show merchandise india',
       'pop culture apparel india',
       'series merchandise india',
@@ -124,9 +158,14 @@ export const CATEGORY_SEO_TEMPLATES = {
   },
   // Future categories - ready for expansion
   jeans: {
-    title: 'Premium Jeans India - Designer Denim Collection | Attars Clothing',
-    description: 'Shop premium jeans India at Attars Clothing. Designer denim, luxury fit, and contemporary styles. Premium quality jeans with India delivery.',
+    title: 'Premium Jeans at Attars - Designer Denim Collection | Attars Club',
+    description: 'Shop premium jeans at Attars Club. Discover Attars Fashion denim collection - designer jeans, luxury fit, contemporary styles. Attars Clothing delivers premium quality jeans across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars jeans',
       'premium jeans india',
       'designer jeans india',
       'luxury denim india',
@@ -137,9 +176,14 @@ export const CATEGORY_SEO_TEMPLATES = {
     ]
   },
   shirts: {
-    title: 'Designer Shirts India - Premium Formal & Casual Shirts | Attars Clothing',
-    description: 'Shop designer shirts India at Attars Clothing. Premium formal and casual shirts, luxury fabrics, and contemporary designs for modern India.',
+    title: 'Designer Shirts at Attars - Premium Formal & Casual | Attars Club',
+    description: 'Shop designer shirts at Attars Club. Browse Attars Fashion shirt collection - premium formal and casual shirts, luxury fabrics. Attars Clothing delivers contemporary designs for modern India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars shirts',
       'designer shirts india',
       'premium shirts india',
       'luxury shirts india',
@@ -181,13 +225,17 @@ export const INDIA_FASHION_KEYWORDS = {
 
 export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
   home: {
-    title: 'Attars Clothing - Premium Fashion India | Designer T-Shirts, Hoodies & Luxury Apparel',
-    description: 'Discover premium fashion at Attars Clothing India. Shop our exclusive collection of designer t-shirts, hoodies, oversized clothing, and luxury apparel. Fast delivery across India with premium quality guaranteed.',
+    title: 'Attars Club - Premium Fashion India | Attars',
+    description: 'Attars Club - Premium fashion destination in India. Shop at Attars for exclusive streetwear, anime designs, and luxury apparel. Attars Fashion brings you the best in contemporary style with fast delivery across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars india',
       'premium fashion india',
       'designer clothing india',
       'luxury apparel india',
-      'attars clothing',
       'premium brand india',
       'designer t-shirts india',
       'premium hoodies india',
@@ -200,7 +248,8 @@ export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
-      name: 'Attars Clothing - Premium Fashion India',
+      name: 'Attars Club',
+      alternateName: ['Attars', 'Attars Fashion', 'Attars Clothing'],
       url: BASE_URL,
       description: 'Premium fashion brand offering designer t-shirts, hoodies, oversized clothing and luxury apparel across India',
       areaServed: 'IN',
@@ -215,9 +264,14 @@ export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
     }
   },
   shop: {
-    title: 'Shop Premium Fashion India - Designer T-Shirts, Hoodies & Luxury Apparel | Attars Clothing',
-    description: 'Browse our collection of premium fashion India. Designer t-shirts, hoodies, oversized clothing & luxury apparel. Free shipping across India. Sizes S-XXL available with express delivery.',
+    title: 'Shop at Attars - Premium Fashion India | Attars Club',
+    description: 'Shop at Attars Club for premium fashion India. Browse Attars Fashion collection - designer t-shirts, hoodies, oversized clothing & luxury apparel. Attars Clothing delivers across India with express shipping.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'shop attars',
       'shop premium fashion india',
       'buy designer clothing india',
       'luxury apparel india',
@@ -231,10 +285,15 @@ export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
     ]
   },
   product: {
-    title: '{productName} - Premium Fashion India | Attars Clothing',
-    description: 'Buy {productName} premium fashion item online in India. Superior quality, contemporary design, available in multiple colors & sizes (S-XXL). Express shipping across India.',
+    title: '{productName} - Buy at Attars | Attars Fashion',
+    description: 'Buy {productName} at Attars Club - premium fashion item from Attars Fashion collection. Superior quality from Attars Clothing, available in multiple colors & sizes. Express shipping across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
       '{productName}',
+      'buy at attars',
       'premium fashion india',
       'designer clothing india',
       'luxury apparel india',
@@ -244,9 +303,14 @@ export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
     ]
   },
   customize: {
-    title: 'Custom Fashion Design India - Create Your Own Premium Apparel | Attars Clothing',
-    description: 'Design your own custom fashion pieces in India with Attars Clothing. Upload your artwork, choose colors & create unique premium apparel. Quality guaranteed with India delivery.',
+    title: 'Custom Design at Attars - Create Your Fashion | Attars Club',
+    description: 'Design custom fashion at Attars Club. Create your own Attars Fashion pieces with our design studio. Attars Clothing offers personalized premium apparel with quality guaranteed across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'custom design attars',
       'custom fashion design india',
       'create custom clothing india',
       'design your own apparel india',
@@ -258,9 +322,14 @@ export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
     ]
   },
   about: {
-    title: 'About Attars Clothing - Premium Fashion Brand India',
-    description: 'Attars Clothing is a premium fashion brand India offering high-quality designer apparel, t-shirts, hoodies & contemporary clothing. Discover our commitment to quality and style in India.',
+    title: 'About Attars - Premium Fashion Brand | Attars Club',
+    description: 'About Attars Club - premium fashion brand India. Learn about Attars Fashion journey, Attars Clothing quality commitment, and our mission to deliver exceptional designer apparel across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'about attars',
       'premium fashion brand india',
       'luxury clothing brand india',
       'designer apparel brand india',
@@ -270,15 +339,116 @@ export const PAGE_SEO_DATA: Record<string, SEOPageData> = {
     ]
   },
   contact: {
-    title: 'Contact Attars Clothing India - Customer Support & Fashion Inquiries',
-    description: 'Get in touch with Attars Clothing for orders, custom designs, bulk inquiries or support in India. We\'re here to help with your premium fashion needs across India.',
+    title: 'Contact Attars - Customer Support | Attars Club',
+    description: 'Contact Attars Club for orders, support, and inquiries. Reach Attars Fashion team for custom designs and bulk orders. Attars Clothing customer service across India.',
     keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'contact attars',
       'contact attars clothing india',
       'customer support india',
       'fashion store contact india',
       'bulk order inquiry india',
       'premium fashion support',
       'designer clothing help india'
+    ]
+  },
+  'size-guide': {
+    title: 'Size Guide - Attars Fashion Sizing | Attars Club',
+    description: 'Attars size guide for perfect fit. Find your size for Attars Fashion t-shirts, hoodies, and apparel. Attars Clothing size chart with measurements for all products.',
+    keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars size guide',
+      'size chart india',
+      'clothing size guide',
+      't-shirt size guide',
+      'hoodie size guide',
+      'fashion size chart'
+    ]
+  },
+  'shipping-policy': {
+    title: 'Shipping Policy - Attars Delivery | Attars Club',
+    description: 'Attars Club shipping policy for India. Learn about Attars Fashion delivery options, Attars Clothing shipping times, and express delivery across India.',
+    keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars shipping',
+      'shipping policy india',
+      'delivery policy',
+      'fashion delivery india',
+      'express shipping',
+      'india delivery'
+    ]
+  },
+  'return-policy': {
+    title: 'Return Policy - Attars Returns & Exchange | Attars Club',
+    description: 'Attars Club return policy for easy returns and exchanges. Return Attars Fashion items hassle-free. Attars Clothing return process for customer satisfaction.',
+    keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars returns',
+      'return policy india',
+      'exchange policy',
+      'fashion returns',
+      'clothing exchange',
+      'return process'
+    ]
+  },
+  'cancellation-policy': {
+    title: 'Cancellation Policy - Attars Order Cancellation | Attars Club',
+    description: 'Attars Club cancellation policy for order changes. Cancel Attars Fashion orders easily. Attars Clothing cancellation process and refund policy.',
+    keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars cancellation',
+      'cancellation policy',
+      'order cancellation',
+      'cancel order',
+      'refund policy',
+      'order changes'
+    ]
+  },
+  'terms-of-service': {
+    title: 'Terms of Service - Attars Legal Terms | Attars Club',
+    description: 'Attars Club terms of service and conditions. Legal terms for shopping at Attars Fashion. Attars Clothing terms and conditions for India customers.',
+    keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars terms',
+      'terms of service',
+      'legal terms',
+      'terms and conditions',
+      'service terms',
+      'website terms'
+    ]
+  },
+  'privacy-policy': {
+    title: 'Privacy Policy - Attars Data Protection | Attars Club',
+    description: 'Attars Club privacy policy for customer data protection. How Attars Fashion protects your privacy. Attars Clothing data security and privacy commitment.',
+    keywords: [
+      'attars',
+      'attars club',
+      'attars fashion',
+      'attars clothing',
+      'attars privacy',
+      'privacy policy',
+      'data protection',
+      'customer privacy',
+      'data security',
+      'privacy terms'
     ]
   }
 };
@@ -330,18 +500,19 @@ export const getBreadcrumbStructuredData = (items: Array<{name: string, url: str
 export const ORGANIZATION_STRUCTURED_DATA = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
-  name: 'Attars Clothing',
+  name: 'Attars Club',
+  alternateName: ['Attars', 'Attars Clothing', 'Attars Fashion', 'Attars India'],
   url: BASE_URL,
   logo: `${BASE_URL}/logo512.png`,
   description: 'Premium fashion store offering designer apparel, contemporary clothing, and curated fashion pieces',
   sameAs: [
-    'https://www.facebook.com/attarsclothing',
-    'https://www.instagram.com/attarsclothing',
-    'https://twitter.com/attarsclothing'
+    'https://www.facebook.com/attars.club',
+    'https://www.instagram.com/attars.club',
+    'https://twitter.com/attars.club'
   ],
   contactPoint: {
     '@type': 'ContactPoint',
-    telephone: '+91-XXXXXXXXXX', // Add your contact number
+    telephone: '+91-8299716657',
     contactType: 'customer service',
     areaServed: 'IN',
     availableLanguage: ['en', 'hi']

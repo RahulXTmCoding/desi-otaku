@@ -549,9 +549,9 @@ const HomeEnhanced: React.FC = () => {
             <div className="space-y-6">
               <h2 className="text-4xl font-bold mb-4">ABOUT US</h2>
               <p className="text-lg text-gray-300 leading-relaxed">
-                Welcome to <span className="text-yellow-400 font-bold">ATTARS CLOTHING</span>! Your Ultimate Destination for Premium Fashion!
-                At Attars Clothing, we bring contemporary style and premium quality to life through our exclusive and stylish 
-                clothing collections. Dive into a world where fashion meets sophistication, and express your unique style 
+                Welcome to <span className="text-yellow-400 font-bold">ATTARS</span>! Your Ultimate Destination for Premium Fashion!
+                At Attars, we bring contemporary style and premium quality to life through our exclusive and stylish
+                clothing collections. Dive into a world where fashion meets sophistication, and express your unique style
                 with our premium apparel.
               </p>
               <button
@@ -591,7 +591,7 @@ const HomeEnhanced: React.FC = () => {
         {/* Why Choose Us Section */}
         <section className="py-16" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="w-[96%] mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Why Choose Attars Clothing?</h2>
+            <h2 className="text-3xl font-bold text-center mb-12">Why Choose Attars?</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-6">
               {[
                 { icon: <Heart className="w-8 h-8" />, title: "Community Focus", color: "bg-red-500" },

@@ -9,7 +9,7 @@ const Footer: React.FC = () => {
         <div>
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-32  flex items-center justify-center overflow-hidden">
-              <img src="/brand.png" alt="Attars Clothing Logo" className="w-32 object-contain logo-adaptive" />
+              <img src="/brand.png" alt="Attars Club Logo" className="w-32 object-contain logo-adaptive" />
             </div>
           </div>
           <p className="text-gray-400 text-sm">
@@ -138,7 +138,7 @@ const Footer: React.FC = () => {
       </div>
 
       <div className="max-w-7xl mx-auto border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-        <p>&copy; 2024 Attars Clothing. All rights reserved. Made with ❤️ for fashion enthusiasts.</p>
+        <p>&copy; 2025 Attars Club. All rights reserved. Made with ❤️ for fashion enthusiasts.</p>
       </div>
     </footer>
   );
