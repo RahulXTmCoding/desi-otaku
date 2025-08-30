@@ -161,6 +161,10 @@ const ShopWithBackendFilters: React.FC = () => {
   const [hasMore, setHasMore] = useState(true);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const productsPerPage = 12;
+  
+  // Prevent race conditions in infinite scroll
+  const isLoadingRef = useRef(false);
+  const debounceTimeoutRef = useRef<number>();
 
   // Parse sort options for API
   const getSortParams = (sortBy: string) => {
@@ -217,24 +221,54 @@ const ShopWithBackendFilters: React.FC = () => {
         setAllProducts(prev => [...prev, ...filteredProductsData.products]);
       }
       
-      // Update hasMore based on pagination info - simplified and reliable logic
+      // Update hasMore based on pagination info - more reliable logic
       const pagination = filteredProductsData.pagination;
       const receivedProducts = filteredProductsData.products;
       
-      // Always trust the API's hasMore value if provided
+      let shouldHaveMore = false;
+      
+      // Primary check: Trust API's hasMore if explicitly provided
       if (pagination && pagination.hasMore !== undefined) {
-        setHasMore(pagination.hasMore);
+        shouldHaveMore = pagination.hasMore;
       } 
-      // Fallback to page count comparison
+      // Secondary check: Compare current page with total pages
       else if (pagination && pagination.totalPages) {
-        setHasMore(currentPage < pagination.totalPages);
+        shouldHaveMore = currentPage < pagination.totalPages;
       } 
-      // Final fallback - if we got fewer products than requested, we're at the end
+      // Tertiary check: Compare loaded products count with total
+      else if (pagination && pagination.totalProducts) {
+        // Calculate total products that will be loaded after this update
+        let totalLoadedProducts;
+        if (currentPage === 1) {
+          // First page - total is just the received products
+          totalLoadedProducts = receivedProducts.length;
+        } else {
+          // Subsequent pages - add to previous total
+          // Note: allProducts hasn't been updated yet in this sync execution
+          totalLoadedProducts = allProducts.length + receivedProducts.length;
+        }
+        shouldHaveMore = totalLoadedProducts < pagination.totalProducts;
+      }
+      // Final fallback: If we got fewer products than requested, we're at the end
       else {
-        setHasMore(receivedProducts.length >= productsPerPage);
+        shouldHaveMore = receivedProducts.length >= productsPerPage;
       }
       
+      console.log(`📊 Infinite scroll check - Page: ${currentPage}, Received: ${receivedProducts.length}, HasMore: ${shouldHaveMore}`);
+      if (pagination) {
+        console.log(`📊 Pagination info:`, {
+          totalProducts: pagination.totalProducts,
+          totalPages: pagination.totalPages,
+          hasMore: pagination.hasMore,
+          currentlyLoaded: currentPage === 1 ? receivedProducts.length : allProducts.length + receivedProducts.length
+        });
+      }
+      
+      setHasMore(shouldHaveMore);
       setIsLoadingMore(false);
+      
+      // Reset the loading ref flag to allow future requests
+      isLoadingRef.current = false;
     }
   }, [filteredProductsData, currentPage]);
 
@@ -360,20 +394,39 @@ const ShopWithBackendFilters: React.FC = () => {
     }
   };
 
-  // Infinite scroll handler using window scroll
+  // Infinite scroll handler using window scroll with debouncing and race condition prevention
   const handleScroll = useCallback(() => {
     // Prevent loading if already loading, no more content, or initial page is loading
-    if (isLoadingMore || !hasMore || currentLoading || isFetching) return;
+    if (isLoadingRef.current || isLoadingMore || !hasMore || currentLoading || isFetching) return;
     
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     const scrollHeight = document.documentElement.scrollHeight;
     const clientHeight = window.innerHeight;
     
-    // If user has scrolled to within 200px of the bottom
-    if (scrollTop + clientHeight >= scrollHeight - 200) {
-      console.log('🔄 Infinite scroll triggered - loading next page');
-      setIsLoadingMore(true);
-      setCurrentPage(prev => prev + 1);
+    // More aggressive trigger for better mobile experience
+    // Mobile: trigger when 80% scrolled, Desktop: trigger when 75% scrolled
+    const isMobile = window.innerWidth <= 768;
+    const triggerPoint = isMobile ? 0.8 : 0.75;
+    const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
+    
+    if (scrollPercentage >= triggerPoint) {
+      // Clear any existing debounce timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      // Debounce the scroll trigger to prevent rapid-fire requests
+      debounceTimeoutRef.current = window.setTimeout(() => {
+        // Double-check conditions before making request
+        if (isLoadingRef.current || isLoadingMore || !hasMore || currentLoading || isFetching) return;
+        
+        console.log(`🔄 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}% - loading next page`);
+        
+        // Set loading flags to prevent concurrent requests
+        isLoadingRef.current = true;
+        setIsLoadingMore(true);
+        setCurrentPage(prev => prev + 1);
+      }, 150); // 150ms debounce for fast scrolling
     }
   }, [isLoadingMore, hasMore, currentLoading, isFetching]);
   

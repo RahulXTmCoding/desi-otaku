@@ -1098,13 +1098,27 @@ exports.getFilteredProducts = async (req, res) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     pipeline.push({ $skip: skip }, { $limit: parseInt(limit) });
 
-    // Execute optimized aggregation
+    // Create a separate pipeline for counting that matches the products pipeline exactly
+    const countPipeline = [...pipeline];
+    // Remove pagination stages from count pipeline
+    const paginationStageIndices = [];
+    countPipeline.forEach((stage, index) => {
+      if (stage.$skip !== undefined || stage.$limit !== undefined || stage.$sort !== undefined) {
+        paginationStageIndices.push(index);
+      }
+    });
+    
+    // Remove pagination stages in reverse order to maintain correct indices
+    paginationStageIndices.reverse().forEach(index => {
+      countPipeline.splice(index, 1);
+    });
+    
+    // Add count stage
+    countPipeline.push({ $count: "total" });
+    // Execute optimized aggregation with matching pipelines
     const [products, totalCount] = await Promise.all([
       Product.aggregate(pipeline),
-      Product.aggregate([
-        { $match: finalMatchConditions },
-        { $count: "total" }
-      ])
+      Product.aggregate(countPipeline)
     ]);
 
     const total = totalCount[0]?.total || 0;
