@@ -403,10 +403,10 @@ const ShopWithBackendFilters: React.FC = () => {
     const scrollHeight = document.documentElement.scrollHeight;
     const clientHeight = window.innerHeight;
     
-    // More aggressive trigger for better mobile experience
-    // Mobile: trigger when 80% scrolled, Desktop: trigger when 75% scrolled
+    // Very aggressive trigger for seamless mobile experience
+    // Mobile: trigger when 40% scrolled, Desktop: trigger when 75% scrolled
     const isMobile = window.innerWidth <= 768;
-    const triggerPoint = isMobile ? 0.8 : 0.75;
+    const triggerPoint = isMobile ? 0.5 : 0.75;
     const scrollPercentage = (scrollTop + clientHeight) / scrollHeight;
     
     if (scrollPercentage >= triggerPoint) {
