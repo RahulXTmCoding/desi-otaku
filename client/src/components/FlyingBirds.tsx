@@ -462,7 +462,7 @@ const FlyingBirds: React.FC = () => {
 
           @keyframes fly-cycle {
             100% {
-              background-position: -1000px 0;
+              background-position: -960px 0;
             }
           }
         }
