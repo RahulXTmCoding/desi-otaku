@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import FlyingBirds from './FlyingBirds';
 
 interface ProgressiveBannerProps {
   highQualityDesktop: string;
@@ -255,12 +256,15 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
                 onClick={handleClick}
                 onError={() => handleImageError(false)}
               />
+              
+              {/* Flying Birds Animation Overlay */}
+              <FlyingBirds />
             </div>
           </div>
         ) : (
           // Mobile Banner - Only rendered on mobile
           <div className="relative overflow-hidden">
-            <div className="relative w-full" style={{ aspectRatio: '965/913' }}>
+            <div className="relative w-full" style={{ aspectRatio: '1200/913' }}>
               {/* Low-quality placeholder */}
               <img 
                 src="/lq-mobile-banner.png"
@@ -286,6 +290,9 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
                 onClick={handleClick}
                 onError={() => handleImageError(true)}
               />
+              
+              {/* Flying Birds Animation Overlay */}
+              <FlyingBirds />
             </div>
           </div>
         )}

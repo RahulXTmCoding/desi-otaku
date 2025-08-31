@@ -444,8 +444,8 @@ const HomeEnhanced: React.FC = () => {
 
         {/* Progressive Banner Section - Optimized Loading */}
         <ProgressiveBanner
-          highQualityDesktop="https://lh3.googleusercontent.com/pw/AP1GczNA60H0aJduGWIvmmGjmDCHOu0g8d9UzuKUNmWq--wjuz2FaJCgsUZFyjo9DAAaL1xA3aozhLv-IvicfHMlsM_VgDZ-8XSi15DitxRMrcGNdRiJRyx0XTsXc7Z9iWx9N-0p6kCCGYQOrtNIejgSCW3D=w1669-h576-s-no-gm?authuser=0"
-          highQualityMobile="https://lh3.googleusercontent.com/pw/AP1GczPvITvGIZ94AKzAEdQHclFkX2mEKGzhjW0rfM-iJUKESfmRn1L8DTbuggtK3Zu7-l66NlfgJ5KA6VoX00hySNxrb_4mlyfLcBA9ElhoonaDbULlSCwL_fvonHN_KAKhbVg0MaghRHlif-H9MSfoqzE=w965-h913-s-no-gm?authuser=0"
+          highQualityDesktop="https://lh3.googleusercontent.com/pw/AP1GczNPTMSDCpARPubgXCEhx-IZQGpGLJQ4o8jv2dM9HuCzNFtaZbP7H1UGgaz5LoxSRn2euxQCdKATan51ibW0XWxvwWVEJ6chhnuly8fZcqs_KfpIJP14mjB7_nILS9tnlxfAELqPLCNPoVrZqrwQ_RoK=w1669-h589-s-no-gm?authuser=0"
+          highQualityMobile="https://lh3.googleusercontent.com/pw/AP1GczO6TCmmL7sfm_1cQiDTWlJ5EL5iBLx6thuA2QjUmt_2oEyjlbddZ0Rxj4PEhe0nciqWwhpP8Z4khQnBcC8ipMhXVoSo6BGQ_XPuPZueN39JAPgtOAZUU51k0nPw7I2QgsiG36lWph8K7l9S-iSrbK4p=w1223-h945-s-no-gm?authuser=0"
           finalFallbackDesktop="/lq-banner.png"
           finalFallbackMobile="/lq-mobile-banner.png"
           alt="Attars Clothing - Premium Fashion & Custom Designs"
