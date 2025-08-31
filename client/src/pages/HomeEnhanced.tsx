@@ -9,6 +9,7 @@ import CategoryCard from '../components/home/CategoryCard';
 import FeatureSection from '../components/home/FeatureSection';
 import ReviewCarousel from '../components/home/ReviewCarousel';
 import ProgressiveBanner from '../components/ProgressiveBanner';
+import FashionScrollBanner from '../components/FashionScrollBanner';
 import { useCart } from '../context/CartContext';
 import { useThemeClasses } from '../hooks/useThemeClasses';
 import { useFilteredProducts } from '../hooks/useProducts';
@@ -479,6 +480,8 @@ const HomeEnhanced: React.FC = () => {
           </div>
         </section>
 
+        {/* Fashion Scroll Banner */}
+        <FashionScrollBanner />
 
         {/* Newly Launched Products */}
         <section className="py-8" style={{ backgroundColor: 'var(--color-background)' }}>
