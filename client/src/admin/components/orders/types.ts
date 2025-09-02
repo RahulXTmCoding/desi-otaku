@@ -1,5 +1,5 @@
 export interface OrderProduct {
-  product: string;
+  product: string | { _id: string; id?: string; [key: string]: any };
   name: string;
   price: number;
   count: number;

@@ -237,18 +237,70 @@ ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.ship
         itemDetails += `\n   📦 Product Link: Not Available`;
       }
 
-      // Add custom design indicators
+      // Add detailed custom design information
       if (item.isCustom || item.customization || item.product === null) {
-        itemDetails += `\n   🎨 <b>CUSTOM DESIGN</b>`;
+        itemDetails += `\n   🎨 <b>CUSTOM DESIGN DETAILS:</b>`;
         
+        // Design ID
+        if (item.designId) {
+          itemDetails += `\n   • Design ID: <code>${item.designId}</code>`;
+        }
+        
+        // Design Name
+        if (item.customDesign) {
+          itemDetails += `\n   • Design Name: ${item.customDesign}`;
+        }
+        
+        // Position/Placement
+        if (item.customization?.position) {
+          itemDetails += `\n   • Position: ${item.customization.position}`;
+        }
+        if (item.customization?.placement) {
+          itemDetails += `\n   • Placement: ${item.customization.placement}`;
+        }
+        
+        // Front/Back Design Details
         if (item.customization) {
           if (item.customization.frontDesign) {
-            itemDetails += ` - Front Design ✓`;
+            itemDetails += `\n   • <b>Front Design:</b>`;
+            if (item.customization.frontDesign.designId) {
+              itemDetails += `\n     - Design ID: <code>${item.customization.frontDesign.designId}</code>`;
+            }
+            if (item.customization.frontDesign.position) {
+              itemDetails += `\n     - Position: ${item.customization.frontDesign.position}`;
+            }
+            if (item.customization.frontDesign.price) {
+              itemDetails += `\n     - Design Cost: ₹${item.customization.frontDesign.price}`;
+            }
+            if (item.customization.frontDesign.designImage) {
+              itemDetails += `\n     - Image: ✓ Provided`;
+              itemDetails += `\n     - URL: ${item.customization.frontDesign.designImage}`;
+            }
           }
           if (item.customization.backDesign) {
-            itemDetails += ` - Back Design ✓`;
+            itemDetails += `\n   • <b>Back Design:</b>`;
+            if (item.customization.backDesign.designId) {
+              itemDetails += `\n     - Design ID: <code>${item.customization.backDesign.designId}</code>`;
+            }
+            if (item.customization.backDesign.position) {
+              itemDetails += `\n     - Position: ${item.customization.backDesign.position}`;
+            }
+            if (item.customization.backDesign.price) {
+              itemDetails += `\n     - Design Cost: ₹${item.customization.backDesign.price}`;
+            }
+            if (item.customization.backDesign.designImage) {
+              itemDetails += `\n     - Image: ✓ Provided`;
+              itemDetails += `\n     - URL: ${item.customization.backDesign.designImage}`;
+            }
           }
         }
+        
+        // Design Image indicators
+        if (item.designImage || item.image) {
+          itemDetails += `\n   • Custom Image: ✓ Provided`;
+        }
+        
+        itemDetails += `\n   ⚠️ <b>SPECIAL HANDLING REQUIRED</b>`;
       }
 
       return itemDetails;
@@ -282,20 +334,97 @@ ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.ship
     try {
       const caption = `🎨 Item ${itemNumber}: ${item.name || 'Custom Design'}`;
       
+      // Generate detailed design information message
+      let designDetails = `🎨 <b>CUSTOM DESIGN BREAKDOWN - Item ${itemNumber}</b>\n\n`;
+      designDetails += `📦 <b>Product:</b> ${item.name || 'Custom Design'}\n`;
+      
+      // Add overall design info
+      if (item.designId) {
+        designDetails += `🆔 <b>Main Design ID:</b> <code>${item.designId}</code>\n`;
+      }
+      if (item.customDesign) {
+        designDetails += `📝 <b>Design Name:</b> ${item.customDesign}\n`;
+      }
+      
       if (item.customization) {
-        // Send front design if available
+        if (item.customization.position) {
+          designDetails += `📍 <b>Overall Position:</b> ${item.customization.position}\n`;
+        }
+        if (item.customization.placement) {
+          designDetails += `📌 <b>Placement:</b> ${item.customization.placement}\n`;
+        }
+        
+        designDetails += `\n`;
+        
+        // Front Design Details
+        if (item.customization.frontDesign) {
+          designDetails += `🔥 <b>FRONT DESIGN SPECIFICATIONS:</b>\n`;
+          if (item.customization.frontDesign.designId) {
+            designDetails += `   • Design ID: <code>${item.customization.frontDesign.designId}</code>\n`;
+          }
+          if (item.customization.frontDesign.position) {
+            designDetails += `   • Position: ${item.customization.frontDesign.position}\n`;
+          }
+          if (item.customization.frontDesign.price) {
+            designDetails += `   • Design Cost: ₹${item.customization.frontDesign.price}\n`;
+          }
+          if (item.customization.frontDesign.designImage) {
+            designDetails += `   • Image Status: ✅ Ready for Production\n`;
+            designDetails += `   • Image URL: ${item.customization.frontDesign.designImage}\n`;
+          }
+          designDetails += `\n`;
+        }
+        
+        // Back Design Details
+        if (item.customization.backDesign) {
+          designDetails += `🔙 <b>BACK DESIGN SPECIFICATIONS:</b>\n`;
+          if (item.customization.backDesign.designId) {
+            designDetails += `   • Design ID: <code>${item.customization.backDesign.designId}</code>\n`;
+          }
+          if (item.customization.backDesign.position) {
+            designDetails += `   • Position: ${item.customization.backDesign.position}\n`;
+          }
+          if (item.customization.backDesign.price) {
+            designDetails += `   • Design Cost: ₹${item.customization.backDesign.price}\n`;
+          }
+          if (item.customization.backDesign.designImage) {
+            designDetails += `   • Image Status: ✅ Ready for Production\n`;
+            designDetails += `   • Image URL: ${item.customization.backDesign.designImage}\n`;
+          }
+          designDetails += `\n`;
+        }
+      }
+      
+      // Legacy design support
+      if (item.designImage || item.image) {
+        designDetails += `🖼️ <b>LEGACY DESIGN IMAGE:</b>\n`;
+        designDetails += `   • URL: ${item.designImage || item.image}\n\n`;
+      }
+      
+      designDetails += `⚠️ <b>PRODUCTION ALERT:</b> Custom design requires special handling\n`;
+      designDetails += `🎯 <b>Priority:</b> Verify all design specifications before printing\n`;
+      
+      // Send detailed design information
+      await this.bot.sendMessage(this.adminChatId, designDetails, {
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      });
+      
+      // Send actual design images
+      if (item.customization) {
+        // Send front design image
         if (item.customization.frontDesign?.designImage) {
           await this.sendImageFromUrl(
             item.customization.frontDesign.designImage,
-            `${caption} - Front Design`
+            `🔥 Front Design - Item ${itemNumber}: ${item.name || 'Custom Design'}`
           );
         }
 
-        // Send back design if available  
+        // Send back design image
         if (item.customization.backDesign?.designImage) {
           await this.sendImageFromUrl(
             item.customization.backDesign.designImage,
-            `${caption} - Back Design`
+            `🔙 Back Design - Item ${itemNumber}: ${item.name || 'Custom Design'}`
           );
         }
       } else if (item.designImage || item.image) {
@@ -311,7 +440,7 @@ ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.ship
       const adminUrl = `${clientUrl}/admin/orders`;
       
       await this.bot.sendMessage(this.adminChatId, 
-        `🔗 <b>Custom Design Details:</b>\n<a href="${adminUrl}">View in Admin Panel</a>`,
+        `🔗 <b>Complete Design Details:</b>\n<a href="${adminUrl}">View Full Order in Admin Panel</a>\n\n📋 Order ID: <code>#${orderId}</code>`,
         { parse_mode: 'HTML' }
       );
 

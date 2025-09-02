@@ -1,6 +1,7 @@
 import React from 'react';
-import { ChevronDown, Loader, Mail, Phone, MapPin, Package, PhoneCall } from 'lucide-react';
+import { ChevronDown, Loader, Mail, Phone, MapPin, Package, PhoneCall, ExternalLink } from 'lucide-react';
 import { format } from 'date-fns';
+import { Link } from 'react-router-dom';
 import { Order } from './types';
 import OrderStatusBadge from './OrderStatusBadge';
 import CartTShirtPreview from '../../../components/CartTShirtPreview';
@@ -372,14 +373,108 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                   
                   {/* Product Details */}
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{item.name}</p>
+                    {/* Product Name with Link */}
+                    {(() => {
+                      // Extract product ID - handle both string IDs and populated objects
+                      const productId = typeof item.product === 'string' 
+                        ? item.product 
+                        : item.product?._id || item.product?.id;
+                      
+                      return (productId && !item.isCustom) ? (
+                        <Link 
+                          to={`/product/${productId}`}
+                          className="font-medium text-sm text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1 group"
+                          onClick={(e) => e.stopPropagation()}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {item.name}
+                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </Link>
+                      ) : (
+                        <p className="font-medium text-sm">{item.name}</p>
+                      );
+                    })()}
+                    
                     <p className="text-xs text-gray-400">
                       {item.size && `Size: ${item.size} • `}
                       {item.color && `Color: ${item.color} • `}
                       Qty: {item.count}
                     </p>
                     {item.isCustom && (
-                      <p className="text-xs text-yellow-400">Custom Design</p>
+                      <div className="mt-1 p-2 bg-yellow-900/20 rounded border border-yellow-500/30">
+                        <p className="text-xs text-yellow-400 font-medium mb-1">🎨 Custom Design Details:</p>
+                        <div className="text-xs text-gray-300 space-y-0.5">
+                          {item.designId && (
+                            <p>• Design ID: <span className="font-mono text-yellow-300">{String(item.designId)}</span></p>
+                          )}
+                          {item.customDesign && (
+                            <p>• Design Name: <span className="text-yellow-300">{String(item.customDesign)}</span></p>
+                          )}
+                          {item.customization?.position && (
+                            <p>• Position: <span className="text-yellow-300 capitalize">{
+                              typeof item.customization.position === 'string' 
+                                ? item.customization.position 
+                                : JSON.stringify(item.customization.position)
+                            }</span></p>
+                          )}
+                          {item.customization?.placement && (
+                            <p>• Placement: <span className="text-yellow-300 capitalize">{
+                              typeof item.customization.placement === 'string' 
+                                ? item.customization.placement 
+                                : JSON.stringify(item.customization.placement)
+                            }</span></p>
+                          )}
+                          {(item.customization?.frontDesign || item.customization?.backDesign) && (
+                            <div>
+                              {item.customization.frontDesign && (
+                                <div className="mt-1">
+                                  <p className="text-yellow-400">• Front Design:</p>
+                                  <div className="ml-3 text-xs">
+                                    {item.customization.frontDesign.designId && (
+                                      <p>  - Design ID: <span className="font-mono text-yellow-300">{item.customization.frontDesign.designId}</span></p>
+                                    )}
+                                    {item.customization.frontDesign.position && (
+                                      <p>  - Position: <span className="text-yellow-300 capitalize">{item.customization.frontDesign.position}</span></p>
+                                    )}
+                                    {item.customization.frontDesign.price && (
+                                      <p>  - Design Cost: <span className="text-yellow-300">₹{item.customization.frontDesign.price}</span></p>
+                                    )}
+                                    {item.customization.frontDesign.designImage && (
+                                      <div>
+                                        <p>  - Image: <span className="text-green-300">✓ Provided</span></p>
+                                        <p>  - URL: <a href={item.customization.frontDesign.designImage} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-xs break-all">{item.customization.frontDesign.designImage}</a></p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                              {item.customization.backDesign && (
+                                <div className="mt-1">
+                                  <p className="text-yellow-400">• Back Design:</p>
+                                  <div className="ml-3 text-xs">
+                                    {item.customization.backDesign.designId && (
+                                      <p>  - Design ID: <span className="font-mono text-yellow-300">{item.customization.backDesign.designId}</span></p>
+                                    )}
+                                    {item.customization.backDesign.position && (
+                                      <p>  - Position: <span className="text-yellow-300 capitalize">{item.customization.backDesign.position}</span></p>
+                                    )}
+                                    {item.customization.backDesign.price && (
+                                      <p>  - Design Cost: <span className="text-yellow-300">₹{item.customization.backDesign.price}</span></p>
+                                    )}
+                                    {item.customization.backDesign.designImage && (
+                                      <div>
+                                        <p>  - Image: <span className="text-green-300">✓ Provided</span></p>
+                                        <p>  - URL: <a href={item.customization.backDesign.designImage} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 text-xs break-all">{item.customization.backDesign.designImage}</a></p>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </div>
                   
