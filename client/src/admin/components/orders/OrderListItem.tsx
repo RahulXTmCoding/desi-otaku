@@ -139,9 +139,8 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                 }`}>Customer Mobile</p>
                 {(() => {
                   // Check all possible phone number sources using actual order model fields
-                  const customerPhone = order.user?.phone || 
-                                      order.guestInfo?.phone || 
-                                      order.shipping?.phone;
+                  const customerPhone = order.shipping?.phone || order.user?.phone || 
+                                      order.guestInfo?.phone;
                   
                   return customerPhone ? (
                     <div className="flex items-center gap-2">

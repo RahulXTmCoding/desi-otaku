@@ -97,9 +97,8 @@ class TelegramService {
     const isCODOrder = order.paymentMethod?.toLowerCase() === 'cod';
     
     // Get comprehensive phone number info for COD orders
-    const customerPhone = customer?.phone || 
-                         order.guestInfo?.phone || 
-                         order.shipping?.phone || 
+    const customerPhone = order.shipping?.phone || customer?.phone || 
+                         order.guestInfo?.phone ||  
                          'No phone';
 
     // Generate items list
