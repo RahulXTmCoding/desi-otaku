@@ -272,17 +272,17 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                   <Mail className="w-4 h-4 text-gray-500" />
                   <span>{order.user?.email || order.guestInfo?.email}</span>
                 </div>
-                {(order.user?.phone || order.guestInfo?.phone || order.shippingAddress?.phone) && (
+                {(order.user?.phone || order.guestInfo?.phone || order.shipping?.phone) && (
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="w-4 h-4 text-gray-500" />
-                    <span>{order.user?.phone || order.guestInfo?.phone || order.shippingAddress?.phone}</span>
+                    <span>{order.user?.phone || order.guestInfo?.phone || order.shipping?.phone}</span>
                   </div>
                 )}
-                {order.shippingAddress && (
+                {order.shipping && (
                   <div className="flex items-start gap-2 text-sm mt-3">
                     <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
                     <span className="text-gray-300">
-                      {order.shippingAddress.addressLine1}, {order.shippingAddress.city}
+                      {order.shipping?.state}, {order.shipping.city}
                     </span>
                   </div>
                 )}
