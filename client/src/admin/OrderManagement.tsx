@@ -187,9 +187,22 @@ const OrderManagement: React.FC = () => {
             order.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             order.transaction_id?.toLowerCase().includes(searchQuery.toLowerCase());
           
-          // Payment filter
-          const paymentMatch = paymentFilter === 'all' || 
-            order.paymentMethod?.toLowerCase() === paymentFilter.toLowerCase();
+          // Payment filter - Enhanced for COD and online filtering
+          let paymentMatch = paymentFilter === 'all';
+          
+          if (!paymentMatch) {
+            const orderPaymentMethod = order.paymentMethod?.toLowerCase() || '';
+            
+            if (paymentFilter === 'cod') {
+              paymentMatch = orderPaymentMethod === 'cod';
+            } else if (paymentFilter === 'online') {
+              // Online payments include all non-COD methods
+              paymentMatch = orderPaymentMethod !== 'cod' && orderPaymentMethod !== '';
+            } else {
+              // Exact match for specific payment methods
+              paymentMatch = orderPaymentMethod === paymentFilter.toLowerCase();
+            }
+          }
           
           return dateMatch && statusMatch && searchMatch && paymentMatch;
         });
@@ -468,7 +481,7 @@ const OrderManagement: React.FC = () => {
   // Generate mock orders for test mode
   function generateMockOrders(): Order[] {
     const statuses = ['Received', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
-    const paymentMethods = ['Credit Card', 'Debit Card', 'PayPal', 'Razorpay'];
+    const paymentMethods = ['cod', 'razorpay', 'Credit Card', 'Debit Card', 'PayPal'];
     
     return Array.from({ length: 25 }, (_, i) => ({
       _id: `ORD${Date.now()}${i}`,
@@ -679,9 +692,11 @@ const OrderManagement: React.FC = () => {
               className="px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 text-sm"
             >
               <option value="all">All Payments</option>
-              <option value="credit card">Credit Card</option>
+              <option value="cod">💵 COD Orders</option>
+              {/* <option value="razorpay">💳 Online Payments</option> */}
+              {/* <option value="credit card">Credit Card</option>
               <option value="debit card">Debit Card</option>
-              <option value="paypal">PayPal</option>
+              <option value="paypal">PayPal</option> */}
               <option value="razorpay">Razorpay</option>
             </select>
           </div>

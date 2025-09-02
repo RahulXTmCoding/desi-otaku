@@ -89,17 +89,40 @@ class TelegramService {
   generateOrderMessage(order, customer, isGuest = false) {
     const customerName = customer?.name || 'Customer';
     const customerEmail = customer?.email || 'No email';
-    const customerPhone = customer?.phone || 'No phone';
     const orderTotal = order.amount || 0;
     const orderDate = new Date(order.createdAt).toLocaleString('en-IN');
     const itemCount = order.products?.length || 0;
 
+    // Check if it's a COD order
+    const isCODOrder = order.paymentMethod?.toLowerCase() === 'cod';
+    
+    // Get comprehensive phone number info for COD orders
+    const customerPhone = customer?.phone || 
+                         order.guestInfo?.phone || 
+                         order.shipping?.phone || 
+                         'No phone';
+
     // Generate items list
     const itemsList = this.generateItemsList(order.products);
 
-    // Simplified priority indicators - only high value vs regular
-    const priorityEmoji = orderTotal > 2000 ? '🔥' : '📦';
-    const priorityText = orderTotal > 2000 ? 'HIGH VALUE ORDER' : 'NEW ORDER';
+    // Enhanced priority indicators for COD orders
+    let priorityEmoji, priorityText;
+    if (isCODOrder && orderTotal > 2000) {
+      priorityEmoji = '🔥💰';
+      priorityText = 'HIGH VALUE COD ORDER';
+    } else if (isCODOrder) {
+      priorityEmoji = '💰📦';
+      priorityText = 'COD ORDER - CALL CUSTOMER';
+    } else if (orderTotal > 2000) {
+      priorityEmoji = '🔥';
+      priorityText = 'HIGH VALUE ORDER';
+    } else {
+      priorityEmoji = '📦';
+      priorityText = 'NEW ORDER';
+    }
+
+    // Generate shipping address info
+    const shippingInfo = this.generateShippingInfo(order);
 
     // Links
     const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
@@ -107,7 +130,7 @@ class TelegramService {
     const trackingUrl = `${clientUrl}/track/${Buffer.from(order._id.toString()).toString('base64url')}`;
 
     return `
-${priorityEmoji} <b>${priorityText} ORDER ALERT!</b>
+${priorityEmoji} <b>${priorityText} ALERT!</b>
 
 📋 <b>Order Details:</b>
 • Order ID: <code>#${order._id}</code>
@@ -116,7 +139,13 @@ ${priorityEmoji} <b>${priorityText} ORDER ALERT!</b>
 • Items: ${itemCount}
 • Status: ${order.status} ✅
 
-👤 <b>Customer Info:</b>
+${isCODOrder ? `
+💰 <b>⚠️ CASH ON DELIVERY ⚠️</b>
+📞 <b>CALL CUSTOMER TO CONFIRM ORDER!</b>
+📱 <b>Customer Phone: ${customerPhone}</b>
+💵 <b>Amount to Collect: ₹${orderTotal.toLocaleString('en-IN')}</b>
+
+` : ''}👤 <b>Customer Info:</b>
 • Name: ${customerName}${isGuest ? ' (Guest)' : ''}
 • Email: ${customerEmail}
 • Phone: ${customerPhone}
@@ -124,10 +153,9 @@ ${priorityEmoji} <b>${priorityText} ORDER ALERT!</b>
 🛒 <b>Items to Prepare:</b>
 ${itemsList}
 
-📍 <b>Shipping Address:</b>
-${order.address || 'Address not provided'}
+${shippingInfo}
 
-💳 <b>Payment:</b> ${order.paymentStatus || 'Pending'}
+💳 <b>Payment:</b> ${isCODOrder ? 'Cash on Delivery 💰' : (order.paymentStatus || 'Pending')}
 ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.shippingCost}` : '📦 <b>Shipping:</b> FREE'}
 
 🔗 <b>Quick Actions:</b>
@@ -136,6 +164,37 @@ ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.ship
 
 ⏰ <b>TIME TO PREPARE!</b> 🎌
     `.trim();
+  }
+  
+  // Generate detailed shipping information
+  generateShippingInfo(order) {
+    const shipping = order.shipping;
+    
+    if (shipping && (shipping.name || shipping.city || shipping.state)) {
+      let shippingText = `📍 <b>Delivery Address: 📍${order?.address} </b>\n`;
+      
+      if (shipping.name) {
+        shippingText += `• Name: ${shipping.name}\n`;
+      }
+      
+      if (shipping.city && shipping.state) {
+        shippingText += `• Location: ${shipping.city}, ${shipping.state}\n`;
+      }
+      
+      if (shipping.pincode) {
+        shippingText += `• PIN Code: ${shipping.pincode}\n`;
+      }
+      
+      if (shipping.phone) {
+        shippingText += `• Phone: ${shipping.phone}\n`;
+      }
+      
+      return shippingText.trim();
+    } else if (order.address) {
+      return `📍 <b>Shipping Address:</b>\n${order.address}`;
+    } else {
+      return `📍 <b>Shipping Address:</b>\nAddress not provided`;
+    }
   }
 
   // Generate detailed items list

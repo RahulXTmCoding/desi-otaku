@@ -16,13 +16,23 @@ export interface OrderProduct {
 }
 
 export interface ShippingInfo {
-  method: string;
-  trackingNumber?: string;
-  courier?: string;
-  estimatedDelivery?: string;
-  actualDelivery?: string;
-  cost: number;
+  name?: string;
+  phone?: string;
+  pincode?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  weight?: number;
+  length?: number;
+  breadth?: number;
+  height?: number;
   shippingCost?: number;
+  courier?: string;
+  trackingId?: string;
+  trackingNumber?: string; // Keep for backward compatibility
+  shipmentId?: string;
+  awbCode?: string;
+  estimatedDelivery?: string;
 }
 
 export interface OrderTimeline {

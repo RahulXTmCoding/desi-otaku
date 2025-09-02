@@ -105,7 +105,8 @@ async function getMetricsForPeriod(startDate, endDate) {
     {
       $match: {
         createdAt: { $gte: startDate, $lte: endDate },
-        paymentStatus: 'Paid'
+        paymentStatus: 'Paid',
+        status: { $ne: 'Cancelled' } // Explicitly exclude cancelled orders
       }
     },
     {
@@ -166,7 +167,8 @@ async function getRevenueChartData(period, startDate, endDate) {
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
-            paymentStatus: 'Paid'
+            paymentStatus: 'Paid',
+            status: { $ne: 'Cancelled' }
           }
         },
         {
@@ -193,7 +195,8 @@ async function getRevenueChartData(period, startDate, endDate) {
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
-            paymentStatus: 'Paid'
+            paymentStatus: 'Paid',
+            status: { $ne: 'Cancelled' }
           }
         },
         {

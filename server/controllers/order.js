@@ -1031,12 +1031,12 @@ exports.getAllOrders = async (req, res) => {
     // Pagination
     const skip = (page - 1) * limit;
     
-    // Execute query with minimal population for performance
+    // Execute query with full shipping and guest info for admin needs
     const [orders, totalCount] = await Promise.all([
       Order.find(query)
-        .populate('user', 'name email') // Only essential user fields
+        .populate('user', 'name email phone') // Include user phone
         .populate('products.product', 'name price') // Only essential product fields
-        .select('_id user products transaction_id amount address status createdAt updatedAt paymentStatus paymentMethod') // Only necessary order fields
+        .select('_id user guestInfo products transaction_id amount address shipping status createdAt updatedAt paymentStatus paymentMethod') // Include shipping and guestInfo for COD orders
         .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
         .skip(skip)
         .limit(parseInt(limit))

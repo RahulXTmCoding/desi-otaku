@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Loader, Mail, Phone, MapPin, Package } from 'lucide-react';
+import { ChevronDown, Loader, Mail, Phone, MapPin, Package, PhoneCall } from 'lucide-react';
 import { format } from 'date-fns';
 import { Order } from './types';
 import OrderStatusBadge from './OrderStatusBadge';
@@ -32,11 +32,22 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
 }) => {
   const orderStatuses = ['Received', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
+  // Check if this is a COD order
+  const isCODOrder = order.paymentMethod?.toLowerCase() === 'cod';
+
   return (
-    <div className="bg-gray-800 rounded-xl border border-gray-700 overflow-hidden">
+    <div className={`rounded-xl border overflow-hidden ${
+      isCODOrder 
+        ? 'bg-red-900/30 border-red-500/50' 
+        : 'bg-gray-800 border-gray-700'
+    }`}>
       {/* Order Header */}
       <div 
-        className="p-6 cursor-pointer hover:bg-gray-750 transition-colors"
+        className={`p-6 cursor-pointer transition-colors ${
+          isCODOrder
+            ? 'hover:bg-red-800/40'
+            : 'hover:bg-gray-750'
+        }`}
         onClick={onToggleExpand}
       >
         <div className="flex items-center justify-between">
@@ -52,19 +63,36 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
               className="w-4 h-4 rounded border-gray-600 text-yellow-400 focus:ring-yellow-400"
             />
             <div>
-              <h3 className="font-mono text-yellow-400 font-medium">
-                Order #{order._id.slice(-8).toUpperCase()}
-              </h3>
+              <div className="flex items-center gap-2">
+                <h3 className="font-mono text-yellow-400 font-medium">
+                  Order #{order._id.slice(-8).toUpperCase()}
+                </h3>
+                {isCODOrder && (
+                  <span className="px-2 py-1 bg-red-500 text-white text-xs font-medium rounded-full">
+                    COD
+                  </span>
+                )}
+              </div>
               <p className="text-sm text-gray-400 mt-1">
                 {format(new Date(order.createdAt), 'PPpp')}
+                {isCODOrder && (
+                  <span className="text-red-400 ml-2">• Cash on Delivery</span>
+                )}
               </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <OrderStatusBadge status={order.status} />
             <div className="text-right">
-              <p className="text-2xl font-bold">₹{order.amount}</p>
+              <p className={`text-2xl font-bold ${
+                isCODOrder ? 'text-red-400' : 'text-white'
+              }`}>
+                ₹{order.amount}
+              </p>
               <p className="text-sm text-gray-400">{order.products.length} items</p>
+              {isCODOrder && (
+                <p className="text-xs text-red-400 mt-1">Payment Pending</p>
+              )}
             </div>
             <ChevronDown 
               className={`w-5 h-5 text-gray-400 transform transition-transform ${
@@ -77,7 +105,156 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
 
       {/* Expanded Order Details */}
       {isExpanded && (
-        <div className="border-t border-gray-700 p-6">
+        <div className={`border-t p-6 ${
+          isCODOrder ? 'border-red-500/30' : 'border-gray-700'
+        }`}>
+          {/* Shipping Information Section - All Orders */}
+          <div className={`mb-6 rounded-xl p-4 ${
+            isCODOrder 
+              ? 'bg-gradient-to-r from-red-900/40 to-red-800/30 border-2 border-red-500/50' 
+              : 'bg-gradient-to-r from-gray-800/40 to-gray-700/30 border-2 border-gray-600/50'
+          }`}>
+            <div className="flex items-center gap-3 mb-3">
+              {isCODOrder ? (
+                <>
+                  <PhoneCall className="w-6 h-6 text-red-400 animate-pulse" />
+                  <h3 className="text-lg font-bold text-red-300">📞 COD Order - Call Customer to Confirm</h3>
+                </>
+              ) : (
+                <>
+                  <Package className="w-6 h-6 text-blue-400" />
+                  <h3 className="text-lg font-bold text-blue-300">📦 Shipping Information</h3>
+                </>
+              )}
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              {/* Customer Phone */}
+              <div className={`rounded-lg p-3 border ${
+                isCODOrder 
+                  ? 'bg-red-900/50 border-red-500/50' 
+                  : 'bg-gray-700/70 border-gray-500/50'
+              }`}>
+                <p className={`text-xs mb-1 ${
+                  isCODOrder ? 'text-red-300' : 'text-gray-300'
+                }`}>Customer Mobile</p>
+                {(() => {
+                  // Check all possible phone number sources using actual order model fields
+                  const customerPhone = order.user?.phone || 
+                                      order.guestInfo?.phone || 
+                                      order.shipping?.phone;
+                  
+                  return customerPhone ? (
+                    <div className="flex items-center gap-2">
+                      <PhoneCall className={`w-5 h-5 ${
+                        isCODOrder ? 'text-green-400' : 'text-blue-400'
+                      }`} />
+                      <a 
+                        href={`tel:${customerPhone}`}
+                        className={`text-lg font-bold transition-colors ${
+                          isCODOrder 
+                            ? 'text-green-300 hover:text-green-200' 
+                            : 'text-blue-300 hover:text-blue-200'
+                        }`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {customerPhone}
+                      </a>
+                    </div>
+                  ) : (
+                    <p className={`text-sm ${
+                      isCODOrder ? 'text-red-400' : 'text-gray-400'
+                    }`}>⚠️ No phone number available</p>
+                  );
+                })()}
+              </div>
+              
+              {/* Customer Name & Amount */}
+              <div className={`rounded-lg p-3 border ${
+                isCODOrder 
+                  ? 'bg-red-900/50 border-red-500/50' 
+                  : 'bg-gray-700/70 border-gray-500/50'
+              }`}>
+                <p className={`text-xs mb-1 ${
+                  isCODOrder ? 'text-red-300' : 'text-gray-300'
+                }`}>Customer Details</p>
+                <p className="text-lg font-semibold text-white">{order.user?.name || order.guestInfo?.name || order.shipping?.name || 'Guest'}</p>
+                {isCODOrder ? (
+                  <p className="text-red-300 text-sm">Amount to Collect: <span className="font-bold text-yellow-300">₹{order.amount}</span></p>
+                ) : (
+                  <p className="text-blue-300 text-sm">Order Value: <span className="font-bold text-yellow-300">₹{order.amount}</span></p>
+                )}
+              </div>
+
+              {/* Delivery Address */}
+              <div className={`rounded-lg p-3 border ${
+                isCODOrder 
+                  ? 'bg-red-900/50 border-red-500/50' 
+                  : 'bg-gray-700/70 border-gray-500/50'
+              }`}>
+                <p className={`text-xs mb-1 ${
+                  isCODOrder ? 'text-red-300' : 'text-gray-300'
+                }`}>Delivery Address</p>
+                {order.shipping || order.address ? (
+                  <div className="text-sm text-white">
+                    {order.shipping?.name && (
+                      <p className="font-semibold">{order.shipping.name}</p>
+                    )}
+                    {order.shipping?.city && order.shipping?.state ? (
+                      <>
+                        <p className={`text-xs mt-1 ${
+                          isCODOrder ? 'text-red-200' : 'text-gray-200'
+                        }`}>
+                          {order.shipping.city}, {order.shipping.state}
+                        </p>
+                        {order.shipping.pincode && (
+                          <p className={`text-xs font-mono ${
+                            isCODOrder ? 'text-red-200' : 'text-gray-200'
+                          }`}>
+                            PIN: {order.shipping.pincode}
+                          </p>
+                        )}
+                        {order.shipping.phone && (
+                          <p className={`text-xs mt-1 ${
+                            isCODOrder ? 'text-green-300' : 'text-blue-300'
+                          }`}>
+                            📱 {order.shipping.phone}
+                          </p>
+                        )}
+                        <p className={`text-xs mt-1 ${
+                        isCODOrder ? 'text-red-200' : 'text-gray-200'
+                      }`}>{order.address}</p>
+                      </>
+                    ) : order.address ? (
+                      <p className={`text-xs mt-1 ${
+                        isCODOrder ? 'text-red-200' : 'text-gray-200'
+                      }`}>{order.address}</p>
+                    ) : (
+                      <p className={`text-xs ${
+                        isCODOrder ? 'text-red-400' : 'text-gray-400'
+                      }`}>Address not available</p>
+                    )}
+                  </div>
+                ) : (
+                  <p className={`text-sm ${
+                    isCODOrder ? 'text-red-400' : 'text-gray-400'
+                  }`}>⚠️ No delivery address</p>
+                )}
+              </div>
+            </div>
+            
+            {/* Quick Action */}
+            <div className={`mt-3 flex items-center gap-2 text-xs ${
+              isCODOrder ? 'text-red-300' : 'text-gray-300'
+            }`}>
+              <Package className="w-4 h-4" />
+              <span>{
+                isCODOrder 
+                  ? 'Call customer to confirm order and delivery address before processing'
+                  : 'Verify shipping address and prepare for shipment'
+              }</span>
+            </div>
+          </div>
+
           <div className="grid md:grid-cols-2 gap-6">
             {/* Customer Info */}
             <div>
@@ -85,16 +262,21 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm">
                   <span className="text-gray-500">Name:</span>
-                  <span>{order.user?.name || 'Guest'}</span>
+                  <span>{order.user?.name || order.guestInfo?.name || 'Guest'}</span>
+                  {isCODOrder && (
+                    <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
+                      COD Customer
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-sm">
                   <Mail className="w-4 h-4 text-gray-500" />
-                  <span>{order.user?.email}</span>
+                  <span>{order.user?.email || order.guestInfo?.email}</span>
                 </div>
-                {order.user?.phone && (
+                {(order.user?.phone || order.guestInfo?.phone || order.shippingAddress?.phone) && (
                   <div className="flex items-center gap-2 text-sm">
                     <Phone className="w-4 h-4 text-gray-500" />
-                    <span>{order.user.phone}</span>
+                    <span>{order.user?.phone || order.guestInfo?.phone || order.shippingAddress?.phone}</span>
                   </div>
                 )}
                 {order.shippingAddress && (
@@ -111,12 +293,30 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
             {/* Order Status & Actions */}
             <div>
               <h4 className="font-semibold mb-3 text-gray-300">Order Status</h4>
-              <div className="space-y-3">
+                <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-gray-400">
                     Transaction: {order.transaction_id ? order.transaction_id.slice(0, 12) + '...' : 'N/A'}
                   </span>
+                  {isCODOrder && (
+                    <span className="text-xs bg-red-500 text-white px-2 py-1 rounded font-medium">
+                      Cash on Delivery
+                    </span>
+                  )}
                 </div>
+                {isCODOrder && (
+                  <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Package className="w-4 h-4 text-red-400" />
+                      <span className="text-sm text-red-400 font-medium">
+                        COD Order - Payment Required on Delivery
+                      </span>
+                    </div>
+                    <p className="text-xs text-red-300 mt-1">
+                      Customer will pay ₹{order.amount} when the package is delivered
+                    </p>
+                  </div>
+                )}
                 
                 {/* Status Update Dropdown */}
                 <div className="flex items-center gap-2">
