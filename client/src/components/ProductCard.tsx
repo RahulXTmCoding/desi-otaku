@@ -6,6 +6,7 @@ import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
 import { generateLightColorWithOpacity } from '../utils/colorUtils';
+import ShiprocketButton from './ShiprocketButton';
 
 interface ProductCardProps {
   product: any;
@@ -217,7 +218,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
         )}
 
         {/* Price and Actions */}
-        <div className="flex items-center justify-between mt-4">
+        <div className="mt-4">
           <div className="flex flex-col">
             {/* MRP and Selling Price */}
             <div className="flex items-center gap-2">
@@ -245,10 +246,42 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
             )}
           </div>
           
+          {/* Action Buttons */}
+          {!isOutOfStock() && (
+            <div className="flex gap-2 mt-3">
+              <button
+                onClick={handleAddToCart}
+                className="flex-1 flex items-center justify-center gap-2 bg-gray-700 hover:bg-gray-600 text-white py-2 px-3 rounded-lg transition-colors text-sm"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                Add to Cart
+              </button>
+              
+              <ShiprocketButton
+                buyNowItem={{
+                  _id: `buy-now-${Date.now()}`,
+                  product: product._id,
+                  name: product.name,
+                  price: product.price,
+                  size: getAvailableSizes()[0] || 'M',
+                  color: 'Black',
+                  quantity: 1,
+                  isCustom: false,
+                  photoUrl: getImageUrl()
+                }}
+                size="sm"
+                variant="secondary"
+                className="flex-1 text-sm py-2"
+              >
+                Buy Now
+              </ShiprocketButton>
+            </div>
+          )}
+          
           {isInCart && (
-            <span className="text-green-500 text-sm animate-pulse">
+            <div className="text-green-500 text-sm animate-pulse mt-2 text-center">
               Added to cart!
-            </span>
+            </div>
           )}
         </div>
       </div>

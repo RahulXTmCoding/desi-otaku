@@ -28,6 +28,7 @@ import { productCache } from '../utils/productCache';
 import SEOHead from '../components/SEOHead';
 import { SEOUtils } from '../seo/SEOUtils';
 import { generateLightColorWithOpacity } from '../utils/colorUtils';
+import ShiprocketButton from '../components/ShiprocketButton';
 
 // Lazy load heavy components to improve initial page load
 const ProductReviews = lazy(() => import('../components/ProductReviews'));
@@ -179,7 +180,7 @@ const ProductDetail: React.FC = () => {
 
   // Dynamic product type detection and descriptions
   const getProductType = (product: Product): 'printed-tee' | 'oversized' | 'hoodie' | 'default' => {
-    const category = product?.productType?.name?.toLowerCase() || '';
+    const category = product?.category?.name?.toLowerCase() || '';
     
     if (category.includes('hoodie')) {
       return 'hoodie';
@@ -1008,36 +1009,26 @@ const ProductDetail: React.FC = () => {
                   ? 'Out of Stock'
                   : 'Add to Cart'}
               </button>
-              <button
-                onClick={handleBuyNow}
+              
+              <ShiprocketButton
+                buyNowItem={selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0 ? {
+                  _id: `buy-now-${Date.now()}`,
+                  product: product._id,
+                  name: product.name,
+                  price: product.price,
+                  size: selectedSize,
+                  color: selectedColor?.name || 'Black',
+                  quantity: quantity,
+                  isCustom: false,
+                  photoUrl: (product as any).photoUrl || getProductImage(product)
+                } : undefined}
                 disabled={!selectedSize || (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] === 0)}
-                className={`flex-1 py-4 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 ${
-                  selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
-                    ? ''
-                    : 'cursor-not-allowed'
-                }`}
-                style={{
-                  backgroundColor: selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
-                    ? '#10b981'
-                    : 'var(--color-surface)',
-                  color: selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0
-                    ? 'white'
-                    : 'var(--color-textMuted)'
-                }}
-                onMouseEnter={(e) => {
-                  if (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0) {
-                    e.currentTarget.style.backgroundColor = '#059669';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (selectedSize && product.sizeStock && product.sizeStock[selectedSize as keyof typeof product.sizeStock] > 0) {
-                    e.currentTarget.style.backgroundColor = '#10b981';
-                  }
-                }}
+                variant="secondary"
+                size="lg"
+                className="flex-1"
               >
-                <Zap className="w-5 h-5" />
                 Buy Now
-              </button>
+              </ShiprocketButton>
               {/* Only show wishlist button if user is logged in */}
               {userId && token && (
                 <button 

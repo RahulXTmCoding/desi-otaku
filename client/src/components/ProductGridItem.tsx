@@ -7,6 +7,7 @@ import { useAOV } from '../context/AOVContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { generateLightColorWithOpacity } from '../utils/colorUtils';
+import ShiprocketButton from './ShiprocketButton';
 
 interface Product {
   _id: string;
@@ -165,15 +166,10 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
     }
   };
 
-  const handleBuyNow = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const getBuyNowItem = () => {
+    if (!selectedSize) return undefined;
     
-    if (!selectedSize) {
-      return;
-    }
-    
-    const buyNowItem = {
+    return {
       _id: `buy-now-${Date.now()}`,
       product: product._id,
       name: product.name,
@@ -184,10 +180,6 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
       isCustom: false,
       photoUrl: product.photoUrl || getImageUrl()
     };
-    
-    navigate('/checkout', {
-      state: { buyNowItem }
-    });
   };
 
   const handleQuickView = (e: React.MouseEvent) => {
@@ -515,9 +507,11 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
               <span className="sm:hidden">{selectedSize ? 'Add' : 'Size'}</span>
             </button>
             
-            <button
-              onClick={handleBuyNow}
+            <ShiprocketButton
+              buyNowItem={getBuyNowItem()}
               disabled={!selectedSize}
+              size="sm"
+              variant="secondary"
               className={`flex-1 py-2 sm:py-3 rounded text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1 sm:gap-2 ${
                 selectedSize
                   ? 'bg-green-500 hover:bg-green-600 text-white'
@@ -527,7 +521,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
               <Zap className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Buy Now</span>
               <span className="sm:hidden">Buy</span>
-            </button>
+            </ShiprocketButton>
           </div>
         </div>
       </div>

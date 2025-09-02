@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Loader2, Tag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
 import { getMockProductImage } from '../data/mockData';
 import { API } from '../backend';
 import CartTShirtPreview from '../components/CartTShirtPreview';
+import ShiprocketButton from '../components/ShiprocketButton';
 
 const Cart: React.FC = () => {
-  const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const { cart, loading, error, updateQuantity, removeFromCart, clearCart, getTotal, getItemCount } = useCart();
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
@@ -391,13 +391,13 @@ const Cart: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => navigate('/checkout')}
+              <ShiprocketButton
+                cart={cart}
                 className="w-full bg-yellow-400 hover:bg-yellow-300 text-gray-900 font-bold py-3 rounded-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2"
               >
                 Proceed to Checkout
                 <ArrowRight className="w-5 h-5" />
-              </button>
+              </ShiprocketButton>
 
               <Link
                 to="/shop"

@@ -7,6 +7,7 @@ import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
 import { getMockProductImage } from '../data/mockData';
 import CartTShirtPreview from './CartTShirtPreview';
+import ShiprocketButton from './ShiprocketButton';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -149,9 +150,8 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     }
   };
 
-  const handleCheckout = () => {
+  const handleShiprocketCheckout = () => {
     onClose();
-    navigate('/checkout');
   };
 
   const handleContinueShopping = () => {
@@ -409,16 +409,18 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
               {/* Action Buttons */}
               <div className="space-y-2">
-                <button
-                  onClick={handleCheckout}
-                  className="w-full py-4 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2"
-                  style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primaryHover)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-primary)'}
+                <div 
+                  onClick={handleShiprocketCheckout}
+                  className="w-full"
                 >
-                  Proceed to Checkout
-                  <ChevronRight className="w-5 h-5" />
-                </button>
+                  <ShiprocketButton
+                    cart={cart}
+                    className="w-full py-4 rounded-lg font-bold transition-all transform hover:scale-105 flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900"
+                  >
+                    Proceed to Checkout
+                    <ChevronRight className="w-5 h-5" />
+                  </ShiprocketButton>
+                </div>
 
                 <button
                   onClick={handleContinueShopping}
