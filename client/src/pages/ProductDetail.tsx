@@ -85,7 +85,7 @@ const ProductDetail: React.FC = () => {
   // State management
   const [selectedColor, setSelectedColor] = useState<{ name: string; value: string } | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
-  const [quantity, setQuantity] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const [productImages, setProductImages] = useState<any[]>([]);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
