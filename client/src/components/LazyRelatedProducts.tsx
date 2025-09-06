@@ -120,7 +120,7 @@ const LazyRelatedProducts: React.FC<LazyRelatedProductsProps> = ({
   };
 
   return (
-    <div ref={containerRef} className="mt-16">
+    <div ref={containerRef} className="mt-6 mb-6">
       <h2 className="text-2xl font-bold mb-8">
         You May Also Like
         {similarProductsData?.cached && (

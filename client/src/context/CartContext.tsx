@@ -29,6 +29,8 @@ interface CartContextType {
   getTotal: () => number;
   getItemCount: () => number;
   syncCart: () => Promise<void>;
+  getAOVDiscount: () => { discount: number; percentage: number; nextTier?: { quantity: number; discount: number } };
+  getShippingProgress: () => { current: number; needed: number; percentage: number };
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -251,6 +253,86 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     return getCartItemCount(cart);
   };
 
+  // Calculate AOV discount based on backend configuration
+  const getAOVDiscount = () => {
+    const itemCount = getItemCount();
+    const total = getTotal();
+    
+    // Get AOV tiers from global window object (loaded at app start)
+    const aovTiers = (window as any).aovQuantityTiers || [];
+    
+    if (!aovTiers.length) {
+      // Fallback to default tiers if backend config not available
+      if (itemCount >= 5) {
+        return { 
+          discount: Math.round(total * 0.20), 
+          percentage: 20 
+        };
+      }
+      if (itemCount >= 3) {
+        return { 
+          discount: Math.round(total * 0.10), 
+          percentage: 10,
+          nextTier: { quantity: 5, discount: 20 }
+        };
+      }
+      
+      return { 
+        discount: 0, 
+        percentage: 0, 
+        nextTier: { quantity: 3, discount: 10 }
+      };
+    }
+    
+    // Sort tiers by quantity ascending
+    const sortedTiers = [...aovTiers].sort((a, b) => a.quantity - b.quantity);
+    
+    let currentTier = null;
+    let nextTier = null;
+    
+    // Find current applicable tier
+    for (let i = sortedTiers.length - 1; i >= 0; i--) {
+      if (itemCount >= sortedTiers[i].quantity) {
+        currentTier = sortedTiers[i];
+        break;
+      }
+    }
+    
+    // Find next tier
+    for (const tier of sortedTiers) {
+      if (tier.quantity > itemCount) {
+        nextTier = tier;
+        break;
+      }
+    }
+    
+    if (currentTier) {
+      return {
+        discount: Math.round((total * currentTier.discount) / 100),
+        percentage: currentTier.discount,
+        nextTier: nextTier ? { quantity: nextTier.quantity, discount: nextTier.discount } : undefined
+      };
+    }
+    
+    return {
+      discount: 0,
+      percentage: 0,
+      nextTier: nextTier ? { quantity: nextTier.quantity, discount: nextTier.discount } : undefined
+    };
+  };
+
+  // Calculate shipping progress towards free shipping
+  const getShippingProgress = () => {
+    const total = getTotal();
+    const freeShippingThreshold = 1000; // ₹1000 for free shipping
+    
+    return {
+      current: total,
+      needed: Math.max(0, freeShippingThreshold - total),
+      percentage: Math.min(100, (total / freeShippingThreshold) * 100)
+    };
+  };
+
   const value: CartContextType = {
     cart,
     loading,
@@ -261,7 +343,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     clearCart,
     getTotal,
     getItemCount,
-    syncCart
+    syncCart,
+    getAOVDiscount,
+    getShippingProgress
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

@@ -8,9 +8,9 @@ class AOVService {
       await Settings.setSetting('quantity_discounts', {
         enabled: true,
         tiers: [
-          { minQuantity: 3, discount: 5, label: '5% off on 3+ items' },
-          { minQuantity: 5, discount: 10, label: '10% off on 5-7 items' },
-          { minQuantity: 7, discount: 15, label: '15% off on 7+ items' }
+          { minQuantity: 3, discount: 10, label: '10% off on 3+ items' },
+          { minQuantity: 5, discount: 15, label: '10% off on 5-7 items' },
+          { minQuantity: 8, discount: 20, label: '15% off on 8+ items' }
         ]
       }, 'Quantity-based discount configuration');
 
@@ -30,9 +30,9 @@ class AOVService {
         enabled: true,
         basePointsPerRupee: 1, // 1 point per ₹10 spent
         multipliers: [
-          { minAmount: 2000, multiplier: 2, label: '2X points on orders ₹1500+' },
-          { minAmount: 3000, multiplier: 3, label: '3X points on orders ₹3000+' },
-          { minAmount: 5000, multiplier: 5, label: '5X points on orders ₹5000+' }
+          { minAmount: 3000, multiplier: 2, label: '2X points on orders ₹3000+' },
+          { minAmount: 5000, multiplier: 3, label: '3X points on orders ₹5000+' }
+          // { minAmount: 5000, multiplier: 5, label: '5X points on orders ₹5000+' }
         ]
       }, 'Loyalty points multiplier configuration');
 

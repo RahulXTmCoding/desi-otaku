@@ -420,7 +420,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       </div>
 
       {reviews.length === 0 && !userReview && (
-        <p className="text-center text-gray-400 py-8">
+        <p className="text-center text-gray-400 py-4">
           No reviews yet. Be the first to review this product!
         </p>
       )}

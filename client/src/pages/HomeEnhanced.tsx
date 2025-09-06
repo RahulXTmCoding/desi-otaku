@@ -430,7 +430,7 @@ const HomeEnhanced: React.FC = () => {
       {/* Promotional Banner */}
       {showBanner && (
         <PromotionalBanner
-          message="Buy 3 Get 5% Off Code"
+          message="Buy 3 Get 10% Off Code"
           code="Auto applied at checkout"
           onClose={() => setShowBanner(false)}
         />
