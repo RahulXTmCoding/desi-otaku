@@ -6,6 +6,8 @@ import { useDevMode } from '../context/DevModeContext';
 import { getMockProductImage } from '../data/mockData';
 import { API } from '../backend';
 import CartTShirtPreview from '../components/CartTShirtPreview';
+import QuantityDiscountBanner from '../components/QuantityDiscountBanner';
+import FreeShippingProgress from '../components/FreeShippingProgress';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
@@ -338,6 +340,12 @@ const Cart: React.FC = () => {
                 Clear Cart
               </button>
             )}
+
+            {/* Premium ROI Enhancement Components */}
+            <div className="space-y-4 mt-8">
+              <QuantityDiscountBanner currentQuantity={0} />
+              <FreeShippingProgress />
+            </div>
           </div>
 
           {/* Order Summary - Sticky on large screens */}

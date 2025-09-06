@@ -100,25 +100,6 @@ const FreeShippingProgress: React.FC = () => {
               style={{ width: `${Math.min(100, percentage)}%` }}
             />
           </div>
-          <div className="text-center mt-2">
-            <span className="text-sm font-medium text-blue-100">
-              {Math.round(percentage)}% completed
-            </span>
-          </div>
-        </div>
-        
-        {/* Shipping cost comparison */}
-        <div className="bg-white/10 rounded-lg p-3">
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <p className="text-blue-200">Current shipping:</p>
-              <p className="font-bold text-red-300">₹99</p>
-            </div>
-            <div>
-              <p className="text-blue-200">With free shipping:</p>
-              <p className="font-bold text-green-300">₹0 (Save ₹99!)</p>
-            </div>
-          </div>
         </div>
         
         {/* Motivation section */}

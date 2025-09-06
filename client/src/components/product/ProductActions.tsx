@@ -112,7 +112,7 @@ const ProductActions: React.FC<ProductActionsProps> = ({
               ? 'Select a Size' 
               : !isStockAvailable
               ? 'Out of Stock'
-              : `Add to Cart • ₹${(product.price * quantity).toLocaleString()}`}
+              : `Add to Cart ${(product.price * quantity? `• ₹${product.price * quantity}`:"").toLocaleString()}`}
           </button>
 
           {/* Wishlist Button - Integrated */}

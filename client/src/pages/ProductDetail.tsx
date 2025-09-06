@@ -70,7 +70,7 @@ const ProductDetail: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
-  const { addToCart } = useCart();
+  const { addToCart, getItemCount } = useCart();
   
   // React Query for product data
   const { 
@@ -85,7 +85,7 @@ const ProductDetail: React.FC = () => {
   // State management
   const [selectedColor, setSelectedColor] = useState<{ name: string; value: string } | null>(null);
   const [selectedSize, setSelectedSize] = useState('');
-  const [quantity, setQuantity] = useState(1);
+  const [quantity, setQuantity] = useState(0);
   const [productImages, setProductImages] = useState<any[]>([]);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
@@ -497,7 +497,7 @@ const ProductDetail: React.FC = () => {
       
       <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
         {/* Breadcrumb */}
-        <div className="w-[96%] md:w-[90%] mx-auto md:px-4 py-4">
+        <div className="w-[96%] md:w-[90%] xl:w-[80%] mx-auto md:px-4 py-4">
           <div className="flex items-center gap-2 text-sm animate-fade-in" style={{ color: 'var(--color-textMuted)' }}>
             <button onClick={() => navigate('/')} className="transition-colors hover:scale-105 transform" 
               onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
@@ -513,7 +513,7 @@ const ProductDetail: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-[96%] md:w-[90%] mx-auto md:px-4 md:py-8">
+        <div className="w-[96%] md:w-[90%] xl:w-[80%] mx-auto md:px-4 md:py-8">
           <div className="grid md:grid-cols-5 md:gap-8  gap-6">
             {/* Product Images Section - Takes 3/5 of the width (60%) */}
             <div className="md:col-span-3">
@@ -559,11 +559,13 @@ const ProductDetail: React.FC = () => {
                 token={token}
               />
 
-              {/* Premium AOV Enhancement Components */}
-              <div className="space-y-6 pt-6 border-t" style={{ borderColor: 'var(--color-border)' }}>
-                <QuantityDiscountBanner currentQuantity={quantity} />
-                <FreeShippingProgress />
-              </div>
+              {/* Premium AOV Enhancement Components - Only show when cart has items */}
+              {getItemCount() > 0 && (
+                <div className="space-y-6 pt-6 border-t" style={{ borderColor: 'var(--color-border)' }}>
+                  <QuantityDiscountBanner currentQuantity={0} />
+                  <FreeShippingProgress />
+                </div>
+              )}
             </div>
           </div>
 

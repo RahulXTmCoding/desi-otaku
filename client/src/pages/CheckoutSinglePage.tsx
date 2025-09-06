@@ -909,7 +909,7 @@ const CheckoutSinglePage: React.FC = () => {
                 
                 <div className="flex justify-between text-sm">
                   <span>Shipping</span>
-                  <span>{selectedShipping?.rate ? `₹${selectedShipping.rate}` : 'TBD'}</span>
+                  <span>{selectedShipping?.rate ? `₹${selectedShipping.rate}` : '₹0'}</span>
                 </div>
                 
                 {appliedDiscount.quantity && (

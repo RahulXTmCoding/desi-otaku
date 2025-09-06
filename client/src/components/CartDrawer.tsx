@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Loader2, Cloud, CloudOff } from 'lucide-react';
+import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Loader2, Cloud, CloudOff, Gift, Package, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
+import { useAOV } from '../context/AOVContext';
 import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
 import { getMockProductImage } from '../data/mockData';
@@ -17,6 +18,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const { cart, loading, error, updateQuantity, removeFromCart, clearCart, getTotal, getItemCount } = useCart();
+  const { quantityTiers } = useAOV();
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
   
@@ -163,6 +165,52 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const shipping = cartTotal > 0 && cartTotal < 999 ? 79 : 0;
   const finalTotal = cartTotal + shipping;
 
+  // AOV Calculation Logic
+  const getDiscountInfo = () => {
+    if (!quantityTiers.length) {
+      return { discount: 0, percentage: 0, nextTier: null };
+    }
+    
+    const itemCount = getItemCount();
+    const sortedTiers = [...quantityTiers].sort((a, b) => a.minQuantity - b.minQuantity);
+    
+    let currentTier = null;
+    let nextTier = null;
+    
+    // Find current applicable tier
+    for (let i = sortedTiers.length - 1; i >= 0; i--) {
+      if (itemCount >= sortedTiers[i].minQuantity) {
+        currentTier = sortedTiers[i];
+        break;
+      }
+    }
+    
+    // Find next tier
+    for (const tier of sortedTiers) {
+      if (tier.minQuantity > itemCount) {
+        nextTier = tier;
+        break;
+      }
+    }
+    
+    if (currentTier) {
+      return {
+        discount: Math.round((cartTotal * currentTier.discount) / 100),
+        percentage: currentTier.discount,
+        nextTier: nextTier ? { quantity: nextTier.minQuantity, discount: nextTier.discount } : null
+      };
+    }
+    
+    return {
+      discount: 0,
+      percentage: 0,
+      nextTier: nextTier ? { quantity: nextTier.minQuantity, discount: nextTier.discount } : null
+    };
+  };
+
+  const { discount, percentage, nextTier } = getDiscountInfo();
+  const itemCount = getItemCount();
+
   return (
     <>
       {/* Backdrop */}
@@ -217,6 +265,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
             </div>
           </div>
 
+
           {/* Cart Items Area (scrollable) */}
           <div className="flex-1 overflow-hidden">
             {/* Error Message */}
@@ -226,7 +275,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               </div>
             )}
             
-            <div className="h-full overflow-y-auto p-6" style={{ paddingBottom: cart.length > 0 ? '300px' : '24px' }}>
+            <div className="h-full overflow-y-auto p-6" style={{ paddingBottom: cart.length > 0 ? '380px' : '24px' }}>
               {loading && cart.length === 0 ? (
                 <div className="flex justify-center items-center h-full">
                   <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
@@ -246,20 +295,20 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {cart.map((item) => (
                     <div
                       key={item._id}
-                      className={`rounded-lg p-4 transition-all ${
+                      className={`rounded-lg p-3 transition-all ${
                         isRemoving === item._id ? 'opacity-50 scale-95' : ''
                       }`}
                       style={{ backgroundColor: 'var(--color-surfaceHover)' }}
                       onMouseEnter={(e) => !isRemoving && (e.currentTarget.style.backgroundColor = 'var(--color-border)')}
                       onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)'}
                     >
-                      <div className="flex gap-4">
-                        {/* Product Image */}
-                        <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--color-border)' }}>
+                      <div className="flex gap-3">
+                        {/* Product Image - Compact size */}
+                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--color-border)' }}>
                           {item.isCustom && item.customization ? (
                             <CartTShirtPreview
                               design={null}
@@ -326,9 +375,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                         </div>
                       </div>
 
-                      {/* Quantity Controls */}
-                      <div className="mt-4 flex items-center justify-between">
-                        <div className="flex items-center gap-3">
+                      {/* Quantity Controls - Compact */}
+                      <div className="mt-3 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleQuantityUpdate(item._id!, item.quantity - 1)}
                             disabled={isUpdating === item._id || item.quantity <= 1}
@@ -376,6 +425,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                   ))}
+
                 </div>
               )}
             </div>
@@ -407,6 +457,25 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 </div>
               </div>
 
+              {/* Minimal AOV Info */}
+              {percentage > 0 ? (
+                <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                  <div className="flex items-center gap-2">
+                    <Gift className="w-4 h-4 text-green-600" />
+                    <span className="text-sm font-medium text-green-700">{percentage}% OFF Applied</span>
+                  </div>
+                  <span className="text-sm font-bold text-green-700">-₹{discount}</span>
+                </div>
+              ) : nextTier ? (
+                <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(139, 92, 246, 0.2)' }}>
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-purple-600" />
+                    <span className="text-sm font-medium text-purple-700">Add {nextTier.quantity - itemCount} more for {nextTier.discount}% OFF</span>
+                  </div>
+                  <span className="text-xs text-purple-600">Save ₹{Math.round((cartTotal * nextTier.discount) / 100)}</span>
+                </div>
+              ) : null}
+
               {/* Action Buttons */}
               <div className="space-y-2">
                 <button
@@ -430,7 +499,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   Continue Shopping
                 </button>
 
-                {cart.length > 1 && (
+                {/* {cart.length > 1 && (
                   <button
                     onClick={handleClearCart}
                     className="w-full py-2 transition-colors text-sm"
@@ -440,11 +509,11 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   >
                     Clear Cart
                   </button>
-                )}
+                )} */}
               </div>
 
               {/* Sync Status Info */}
-              <div className="text-xs text-center pt-2" style={{ color: 'var(--color-textMuted)', borderTop: '1px solid var(--color-border)' }}>
+              {/* <div className="text-xs text-center pt-2" style={{ color: 'var(--color-textMuted)', borderTop: '1px solid var(--color-border)' }}>
                 {isLoggedIn ? (
                   <span className="flex items-center justify-center gap-1">
                     <Cloud className="w-3 h-3" />
@@ -456,7 +525,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                     Sign in to save your cart
                   </span>
                 )}
-              </div>
+              </div> */}
             </div>
           )}
         </div>
