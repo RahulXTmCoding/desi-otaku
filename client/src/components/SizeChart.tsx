@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { X, Ruler } from 'lucide-react';
 
 interface SizeChartProps {
-  productType?: 'tshirt' | 'hoodie' | 'tank';
+  productType?: 'tshirt' | 'hoodie' | 'tank' | 'oversized' | 'printed-tee';
 }
 
 const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt' }) => {
@@ -23,6 +23,38 @@ const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt' }) => {
         { part: 'Chest', instruction: 'Measure around the fullest part of your chest' },
         { part: 'Length', instruction: 'Measure from highest point of shoulder to bottom hem' },
         { part: 'Shoulder', instruction: 'Measure from shoulder seam to shoulder seam' },
+      ],
+    },
+    'printed-tee': {
+      title: 'Premium Printed T-Shirt Size Chart',
+      headers: ['Size', 'Chest (inches)', 'Length (inches)', 'Shoulder (inches)'],
+      sizes: [
+        { size: 'S', chest: '36-38', length: '28', shoulder: '17' },
+        { size: 'M', chest: '39-41', length: '29', shoulder: '18' },
+        { size: 'L', chest: '42-44', length: '30', shoulder: '19' },
+        { size: 'XL', chest: '45-47', length: '31', shoulder: '20' },
+        { size: 'XXL', chest: '48-50', length: '32', shoulder: '21' },
+      ],
+      measurementGuide: [
+        { part: 'Chest', instruction: 'Measure around the fullest part of your chest' },
+        { part: 'Length', instruction: 'Measure from highest point of shoulder to bottom hem' },
+        { part: 'Shoulder', instruction: 'Measure from shoulder seam to shoulder seam' },
+      ],
+    },
+    oversized: {
+      title: 'Oversized T-Shirt Size Chart',
+      headers: ['Size', 'Chest (inches)', 'Length (inches)', 'Shoulder (inches)'],
+      sizes: [
+        { size: 'S', chest: '42-44', length: '27', shoulder: '20' },
+        { size: 'M', chest: '45-47', length: '28', shoulder: '21' },
+        { size: 'L', chest: '48-50', length: '29', shoulder: '22' },
+        { size: 'XL', chest: '51-53', length: '30', shoulder: '23' },
+        { size: 'XXL', chest: '54-56', length: '31', shoulder: '24' },
+      ],
+      measurementGuide: [
+        { part: 'Chest', instruction: 'Measure around the fullest part of your chest (oversized fit)' },
+        { part: 'Length', instruction: 'Measure from highest point of shoulder to bottom hem' },
+        { part: 'Shoulder', instruction: 'Measure from shoulder seam to shoulder seam (drop shoulder design)' },
       ],
     },
     hoodie: {

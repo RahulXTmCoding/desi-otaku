@@ -117,7 +117,7 @@ const ProductDetail: React.FC = () => {
   const defaultSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
   // Dynamic product type detection and descriptions
-  const getProductType = (product: Product): 'printed-tee' | 'oversized' | 'hoodie' | 'default' => {
+  const getProductType = (product: Product): 'printed-tee' | 'oversized' | 'hoodie' | 'tshirt' => {
     const category = product?.productType?.name?.toLowerCase() || '';
     
     if (category.includes('hoodie')) {
@@ -128,7 +128,7 @@ const ProductDetail: React.FC = () => {
       return 'printed-tee';
     }
     
-    return 'default';
+    return 'tshirt';
   };
 
   const getProductDescriptions = (productType: string) => {
@@ -218,7 +218,7 @@ const ProductDetail: React.FC = () => {
   };
 
   // Get dynamic descriptions based on product type
-  const productType = product ? getProductType(product) : 'default';
+  const productType = product ? getProductType(product) : 'tshirt';
   const productDescriptions = getProductDescriptions(productType);
   
   const defaultFeatures = productDescriptions.features;
@@ -541,6 +541,7 @@ const ProductDetail: React.FC = () => {
                 setSelectedSize={handleSizeChange}
                 quantity={quantity}
                 setQuantity={setQuantity}
+                productType={productType}
               />
 
               <ProductActions

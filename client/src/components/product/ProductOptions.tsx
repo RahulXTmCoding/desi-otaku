@@ -22,6 +22,7 @@ interface ProductOptionsProps {
   setSelectedSize: (size: string) => void;
   quantity: number;
   setQuantity: (quantity: number) => void;
+  productType?: 'tshirt' | 'hoodie' | 'tank' | 'oversized' | 'printed-tee';
 }
 
 const ProductOptions: React.FC<ProductOptionsProps> = ({
@@ -30,6 +31,7 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
   setSelectedSize,
   quantity,
   setQuantity,
+  productType = 'tshirt',
 }) => {
   const defaultSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
@@ -44,7 +46,7 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">Size</label>
-          <SizeChart productType="tshirt" />
+          <SizeChart productType={productType} />
         </div>
         <div className="grid grid-cols-5 gap-2">
           {defaultSizes.map((size) => {
