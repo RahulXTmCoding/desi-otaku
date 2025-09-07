@@ -431,17 +431,21 @@ const UpdateProduct = () => {
 
     try {
       // Prepare product data
-      const productData = {
+      const productData: any = {
         name,
         description,
         price,
         mrp: values.mrp,
         category,
-        subcategory: values.subcategory, // Add subcategory field
         tags,
         productType,
         sizeStock
       };
+      
+      // Only include subcategory if it has a value
+      if (values.subcategory && values.subcategory.trim() !== '') {
+        productData.subcategory = values.subcategory;
+      }
       
       // Separate images by type
       const existingImages = images.filter(img => img.existingImage);
