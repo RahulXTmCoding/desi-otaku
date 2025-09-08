@@ -4,6 +4,7 @@ import { ChevronLeft, Package, MapPin, Truck, Percent, ShoppingBag } from 'lucid
 import { CreditCard, Smartphone, AlertCircle, Shield, Loader, Phone, CheckCircle } from 'lucide-react';
 
 import { useCart } from '../context/CartContext';
+import { useAnalytics } from '../context/AnalyticsContext';
 import { isAutheticated } from '../auth/helper';
 import { loadRazorpayScript } from '../core/helper/razorpayHelper';
 import { 
@@ -34,6 +35,7 @@ const CheckoutSinglePage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { cart: regularCart, clearCart } = useCart();
+  const { trackBeginCheckout, trackAddShippingInfo, trackAddPaymentInfo } = useAnalytics();
   
   // Check for Buy Now item
   const buyNowItem = location.state?.buyNowItem;
@@ -106,12 +108,36 @@ const CheckoutSinglePage: React.FC = () => {
     instance: {}
   });
 
-  // Check cart items on mount
+  // Check cart items on mount and track begin checkout
   useEffect(() => {
     if (!buyNowItem && (!regularCart || regularCart.length === 0)) {
       navigate('/cart');
+      return;
     }
-  }, [buyNowItem, regularCart, navigate]);
+
+    // Track begin checkout when user reaches checkout page
+    if (cart && cart.length > 0) {
+      const couponCode = appliedDiscount.coupon?.code;
+      trackBeginCheckout(cart, couponCode);
+    }
+  }, [buyNowItem, regularCart, navigate, cart, trackBeginCheckout, appliedDiscount.coupon?.code]);
+
+  // Track shipping info when selected
+  useEffect(() => {
+    if (selectedShipping && cart && cart.length > 0) {
+      trackAddShippingInfo(cart, selectedShipping.name || selectedShipping.label || 'Standard');
+    }
+  }, [selectedShipping, cart, trackAddShippingInfo]);
+
+  // Track payment method when selected
+  useEffect(() => {
+    if (paymentMethod && cart && cart.length > 0) {
+      const paymentType = paymentMethod === 'razorpay' ? 'Online Payment' : 
+                         paymentMethod === 'cod' ? 'Cash on Delivery' : 
+                         'Credit Card';
+      trackAddPaymentInfo(cart, paymentType);
+    }
+  }, [paymentMethod, cart, trackAddPaymentInfo]);
 
   // Load Razorpay script
   useEffect(() => {

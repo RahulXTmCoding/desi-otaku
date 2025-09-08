@@ -5,6 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useProduct } from '../hooks/useProducts';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
+import { useAnalytics } from '../context/AnalyticsContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
@@ -71,6 +72,7 @@ const ProductDetail: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const { addToCart, getItemCount } = useCart();
+  const { trackProductView } = useAnalytics();
   
   // React Query for product data
   const { 
@@ -307,6 +309,19 @@ const ProductDetail: React.FC = () => {
       loadProductImages();
     }
   }, [product, isTestMode]);
+
+  // Track product view when product loads
+  useEffect(() => {
+    if (product && product._id) {
+      // Track product view for analytics
+      trackProductView({
+        _id: product._id,
+        name: product.name,
+        price: product.price,
+        category: product.category?.name || 'T-Shirt'
+      });
+    }
+  }, [product, trackProductView]);
 
   // Load wishlist status
   useEffect(() => {

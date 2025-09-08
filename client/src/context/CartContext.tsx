@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { isAutheticated } from '../auth/helper';
+import { useAnalytics } from './AnalyticsContext';
 import {
   CartItem,
   getUserCart,
@@ -22,7 +23,7 @@ interface CartContextType {
   cart: CartItem[];
   loading: boolean;
   error: string | null;
-  addToCart: (item: Omit<CartItem, '_id' | 'quantity'> & { quantity?: number }) => Promise<void>;
+  addToCart: (item: Omit<CartItem, '_id' | 'quantity'> & { quantity?: number; category?: string }) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -51,6 +52,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const analytics = useAnalytics();
 
   // Load cart on mount
   useEffect(() => {
@@ -102,7 +104,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   };
 
   // Add item to cart
-  const addToCart = async (item: Omit<CartItem, '_id' | 'quantity'> & { quantity?: number }) => {
+  const addToCart = async (item: Omit<CartItem, '_id' | 'quantity'> & { quantity?: number; category?: string }) => {
     setError(null);
     
     try {
@@ -128,6 +130,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         
         if (response.success && response.cart) {
           setCart(response.cart.items || []);
+          
+          // Track add to cart event
+          analytics.trackAddToCart({
+            _id: item.product,
+            name: item.name,
+            price: item.price,
+            category: item.category || 'T-Shirt'
+          }, item.quantity || 1);
         } else {
           throw new Error(response.error || 'Failed to add item to cart');
         }
@@ -138,6 +148,14 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           quantity: item.quantity || 1
         } as CartItem);
         setCart(updatedCart);
+        
+        // Track add to cart event
+        analytics.trackAddToCart({
+          _id: item.product,
+          name: item.name,
+          price: item.price,
+          category: item.category || 'T-Shirt'
+        }, item.quantity || 1);
       }
     } catch (err: any) {
       console.error('Error adding to cart:', err);

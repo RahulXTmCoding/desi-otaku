@@ -6,6 +6,7 @@ import { DevModeProvider } from './context/DevModeContext'
 import { CartProvider } from './context/CartContext'
 import { ThemeProvider } from './context/ThemeContext'
 import { AOVProvider } from './context/AOVContext'
+import { AnalyticsProvider } from './context/AnalyticsContext'
 import { QueryProvider } from './providers/QueryProvider'
 import { initializeAuth } from './utils/clearAuth'
 import SEOProvider from './components/SEOProvider'
@@ -18,17 +19,19 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <QueryProvider>
       <ThemeProvider>
-        <DevModeProvider>
-          <AOVProvider>
-            <BrowserRouter>
-              <SEOProvider>
-                <CartProvider>
-                  <App />
-                </CartProvider>
-              </SEOProvider>
-            </BrowserRouter>
-          </AOVProvider>
-        </DevModeProvider>
+        <AnalyticsProvider>
+          <DevModeProvider>
+            <AOVProvider>
+              <BrowserRouter>
+                <SEOProvider>
+                  <CartProvider>
+                    <App />
+                  </CartProvider>
+                </SEOProvider>
+              </BrowserRouter>
+            </AOVProvider>
+          </DevModeProvider>
+        </AnalyticsProvider>
       </ThemeProvider>
     </QueryProvider>
   </React.StrictMode>,
