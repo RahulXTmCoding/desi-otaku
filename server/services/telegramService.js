@@ -237,8 +237,8 @@ ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.ship
         itemDetails += `\n   📦 Product Link: Not Available`;
       }
 
-      // Add detailed custom design information
-      if (item.isCustom || item.customization || item.product === null) {
+      // ✅ IMPROVED: Use consistent custom product detection
+      if (this.isCustomProduct(item)) {
         itemDetails += `\n   🎨 <b>CUSTOM DESIGN DETAILS:</b>`;
         
         // Design ID
@@ -315,8 +315,10 @@ ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.ship
 
     for (const [index, item] of order.products.entries()) {
       try {
-        // For custom items, send design images
-        if (item.isCustom || item.customization || item.product === null) {
+        // ✅ IMPROVED: More robust custom product detection
+        const isCustomProduct = this.isCustomProduct(item);
+        
+        if (isCustomProduct) {
           await this.sendCustomDesignVisuals(item, index + 1, order._id);
         } else {
           // For regular products, send product images
@@ -327,6 +329,49 @@ ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.ship
         // Continue with other items even if one fails
       }
     }
+  }
+
+  // ✅ NEW: Robust custom product detection method
+  isCustomProduct(item) {
+    // Check explicit custom flag
+    if (item.isCustom === true) {
+      return true;
+    }
+    
+    // Check if product is null (custom products have null product reference)
+    if (item.product === null) {
+      return true;
+    }
+    
+    // Check if customization exists and has actual design data
+    if (item.customization && 
+        (item.customization.frontDesign || item.customization.backDesign)) {
+      return true;
+    }
+    
+    // Check for legacy custom design fields
+    if (item.designId || item.designImage || item.customDesign) {
+      return true;
+    }
+    
+    // Check for temporary/invalid product IDs that indicate custom products
+    const productId = typeof item.product === 'object' && item.product?._id 
+      ? item.product._id 
+      : item.product;
+      
+    if (productId && typeof productId === 'string') {
+      // Invalid ObjectId patterns that indicate custom products
+      if (productId === 'custom' || 
+          productId.startsWith('temp_') || 
+          productId.startsWith('custom') ||
+          productId.length < 12 ||
+          !/^[0-9a-fA-F]{24}$/.test(productId)) {
+        return true;
+      }
+    }
+    
+    // If none of the above conditions are met, it's a regular product
+    return false;
   }
 
   // Send custom design visuals
