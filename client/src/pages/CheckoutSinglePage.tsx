@@ -740,14 +740,7 @@ const CheckoutSinglePage: React.FC = () => {
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={() => navigate('/cart')}
-            className="flex items-center gap-2 text-gray-400 hover:text-yellow-400 transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5" />
-            Back to Cart
-          </button>
+        <div className="flex items-center gap-4 md:mb-8 mb-4">
           <h1 className="text-3xl font-bold">Checkout</h1>
         </div>
 

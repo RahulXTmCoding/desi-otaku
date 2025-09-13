@@ -311,6 +311,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             
             {/* Mobile Action Buttons - Always visible on right bottom */}
             <div className="absolute bottom-2 right-1 flex flex-col gap-1.5 sm:hidden z-10">
+              {/* Quick View Button - Shows modal like desktop */}
               {showQuickView && onQuickView && (
                 <button
                   onClick={(e) => {
@@ -322,20 +323,6 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                   title="Quick View"
                 >
                   <Eye className="w-3 h-3 text-white" />
-                </button>
-              )}
-              
-              {showCartButton && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleQuickAddToCart(e);
-                  }}
-                  className="p-2 bg-yellow-400/90 hover:bg-yellow-500/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-yellow-300/50"
-                  title="Quick Add to Cart"
-                >
-                  <ShoppingCart className="w-3 h-3 text-gray-900" />
                 </button>
               )}
               
@@ -355,6 +342,21 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                   title={wishlistState ? "Remove from Wishlist" : "Add to Wishlist"}
                 >
                   <Heart className={`w-3 h-3 ${wishlistState ? 'fill-white' : ''} text-white`} />
+                </button>
+              )}
+              
+              {showCartButton && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleQuickAddToCart(e);
+                  }}
+                  className="p-2 bg-yellow-400/90 hover:bg-yellow-500/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-yellow-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  title="Quick Add to Cart"
+                  disabled={product.stock === 0}
+                >
+                  <ShoppingCart className="w-3 h-3 text-gray-900" />
                 </button>
               )}
               
@@ -445,7 +447,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             </Link>
             
             {product.description && (
-              <p className="text-gray-400 text-xs sm:text-sm mb-2 line-clamp-2 hidden sm:block">
+              <p className="text-gray-400 text-xs sm:text-sm mb-2 line-clamp-2">
                 {product.description}
               </p>
             )}
@@ -494,24 +496,22 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
               )}
             </div>
 
-            {/* Quantity Discount Badge - Hidden on mobile for space */}
+            {/* Compact Quantity Discount Badge */}
             {quantityTiers.length > 0 && (
-              <div className="mt-3 p-2 bg-blue-500/10 rounded-lg border border-blue-500/20 hidden sm:block">
-                <div className="flex items-center gap-1 mb-1">
-                  <Tag className="w-3 h-3 text-blue-400" />
-                  <span className="text-xs font-medium text-blue-400">Bulk Discounts</span>
-                </div>
-                <div className="flex flex-wrap gap-1">
+              <div className="mt-2 p-1.5 bg-blue-500/10 rounded border border-blue-500/20 hidden sm:block">
+                <div className="flex items-center gap-1 flex-wrap">
+                  <Tag className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                  <span className="text-xs font-medium text-blue-400 flex-shrink-0">Bulk:</span>
                   {quantityTiers.slice(0, 2).map((tier, index) => (
                     <span
                       key={index}
-                      className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded"
+                      className="text-xs bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded"
                     >
-                      {tier.minQuantity}+ items: {tier.discount}% off
+                      {tier.minQuantity}+ = {tier.discount}% off
                     </span>
                   ))}
                   {quantityTiers.length > 2 && (
-                    <span className="text-xs text-blue-400">
+                    <span className="text-xs text-blue-300">
                       +{quantityTiers.length - 2} more
                     </span>
                   )}

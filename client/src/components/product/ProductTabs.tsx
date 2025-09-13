@@ -34,7 +34,7 @@ const ProductTabs: React.FC<ProductTabsProps> = ({
   ];
 
   return (
-    <div className="mb:mt-12 mt-6">
+    <div className="md:mt-12 mt-8">
       {/* Tab Navigation */}
       <div style={{ borderBottom: '1px solid var(--color-border)' }}>
         <div className="flex gap-8">

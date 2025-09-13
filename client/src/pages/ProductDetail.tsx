@@ -23,7 +23,7 @@ import ProductTabs from '../components/product/ProductTabs';
 
 // Lazy load heavy components to improve initial page load
 const ProductReviews = lazy(() => import('../components/ProductReviews'));
-const LazyRelatedProducts = lazy(() => import('../components/LazyRelatedProducts'));
+const LazyRelatedProducts = lazy(() => import('../components/LazyRelatedProducts').then(module => ({ default: module.default })));
 
 interface Product {
   _id: string;
@@ -512,8 +512,8 @@ const ProductDetail: React.FC = () => {
       
       <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
         {/* Breadcrumb */}
-        <div className="w-[96%] md:w-[90%] xl:w-[80%] mx-auto md:px-4 py-4">
-          <div className="flex items-center gap-2 text-sm animate-fade-in" style={{ color: 'var(--color-textMuted)' }}>
+        <div className="product-detail-container py-4">
+          <div className="flex items-center gap-2 md:mt-5 text-sm animate-fade-in" style={{ color: 'var(--color-textMuted)' }}>
             <button onClick={() => navigate('/')} className="transition-colors hover:scale-105 transform" 
               onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
               onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
@@ -528,7 +528,7 @@ const ProductDetail: React.FC = () => {
           </div>
         </div>
 
-        <div className="w-[96%] md:w-[90%] xl:w-[80%] mx-auto md:px-4 md:py-8">
+        <div className="product-detail-container md:py-8">
           <div className="grid md:grid-cols-5 md:gap-8  gap-6">
             {/* Product Images Section - Takes 3/5 of the width (60%) */}
             <div className="md:col-span-3">

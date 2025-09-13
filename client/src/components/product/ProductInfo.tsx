@@ -114,46 +114,75 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
         </button>
       </div>
 
-      {/* Price Display */}
-      <div >
-        <div className="flex items-baseline gap-3 mb-2">
-          <span className="md:text-3xl text-2xl font-bold" style={{ color: 'var(--color-primary)' }}>
-            ₹{product.price.toLocaleString('en-IN')}
-          </span>
-          {(product.mrp && product.mrp > product.price) && (
-            <>
-              <span className="md:text-2xl text-xl line-through" style={{ color: 'var(--color-textMuted)' }}>
-                ₹{product.mrp.toLocaleString('en-IN')}
-              </span>
-           
-            </>
-          )}
-        
-           {(product.mrp && product.mrp > product.price) && (
-            
-          <div className="flex items-center gap-2">
-          <span className="text-xl" style={{ color: 'var(--color-primary)' }}>
-           |
-          </span>
-            <span className="text-sm font-medium" style={{ color: 'var(--color-success)' }}>
-              🎉 You save ₹{savings.toLocaleString('en-IN')}
+      {/* Compact Dual Pricing Display */}
+      <div>
+        {/* MRP and Original Discount Info */}
+        {(product.mrp && product.mrp > product.price) && (
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-base line-through" style={{ color: 'var(--color-textMuted)' }}>
+              MRP ₹{product.mrp.toLocaleString('en-IN')}
             </span>
-              <span className="md:px-3 px-2 py-1 rounded-full text-xs font-bold bg-red-500 text-white">
-                {actualDiscount}% OFF
-              </span>
-          </div>
-        )}
-        </div>
-        
-       
-        
-        {(!product.mrp || product.mrp <= product.price) && (
-          <div className="text-sm font-medium" style={{ color: 'var(--color-success)' }}>
-            ✨ Best price guaranteed
+            <span className="px-2 py-1 rounded text-xs font-bold bg-red-500 text-white">
+              {actualDiscount}% OFF
+            </span>
           </div>
         )}
 
-        
+        {/* Compact Dual Price Cards */}
+        <div className="grid grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-3">
+          {/* Online Payment Price */}
+          <div className="border-2 border-green-500 rounded-lg p-2 bg-green-500/10 relative">
+            <div className="absolute top-1 right-1">
+              <span className="text-xs bg-green-500 text-white px-1.5 py-0.5 rounded font-bold">
+                -5%
+              </span>
+            </div>
+            <div className="mb-1">
+              <span className="text-xs font-medium text-green-400">
+                💳 Pay Online
+              </span>
+            </div>
+            <div>
+              <span className="text-lg md:text-2xl font-bold text-green-400">
+                ₹{Math.round(product.price * 0.95).toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+
+          {/* COD Price */}
+          <div className="border rounded-lg p-2 md:p-3" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
+            <div className="mb-1">
+              <span className="text-xs font-medium" style={{ color: 'var(--color-textMuted)' }}>
+                🚚 Cash on Delivery
+              </span>
+            </div>
+            <div>
+              <span className="text-lg md:text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
+                ₹{product.price.toLocaleString('en-IN')}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Compact Savings Summary */}
+        {/* <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-2 mb-3">
+          <span className="text-xs font-medium text-yellow-400">
+            💰 Save ₹{Math.round(product.price * 0.05).toLocaleString('en-IN')} with online payment
+          </span>
+        </div> */}
+
+        {/* Additional Savings from MRP */}
+        {(product.mrp && product.mrp > product.price) && (
+          <div className="text-xs font-medium mb-2" style={{ color: 'var(--color-success)' }}>
+            🎉 Total savings: ₹{savings.toLocaleString('en-IN')} + ₹{Math.round(product.price * 0.05).toLocaleString('en-IN')} online discount
+          </div>
+        )}
+
+        {(!product.mrp || product.mrp <= product.price) && (
+          <div className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>
+            ✨ Best price guaranteed with online savings
+          </div>
+        )}
       </div>
       <p className="mb-4 mt-4" style={{ color: 'var(--color-textMuted)' }}>{product.description}</p>
       </div>

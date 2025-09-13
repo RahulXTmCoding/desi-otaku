@@ -10,6 +10,11 @@ interface Product {
   name: string;
   price: number;
   description: string;
+  photoUrl?: string;
+  images?: Array<{
+    url?: string;
+    isPrimary?: boolean;
+  }>;
   category: {
     _id: string;
     name: string;
@@ -18,6 +23,25 @@ interface Product {
   totalStock?: number;
   sold: number;
   similarityScore?: number;
+  mrp?: number;
+  discount?: number;
+  discountPercentage?: number;
+  rating?: number;
+  reviews?: number;
+  sizeStock?: {
+    S: number;
+    M: number;
+    L: number;
+    XL: number;
+    XXL: number;
+  };
+  sizeAvailability?: {
+    S: boolean;
+    M: boolean;
+    L: boolean;
+    XL: boolean;
+    XXL: boolean;
+  };
 }
 
 interface LazyRelatedProductsProps {
@@ -121,63 +145,60 @@ const LazyRelatedProducts: React.FC<LazyRelatedProductsProps> = ({
 
   return (
     <div ref={containerRef} className="mt-6 mb-6">
-      <h2 className="text-2xl font-bold mb-8">
-        You May Also Like
-        {similarProductsData?.cached && (
-          <span className="text-sm text-green-400 ml-2">
-            ⚡ Cached
-          </span>
-        )}
-      </h2>
-      
-      {/* Loading State */}
-      {showLoading && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {[...Array(4)].map((_, index) => (
-            <div key={index} className="bg-gray-800 rounded-lg overflow-hidden animate-pulse">
-              <div className="aspect-square bg-gray-700"></div>
-              <div className="p-4">
-                <div className="h-4 bg-gray-700 rounded mb-2"></div>
-                <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+      {/* <div className="product-detail-container"> */}
+        <h2 className="text-2xl font-bold mb-8">
+          You May Also Like
+        </h2>
+        
+        {/* Loading State */}
+        {showLoading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, index) => (
+              <div key={index} className="bg-gray-800 rounded-lg overflow-hidden animate-pulse">
+                <div className="aspect-square bg-gray-700"></div>
+                <div className="p-4">
+                  <div className="h-4 bg-gray-700 rounded mb-2"></div>
+                  <div className="h-4 bg-gray-700 rounded w-2/3"></div>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-      
-      {/* Products Grid */}
-      {!showLoading && relatedProducts.length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-          {relatedProducts.map((product) => (
-            <ProductGridItem 
-              key={product._id} 
-              product={product}
-              onQuickView={handleQuickView}
-            />
-          ))}
-        </div>
-      )}
-      
-      {/* No Results */}
-      {showNoResults && (
-        <div className="text-center py-8 text-gray-400">
-          <p>No related products found</p>
-          {error && (
-            <p className="text-sm mt-2 text-red-400">
-              Failed to load recommendations
-            </p>
-          )}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+        
+        {/* Products Grid */}
+        {!showLoading && relatedProducts.length > 0 && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {relatedProducts.map((product) => (
+              <ProductGridItem 
+                key={product._id} 
+                product={product}
+                onQuickView={handleQuickView}
+              />
+            ))}
+          </div>
+        )}
+        
+        {/* No Results */}
+        {showNoResults && (
+          <div className="text-center py-8 text-gray-400">
+            <p>No related products found</p>
+            {error && (
+              <p className="text-sm mt-2 text-red-400">
+                Failed to load recommendations
+              </p>
+            )}
+          </div>
+        )}
 
-      {/* Quick View Modal */}
-      {!onQuickView && (
-        <QuickViewModal
-          product={selectedProduct}
-          isOpen={isQuickViewOpen}
-          onClose={handleCloseQuickView}
-        />
-      )}
+        {/* Quick View Modal */}
+        {!onQuickView && (
+          <QuickViewModal
+            product={selectedProduct}
+            isOpen={isQuickViewOpen}
+            onClose={handleCloseQuickView}
+          />
+        )}
+      {/* </div> */}
     </div>
   );
 };

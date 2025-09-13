@@ -162,6 +162,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
         {/* Mobile Action Buttons - Always visible on right bottom */}
         {showActions && (
           <div className="absolute bottom-2 right-1 flex flex-col gap-1.5 sm:hidden z-10">
+            {/* Note: ProductCard doesn't have onQuickView prop, so we keep the Link for now */}
             <Link
               to={`/product/${product._id}`}
               className="p-2 bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50"
@@ -282,6 +283,24 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
                 +{product.tags.length - 3}
               </span>
             )}
+          </div>
+        )}
+
+        {/* Compact Quantity Discount Badge - if AOV context is available */}
+        {typeof window !== 'undefined' && (
+          <div className="mt-2 p-1.5 bg-blue-500/10 rounded border border-blue-500/20 hidden sm:block">
+            <div className="flex items-center gap-1 flex-wrap">
+              <span className="text-xs font-medium text-blue-400 flex-shrink-0">Bulk:</span>
+              <span className="text-xs bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
+                3+ = 5% off
+              </span>
+              <span className="text-xs bg-blue-500/20 text-blue-300 px-1.5 py-0.5 rounded">
+                5+ = 10% off
+              </span>
+              <span className="text-xs text-blue-300">
+                +1 more
+              </span>
+            </div>
           </div>
         )}
 
