@@ -308,6 +308,103 @@ const CardPaymentForm = memo(({ paymentData }: any) => {
 
 // COD Verification Form Component
 const CodVerificationForm = memo(({ codVerification, setCodVerification, customerPhone, isTestMode }: any) => {
+  const [bypassStatus, setBypassStatus] = useState<{ bypassEnabled: boolean; checked: boolean }>({
+    bypassEnabled: false,
+    checked: false
+  });
+
+  // Check bypass status on component mount
+  React.useEffect(() => {
+    const checkBypassStatus = async () => {
+      if (bypassStatus.checked) return;
+      
+      try {
+        const response = await fetch(`${API}/cod/bypass-status`, {
+          method: 'GET',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json' 
+          }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          console.log('🔍 COD Bypass Status:', data.bypassEnabled ? 'ENABLED' : 'DISABLED');
+          setBypassStatus({ bypassEnabled: data.bypassEnabled, checked: true });
+          
+          // If bypass is enabled, auto-verify immediately
+          if (data.bypassEnabled && customerPhone && !codVerification?.otpVerified) {
+            console.log('🔓 Auto-triggering bypass verification for', customerPhone);
+            handleBypassVerification();
+          }
+        } else {
+          console.warn('Failed to check bypass status:', data.error);
+          setBypassStatus({ bypassEnabled: false, checked: true });
+        }
+      } catch (error) {
+        console.error('Error checking bypass status:', error);
+        setBypassStatus({ bypassEnabled: false, checked: true });
+      }
+    };
+
+    if (!isTestMode) {
+      checkBypassStatus();
+    } else {
+      setBypassStatus({ bypassEnabled: false, checked: true });
+    }
+  }, [customerPhone, codVerification?.otpVerified, isTestMode]);
+
+  const handleBypassVerification = async () => {
+    if (!customerPhone) {
+      alert('Please enter your phone number in the address section first');
+      return;
+    }
+
+    setCodVerification({ ...codVerification, loading: true });
+
+    try {
+      // Call verify-otp with bypass mode (any OTP will work)
+      const response = await fetch(`${API}/cod/verify-otp`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json' 
+        },
+        body: JSON.stringify({ 
+          phone: customerPhone,
+          otp: '000000' // Dummy OTP for bypass mode
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success && data.verified) {
+        setCodVerification({
+          ...codVerification,
+          otpSent: true,
+          otpVerified: true,
+          loading: false,
+          verificationToken: data.verificationToken,
+          verifiedPhone: customerPhone,
+          bypassed: true
+        });
+        
+        console.log('✅ COD verification bypassed successfully:', {
+          token: data.verificationToken,
+          phone: customerPhone,
+          bypassed: true
+        });
+      } else {
+        throw new Error(data.error || 'Bypass verification failed');
+      }
+    } catch (error: any) {
+      console.error('Bypass verification failed:', error);
+      setCodVerification({ ...codVerification, loading: false });
+      alert(error.message || 'Verification failed. Please try again.');
+    }
+  };
+
   const handleSendOtp = async () => {
     if (!customerPhone) {
       alert('Please enter your phone number in the address section first');
@@ -327,36 +424,36 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
           });
           alert('Test OTP sent: 123456');
         }, 1000);
-      } else {
-        // ✅ REAL MODE - Call actual backend API
-        const response = await fetch(`${API}/cod/send-otp`, {
-          method: 'POST',
-          headers: { 
-            'Content-Type': 'application/json',
-            'Accept': 'application/json' 
-          },
-          body: JSON.stringify({ phone: customerPhone })
-        });
-        
-        const data = await response.json();
-        
-        if (response.ok && data.success) {
-          setCodVerification({
-            ...codVerification,
-            otpSent: true,
-            loading: false
+        } else {
+          // ✅ REAL MODE - Call actual backend API
+          const response = await fetch(`${API}/cod/send-otp`, {
+            method: 'POST',
+            headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json' 
+            },
+            body: JSON.stringify({ phone: customerPhone })
           });
           
-          // Show OTP in development mode
-          if (data.developmentOtp) {
-            alert(`Development OTP sent: ${data.developmentOtp}`);
+          const data = await response.json();
+          
+          if (response.ok && data.success) {
+            setCodVerification({
+              ...codVerification,
+              otpSent: true,
+              loading: false
+            });
+            
+            // Show OTP in development mode
+            if (data.developmentOtp) {
+              alert(`Development OTP sent: ${data.developmentOtp}`);
+            } else {
+              alert('OTP sent to your phone number');
+            }
           } else {
-            alert('OTP sent to your phone number');
+            throw new Error(data.error || 'Failed to send OTP');
           }
-        } else {
-          throw new Error(data.error || 'Failed to send OTP');
         }
-      }
     } catch (error: any) {
       console.error('Failed to send OTP:', error);
       setCodVerification({ ...codVerification, loading: false });
@@ -433,6 +530,51 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
     });
   };
 
+  // Show different UI based on bypass status
+  if (bypassStatus.bypassEnabled && bypassStatus.checked) {
+    // BYPASS MODE: Simplified UI without OTP steps
+    return (
+      <div className="bg-gray-700 rounded-lg p-6">
+        <div className="mb-4">
+          <p className="text-sm text-gray-300 mb-2">Cash on Delivery (COD)</p>
+          <p className="text-xs text-gray-400">Manual verification enabled - no OTP required</p>
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex items-center gap-2 text-sm text-gray-300">
+            <Phone className="w-4 h-4" />
+            <span>Phone: {customerPhone || 'Please add phone number in address section'}</span>
+          </div>
+
+          {!codVerification?.otpVerified ? (
+            <div className="flex items-center gap-2 text-orange-400 bg-orange-500/10 border border-orange-500/50 rounded-lg p-4">
+              <Shield className="w-5 h-5" />
+              <div>
+                <p className="font-medium">Manual verification mode</p>
+                <p className="text-xs text-orange-300">Phone verification will be handled manually - ready to place order</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 text-green-400 bg-green-500/10 border border-green-500/50 rounded-lg p-4">
+              <CheckCircle className="w-5 h-5" />
+              <div>
+                <p className="font-medium">Phone number verified!</p>
+                <p className="text-xs text-green-300">You can now place your COD order</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/50 rounded-lg">
+          <p className="text-xs text-blue-400">
+            🔧 Bypass mode active - orders will be verified manually after placement
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // NORMAL MODE: Full OTP verification flow
   return (
     <div className="bg-gray-700 rounded-lg p-6">
       <div className="mb-4">

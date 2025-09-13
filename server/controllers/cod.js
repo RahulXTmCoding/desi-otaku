@@ -25,7 +25,32 @@ exports.sendCodOtp = async (req, res) => {
       });
     }
 
-    // 🔒 SECURITY: Check SMS rate limiting to prevent abuse
+    // ✅ COD BYPASS: Check if OTP verification is bypassed
+    const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
+    
+    if (isBypassEnabled) {
+      console.log(`🔓 COD OTP BYPASS ACTIVE - Skipping OTP send for ${phone}`);
+      
+      // Return success response without actually sending OTP
+      const response = {
+        success: true,
+        message: "OTP verification bypassed - manual verification enabled",
+        bypassed: true,
+        attemptsLeft: 5
+      };
+
+      // 🔧 Development mode: Include bypass info for debugging
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'Dev') {
+        response.developmentInfo = {
+          bypassActive: true,
+          note: "OTP verification is bypassed. Orders will be manually verified."
+        };
+      }
+
+      return res.json(response);
+    }
+
+    // 🔒 SECURITY: Check SMS rate limiting to prevent abuse (only when not bypassed)
     const { smsService, checkSMSRateLimit } = require('../services/smsService');
     const rateLimit = checkSMSRateLimit(phone);
     
@@ -132,6 +157,47 @@ exports.verifyCodOtp = async (req, res) => {
       return res.status(400).json({
         error: "Phone number and OTP are required"
       });
+    }
+
+    // ✅ COD BYPASS: Check if OTP verification is bypassed
+    const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
+    
+    if (isBypassEnabled) {
+      console.log(`🔓 COD OTP BYPASS ACTIVE - Auto-verifying for ${phone}`);
+      
+      // 🔒 SECURITY: Generate verification token to maintain security architecture
+      const verificationToken = crypto.randomBytes(32).toString('hex');
+      const tokenData = {
+        phone: phone,
+        verified: true,
+        expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes to complete order
+        used: false,
+        createdAt: new Date(),
+        bypassed: true // Flag to indicate this was bypassed
+      };
+      
+      verificationTokenStore.set(verificationToken, tokenData);
+      
+      console.log(`✅ Phone ${phone} auto-verified (bypassed), token generated: ${verificationToken.substring(0, 8)}...`);
+
+      const response = {
+        success: true,
+        verified: true,
+        verificationToken: verificationToken, // Frontend must store and send this
+        expiresIn: 600, // 10 minutes
+        message: "Phone number verification bypassed - manual verification enabled",
+        bypassed: true
+      };
+
+      // 🔧 Development mode: Include bypass info for debugging
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'Dev') {
+        response.developmentInfo = {
+          bypassActive: true,
+          note: "OTP verification bypassed. Token generated for order processing."
+        };
+      }
+
+      return res.json(response);
     }
 
     const otpKey = `cod_otp_${phone}`;
@@ -561,6 +627,36 @@ exports.updateCodOrderStatus = async (req, res) => {
     console.error("Update COD order status error:", error);
     res.status(500).json({
       error: "Failed to update COD order status"
+    });
+  }
+};
+
+// Check COD bypass status (for frontend configuration)
+exports.getCodBypassStatus = async (req, res) => {
+  try {
+    const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
+    
+    console.log(`🔍 COD BYPASS STATUS CHECK - Bypass ${isBypassEnabled ? 'ENABLED' : 'DISABLED'}`);
+    
+    res.json({
+      success: true,
+      bypassEnabled: isBypassEnabled,
+      message: isBypassEnabled 
+        ? "COD OTP verification is currently bypassed" 
+        : "COD OTP verification is active",
+      // Only include environment info in development
+      ...(process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'Dev' ? {
+        environment: process.env.NODE_ENV,
+        note: isBypassEnabled 
+          ? "Orders will be manually verified - no OTP required"
+          : "Standard OTP verification flow is active"
+      } : {})
+    });
+
+  } catch (error) {
+    console.error("Get COD bypass status error:", error);
+    res.status(500).json({
+      error: "Failed to get COD bypass status"
     });
   }
 };

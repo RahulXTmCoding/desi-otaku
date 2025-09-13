@@ -15,6 +15,9 @@ router.param("userId", getUserById);
 router.post("/send-otp", codController.sendCodOtp);
 router.post("/verify-otp", codController.verifyCodOtp);
 
+// Public route to check bypass status
+router.get("/bypass-status", codController.getCodBypassStatus);
+
 // Guest COD order creation
 router.post("/order/guest/create", codController.createGuestCodOrder);
 

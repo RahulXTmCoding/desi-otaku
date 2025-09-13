@@ -328,7 +328,12 @@ jobs:
             --value "${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}" \
             --type "String" \
             --overwrite
-          
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/COD_BYPASS_OTP" \
+            --value "${{ secrets.COD_BYPASS_OTP }}" \
+            --type "String" \
+            --overwrite
+            
           echo "✅ All parameters updated successfully in Parameter Store"
 
       - name: Zero-Downtime Instance Refresh

@@ -63,7 +63,7 @@ const Card: React.FC<CardProps> = ({
       <div className="card-header lead">{cartTitle}</div>
       <div className="card-body">
         <ImageHelper product={product} />
-        <p className="lead bg1 font-weight-normal text-wrap">
+        <p className="lead bg1 font-weight-normal text-wrap line-clamp-2">
           {cartDescrption}
         </p>
         <p className="btn btn-success bg1 rounded  btn-sm px-4">
