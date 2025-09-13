@@ -123,8 +123,10 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     setIsUpdating(itemId);
     try {
       await updateQuantity(itemId, newQuantity);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update quantity:', error);
+      // Show inventory error message to user
+      alert(error.message || 'Unable to update quantity. Please check product availability.');
     } finally {
       setIsUpdating(null);
     }

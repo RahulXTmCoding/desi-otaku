@@ -56,8 +56,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
       
       setIsInCart(true);
       setTimeout(() => setIsInCart(false), 2000);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to add to cart:', error);
+      // Show inventory error message to user
+      alert(error.message || 'Unable to add to cart. Please check product availability.');
     }
   };
 

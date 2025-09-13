@@ -18,6 +18,10 @@ import {
   calculateCartTotal,
   getCartItemCount
 } from '../core/helper/cartHelper';
+import { 
+  validateCartItemQuantity
+} from '../utils/inventoryUtils';
+import { API } from '../backend';
 
 interface CartContextType {
   cart: CartItem[];
@@ -108,6 +112,34 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     setError(null);
     
     try {
+      const requestedQuantity = item.quantity || 1;
+      
+      // Skip inventory validation for custom products
+      if (!item.isCustom && item.size) {
+        // Fetch fresh product data to validate inventory
+        try {
+          const productResponse = await fetch(`${API}/product/${item.product}`);
+          if (productResponse.ok) {
+            const productData = await productResponse.json();
+            
+            // Validate inventory availability
+            const validation = validateCartItemQuantity(
+              productData,
+              item.size,
+              requestedQuantity,
+              cart
+            );
+            
+            if (!validation.isValid) {
+              throw new Error(validation.message || 'Insufficient stock available');
+            }
+          }
+        } catch (inventoryError: any) {
+          // If inventory check fails, throw the error
+          throw new Error(inventoryError.message || 'Unable to verify product availability');
+        }
+      }
+      
       const authData = isAutheticated();
       
       if (authData && authData.user && authData.token) {
@@ -120,7 +152,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             photoUrl: item.photoUrl,
             size: item.size,
             color: item.color,
-            quantity: item.quantity || 1,
+            quantity: requestedQuantity,
             isCustom: item.isCustom,
             customization: item.customization,
             price: item.price,
@@ -137,7 +169,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             name: item.name,
             price: item.price,
             category: item.category || 'T-Shirt'
-          }, item.quantity || 1);
+          }, requestedQuantity);
         } else {
           throw new Error(response.error || 'Failed to add item to cart');
         }
@@ -145,7 +177,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         // User is not logged in, add to local storage
         const updatedCart = addToLocalCart({
           ...item,
-          quantity: item.quantity || 1
+          quantity: requestedQuantity
         } as CartItem);
         setCart(updatedCart);
         
@@ -155,7 +187,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           name: item.name,
           price: item.price,
           category: item.category || 'T-Shirt'
-        }, item.quantity || 1);
+        }, requestedQuantity);
       }
     } catch (err: any) {
       console.error('Error adding to cart:', err);
@@ -171,6 +203,45 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     if (quantity < 1) return;
     
     try {
+      // Find the cart item to validate
+      const cartItem = cart.find(item => item._id === itemId);
+      if (!cartItem) {
+        throw new Error('Cart item not found');
+      }
+      
+      // Skip inventory validation for custom products
+      if (!cartItem.isCustom && cartItem.size && cartItem.product) {
+        // Fetch fresh product data to validate inventory
+        try {
+          const productId = cartItem.product && typeof cartItem.product === 'object' 
+            ? cartItem.product._id 
+            : (cartItem.product || null);
+          if (!productId) {
+            throw new Error('Product ID not found in cart item');
+          }
+          const productResponse = await fetch(`${API}/product/${productId}`);
+          if (productResponse.ok) {
+            const productData = await productResponse.json();
+            
+            // Validate inventory availability (excluding current item from cart count)
+            const validation = validateCartItemQuantity(
+              productData,
+              cartItem.size,
+              quantity,
+              cart,
+              itemId // Exclude this item from current cart quantity calculation
+            );
+            
+            if (!validation.isValid) {
+              throw new Error(validation.message || 'Insufficient stock available');
+            }
+          }
+        } catch (inventoryError: any) {
+          // If inventory check fails, throw the error
+          throw new Error(inventoryError.message || 'Unable to verify product availability');
+        }
+      }
+      
       const authData = isAutheticated();
       
       if (authData && authData.user && authData.token) {
@@ -195,6 +266,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     } catch (err: any) {
       console.error('Error updating cart:', err);
       setError(err.message || 'Failed to update cart');
+      throw err; // Re-throw to allow UI components to handle the error
     }
   };
 
