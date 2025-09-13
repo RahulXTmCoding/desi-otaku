@@ -534,10 +534,7 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
   if (bypassStatus.bypassEnabled && bypassStatus.checked) {
     // BYPASS MODE: Simplified UI without OTP steps
     return (
-      
-      
         <div className="space-y-4">
-          {!codVerification?.otpVerified ? (
             <div className="flex items-center gap-2 text-orange-400 bg-orange-500/10 border border-orange-500/50 rounded-lg p-4">
               <Shield className="w-5 h-5" />
               <div>
@@ -545,17 +542,7 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
                 <p className="text-xs text-orange-300">Phone verification will be handled manually - ready to place order</p>
               </div>
             </div>
-          ) : (
-            <div className="flex items-center gap-2 text-green-400 bg-green-500/10 border border-green-500/50 rounded-lg p-4">
-              <CheckCircle className="w-5 h-5" />
-              <div>
-                <p className="font-medium">Phone number verified!</p>
-                <p className="text-xs text-green-300">You can now place your COD order</p>
-              </div>
-            </div>
-          )}
         </div>
-
     );
   }
 

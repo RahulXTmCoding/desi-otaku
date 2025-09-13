@@ -142,15 +142,14 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
       )}
 
       {/* Shipping Information */}
-      <div className="mt-6 p-4 bg-gray-700/50 rounded-lg">
+      {/* <div className="mt-6 p-4 bg-gray-700/50 rounded-lg">
         <h4 className="font-medium text-yellow-400 mb-2">Shipping Information</h4>
         <ul className="text-sm text-gray-300 space-y-1">
           <li>• Free shipping on orders ₹999 and above</li>
           <li>• Flat ₹79 shipping for orders below ₹999</li>
           <li>• Tracking information will be sent via email</li>
-          {/* <li>• Cash on Delivery available for most locations</li> */}
         </ul>
-      </div>
+      </div> */}
     </div>
   );
 };

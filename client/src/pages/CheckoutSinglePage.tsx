@@ -1000,8 +1000,8 @@ const CheckoutSinglePage: React.FC = () => {
                           Place Order • ₹{getFinalAmount()}
                         </>
                       )}
-                    </button> */}
-              
+                    </button>
+               */}
               <p className="text-xs text-gray-500 text-center mt-3">
                 By placing this order, you agree to our Terms & Conditions
               </p>
