@@ -5,6 +5,10 @@ import { useCart } from '../context/CartContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { Link, useNavigate } from 'react-router-dom';
+import { 
+  getAvailableStock, 
+  getCurrentCartQuantity 
+} from '../utils/inventoryUtils';
 
 interface Product {
   _id: string;
@@ -56,8 +60,10 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
   const [imageError, setImageError] = useState(false);
   const [wishlistState, setWishlistState] = useState(isInWishlist);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const { addToCart } = useCart();
+  const { addToCart, cart } = useCart();
   const navigate = useNavigate();
 
   const authData = isAutheticated();
@@ -66,11 +72,46 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
 
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
+  // Helper functions for inventory validation
+  const getMaxQuantityForSize = (size: string): number => {
+    if (!selectedSize || !product.sizeStock) return 0;
+    const availableStock = getAvailableStock(product, size);
+    const currentCartQuantity = getCurrentCartQuantity(cart, product._id, size);
+    return Math.max(0, availableStock - currentCartQuantity);
+  };
+
+  const isQuantityValid = (): boolean => {
+    if (!selectedSize) return true;
+    const maxQuantity = getMaxQuantityForSize(selectedSize);
+    return quantity <= maxQuantity;
+  };
+
+  const getStockMessage = (): string => {
+    if (!selectedSize) return '';
+    const maxQuantity = getMaxQuantityForSize(selectedSize);
+    if (maxQuantity === 0) {
+      return `Size ${selectedSize} is out of stock`;
+    } else if (quantity > maxQuantity) {
+      return `Only ${maxQuantity} available in size ${selectedSize}`;
+    }
+    return '';
+  };
+
   // Reset current image index when product changes
   useEffect(() => {
     setCurrentImageIndex(0);
     setImageError(false);
   }, [product]);
+
+  // Update error message when size or quantity changes
+  useEffect(() => {
+    if (selectedSize) {
+      const message = getStockMessage();
+      setErrorMessage(message);
+    } else {
+      setErrorMessage('');
+    }
+  }, [selectedSize, quantity, cart]);
 
   if (!isOpen || !product) return null;
 
@@ -140,8 +181,10 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
   };
 
   const handleAddToCart = async () => {
-    if (!selectedSize) return;
+    if (!selectedSize || !isQuantityValid()) return;
 
+    setIsAddingToCart(true);
+    
     try {
       await addToCart({
         product: product._id,
@@ -157,11 +200,15 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
       setQuantity(1);
     } catch (error) {
       console.error('Failed to add to cart:', error);
+      // Error handling is already implemented in CartContext
+      // The addToCart function will show appropriate error messages
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
   const handleBuyNow = () => {
-    if (!selectedSize || product.stock === 0) return;
+    if (!selectedSize || !isQuantityValid()) return;
     
     navigate('/checkout', {
       state: {
@@ -322,46 +369,63 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                    disabled={quantity <= 1}
+                    className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Minus className="w-4 sm:w-5 h-4 sm:h-5" />
                   </button>
                   <span className="w-12 sm:w-16 text-center text-lg sm:text-xl font-semibold">{quantity}</span>
                   <button
                     onClick={() => setQuantity(quantity + 1)}
-                    className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                    disabled={selectedSize && quantity >= getMaxQuantityForSize(selectedSize)}
+                    className="p-1.5 sm:p-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="w-4 sm:w-5 h-4 sm:h-5" />
                   </button>
                 </div>
+              
               </div>
+                {/* Stock Status Message */}
+                {errorMessage && (
+                  <p className="text-red-400 text-sm mb-3">{errorMessage}</p>
+                )}
 
               {/* Actions */}
               <div className="flex flex-col gap-3 mb-4">
                 <div className="flex flex-col sm:flex-row gap-3">
                   <button
                     onClick={handleAddToCart}
-                    disabled={!selectedSize || product.stock === 0}
+                    disabled={!selectedSize || !isQuantityValid() || isAddingToCart}
                     className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
-                      selectedSize && product.stock !== 0
+                      selectedSize && isQuantityValid() && !isAddingToCart
                         ? 'bg-yellow-400 hover:bg-yellow-500 text-gray-900'
                         : 'bg-gray-700 text-gray-500 cursor-not-allowed'
                     }`}
                   >
                     <ShoppingCart className="w-4 sm:w-5 h-4 sm:h-5" />
-                    {product.stock === 0 ? 'Out of Stock' : selectedSize ? 'Add to Cart' : 'Select Size'}
+                    {!selectedSize 
+                      ? 'Select Size' 
+                      : !isQuantityValid() 
+                      ? 'Invalid Quantity' 
+                      : isAddingToCart 
+                      ? 'Adding...' 
+                      : 'Add to Cart'}
                   </button>
                   <button
                     onClick={handleBuyNow}
-                    disabled={!selectedSize || product.stock === 0}
+                    disabled={!selectedSize || !isQuantityValid()}
                     className={`flex-1 py-2.5 sm:py-3 px-4 sm:px-6 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 text-sm sm:text-base ${
-                      selectedSize && product.stock !== 0
+                      selectedSize && isQuantityValid()
                         ? 'bg-green-600 hover:bg-green-700 text-white'
                         : 'bg-gray-700 text-gray-500 cursor-not-allowed'
                     }`}
                   >
                     <Zap className="w-4 sm:w-5 h-4 sm:h-5" />
-                    Buy Now
+                    {!selectedSize 
+                      ? 'Select Size' 
+                      : !isQuantityValid() 
+                      ? 'Invalid Quantity' 
+                      : 'Buy Now'}
                   </button>
                 </div>
                 <button
