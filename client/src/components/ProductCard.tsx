@@ -97,6 +97,23 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
     return `${API}/product/image/${product._id}`;
   };
 
+  const getSecondImageUrl = () => {
+    if (product.images && product.images.length > 1) {
+      const secondImage = product.images.find(img => !img.isPrimary) || product.images[1];
+      if (secondImage.url) {
+        return secondImage.url;
+      } else {
+        const imageIndex = product.images.indexOf(secondImage);
+        return `${API}/product/image/${product._id}/${imageIndex}`;
+      }
+    }
+    return null;
+  };
+
+  const hasSecondImage = () => {
+    return product.images && product.images.length > 1;
+  };
+
   const getAvailableSizes = () => {
     if (!product.inventory) return [];
     return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
@@ -115,20 +132,77 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
         className="relative aspect-square overflow-hidden"
         style={{ backgroundColor: generateLightColorWithOpacity(product._id, 0.2) }}
       >
-        <Link to={`/product/${product._id}`}>
+        <Link to={`/product/${product._id}`} className="relative block w-full h-full">
+          {/* Primary Image */}
           <img
             src={getImageUrl()}
             alt={product.name}
-            className="w-full h-full group-hover:scale-110 transition-transform duration-500"
+            className={`w-full h-full object-cover transition-all duration-500 ${
+              hasSecondImage() ? 'group-hover:opacity-0' : 'group-hover:scale-110'
+            }`}
             onError={(e) => {
               (e.target as HTMLImageElement).src = '/placeholder.png';
               (e.target as HTMLImageElement).onerror = null;
             }}
           />
+          
+          {/* Second Image (if available) */}
+          {hasSecondImage() && (
+            <img
+              src={getSecondImageUrl()!}
+              alt={`${product.name} - Alternative view`}
+              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none';
+              }}
+            />
+          )}
         </Link>
 
-        {/* Overlay on hover */}
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
+        {/* Mobile Action Buttons - Always visible on right bottom */}
+        {showActions && (
+          <div className="absolute bottom-2 right-1 flex flex-col gap-1.5 sm:hidden z-10">
+            <Link
+              to={`/product/${product._id}`}
+              className="p-2 bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50"
+              title="View Details"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Eye className="w-3 h-3 text-white" />
+            </Link>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleWishlistToggle();
+              }}
+              disabled={loading}
+              className={`p-2 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50 ${
+                isWishlisted
+                  ? 'bg-red-500/90 hover:bg-red-600/90'
+                  : 'bg-gray-800/90 hover:bg-gray-700/90'
+              }`}
+              title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
+            >
+              <Heart className={`w-3 h-3 text-white ${isWishlisted ? 'fill-current' : ''}`} />
+            </button>
+
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAddToCart();
+              }}
+              disabled={isOutOfStock()}
+              className="p-2 bg-yellow-400/90 hover:bg-yellow-500/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-yellow-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
+              title={isOutOfStock() ? 'Out of Stock' : 'Add to Cart'}
+            >
+              <ShoppingCart className="w-3 h-3 text-gray-900" />
+            </button>
+          </div>
+        )}
+
+        {/* Desktop Action Buttons on hover */}
+        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 items-end justify-center pb-4 gap-3 hidden sm:flex">
           {showActions && (
             <>
               <Link
@@ -150,6 +224,15 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
                 title={isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
               >
                 <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-current' : ''}`} />
+              </button>
+
+              <button
+                onClick={handleAddToCart}
+                disabled={isOutOfStock()}
+                className="p-3 bg-yellow-400 hover:bg-yellow-500 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title={isOutOfStock() ? 'Out of Stock' : 'Add to Cart'}
+              >
+                <ShoppingCart className="w-5 h-5 text-gray-900" />
               </button>
             </>
           )}

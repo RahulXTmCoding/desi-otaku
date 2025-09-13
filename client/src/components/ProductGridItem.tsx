@@ -120,6 +120,23 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
     return `${API}/product/image/${product._id}`;
   };
 
+  const getSecondImageUrl = () => {
+    if ((product as any).images && (product as any).images.length > 1) {
+      const secondImage = (product as any).images.find((img: any) => !img.isPrimary) || (product as any).images[1];
+      if (secondImage.url) {
+        return secondImage.url;
+      } else {
+        const imageIndex = (product as any).images.indexOf(secondImage);
+        return `${API}/product/image/${product._id}/${imageIndex}`;
+      }
+    }
+    return null;
+  };
+
+  const hasSecondImage = () => {
+    return (product as any).images && (product as any).images.length > 1;
+  };
+
   const handleImageError = () => {
     setImageError(false);
   };
@@ -269,16 +286,95 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             className="aspect-[3.6/5] sm:aspect-square relative overflow-hidden"
             style={{ backgroundColor: generateLightColorWithOpacity(product._id, 0.2) }}
           >
+            {/* Primary Image */}
             <img 
               src={getImageUrl()}
               alt={product.name}
-              className="w-full h-full object-contain"
+              className={`w-full h-full object-contain transition-all duration-500 ${
+                hasSecondImage() ? 'group-hover:opacity-0' : 'group-hover:scale-110'
+              }`}
               onError={handleImageError}
               loading="lazy"
             />
             
-            {/* Overlay Actions */}
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+            {/* Second Image (if available) */}
+            {hasSecondImage() && (
+              <img
+                src={getSecondImageUrl()!}
+                alt={`${product.name} - Alternative view`}
+                className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            )}
+            
+            {/* Mobile Action Buttons - Always visible on right bottom */}
+            <div className="absolute bottom-2 right-1 flex flex-col gap-1.5 sm:hidden z-10">
+              {showQuickView && onQuickView && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleQuickView(e);
+                  }}
+                  className="p-2 bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50"
+                  title="Quick View"
+                >
+                  <Eye className="w-3 h-3 text-white" />
+                </button>
+              )}
+              
+              {showCartButton && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleQuickAddToCart(e);
+                  }}
+                  className="p-2 bg-yellow-400/90 hover:bg-yellow-500/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-yellow-300/50"
+                  title="Quick Add to Cart"
+                >
+                  <ShoppingCart className="w-3 h-3 text-gray-900" />
+                </button>
+              )}
+              
+              {showWishlistButton && user && token && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleWishlistToggle(e);
+                  }}
+                  className={`p-2 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50 ${
+                    wishlistState 
+                      ? 'bg-red-500/90 hover:bg-red-600/90' 
+                      : 'bg-gray-800/90 hover:bg-gray-700/90'
+                  }`}
+                  disabled={isLoading}
+                  title={wishlistState ? "Remove from Wishlist" : "Add to Wishlist"}
+                >
+                  <Heart className={`w-3 h-3 ${wishlistState ? 'fill-white' : ''} text-white`} />
+                </button>
+              )}
+              
+              {showRemoveButton && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleRemove(e);
+                  }}
+                  className="p-2 bg-red-500/90 hover:bg-red-600/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-red-400/50"
+                  title="Remove"
+                >
+                  <Trash2 className="w-3 h-3 text-white" />
+                </button>
+              )}
+            </div>
+
+            {/* Desktop Action Buttons on hover */}
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity items-end justify-center pb-4 gap-3 hidden sm:flex">
               {showQuickView && onQuickView && (
                 <button
                   onClick={handleQuickView}
@@ -325,9 +421,9 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
               )}
             </div>
             
-            {/* Stock Badge */}
+            {/* Stock Badge - Adjusted position for mobile buttons */}
             {product.stock === 0 && (
-              <div className="absolute top-2 right-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold">
+              <div className="absolute top-2 left-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold z-10">
                 Out of Stock
               </div>
             )}
