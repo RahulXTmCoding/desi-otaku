@@ -547,7 +547,7 @@ const HomeEnhanced: React.FC = () => {
         </section> */}
 
         {/* About Us Section */}
-        <section className="py-20" style={{ backgroundColor: 'var(--color-surface)' }}>
+        <section className="md:py-20 py-4" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="w-[96%] mx-auto grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
               <h2 className="text-4xl font-bold mb-4">ABOUT US</h2>

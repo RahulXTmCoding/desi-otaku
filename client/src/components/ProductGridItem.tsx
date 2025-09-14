@@ -356,71 +356,73 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
               />
             )}
             
-            {/* Mobile Action Buttons - Always visible on right bottom */}
-            <div className="absolute bottom-2 right-1 flex flex-col gap-1.5 sm:hidden z-10">
-              {/* Quick View Button - Shows modal like desktop */}
-              {showQuickView && onQuickView && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleQuickView(e);
-                  }}
-                  className="p-2 bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50"
-                  title="Quick View"
-                >
-                  <Eye className="w-3 h-3 text-white" />
-                </button>
-              )}
-              
-              {showWishlistButton && user && token && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleWishlistToggle(e);
-                  }}
-                  className={`p-2 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50 ${
-                    wishlistState 
-                      ? 'bg-red-500/90 hover:bg-red-600/90' 
-                      : 'bg-gray-800/90 hover:bg-gray-700/90'
-                  }`}
-                  disabled={isLoading}
-                  title={wishlistState ? "Remove from Wishlist" : "Add to Wishlist"}
-                >
-                  <Heart className={`w-3 h-3 ${wishlistState ? 'fill-white' : ''} text-white`} />
-                </button>
-              )}
-              
-              {showCartButton && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleQuickAddToCart(e);
-                  }}
-                  className="p-2 bg-yellow-400/90 hover:bg-yellow-500/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-yellow-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                  title="Quick Add to Cart"
-                  disabled={product.stock === 0}
-                >
-                  <ShoppingCart className="w-3 h-3 text-gray-900" />
-                </button>
-              )}
-              
-              {showRemoveButton && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleRemove(e);
-                  }}
-                  className="p-2 bg-red-500/90 hover:bg-red-600/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-red-400/50"
-                  title="Remove"
-                >
-                  <Trash2 className="w-3 h-3 text-white" />
-                </button>
-              )}
-            </div>
+            {/* Mobile Action Buttons - Only visible on front side */}
+            {!isFlipped && (
+              <div className="absolute bottom-2 right-1 flex flex-col gap-1.5 sm:hidden z-10">
+                {/* Quick View Button - Shows modal like desktop */}
+                {showQuickView && onQuickView && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleQuickView(e);
+                    }}
+                    className="p-2 bg-gray-800/90 hover:bg-gray-700/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50"
+                    title="Quick View"
+                  >
+                    <Eye className="w-3 h-3 text-white" />
+                  </button>
+                )}
+                
+                {showWishlistButton && user && token && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleWishlistToggle(e);
+                    }}
+                    className={`p-2 backdrop-blur-sm rounded-full transition-all shadow-lg border border-gray-600/50 ${
+                      wishlistState 
+                        ? 'bg-red-500/90 hover:bg-red-600/90' 
+                        : 'bg-gray-800/90 hover:bg-gray-700/90'
+                    }`}
+                    disabled={isLoading}
+                    title={wishlistState ? "Remove from Wishlist" : "Add to Wishlist"}
+                  >
+                    <Heart className={`w-3 h-3 ${wishlistState ? 'fill-white' : ''} text-white`} />
+                  </button>
+                )}
+                
+                {showCartButton && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleQuickAddToCart(e);
+                    }}
+                    className="p-2 bg-yellow-400/90 hover:bg-yellow-500/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-yellow-300/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title="Quick Add to Cart"
+                    disabled={product.stock === 0}
+                  >
+                    <ShoppingCart className="w-3 h-3 text-gray-900" />
+                  </button>
+                )}
+                
+                {showRemoveButton && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleRemove(e);
+                    }}
+                    className="p-2 bg-red-500/90 hover:bg-red-600/90 backdrop-blur-sm rounded-full transition-all shadow-lg border border-red-400/50"
+                    title="Remove"
+                  >
+                    <Trash2 className="w-3 h-3 text-white" />
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Desktop Action Buttons on hover */}
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity items-end justify-center pb-4 gap-3 hidden sm:flex">
