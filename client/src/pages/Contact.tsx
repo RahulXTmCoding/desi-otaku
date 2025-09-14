@@ -174,7 +174,7 @@ const Contact: React.FC = () => {
                   <div>
                     <h3 className="font-semibold mb-1">Email</h3>
                     <p className="text-gray-300">hello@attars.club</p>
-                    <p className="text-gray-300">support@attars.club</p>
+                    {/* <p className="text-gray-300">support@attars.club</p> */}
                   </div>
                 </div>
 
@@ -184,8 +184,8 @@ const Contact: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1">Phone</h3>
-                    <p className="text-gray-300">+91 98765 43210</p>
-                    <p className="text-gray-300">+91 87654 32109</p>
+                    <p className="text-gray-300">+91 8707339611</p>
+                    <p className="text-gray-300">+91 8299716657</p>
                   </div>
                 </div>
 
@@ -196,9 +196,9 @@ const Contact: React.FC = () => {
                   <div>
                     <h3 className="font-semibold mb-1">Address</h3>
                     <p className="text-gray-300">
-                      123 Anime Street,<br />
-                      Fashion District,<br />
-                      Mumbai, Maharashtra 400001
+                      s76 siddheshwar nagar,<br />
+                      Near iti college,<br />
+                      Jhansi, UP 284003
                     </p>
                   </div>
                 </div>
@@ -222,19 +222,19 @@ const Contact: React.FC = () => {
               <h2 className="text-xl md:text-2xl font-bold mb-6">Follow Us</h2>
               <div className="flex gap-4">
                 <a
-                  href="#"
+                  href="http://instagram.com/attars.club/"
                   className="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg transition-colors transform hover:scale-110"
                 >
                   <Instagram className="w-6 h-6 text-yellow-400" />
                 </a>
                 <a
-                  href="#"
+                  href="https://x.com/Attars_club"
                   className="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg transition-colors transform hover:scale-110"
                 >
                   <Twitter className="w-6 h-6 text-yellow-400" />
                 </a>
                 <a
-                  href="#"
+                  href="https://www.facebook.com/people/Attarsclub/61580543308343/"
                   className="bg-gray-700 hover:bg-gray-600 p-3 rounded-lg transition-colors transform hover:scale-110"
                 >
                   <Facebook className="w-6 h-6 text-yellow-400" />
@@ -273,11 +273,34 @@ const Contact: React.FC = () => {
           </div>
         </div>
 
-        {/* Map Section (Optional) */}
+        {/* Map Section */}
         <div className="mt-8 md:mt-12 bg-gray-800 rounded-2xl p-6 md:p-8">
-          <h2 className="text-xl md:text-2xl font-bold mb-6 text-center">Find Us</h2>
-          <div className="bg-gray-700 rounded-lg h-64 flex items-center justify-center">
-            <p className="text-gray-400">Interactive Map Coming Soon</p>
+          <h2 className="text-xl md:text-2xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+            <MapPin className="w-6 h-6 text-yellow-400" />
+            Find Us
+          </h2>
+          <div className="bg-gray-700 rounded-lg overflow-hidden">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3602.0386574356767!2d78.5501969!3d25.4703846!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x39777116149259b3%3A0xb149a258a2e4a067!2sSai%20cyber%20cafe!5e0!3m2!1sen!2sin!4v1757872827657!5m2!1sen!2sin"
+              width="100%"
+              height="400"
+              style={{ border: 0 }}
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="Attars Club Location - Jhansi, UP"
+            ></iframe>
+          </div>
+          <div className="mt-4 text-center">
+            <a
+              href="https://maps.app.goo.gl/zVxG2e3k7GtZpvxd8"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-4 py-2 rounded-lg font-medium transition-colors"
+            >
+              <MapPin className="w-4 h-4" />
+              Open in Google Maps
+            </a>
           </div>
         </div>
       </div>

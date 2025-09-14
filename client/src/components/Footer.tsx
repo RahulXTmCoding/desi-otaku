@@ -103,7 +103,7 @@ const Footer: React.FC = () => {
             <ul className="space-y-2 text-gray-400 text-sm">
               <li>
                 <a
-                  href="https://instagram.com"
+                  href="instagram.com/attars.club/"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-yellow-400 transition-colors"
@@ -113,7 +113,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://twitter.com"
+                  href="https://x.com/Attars_club"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-yellow-400 transition-colors"
@@ -123,7 +123,7 @@ const Footer: React.FC = () => {
               </li>
               <li>
                 <a
-                  href="https://discord.com"
+                  href="https://discord.gg/aVq4WaRF"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="hover:text-yellow-400 transition-colors"
@@ -131,11 +131,11 @@ const Footer: React.FC = () => {
                   Discord
                 </a>
               </li>
-              <li>
+              {/* <li>
                 <Link to="/newsletter" className="hover:text-yellow-400 transition-colors">
                   Newsletter
                 </Link>
-              </li>
+              </li> */}
             </ul>
           </div>
         </div>

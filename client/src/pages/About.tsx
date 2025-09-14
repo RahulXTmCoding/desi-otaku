@@ -253,7 +253,7 @@ const About: React.FC = () => {
         </section>
 
         {/* Stats Section - Black background */}
-        <section className="py-20 bg-black">
+        {/* <section className="py-20 bg-black">
           <div className="w-[96%] mx-auto">
             <div className="text-center mb-16">
               <h2 className="text-4xl font-black mb-6 text-white">Numbers That Speak</h2>
@@ -276,7 +276,7 @@ const About: React.FC = () => {
               ))}
             </div>
           </div>
-        </section>
+        </section> */}
 
         {/* Call to Action */}
         <section className="py-20 bg-gradient-to-r from-purple-900 via-blue-900 to-indigo-900">
