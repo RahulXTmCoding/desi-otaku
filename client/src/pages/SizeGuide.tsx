@@ -121,11 +121,66 @@ const SizeGuide: React.FC = () => {
             </div>
           </div>
 
+          {/* BIOWASH T-Shirt Size Chart */}
+          <div className="bg-gray-800 rounded-2xl p-4 sm:p-8 mb-8">
+            <div className="flex items-center mb-6">
+              <Shirt className="w-6 h-6 text-purple-400 mr-3" />
+              <h2 className="text-xl sm:text-2xl font-bold">BIOWASH T-Shirt Size Chart</h2>
+              <span className="ml-3 text-sm bg-purple-500/20 text-purple-400 px-3 py-1 rounded-full">Premium Fabric</span>
+            </div>
+            
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <div className="min-w-full px-4 sm:px-0">
+                <table className="w-full border-collapse border border-gray-600 min-w-[400px]">
+                  <thead>
+                    <tr className="bg-gray-700">
+                      <th className="border border-gray-600 px-4 py-3 text-left font-semibold">Size</th>
+                      <th className="border border-gray-600 px-4 py-3 text-left font-semibold">Chest (inches)</th>
+                      <th className="border border-gray-600 px-4 py-3 text-left font-semibold">Length (inches)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="hover:bg-gray-700 transition-colors">
+                      <td className="border border-gray-600 px-4 py-3 font-medium text-purple-400">S</td>
+                      <td className="border border-gray-600 px-4 py-3">38</td>
+                      <td className="border border-gray-600 px-4 py-3">27</td>
+                    </tr>
+                    <tr className="hover:bg-gray-700 transition-colors">
+                      <td className="border border-gray-600 px-4 py-3 font-medium text-purple-400">M</td>
+                      <td className="border border-gray-600 px-4 py-3">40</td>
+                      <td className="border border-gray-600 px-4 py-3">28</td>
+                    </tr>
+                    <tr className="hover:bg-gray-700 transition-colors">
+                      <td className="border border-gray-600 px-4 py-3 font-medium text-purple-400">L</td>
+                      <td className="border border-gray-600 px-4 py-3">42</td>
+                      <td className="border border-gray-600 px-4 py-3">29</td>
+                    </tr>
+                    <tr className="hover:bg-gray-700 transition-colors">
+                      <td className="border border-gray-600 px-4 py-3 font-medium text-purple-400">XL</td>
+                      <td className="border border-gray-600 px-4 py-3">44</td>
+                      <td className="border border-gray-600 px-4 py-3">30</td>
+                    </tr>
+                    <tr className="hover:bg-gray-700 transition-colors">
+                      <td className="border border-gray-600 px-4 py-3 font-medium text-purple-400">XXL</td>
+                      <td className="border border-gray-600 px-4 py-3">46</td>
+                      <td className="border border-gray-600 px-4 py-3">31</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <div className="mt-4 p-3 bg-purple-600/10 border border-purple-600/30 rounded-lg">
+              <p className="text-sm text-purple-400">
+                <strong>BIOWASH Fabric:</strong> BIOWASH fabric provides superior comfort and softness with pre-shrunk material for consistent fit.
+              </p>
+            </div>
+          </div>
+
           {/* Oversized Tees Size Chart */}
           <div className="bg-gray-800 rounded-2xl p-4 sm:p-8 mb-8">
             <div className="flex items-center mb-6">
               <Shirt className="w-6 h-6 text-orange-400 mr-3" />
-              <h2 className="text-xl sm:text-2xl font-bold">Oversized Tees Size Chart</h2>
+              <h2 className="text-xl sm:text-2xl font-bold">Over Sized T-shirt Size Chart</h2>
               <span className="ml-3 text-sm bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full">Oversized Fit</span>
             </div>
             
@@ -145,41 +200,39 @@ const SizeGuide: React.FC = () => {
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-orange-400">S</td>
                       <td className="border border-gray-600 px-4 py-3">42</td>
-                      <td className="border border-gray-600 px-4 py-3">28</td>
-                      <td className="border border-gray-600 px-4 py-3">20</td>
-                      <td className="border border-gray-600 px-4 py-3">8</td>
+                      <td className="border border-gray-600 px-4 py-3">27.5</td>
+                      <td className="border border-gray-600 px-4 py-3">18</td>
+                      <td className="border border-gray-600 px-4 py-3">9.5</td>
                     </tr>
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-orange-400">M</td>
                       <td className="border border-gray-600 px-4 py-3">44</td>
-                      <td className="border border-gray-600 px-4 py-3">29</td>
-                      <td className="border border-gray-600 px-4 py-3">21</td>
-                      <td className="border border-gray-600 px-4 py-3">9</td>
+                      <td className="border border-gray-600 px-4 py-3">28.5</td>
+                      <td className="border border-gray-600 px-4 py-3">18.5</td>
+                      <td className="border border-gray-600 px-4 py-3">10</td>
                     </tr>
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-orange-400">L</td>
                       <td className="border border-gray-600 px-4 py-3">46</td>
-                      <td className="border border-gray-600 px-4 py-3">30</td>
-                      <td className="border border-gray-600 px-4 py-3">22</td>
-                      <td className="border border-gray-600 px-4 py-3">10</td>
+                      <td className="border border-gray-600 px-4 py-3">29.5</td>
+                      <td className="border border-gray-600 px-4 py-3">19</td>
+                      <td className="border border-gray-600 px-4 py-3">10.5</td>
                     </tr>
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-orange-400">XL</td>
                       <td className="border border-gray-600 px-4 py-3">48</td>
-                      <td className="border border-gray-600 px-4 py-3">31</td>
-                      <td className="border border-gray-600 px-4 py-3">23</td>
+                      <td className="border border-gray-600 px-4 py-3">30.5</td>
+                      <td className="border border-gray-600 px-4 py-3">19.5</td>
                       <td className="border border-gray-600 px-4 py-3">11</td>
-                    </tr>
-                    <tr className="hover:bg-gray-700 transition-colors">
-                      <td className="border border-gray-600 px-4 py-3 font-medium text-orange-400">XXL</td>
-                      <td className="border border-gray-600 px-4 py-3">50</td>
-                      <td className="border border-gray-600 px-4 py-3">32</td>
-                      <td className="border border-gray-600 px-4 py-3">24</td>
-                      <td className="border border-gray-600 px-4 py-3">12</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+            </div>
+            <div className="mt-4 p-3 bg-orange-600/10 border border-orange-600/30 rounded-lg">
+              <p className="text-sm text-orange-400">
+                <strong>Note:</strong> All sizes are approximate and may vary upto +/-0.5.
+              </p>
             </div>
           </div>
 
@@ -193,55 +246,54 @@ const SizeGuide: React.FC = () => {
             
             <div className="overflow-x-auto -mx-4 sm:mx-0">
               <div className="min-w-full px-4 sm:px-0">
-                <table className="w-full border-collapse border border-gray-600 min-w-[500px]">
+                <table className="w-full border-collapse border border-gray-600 min-w-[400px]">
                   <thead>
                     <tr className="bg-gray-700">
                       <th className="border border-gray-600 px-4 py-3 text-left font-semibold">Size</th>
                       <th className="border border-gray-600 px-4 py-3 text-left font-semibold">Chest (inches)</th>
                       <th className="border border-gray-600 px-4 py-3 text-left font-semibold">Length (inches)</th>
-                      <th className="border border-gray-600 px-4 py-3 text-left font-semibold">Shoulder (inches)</th>
                       <th className="border border-gray-600 px-4 py-3 text-left font-semibold">Sleeve (inches)</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-blue-400">S</td>
-                      <td className="border border-gray-600 px-4 py-3">38</td>
-                      <td className="border border-gray-600 px-4 py-3">25</td>
-                      <td className="border border-gray-600 px-4 py-3">18</td>
-                      <td className="border border-gray-600 px-4 py-3">24</td>
+                      <td className="border border-gray-600 px-4 py-3">19(38)</td>
+                      <td className="border border-gray-600 px-4 py-3">27</td>
+                      <td className="border border-gray-600 px-4 py-3">24.5</td>
                     </tr>
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-blue-400">M</td>
-                      <td className="border border-gray-600 px-4 py-3">40</td>
-                      <td className="border border-gray-600 px-4 py-3">26</td>
-                      <td className="border border-gray-600 px-4 py-3">19</td>
-                      <td className="border border-gray-600 px-4 py-3">25</td>
+                      <td className="border border-gray-600 px-4 py-3">20(40)</td>
+                      <td className="border border-gray-600 px-4 py-3">28</td>
+                      <td className="border border-gray-600 px-4 py-3">25.5</td>
                     </tr>
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-blue-400">L</td>
-                      <td className="border border-gray-600 px-4 py-3">42</td>
-                      <td className="border border-gray-600 px-4 py-3">27</td>
-                      <td className="border border-gray-600 px-4 py-3">20</td>
-                      <td className="border border-gray-600 px-4 py-3">26</td>
+                      <td className="border border-gray-600 px-4 py-3">21(42)</td>
+                      <td className="border border-gray-600 px-4 py-3">29</td>
+                      <td className="border border-gray-600 px-4 py-3">26.5</td>
                     </tr>
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-blue-400">XL</td>
-                      <td className="border border-gray-600 px-4 py-3">44</td>
-                      <td className="border border-gray-600 px-4 py-3">28</td>
-                      <td className="border border-gray-600 px-4 py-3">21</td>
-                      <td className="border border-gray-600 px-4 py-3">27</td>
+                      <td className="border border-gray-600 px-4 py-3">22(44)</td>
+                      <td className="border border-gray-600 px-4 py-3">30</td>
+                      <td className="border border-gray-600 px-4 py-3">27.5</td>
                     </tr>
                     <tr className="hover:bg-gray-700 transition-colors">
                       <td className="border border-gray-600 px-4 py-3 font-medium text-blue-400">XXL</td>
-                      <td className="border border-gray-600 px-4 py-3">46</td>
-                      <td className="border border-gray-600 px-4 py-3">29</td>
-                      <td className="border border-gray-600 px-4 py-3">22</td>
-                      <td className="border border-gray-600 px-4 py-3">28</td>
+                      <td className="border border-gray-600 px-4 py-3">23(46)</td>
+                      <td className="border border-gray-600 px-4 py-3">31</td>
+                      <td className="border border-gray-600 px-4 py-3">28.5</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+            </div>
+            <div className="mt-4 p-3 bg-blue-600/10 border border-blue-600/30 rounded-lg">
+              <p className="text-sm text-blue-400">
+                <strong>Note:</strong> All sizes are approximate and may vary upto +/-0.5.
+              </p>
             </div>
           </div>
 
