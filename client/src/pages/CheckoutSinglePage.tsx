@@ -330,6 +330,20 @@ const CheckoutSinglePage: React.FC = () => {
     setAppliedDiscount(prev => ({ ...prev, ...discount }));
   }, []);
 
+  // Auto-select shipping method when pincode is available
+  useEffect(() => {
+    if (shippingInfo.pinCode && shippingInfo.pinCode.length === 6 && !selectedShipping) {
+      const isFreeShipping = getTotalAmount() >= 999;
+      setSelectedShipping({
+        courier_company_id: "standard",
+        courier_name: "Standard Delivery", 
+        rate: isFreeShipping ? 0 : 79,
+        etd: "5-7 business days",
+        cod: true
+      });
+    }
+  }, [shippingInfo.pinCode, getTotalAmount, selectedShipping]);
+
   const getFinalAmount = useCallback(() => {
     // ✅ FIXED: Recalculate every time to ensure reactivity
     const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -745,23 +759,23 @@ const CheckoutSinglePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:py-8 py-4">
         {/* Header */}
-        <div className="flex items-center gap-4 md:mb-8 mb-4">
-          <h1 className="text-3xl font-bold">Checkout</h1>
+        <div className="flex items-center gap-4 md:mb-6 mb-3">
+          <h1 className="text-2xl md:text-3xl font-bold">Checkout</h1>
         </div>
 
         {/* Main Content - Two Column Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8">
           
           {/* Left Side - Checkout Form */}
-          <div className="space-y-6">
+          <div className="space-y-3 lg:space-y-6">
             
             {/* Delivery Address Section */}
-            <div className="bg-gray-800 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <MapPin className="w-5 h-5 text-yellow-400" />
-                <h2 className="text-xl font-bold">Delivery Address</h2>
+            <div className="bg-gray-800 rounded-2xl p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-3 md:mb-4">
+                <MapPin className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                <h2 className="text-lg md:text-xl font-bold">Delivery Address</h2>
               </div>
               
               <AddressSectionEnhanced
@@ -783,26 +797,12 @@ const CheckoutSinglePage: React.FC = () => {
               />
             </div>
 
-            {/* Shipping Method Section */}
-            <div className="bg-gray-800 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Truck className="w-5 h-5 text-yellow-400" />
-                <h2 className="text-xl font-bold">Shipping Method</h2>
-              </div>
-              
-              <ShippingMethodEnhanced
-                selectedShipping={selectedShipping}
-                onSelectShipping={setSelectedShipping}
-                shippingPincode={shippingInfo.pinCode}
-                cartTotal={getTotalAmount()}
-              />
-            </div>
 
             {/* Payment Section */}
-            <div className="bg-gray-800 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <CreditCard className="w-5 h-5 text-yellow-400" />
-                <h2 className="text-xl font-bold">Payment Information</h2>
+            <div className="bg-gray-800 rounded-2xl p-4 md:p-6">
+              <div className="flex items-center gap-2 mb-3 md:mb-4">
+                <CreditCard className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
+                <h2 className="text-lg md:text-xl font-bold">Payment Information</h2>
               </div>
               
               <PaymentSection
@@ -822,25 +822,26 @@ const CheckoutSinglePage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right Side - Order Summary */}
-          <div className="lg:sticky lg:top-8 lg:h-fit space-y-6">
+          {/* Right Side - Complete Order Summary */}
+          <div className="lg:sticky lg:top-8 lg:h-fit">
             
-            {/* Cart Items */}
-            <div className="bg-gray-800 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <ShoppingBag className="w-5 h-5 text-yellow-400" />
-                <h2 className="text-xl font-bold">Order Summary</h2>
+            {/* Single Comprehensive Order Summary */}
+            <div className="bg-gray-800 rounded-2xl p-4 lg:p-6">
+              <div className="flex items-center gap-2 mb-3 lg:mb-4">
+                <ShoppingBag className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-400" />
+                <h2 className="text-lg lg:text-xl font-bold">Complete Order Summary</h2>
                 <span className="ml-auto text-sm text-gray-400">{cart.length} items</span>
               </div>
               
-              <div className="space-y-4 max-h-60 overflow-y-auto">
+              {/* Cart Items Section */}
+              <div className="space-y-2 lg:space-y-3 max-h-40 lg:max-h-48 overflow-y-auto mb-3 lg:mb-4">
                 {cart.map((item, index) => {
                   const isCustomDesign = item.isCustom;
                   
                   return (
-                    <div key={index} className="flex gap-3 p-3 bg-gray-700 rounded-lg">
+                    <div key={index} className="flex gap-3 p-2 lg:p-3 bg-gray-700 rounded-lg">
                       {/* ✅ FIXED: Product Image using Cart logic */}
-                      <div className="w-16 h-16 bg-gray-600 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="w-12 h-12 lg:w-16 lg:h-16 bg-gray-600 rounded-lg overflow-hidden flex-shrink-0">
                         {isCustomDesign && item.customization ? (
                           <CartTShirtPreview
                             design={null}
@@ -870,7 +871,7 @@ const CheckoutSinglePage: React.FC = () => {
                       </div>
                       
                       <div className="flex-1">
-                        <h3 className="font-medium text-sm line-clamp-2">{item.name}</h3>
+                        <h3 className="font-medium text-xs lg:text-sm line-clamp-2">{item.name}</h3>
                         {isCustomDesign && (
                           <p className="text-xs text-yellow-400">Custom Design</p>
                         )}
@@ -887,7 +888,7 @@ const CheckoutSinglePage: React.FC = () => {
                       
                       <div className="text-right">
                         <div className="space-y-1">
-                          <p className="font-semibold">₹{item.price}</p>
+                          <p className="font-semibold text-sm">₹{item.price}</p>
                           {(item as any).mrp && (item as any).mrp > item.price && (
                             <>
                               <p className="text-xs line-through opacity-60 text-gray-400">
@@ -905,28 +906,46 @@ const CheckoutSinglePage: React.FC = () => {
                   );
                 })}
               </div>
-            </div>
 
-            {/* Discount Section */}
-            <div className="bg-gray-800 rounded-2xl p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Percent className="w-5 h-5 text-yellow-400" />
-                <h2 className="text-xl font-bold">Discounts & Offers</h2>
+              {/* Free Shipping Progress */}
+              {(() => {
+                const cartTotal = getTotalAmount();
+                const isFreeShipping = cartTotal >= 999;
+                const remainingForFree = 999 - cartTotal;
+
+                return (
+                  <div className="mb-4 lg:mb-6">
+                    {isFreeShipping ? (
+                      <div className="p-2 lg:p-3 bg-green-600/20 border border-green-600/30 rounded-lg flex items-center gap-2">
+                        <Package className="w-4 h-4 text-green-400 flex-shrink-0" />
+                        <span className="text-green-400 font-medium text-sm">
+                          🎉 Congratulations! You qualify for FREE shipping!
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-2 lg:p-3 bg-blue-600/20 border border-blue-600/30 rounded-lg flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                        <span className="text-blue-400 text-sm">
+                          Add <span className="font-semibold">₹{remainingForFree}</span> more to qualify for FREE shipping!
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+              
+              {/* Discount Application Section */}
+              <div className="mb-4 lg:mb-6">
+                <DiscountSection
+                  subtotal={getTotalAmount()}
+                  shippingCost={selectedShipping?.rate || 0}
+                  onDiscountChange={handleDiscountChange}
+                  isTestMode={isTestMode}
+                  aovDiscount={frontendAovDiscount.discount} // ✅ CRITICAL FIX: Pass AOV discount for sequential calculation
+                />
               </div>
               
-              <DiscountSection
-                subtotal={getTotalAmount()}
-                shippingCost={selectedShipping?.rate || 0}
-                onDiscountChange={handleDiscountChange}
-                isTestMode={isTestMode}
-                aovDiscount={frontendAovDiscount.discount} // ✅ CRITICAL FIX: Pass AOV discount for sequential calculation
-              />
-            </div>
-
-            {/* Order Total */}
-            <div className="bg-gray-800 rounded-2xl p-6">
-              <h2 className="text-xl font-bold mb-4">Payment Summary</h2>
-              
+              {/* Payment Summary */}
               <div className="space-y-3">
                 <div className="flex justify-between text-sm">
                   <span>Subtotal ({cart.length} items)</span>

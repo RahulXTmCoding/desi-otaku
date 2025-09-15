@@ -234,165 +234,119 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
   const actualMaxPoints = Math.min(maxRedeemablePoints, maxPointsForOrder);
 
   return (
-    <div className="bg-gray-700/50 rounded-lg p-6 mb-6">
-      <h3 className="font-semibold mb-4 flex items-center gap-2">
-        <Tag className="w-5 h-5 text-yellow-400" />
-        Discounts & Rewards
-      </h3>
+    <div className="space-y-3">
+      {/* Compact Coupon Input */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={couponCode}
+          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+          placeholder="Enter coupon code"
+          className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-yellow-400"
+          disabled={couponLoading}
+        />
+        <button
+          onClick={handleApplyCoupon}
+          disabled={couponLoading || !couponCode.trim()}
+          className="bg-yellow-400 hover:bg-yellow-300 text-gray-900 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+        >
+          {couponLoading ? (
+            <Loader className="w-3 h-3 animate-spin" />
+          ) : (
+            'Apply'
+          )}
+        </button>
+      </div>
 
-      {/* Coupon Section */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Coupon Code
-        </label>
-        
-        {appliedCoupon ? (
-          <div className="bg-green-900/30 border border-green-600 rounded-lg p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Check className="w-5 h-5 text-green-400" />
-              <div>
-                <p className="font-medium text-green-400">{appliedCoupon.code} applied!</p>
-                <p className="text-sm text-gray-400">{appliedCoupon.description}</p>
-                <p className="text-sm text-green-400">You save ₹{appliedCoupon.discount}</p>
-              </div>
-            </div>
+      {/* Coupon Error */}
+      {couponError && (
+        <p className="text-red-400 text-xs flex items-center gap-1">
+          <AlertCircle className="w-3 h-3" />
+          {couponError}
+        </p>
+      )}
+
+      {/* Applied Discounts - Compact */}
+      <div className="space-y-1">
+        {appliedCoupon && (
+          <div className="flex items-center justify-between text-sm bg-green-900/20 border border-green-600/30 rounded px-2 py-1">
+            <span className="text-green-400 flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              {appliedCoupon.code} applied
+            </span>
             <button
               onClick={handleRemoveCoupon}
               className="text-gray-400 hover:text-red-400 transition-colors"
             >
-              <X className="w-5 h-5" />
+              <X className="w-3 h-3" />
             </button>
           </div>
-        ) : (
-          <div>
-            <div className="space-y-2">
-              <input
-                type="text"
-                value={couponCode}
-                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                placeholder="Enter coupon code"
-                className="w-full bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-yellow-400"
-                disabled={couponLoading}
-              />
-              <button
-                onClick={handleApplyCoupon}
-                disabled={couponLoading || !couponCode.trim()}
-                className="w-full bg-yellow-400 hover:bg-yellow-300 text-gray-900 py-2 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-              >
-                {couponLoading ? (
-                  <Loader className="w-4 h-4 animate-spin" />
-                ) : (
-                  'Apply'
-                )}
-              </button>
-            </div>
-            
-            {couponError && (
-              <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
-                <AlertCircle className="w-4 h-4" />
-                {couponError}
-              </p>
-            )}
+        )}
+
+        {rewardPointsToRedeem > 0 && (
+          <div className="flex items-center justify-between text-sm bg-purple-900/20 border border-purple-600/30 rounded px-2 py-1">
+            <span className="text-purple-400 flex items-center gap-1">
+              <Gift className="w-3 h-3" />
+              {rewardPointsToRedeem} points used
+            </span>
+            <button
+              onClick={handleRemoveRewardPoints}
+              className="text-gray-400 hover:text-red-400 transition-colors"
+            >
+              <X className="w-3 h-3" />
+            </button>
           </div>
         )}
       </div>
 
-      {/* Reward Points Section - Only for authenticated users */}
-      {!isGuest && (
-        <div className="border-t border-gray-600 pt-4">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-sm font-medium text-gray-300 flex items-center gap-2">
-              <Gift className="w-4 h-4 text-purple-400" />
-              Reward Points
-            </label>
-            {rewardLoading ? (
-              <Loader className="w-4 h-4 animate-spin text-gray-400" />
-            ) : (
-              <span className="text-sm text-gray-400">
-                Balance: {rewardBalance} points (₹{rewardBalance * 0.5} value)
-              </span>
-            )}
-          </div>
-
-          {rewardBalance > 0 && (
-            <>
-              {rewardPointsToRedeem > 0 ? (
-                <div className="bg-purple-900/30 border border-purple-600 rounded-lg p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Check className="w-5 h-5 text-purple-400" />
-                    <div>
-                      <p className="font-medium text-purple-400">
-                        {rewardPointsToRedeem} points redeemed!
-                      </p>
-                      <p className="text-sm text-gray-400">
-                        You save ₹{rewardPointsToRedeem * 0.5}
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleRemoveRewardPoints}
-                    className="text-gray-400 hover:text-red-400 transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              ) : (
-                <>
-                  {showRewardInput ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        value={rewardPointsToRedeem || ''}
-                        onChange={(e) => {
-                          const value = parseInt(e.target.value) || 0;
-                          setRewardPointsToRedeem(Math.min(value, actualMaxPoints));
-                        }}
-                        placeholder={`Max ${actualMaxPoints} points`}
-                        min="1"
-                        max={actualMaxPoints}
-                        className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-purple-400"
-                      />
-                      <button
-                        onClick={handleApplyRewardPoints}
-                        className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        Apply
-                      </button>
-                      <button
-                        onClick={() => setShowRewardInput(false)}
-                        className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setShowRewardInput(true)}
-                      disabled={actualMaxPoints === 0}
-                      className="w-full bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {actualMaxPoints > 0 
-                        ? `Use Reward Points (Max ${actualMaxPoints} points = ₹${actualMaxPoints * 0.5})`
-                        : 'Insufficient points for this order'
-                      }
-                    </button>
-                  )}
-                  
-                  <p className="text-xs text-gray-500 mt-2">
-                    Maximum 50 points can be redeemed per order. 1 point = ₹0.5
-                  </p>
-                </>
-              )}
-            </>
+      {/* Compact Reward Points - Only for authenticated users */}
+      {!isGuest && rewardBalance > 0 && rewardPointsToRedeem === 0 && (
+        <div>
+          {showRewardInput ? (
+            <div className="flex gap-2">
+              <input
+                type="number"
+                value={rewardPointsToRedeem || ''}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 0;
+                  setRewardPointsToRedeem(Math.min(value, actualMaxPoints));
+                }}
+                placeholder={`Max ${actualMaxPoints}`}
+                min="1"
+                max={actualMaxPoints}
+                className="flex-1 bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-purple-400"
+              />
+              <button
+                onClick={handleApplyRewardPoints}
+                className="bg-purple-600 hover:bg-purple-500 text-white px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+              >
+                Use
+              </button>
+              <button
+                onClick={() => setShowRewardInput(false)}
+                className="bg-gray-700 hover:bg-gray-600 text-white px-3 py-2 rounded-lg text-sm"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowRewardInput(true)}
+              disabled={actualMaxPoints === 0}
+              className="w-full bg-purple-600/10 hover:bg-purple-600/20 text-purple-400 py-2 rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1"
+            >
+              <Gift className="w-3 h-3" />
+              Use {rewardBalance} reward points
+            </button>
           )}
         </div>
       )}
 
-      {/* Guest message */}
+      {/* Guest Sign-in Message */}
       {isGuest && (
-        <div className="border-t border-gray-600 pt-4">
-          <p className="text-sm text-gray-400 text-center">
-            Sign in to use reward points and save addresses
+        <div className="p-2 bg-gray-700/30 border border-gray-600/50 rounded-lg text-center">
+          <p className="text-xs text-gray-400">
+            <span className="text-purple-400 font-medium">Sign in</span> to use reward points and save addresses
           </p>
         </div>
       )}

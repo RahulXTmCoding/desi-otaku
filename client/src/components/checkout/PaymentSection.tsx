@@ -79,12 +79,11 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
 
   return (
     <>
-      <h2 className="text-xl font-bold mb-6">Payment Information</h2>
       
       {/* Payment Method Selection */}
-      <div className="mb-6">
-        <h3 className="text-sm font-medium text-gray-300 mb-3">Select Payment Method</h3>
-        <div className="grid gap-3">
+      <div className="mb-4 lg:mb-6">
+        <h3 className="text-xs lg:text-sm font-medium text-gray-300 mb-2 lg:mb-3">Select Payment Method</h3>
+        <div className="grid gap-2 lg:gap-3">
           {paymentMethods.map((method) => (
             <PaymentMethodOption
               key={method.id}
@@ -123,7 +122,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
 // Separate component for payment method options
 const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
   return (
-    <label className={`flex items-center p-4 rounded-lg transition-all ${
+    <label className={`flex items-center p-3 lg:p-4 rounded-lg transition-all ${
       method.disabled 
         ? 'bg-gray-800 cursor-not-allowed opacity-70' 
         : `cursor-pointer ${isSelected ? 'bg-yellow-400/20 border border-yellow-400' : 'bg-gray-700 hover:bg-gray-600'}`
@@ -135,14 +134,14 @@ const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
         checked={isSelected}
         onChange={method.disabled ? undefined : onChange}
         disabled={method.disabled}
-        className="mr-3"
+        className="mr-2 lg:mr-3"
       />
       <div className="flex items-center gap-2 flex-1">
-        <div className="w-5 h-5 flex items-center justify-center">
+        <div className="w-4 h-4 lg:w-5 lg:h-5 flex items-center justify-center">
           {method.icon}
         </div>
         <div className="flex-1">
-          <p className={`font-medium ${method.disabled ? 'text-gray-500' : ''}`}>
+          <p className={`font-medium text-sm lg:text-base ${method.disabled ? 'text-gray-500' : ''}`}>
             {method.name}
           </p>
           <p className={`text-xs ${method.disabled ? 'text-gray-600' : 'text-gray-400'}`}>
@@ -150,20 +149,22 @@ const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
           </p>
         </div>
       </div>
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1 lg:gap-2">
         {method.comingSoon && (
           <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">
-            Coming Soon
+            <span className="hidden sm:inline">Coming </span>Soon
           </span>
         )}
         {method.discount && !method.disabled && (
           <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
-            {method.discount}
+            <span className="hidden sm:inline">{method.discount}</span>
+            <span className="sm:hidden">5%</span>
           </span>
         )}
         {method.recommended && !method.disabled && (
           <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
-            Recommended
+            <span className="hidden sm:inline">Recommended</span>
+            <span className="sm:hidden">★</span>
           </span>
         )}
       </div>
@@ -564,16 +565,16 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
 
   // NORMAL MODE: Full OTP verification flow
   return (
-    <div className="bg-gray-700 rounded-lg p-6">
-      <div className="mb-4">
-        <p className="text-sm text-gray-300 mb-2">Cash on Delivery (COD)</p>
+    <div className="bg-gray-700 rounded-lg p-4 lg:p-6">
+      <div className="mb-3 lg:mb-4">
+        <p className="text-sm text-gray-300 mb-1 lg:mb-2">Cash on Delivery (COD)</p>
         <p className="text-xs text-gray-400">Verify your phone number to place COD orders</p>
       </div>
 
       {!codVerification?.otpVerified ? (
-        <div className="space-y-4">
-          <div className="flex items-center gap-2 text-sm text-gray-300">
-            <Phone className="w-4 h-4" />
+        <div className="space-y-3 lg:space-y-4">
+          <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-300">
+            <Phone className="w-3 h-3 lg:w-4 lg:h-4" />
             <span>Phone: {customerPhone || 'Please add phone number in address section'}</span>
           </div>
 
@@ -581,24 +582,24 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
             <button
               onClick={handleSendOtp}
               disabled={!customerPhone || codVerification?.loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2 lg:py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm lg:text-base"
             >
               {codVerification?.loading ? (
                 <>
-                  <Loader className="w-4 h-4 animate-spin" />
+                  <Loader className="w-3 h-3 lg:w-4 lg:h-4 animate-spin" />
                   Sending OTP...
                 </>
               ) : (
                 <>
-                  <Phone className="w-4 h-4" />
+                  <Phone className="w-3 h-3 lg:w-4 lg:h-4" />
                   Send OTP
                 </>
               )}
             </button>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2 lg:space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+                <label className="block text-xs lg:text-sm font-medium text-gray-300 mb-1 lg:mb-2">
                   Enter OTP sent to {customerPhone}
                 </label>
                 <input
@@ -606,7 +607,7 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
                   value={codVerification.otp || ''}
                   onChange={(e) => handleOtpChange(e.target.value)}
                   placeholder="Enter 6-digit OTP"
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-center text-lg tracking-widest"
+                  className="w-full px-3 py-2 lg:px-4 lg:py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-center text-base lg:text-lg tracking-widest"
                   maxLength={6}
                 />
                 {isTestMode && (
@@ -614,28 +615,30 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
                 )}
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2 lg:gap-3">
                 <button
                   onClick={handleVerifyOtp}
                   disabled={!codVerification.otp || codVerification.otp.length !== 6 || codVerification.loading}
-                  className="flex-1 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-medium disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="flex-1 py-2 lg:py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-medium disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm lg:text-base"
                 >
                   {codVerification.loading ? (
                     <>
-                      <Loader className="w-4 h-4 animate-spin" />
-                      Verifying...
+                      <Loader className="w-3 h-3 lg:w-4 lg:h-4 animate-spin" />
+                      <span className="hidden sm:inline">Verifying...</span>
+                      <span className="sm:hidden">Verify</span>
                     </>
                   ) : (
                     <>
-                      <CheckCircle className="w-4 h-4" />
-                      Verify OTP
+                      <CheckCircle className="w-3 h-3 lg:w-4 lg:h-4" />
+                      <span className="hidden sm:inline">Verify OTP</span>
+                      <span className="sm:hidden">Verify</span>
                     </>
                   )}
                 </button>
 
                 <button
                   onClick={() => setCodVerification({ otpSent: false, otpVerified: false, otp: '', loading: false })}
-                  className="px-4 py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium"
+                  className="px-3 lg:px-4 py-2 lg:py-3 bg-gray-600 hover:bg-gray-500 text-white rounded-lg font-medium text-sm lg:text-base"
                 >
                   Resend
                 </button>
@@ -644,16 +647,16 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
           )}
         </div>
       ) : (
-        <div className="flex items-center gap-2 text-green-400 bg-green-500/10 border border-green-500/50 rounded-lg p-4">
-          <CheckCircle className="w-5 h-5" />
+        <div className="flex items-center gap-2 text-green-400 bg-green-500/10 border border-green-500/50 rounded-lg p-3 lg:p-4">
+          <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5" />
           <div>
-            <p className="font-medium">Phone number verified!</p>
+            <p className="font-medium text-sm lg:text-base">Phone number verified!</p>
             <p className="text-xs text-green-300">You can now place your COD order</p>
           </div>
         </div>
       )}
 
-      <div className="mt-4 p-3 bg-yellow-500/10 border border-yellow-500/50 rounded-lg">
+      <div className="mt-3 lg:mt-4 p-2 lg:p-3 bg-yellow-500/10 border border-yellow-500/50 rounded-lg">
         <p className="text-xs text-yellow-400">
           📱 COD orders require phone verification for security and delivery confirmation
         </p>
