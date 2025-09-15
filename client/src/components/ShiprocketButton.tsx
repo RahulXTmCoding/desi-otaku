@@ -73,12 +73,23 @@ const ShiprocketButton: React.FC<ShiprocketButtonProps> = ({
     return { discount: 0, percentage: 0 };
   }, [checkoutCart, quantityTiers]);
 
-  // Load Shiprocket script
+  // Load Shiprocket script and CSS
   useEffect(() => {
-    const loadShiprocketScript = () => {
+    const loadShiprocketAssets = () => {
+      // Load CSS first
+      const cssLink = document.createElement('link');
+      cssLink.rel = 'stylesheet';
+      cssLink.href = 'https://checkout-ui.shiprocket.com/assets/styles/shopify.css';
+      document.head.appendChild(cssLink);
+
+      // Load script
       if (window.HeadlessCheckout) {
         setScriptLoaded(true);
-        return;
+        return () => {
+          try {
+            document.head.removeChild(cssLink);
+          } catch (e) {}
+        };
       }
 
       const script = document.createElement('script');
@@ -95,13 +106,14 @@ const ShiprocketButton: React.FC<ShiprocketButtonProps> = ({
       return () => {
         try {
           document.head.removeChild(script);
+          document.head.removeChild(cssLink);
         } catch (e) {
-          // Script might already be removed
+          // Assets might already be removed
         }
       };
     };
 
-    loadShiprocketScript();
+    return loadShiprocketAssets();
   }, []);
 
   const handleShiprocketCheckout = useCallback(async () => {
@@ -213,6 +225,9 @@ const ShiprocketButton: React.FC<ShiprocketButtonProps> = ({
 
   return (
     <div className="space-y-2">
+      {/* Hidden input for sellerDomain as required by Shiprocket */}
+      <input type="hidden" value={window.location.hostname} id="sellerDomain" />
+      
       <button
         onClick={handleShiprocketCheckout}
         disabled={disabled || loading || !scriptLoaded || checkoutCart.length === 0}

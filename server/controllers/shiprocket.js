@@ -1,10 +1,44 @@
 const shiprocketService = require('../services/shiprocketService');
+const crypto = require('crypto');
 // Using built-in fetch (Node.js 18+)
 
 /**
  * Shiprocket Controller
  * Handles Shiprocket integration endpoints
  */
+
+/**
+ * Verify webhook signature for security
+ */
+function verifyWebhookSignature(body, signature) {
+  if (!signature || !process.env.SHIPROCKET_SECRET_KEY) {
+    console.warn('⚠️ Webhook signature verification skipped - missing signature or secret key');
+    return true; // Allow if not configured (for development)
+  }
+
+  try {
+    const bodyString = typeof body === 'string' ? body : JSON.stringify(body);
+    const computedSignature = crypto
+      .createHmac('sha256', process.env.SHIPROCKET_SECRET_KEY)
+      .update(bodyString)
+      .digest('base64');
+    
+    // Compare signatures securely
+    const isValid = computedSignature === signature;
+    
+    if (!isValid) {
+      console.error('❌ Signature mismatch:', {
+        computed: computedSignature.substring(0, 10) + '...',
+        received: signature.substring(0, 10) + '...'
+      });
+    }
+    
+    return isValid;
+  } catch (error) {
+    console.error('❌ Error verifying webhook signature:', error);
+    return false;
+  }
+}
 
 // Minimal catalog APIs required by Shiprocket
 exports.getProducts = async (req, res) => {
@@ -136,7 +170,7 @@ exports.generateAccessToken = async (req, res) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Api-Key': shiprocketService.apiKey,
+        'X-Api-Key': `Bearer ${shiprocketService.apiKey}`,
         'X-Api-HMAC-SHA256': hmac
       },
       body: JSON.stringify(shiprocketPayload)
@@ -172,8 +206,15 @@ exports.generateAccessToken = async (req, res) => {
 exports.orderWebhook = async (req, res) => {
   try {
     const shiprocketOrder = req.body;
+    const signature = req.headers['x-shiprocket-signature'] || req.headers['x-api-hmac-sha256'];
     
     console.log('📦 Received Shiprocket order webhook:', JSON.stringify(shiprocketOrder, null, 2));
+
+    // Verify webhook signature for security
+    if (!verifyWebhookSignature(req.body, signature)) {
+      console.error('❌ Invalid webhook signature - possible security threat');
+      return res.status(401).json({ error: 'Invalid signature' });
+    }
 
     if (!shiprocketOrder.order_id) {
       return res.status(400).json({ error: 'Invalid order data' });
