@@ -47,7 +47,9 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
         description: 'Cards, UPI, Wallets, NetBanking - All in one',
         icon: <span className="text-sm">₹</span>,
         recommended: true,
-        discount: '5% discount'
+        discount: '5% discount',
+        disabled: true, // ✅ TEMPORARILY DISABLED
+        comingSoon: true
       }
       // ,
       // {
@@ -65,8 +67,10 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
         name: 'Cash on Delivery (COD)',
         description: 'Pay when your order is delivered',
         icon: <Smartphone className="w-5 h-5" />,
-        recommended: false,
-        discount: undefined // Make discount optional for COD
+        recommended: false, // ✅ NOW RECOMMENDED SINCE IT'S THE ONLY OPTION
+        discount: undefined, // Make discount optional for COD
+        disabled: false, // ✅ COD is available
+        comingSoon: false
       });
     }
 
@@ -119,15 +123,18 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
 // Separate component for payment method options
 const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
   return (
-    <label className={`flex items-center p-4 rounded-lg cursor-pointer transition-all ${
-      isSelected ? 'bg-yellow-400/20 border border-yellow-400' : 'bg-gray-700 hover:bg-gray-600'
+    <label className={`flex items-center p-4 rounded-lg transition-all ${
+      method.disabled 
+        ? 'bg-gray-800 cursor-not-allowed opacity-70' 
+        : `cursor-pointer ${isSelected ? 'bg-yellow-400/20 border border-yellow-400' : 'bg-gray-700 hover:bg-gray-600'}`
     }`}>
       <input
         type="radio"
         name="paymentMethod"
         value={method.id}
         checked={isSelected}
-        onChange={onChange}
+        onChange={method.disabled ? undefined : onChange}
+        disabled={method.disabled}
         className="mr-3"
       />
       <div className="flex items-center gap-2 flex-1">
@@ -135,17 +142,26 @@ const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
           {method.icon}
         </div>
         <div className="flex-1">
-          <p className="font-medium">{method.name}</p>
-          <p className="text-xs text-gray-400">{method.description}</p>
+          <p className={`font-medium ${method.disabled ? 'text-gray-500' : ''}`}>
+            {method.name}
+          </p>
+          <p className={`text-xs ${method.disabled ? 'text-gray-600' : 'text-gray-400'}`}>
+            {method.description}
+          </p>
         </div>
       </div>
       <div className="ml-auto flex items-center gap-2">
-        {method.discount && (
+        {method.comingSoon && (
+          <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">
+            Coming Soon
+          </span>
+        )}
+        {method.discount && !method.disabled && (
           <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
             {method.discount}
           </span>
         )}
-        {method.recommended && (
+        {method.recommended && !method.disabled && (
           <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
             Recommended
           </span>

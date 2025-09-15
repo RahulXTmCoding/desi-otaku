@@ -72,7 +72,12 @@ const CheckoutSinglePage: React.FC = () => {
     shippingInfoRef.current = shippingInfo;
   }, [shippingInfo]);
   
-  const [paymentMethod, setPaymentMethod] = useState('razorpay');
+  // ✅ SMART DEFAULT: Select COD when online payments are disabled, otherwise select online payment
+  const [paymentMethod, setPaymentMethod] = useState(() => {
+    // Currently online payments are disabled, so default to COD
+    const onlinePaymentsDisabled = true; // This matches the disabled state in PaymentSection.tsx
+    return onlinePaymentsDisabled ? 'cod' : 'razorpay';
+  });
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
   
   // Discount states
@@ -91,7 +96,8 @@ const CheckoutSinglePage: React.FC = () => {
     otpSent: false,
     otpVerified: false,
     otp: '',
-    loading: false
+    loading: false,
+    bypassed: false
   });
   
   const [paymentData, setPaymentData] = useState<{
@@ -712,9 +718,10 @@ const CheckoutSinglePage: React.FC = () => {
       return;
     }
 
-    // COD specific validation
+    // COD specific validation - skip if bypass is enabled
     if (paymentMethod === 'cod') {
-      if (!codVerification.otpVerified) {
+      // Only require OTP verification if not bypassed
+      if (!codVerification.otpVerified && !codVerification.bypassed) {
         alert('Please verify your phone number for COD orders');
         return;
       }
@@ -734,7 +741,7 @@ const CheckoutSinglePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [validateShipping, selectedShipping, paymentMethod, codVerification.otpVerified, isTestMode, razorpayReady, handlePlaceOrder]);
+  }, [validateShipping, selectedShipping, paymentMethod, codVerification.otpVerified, codVerification.bypassed, isTestMode, razorpayReady, handlePlaceOrder]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
@@ -976,32 +983,35 @@ const CheckoutSinglePage: React.FC = () => {
                 </div>
               </div>
 
-              <button
-                onClick={() => {}}
-                disabled={loading || !selectedShipping || !validateShipping()}
-                className="w-full mt-6 bg-red-500 hover:bg-red-600 disabled:bg-gray-600 text-white disabled:text-gray-400 py-4 rounded-lg font-bold text-lg disabled:cursor-not-allowed transition-colors"
-              >
-                Launching Soon
-              </button>
-
-               {/* <button
-                      onClick={handlePlaceOrderWithValidation}
-                      disabled={loading}
-                      className="mt-6 w-full bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 py-3 rounded-lg font-bold disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {loading ? (
-                        <>
-                          <Loader className="w-5 h-5 animate-spin" />
-                          Processing...
-                        </>
-                      ) : (
-                        <>
-                          <Shield className="w-5 h-5" />
-                          Place Order • ₹{getFinalAmount()}
-                        </>
-                      )}
-                    </button>
-               */}
+              {/* Place Order Button with Payment Method Conditions */}
+              {paymentMethod === 'cod' ? (
+                <button
+                  onClick={handlePlaceOrderWithValidation}
+                  disabled={loading || !selectedShipping || !validateShipping() }
+                  className="w-full mt-6 bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 py-4 rounded-lg font-bold text-lg disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Shield className="w-5 h-5" />
+                      Place COD Order • ₹{getFinalAmount()}
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  onClick={() => {}}
+                  disabled={true}
+                  className="w-full mt-6 bg-orange-500/20 border border-orange-500/50 text-orange-400 py-4 rounded-lg font-bold text-lg cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                >
+                  <AlertCircle className="w-5 h-5" />
+                  Online Payments Coming Soon
+                </button>
+              )}
               <p className="text-xs text-gray-500 text-center mt-3">
                 By placing this order, you agree to our Terms & Conditions
               </p>
