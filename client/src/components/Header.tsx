@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Search, ShoppingCart, User, Heart, Menu, X, Sparkles, Palette, Shuffle, Check } from 'lucide-react';
+import { Search, ShoppingCart, User, Heart, Menu, X, Sparkles, Palette, Shuffle, Check, ChevronDown, ChevronRight, Loader2, Package, Tags } from 'lucide-react';
 import { signout, isAutheticated } from '../auth/helper';
 import { useCart } from '../context/CartContext';
 import { getWishlistCount } from '../core/helper/wishlistHelper';
@@ -9,9 +9,10 @@ import ThemeSwitcher from './ThemeSwitcher';
 import ShoppingDropdown from './ShoppingDropdown';
 import SearchInput from './SearchInput';
 import { useDevMode } from '../context/DevModeContext';
-import { mockProducts, getMockProductImage } from '../data/mockData';
+import { mockProducts, getMockProductImage, mockCategories } from '../data/mockData';
 import { useFilteredProducts } from '../hooks/useProducts';
 import { getRandomDesign } from '../admin/helper/designapicall';
+import { getCategoryTree, getProductTypes } from '../core/helper/coreapicalls';
 import { API } from '../backend';
 import RealTShirtPreview from './RealTShirtPreview';
 import { toast } from 'react-hot-toast';
@@ -31,6 +32,13 @@ const Header: React.FC = () => {
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const [prevCartCount, setPrevCartCount] = useState(0);
 
+  // Mobile menu dynamic data state
+  const [mobileProductTypes, setMobileProductTypes] = useState<any[]>([]);
+  const [mobileCategoryTree, setMobileCategoryTree] = useState<any[]>([]);
+  const [mobileDataLoading, setMobileDataLoading] = useState(false);
+  const [expandedMobileSection, setExpandedMobileSection] = useState<string | null>('categories');
+  const [expandedMobileCategory, setExpandedMobileCategory] = useState<string | null>(null);
+
   // Random design modal state
   const [showRandomModal, setShowRandomModal] = useState(false);
   const [randomSelection, setRandomSelection] = useState<any>(null);
@@ -49,6 +57,43 @@ const Header: React.FC = () => {
     }
     setPrevCartCount(cartCount);
   }, [cartCount, prevCartCount]);
+
+  // Fetch data when mobile menu opens
+  useEffect(() => {
+    const fetchMobileMenuData = async () => {
+      if (isMobileMenuOpen && (!mobileProductTypes.length || !mobileCategoryTree.length)) {
+        setMobileDataLoading(true);
+        try {
+          if (isTestMode) {
+            // Use mock data in test mode
+            setTimeout(() => {
+              setMobileProductTypes([
+                { _id: '1', name: 'T-Shirts', displayName: 'T-Shirts', category: 'apparel', icon: '👕' },
+                { _id: '2', name: 'Hoodies', displayName: 'Hoodies', category: 'winter', icon: '🔥' }
+              ]);
+              setMobileCategoryTree(mockCategories);
+              setMobileDataLoading(false);
+            }, 500);
+          } else {
+            // Fetch real data from backend
+            const [typesData, categoryData] = await Promise.all([
+              getProductTypes(),
+              getCategoryTree()
+            ]);
+            
+            setMobileProductTypes(typesData || []);
+            setMobileCategoryTree(categoryData || []);
+            setMobileDataLoading(false);
+          }
+        } catch (error) {
+          console.error('Error fetching mobile menu data:', error);
+          setMobileDataLoading(false);
+        }
+      }
+    };
+
+    fetchMobileMenuData();
+  }, [isMobileMenuOpen, isTestMode, mobileProductTypes.length, mobileCategoryTree.length]);
 
   const handleRandomSurprise = async () => {
     // Always generate random custom design modal
@@ -226,6 +271,67 @@ const Header: React.FC = () => {
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+    setExpandedMobileSection(null);
+    setExpandedMobileCategory(null);
+  };
+
+  // Helper functions for mobile menu (similar to ShoppingDropdown)
+  const getMobileProductTypeIcon = (typeName: string) => {
+    if (!typeName || typeof typeName !== 'string') {
+      return '👕';
+    }
+    
+    const iconMap: Record<string, string> = {
+      't-shirt': '👕',
+      'printed t-shirt': '🎨',
+      'oversized t-shirt': '👕',
+      'plain t-shirt': '✨',
+      'hoodie': '🔥',
+      'hoodies': '🔥',
+      'sweatshirt': '❄️',
+      'jacket': '🧥',
+      'pants': '👖',
+      'shorts': '🩳',
+      'cap': '🧢',
+      'hat': '👒'
+    };
+    return iconMap[typeName.toLowerCase()] || '👕';
+  };
+
+  const getMobileCategoryIcon = (categoryName: string) => {
+    if (!categoryName || typeof categoryName !== 'string') {
+      return '📂';
+    }
+    
+    const iconMap: Record<string, string> = {
+      'anime': '🎌',
+      'naruto': '🦊',
+      'one piece': '☠️',
+      'dragon ball': '🐉',
+      'attack on titan': '⚔️',
+      'demon slayer': '🌊',
+      'jujutsu kaisen': '👻',
+      'hunter x hunter': '🎯',
+      'tokyo ghoul': '👹',
+      'manga': '📚',
+      'clothing': '👕',
+      'accessories': '🎒',
+      'collectibles': '🎮'
+    };
+    return iconMap[categoryName.toLowerCase()] || '📂';
+  };
+
+  const handleMobileNavigation = (link: string) => {
+    closeMobileMenu();
+    navigate(link);
+  };
+
+  const toggleMobileSection = (section: string) => {
+    setExpandedMobileSection(expandedMobileSection === section ? null : section);
+  };
+
+  const toggleMobileCategory = (categoryId: string) => {
+    setExpandedMobileCategory(expandedMobileCategory === categoryId ? null : categoryId);
   };
 
   return (
@@ -487,7 +593,7 @@ const Header: React.FC = () => {
 
       {/* Mobile Menu Drawer */}
       <div
-        className={`fixed inset-0 z-40 md:hidden transition-opacity duration-300 ${
+        className={`fixed inset-0 z-[60] md:hidden transition-opacity duration-300 ${
           isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
@@ -584,84 +690,192 @@ const Header: React.FC = () => {
                   Home
                 </Link>
                 
-                {/* Mobile Shopping Sections - Synced with Desktop Dropdown */}
-                <div className="px-6 py-3">
-                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">T-Shirts</h3>
-                  <div className="space-y-1">
-                    <Link to="/shop?type=6866c0feb7d12a687483eff3" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      <span>🎨</span> Printed T-shirt
-                    </Link>
-                    <Link to="/shop?type=6866c0feb7d12a687483eff9" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      <span>👕</span> Oversized T-shirt
-                    </Link>
-                    <Link to="/shop?type=68a6bf8e30db6bf0b3cbb3ac" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      <span>✨</span> Plain T-shirt
-                    </Link>
+                {/* Dynamic Mobile Menu Content */}
+                {mobileDataLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin text-yellow-400 mr-3" />
+                    <span className="text-gray-400">Loading menu...</span>
                   </div>
-                </div>
+                ) : (
+                  <>
+                    {/* Shop by Products Section */}
+                    <div className="border-t border-gray-800">
+                      <button
+                        onClick={() => toggleMobileSection('products')}
+                        className="w-full flex items-center justify-between px-6 py-4 text-white hover:bg-gray-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Package className="w-5 h-5 text-blue-400" />
+                          <span className="font-semibold">Shop Products</span>
+                          <span className="text-xs bg-blue-500/20 text-blue-300 px-2 py-1 rounded-full">
+                            {mobileProductTypes.length}
+                          </span>
+                        </div>
+                        <ChevronDown 
+                          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                            expandedMobileSection === 'products' ? 'rotate-180' : ''
+                          }`} 
+                        />
+                      </button>
+                      <div className={`overflow-hidden transition-all duration-300 ${
+                        expandedMobileSection === 'products' ? 'max-h-96' : 'max-h-0'
+                      }`}>
+                        <div className="px-3 mt-2 pb-4 space-y-2">
+                          {mobileProductTypes.length === 0 ? (
+                            <div className="text-center py-4">
+                              <Package className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                              <p className="text-gray-500 text-sm">No products available</p>
+                            </div>
+                          ) : (
+                            mobileProductTypes.map((product) => (
+                              <div
+                                key={product._id}
+                                onClick={() => handleMobileNavigation(`/shop?type=${product._id}`)}
+                                className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group"
+                              >
+                                <span className="text-lg group-hover:scale-110 transition-transform">
+                                  {getMobileProductTypeIcon(product.displayName || product.name)}
+                                </span>
+                                <div className="flex-1">
+                                  <span className="text-sm font-medium text-white group-hover:text-yellow-400 transition-colors">
+                                    {product.displayName || product.name}
+                                  </span>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                          <div 
+                            onClick={() => handleMobileNavigation('/shop')}
+                            className="flex items-center justify-center gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg hover:bg-blue-500/20 transition-colors cursor-pointer group mt-3"
+                          >
+                            <span className="text-blue-300 text-sm font-medium">View All Products</span>
+                            <ChevronRight className="w-4 h-4 text-blue-300 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
 
-                <div className="px-6 py-3 border-t border-gray-800">
-                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Winter Wear</h3>
-                  <div className="space-y-1">
-                    <Link to="/shop?type=6866c0feb7d12a687483eff7" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      <span>🔥</span> Hoodies
-                    </Link>
-                    {/* <Link to="/shop?category=sweatshirt" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1 pl-4">
-                      <span>❄️</span> Sweatshirts
-                    </Link> */}
-                  </div>
-                </div>
-
-                <div className="px-6 py-3 border-t border-gray-800">
-                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">Popular Anime</h3>
-                  <div className="grid grid-cols-2 gap-1">
-                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68a608c4f8ae7a6fb4109b60" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>🦊</span> Naruto
-                    </Link>
-                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadeafd5f01939e0e67d34" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>☠️</span> One Piece
-                    </Link>
-                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadee6d5f01939e0e67d40" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>🐉</span> Dragon Ball
-                    </Link>
-                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadecbd5f01939e0e67d3a" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>⚔️</span> Attack on Titan
-                    </Link>
-                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadf47d5f01939e0e67d4c" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>👹</span> Tokyo Ghoul
-                    </Link>
-                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aade98d5f01939e0e67d2e" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>🌊</span> Demon Slayer
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="px-6 py-3 border-t border-gray-800">
-                  <h3 className="text-yellow-400 font-bold text-sm uppercase tracking-wide mb-2">More Anime</h3>
-                  <div className="grid grid-cols-2 gap-1">
-                    {/* <Link to="/shop?anime=death-note" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>📓</span> Death Note
-                    </Link> */}
-                    {/* <Link to="/shop?anime=tokyo-ghoul" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>👹</span> Tokyo Ghoul
-                    </Link> */}
-                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68aadf0bd5f01939e0e67d46" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>👻</span> Jujutsu Kaisen
-                    </Link>
-                    <Link to="/shop?category=68644353659ea7d89d2a0427&subcategory=68ab4e52dd9c0e0d154317db" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>🎯</span> Hunter x Hunter
-                    </Link>
-                    {/* <Link to="/shop?anime=fullmetal-alchemist" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>⚗️</span> Fullmetal Alchemist
-                    </Link>
-                    <Link to="/shop?anime=one-punch-man" onClick={closeMobileMenu} className="flex items-center gap-2 text-gray-300 text-sm hover:text-yellow-400 transition-colors py-1">
-                      <span>👊</span> One Punch Man
-                    </Link> */}
-                  </div>
-                  <Link to="/shop" onClick={closeMobileMenu} className="block text-yellow-400 text-sm font-semibold hover:text-yellow-300 transition-colors py-2 mt-2">
-                    View All Products →
-                  </Link>
-                </div>
+                    {/* Shop by Categories Section */}
+                    <div className="border-t border-gray-800">
+                      <button
+                        onClick={() => toggleMobileSection('categories')}
+                        className="w-full flex items-center justify-between px-6 py-4 text-white hover:bg-gray-800 transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <Tags className="w-5 h-5 text-purple-400" />
+                          <span className="font-semibold">Shop Categories</span>
+                          <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-full">
+                            {mobileCategoryTree.length}
+                          </span>
+                        </div>
+                        <ChevronDown 
+                          className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                            expandedMobileSection === 'categories' ? 'rotate-180' : ''
+                          }`} 
+                        />
+                      </button>
+                      <div className={`overflow-hidden transition-all duration-300 ${
+                        expandedMobileSection === 'categories' ? 'max-h-[600px]' : 'max-h-0'
+                      }`}>
+                        <div className="px-3 mt-2 pb-4 space-y-2 overflow-y-auto">
+                          {mobileCategoryTree.length === 0 ? (
+                            <div className="text-center py-4">
+                              <Tags className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+                              <p className="text-gray-500 text-sm">No categories available</p>
+                            </div>
+                          ) : (
+                            mobileCategoryTree.map((category) => (
+                              <div key={category._id} className="space-y-1">
+                                {/* Main Category */}
+                                <div className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors group">
+                                  {/* Category Info - Clickable to navigate */}
+                                  <div 
+                                    onClick={() => handleMobileNavigation(`/shop?category=${category._id}`)}
+                                    className="flex items-center gap-3 flex-1 cursor-pointer"
+                                  >
+                                    <span className="text-lg group-hover:scale-110 transition-transform">
+                                      {getMobileCategoryIcon(category.name)}
+                                    </span>
+                                    <div className="flex-1">
+                                      <span className="text-sm font-medium text-white group-hover:text-yellow-400 transition-colors">
+                                        {category.name}
+                                      </span>
+                                      {category.subcategories && category.subcategories.length > 0 && (
+                                        <p className="text-xs text-gray-400">
+                                          {category.subcategories.length} subcategories
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Subcategory Toggle Button - Only show if subcategories exist */}
+                                  {category.subcategories && category.subcategories.length > 0 && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleMobileCategory(category._id);
+                                      }}
+                                      className="p-1 hover:bg-gray-600 rounded transition-colors"
+                                    >
+                                      <ChevronDown 
+                                        className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+                                          expandedMobileCategory === category._id ? 'rotate-180' : ''
+                                        }`} 
+                                      />
+                                    </button>
+                                  )}
+                                </div>
+                                
+                                {/* Collapsible Subcategories */}
+                                {category.subcategories && category.subcategories.length > 0 && (
+                                  <div className={`overflow-hidden transition-all duration-300 ${
+                                    expandedMobileCategory === category._id ? 'max-h-96' : 'max-h-0'
+                                  }`}>
+                                    <div className="ml-1 pt-2 pb-1">
+                                      {/* 2-Column Grid for Subcategories */}
+                                      <div className="grid grid-cols-2 gap-2">
+                                        {category.subcategories.map((subcategory: any) => (
+                                          <div
+                                            key={subcategory._id}
+                                            onClick={() => handleMobileNavigation(`/shop?category=${category._id}&subcategory=${subcategory._id}`)}
+                                            className="flex items-center gap-2 p-2 bg-gray-700/50 rounded-md hover:bg-gray-700 transition-colors cursor-pointer group"
+                                          >
+                                            <span className="text-sm group-hover:scale-105 transition-transform">
+                                              {getMobileCategoryIcon(subcategory.name)}
+                                            </span>
+                                            <span className="text-xs text-gray-300 group-hover:text-yellow-300 transition-colors truncate">
+                                              {subcategory.name}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                      
+                                      {/* View All Link */}
+                                      <div
+                                        onClick={() => handleMobileNavigation(`/shop?category=${category._id}`)}
+                                        className="flex items-center justify-center gap-2 p-2 mt-2 text-purple-300 hover:text-purple-200 transition-colors cursor-pointer"
+                                      >
+                                        <span className="text-xs font-medium">View All in {category.name}</span>
+                                        <ChevronRight className="w-3 h-3" />
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          )}
+                          <div 
+                            onClick={() => handleMobileNavigation('/shop')}
+                            className="flex items-center justify-center gap-2 p-3 bg-purple-500/10 border border-purple-500/20 rounded-lg hover:bg-purple-500/20 transition-colors cursor-pointer group mt-3"
+                          >
+                            <span className="text-purple-300 text-sm font-medium">View All Categories</span>
+                            <ChevronRight className="w-4 h-4 text-purple-300 group-hover:translate-x-1 transition-transform" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
                 
                 <Link
                   to="/customize"

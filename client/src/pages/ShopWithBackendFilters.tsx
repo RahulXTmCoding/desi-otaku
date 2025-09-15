@@ -541,7 +541,7 @@ const ShopWithBackendFilters: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="w-[96%] md:w-[90%] mx-auto md:px-4 py-8">
+      <div className="w-[96%] md:w-[90%] mx-auto md:px-4 md:py-8">
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Filters Sidebar - Hidden on mobile, only visible on desktop */}
           <div className={`lg:w-80 hidden lg:block`}>
@@ -785,12 +785,14 @@ const ShopWithBackendFilters: React.FC = () => {
                     </span>
                   )}
                 </button>
-                <p className="text-gray-300">
+                
+                {/* Desktop product count */}
+                <p className="text-gray-300 hidden sm:block">
                   {currentLoading ? 'Loading...' : `Showing ${currentProducts.length} of ${totalProducts} products`}
                 </p>
               </div>
 
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 hidden sm:block">
                 {/* Sort Dropdown */}
                 <div className="relative">
                   <select
@@ -806,6 +808,27 @@ const ShopWithBackendFilters: React.FC = () => {
                   </select>
                   <ChevronDown className="absolute right-3 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none" />
                 </div>
+              </div>
+            </div>
+
+            {/* Mobile single-row layout for product count and sort */}
+            <div className="flex items-center justify-between mb-4 sm:hidden">
+              <p className="text-gray-300 text-sm">
+                {currentLoading ? 'Loading...' : `Showing ${currentProducts.length} of ${totalProducts} products`}
+              </p>
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => handleFilterChange('sort', e.target.value)}
+                  className="bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 pr-8 text-sm appearance-none cursor-pointer"
+                >
+                  <option value="newest">Newest</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="bestselling">Best Selling</option>
+                  <option value="name">Name</option>
+                </select>
+                <ChevronDown className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 pointer-events-none" />
               </div>
             </div>
 
