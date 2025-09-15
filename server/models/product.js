@@ -251,11 +251,24 @@ productSchema.methods.updateStock = function(size, quantity) {
 
 productSchema.methods.decreaseStock = function(size, quantity) {
   if (this.sizeStock[size] !== undefined && this.sizeStock[size] >= quantity) {
+    const previousStock = this.sizeStock[size];
     this.sizeStock[size] -= quantity;
     this.sold += quantity;
-    return true;
+    
+    // Return both success status and stock change info for low stock tracking
+    return {
+      success: true,
+      stockChange: {
+        productId: this._id,
+        productName: this.name,
+        size: size,
+        previousStock: previousStock,
+        currentStock: this.sizeStock[size],
+        quantityDecreased: quantity
+      }
+    };
   }
-  return false;
+  return { success: false };
 };
 
 productSchema.methods.getPrimaryImage = function() {

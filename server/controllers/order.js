@@ -129,10 +129,11 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
       finalAmount: serverCalculation.total
     });
 
-    // ✅ PROCESS AND VALIDATE PRODUCTS
+    // ✅ PROCESS AND VALIDATE PRODUCTS WITH INVENTORY TRACKING
     const Product = require("../models/product");
     const Design = require("../models/design");
     const validatedProducts = [];
+    const stockChanges = []; // Track inventory changes for low stock alerts
 
     for (const item of orderData.products) {
       let validatedItem = {
@@ -158,7 +159,7 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
                            );
 
       if (isTemporaryId || item.isCustom) {
-        // Handle custom products
+        // Handle custom products (no inventory tracking needed)
         validatedItem.isCustom = true;
         validatedItem.customDesign = item.customDesign || item.name;
         validatedItem.color = item.color || item.selectedColor || 'White';
@@ -198,7 +199,7 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
           v.name === item.name && v.quantity === validatedItem.count
         )?.price || item.price;
       } else {
-        // Handle regular products
+        // Handle regular products - VALIDATE ONLY, DON'T DECREASE INVENTORY YET
         const product = await Product.findById(productId);
         if (!product || product.isDeleted) {
           throw new Error(`Product not found or unavailable: ${item.name}`);
@@ -251,6 +252,41 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
 
     // ✅ POPULATE USER INFO FOR EMAIL
     await savedOrder.populate('user', 'email name');
+
+    // ✅ NOW DECREASE INVENTORY AFTER ORDER IS CREATED SUCCESSFULLY
+    for (const item of savedOrder.products) {
+      // Skip custom products (they don't affect inventory)
+      if (!item.product || item.isCustom) {
+        console.log(`⚪ Skipping custom product: ${item.name}`);
+        continue;
+      }
+
+      try {
+        // Get the product from database
+        const product = await Product.findById(item.product);
+        if (!product || product.isDeleted) {
+          console.error(`❌ Product not found or deleted during inventory update: ${item.product}`);
+          continue;
+        }
+
+        // Decrease stock and get change information
+        const result = product.decreaseStock(item.size, item.count);
+        
+        if (result.success) {
+          // Save the product with updated stock
+          await product.save();
+          
+          // Track stock changes for low stock alerts
+          stockChanges.push(result.stockChange);
+          
+          console.log(`📦 Inventory updated: ${product.name} (${item.size}) - ${result.stockChange.previousStock} → ${result.stockChange.currentStock}`);
+        } else {
+          console.error(`❌ Failed to decrease stock for ${product.name} (${item.size}) - this should not happen if validation was correct`);
+        }
+      } catch (error) {
+        console.error(`❌ Error updating inventory for product ${item.product}:`, error);
+      }
+    }
 
     // ✅ PROCESS REWARD POINTS (if applicable)
     if (orderData.rewardPointsRedeemed > 0 && userProfile?._id) {
@@ -309,6 +345,14 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
         }
       }).catch(err => {
         console.error("❌ Failed to credit reward points:", err);
+      });
+    }
+
+    // ✅ LOW STOCK ALERTS (process stock changes and send Telegram alerts if needed)
+    if (stockChanges.length > 0) {
+      const { processInventoryChanges } = require("../utils/inventoryTracker");
+      processInventoryChanges(stockChanges, savedOrder._id).catch(err => {
+        console.error("❌ Failed to process inventory changes:", err);
       });
     }
 

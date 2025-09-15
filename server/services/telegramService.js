@@ -688,6 +688,81 @@ ${topProducts.map((product, index) =>
     }
   }
 
+  // Send low stock alert notification
+  async sendLowStockAlert(lowStockItems) {
+    if (!this.isEnabled || !lowStockItems || lowStockItems.length === 0) {
+      return { success: false, reason: 'disabled or no items' };
+    }
+
+    try {
+      const criticalCount = lowStockItems.filter(item => item.currentStock === 0).length;
+      const lowCount = lowStockItems.filter(item => item.currentStock === 1).length;
+      
+      let alertLevel = '📉';
+      let alertText = 'LOW STOCK ALERT';
+      
+      if (criticalCount > 0) {
+        alertLevel = '🚨⚠️';
+        alertText = 'CRITICAL STOCK ALERT - OUT OF STOCK!';
+      }
+
+      let message = `
+${alertLevel} <b>${alertText}</b>
+
+⚠️ <b>INVENTORY ACTION REQUIRED!</b>
+📊 Products affected: ${lowStockItems.length}
+${criticalCount > 0 ? `🚨 Out of stock: ${criticalCount}` : ''}
+${lowCount > 0 ? `📉 Only 1 left: ${lowCount}` : ''}
+
+📋 <b>AFFECTED PRODUCTS:</b>
+`;
+
+      lowStockItems.forEach((item, index) => {
+        const stockEmoji = item.currentStock === 0 ? '🚨' : '📉';
+        const urgency = item.currentStock === 0 ? 'OUT OF STOCK!' : `Only ${item.currentStock} left`;
+        
+        message += `
+${index + 1}. ${stockEmoji} <b>${item.productName}</b>
+   • Size: ${item.size}
+   • Current Stock: <b>${item.currentStock}</b> ${item.currentStock === 0 ? '(SOLD OUT)' : ''}
+   • Previous Stock: ${item.previousStock}
+   • Status: <b>${urgency}</b>`;
+
+        // Add product link if available
+        if (item.productId) {
+          const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+          const productUrl = `${clientUrl}/product/${item.productId}`;
+          message += `\n   • <a href="${productUrl}">View Product</a>`;
+        }
+        
+        message += '\n';
+      });
+
+      // Add action items
+      message += `
+🎯 <b>IMMEDIATE ACTIONS:</b>
+${criticalCount > 0 ? '🚨 Update out-of-stock products immediately' : ''}
+📦 Restock low inventory items
+📧 Consider notifying customers about availability
+🛒 Review upcoming orders for affected products
+
+⏰ Alert Time: ${new Date().toLocaleString('en-IN')}
+🎌 Keep inventory flowing!
+      `.trim();
+
+      await this.bot.sendMessage(this.adminChatId, message, {
+        parse_mode: 'HTML',
+        disable_web_page_preview: false
+      });
+
+      return { success: true };
+
+    } catch (error) {
+      console.error('Failed to send low stock alert:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
   // Send error notification
   async sendErrorNotification(error, context = '') {
     if (!this.isEnabled) {

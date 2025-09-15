@@ -128,48 +128,44 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           </div>
         )}
 
-        {/* Compact Dual Price Cards */}
-        <div className="grid grid-cols-2 gap-2 md:gap-3 mb-2 md:mb-3">
-          {/* Online Payment Price */}
-          <div className="border-2 border-green-500 rounded-lg p-2 bg-green-500/10 relative">
-            <div className="absolute top-1 right-1">
-              <span className="text-xs bg-green-500 text-white px-1.5 py-0.5 rounded font-bold">
-                -5%
-              </span>
-            </div>
-            <div className="mb-1">
-              <span className="text-xs font-medium text-green-400">
-                💳 Pay Online
-              </span>
-            </div>
-            <div>
-              <span className="text-lg md:text-2xl font-bold text-green-400">
-                ₹{Math.round(product.price * 0.95).toLocaleString('en-IN')}
-              </span>
-            </div>
+        {/* Compact Pricing Information */}
+        <div className="mb-3">
+          <div className="mb-2">
+            <span className="text-sm font-medium" style={{ color: 'var(--color-textMuted)' }}>
+              💰 Payment Options:
+            </span>
           </div>
 
-          {/* COD Price */}
-          <div className="border rounded-lg p-2 md:p-3" style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}>
-            <div className="mb-1">
-              <span className="text-xs font-medium" style={{ color: 'var(--color-textMuted)' }}>
-                🚚 Cash on Delivery
-              </span>
+          {/* Compact Pricing Rows */}
+          <div className="space-y-1">
+            {/* Online Payment */}
+            <div className="flex items-center justify-between py-1.5 px-2 rounded text-sm" style={{ backgroundColor: 'var(--color-surface)' }}>
+              <div className="flex items-center gap-2">
+                <span>💳</span>
+                <span style={{ color: 'var(--color-text)' }}>Online Payment</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-bold" style={{ color: 'var(--color-success)' }}>
+                  ₹{Math.round(product.price * 0.95).toLocaleString('en-IN')}
+                </span>
+                <span className="text-xs" style={{ color: 'var(--color-success)' }}>
+                  (-₹{Math.round(product.price * 0.05).toLocaleString('en-IN')})
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-lg md:text-2xl font-bold" style={{ color: 'var(--color-text)' }}>
+
+            {/* COD Payment */}
+            <div className="flex items-center justify-between py-1.5 px-2 rounded text-sm">
+              <div className="flex items-center gap-2">
+                <span>🚚</span>
+                <span style={{ color: 'var(--color-text)' }}>Cash on Delivery</span>
+              </div>
+              <span className="font-bold" style={{ color: 'var(--color-text)' }}>
                 ₹{product.price.toLocaleString('en-IN')}
               </span>
             </div>
           </div>
         </div>
-
-        {/* Compact Savings Summary */}
-        {/* <div className="bg-yellow-500/10 border border-yellow-500/50 rounded-lg p-2 mb-3">
-          <span className="text-xs font-medium text-yellow-400">
-            💰 Save ₹{Math.round(product.price * 0.05).toLocaleString('en-IN')} with online payment
-          </span>
-        </div> */}
 
         {/* Additional Savings from MRP */}
         {(product.mrp && product.mrp > product.price) && (
