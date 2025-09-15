@@ -299,78 +299,91 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
       }
     }
 
-    // ✅ GENERATE SECURE ACCESS TOKENS
-    const { createSecureAccess } = require("./secureOrder");
-    let magicLink = null;
-    let pin = null;
-    
-    const customerEmail = savedOrder.user?.email || savedOrder.guestInfo?.email;
-    if (customerEmail) {
-      try {
-        const secureAccess = await createSecureAccess(savedOrder._id, customerEmail);
-        if (secureAccess.success) {
-          magicLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/track/${Buffer.from(secureAccess.token).toString('base64url')}`;
-          pin = secureAccess.pin;
-          console.log('✅ Secure access tokens generated');
-        }
-      } catch (err) {
-        console.error('❌ Failed to create secure access tokens:', err);
-      }
-    }
-
-    // ✅ SEND EMAIL CONFIRMATION
-    const emailService = require("../services/emailService");
-    const customerInfo = savedOrder.user || savedOrder.guestInfo;
-    
-    if (customerInfo?.email && magicLink && pin) {
-      emailService.sendOrderConfirmationWithTracking(savedOrder, customerInfo, magicLink, pin).catch(err => {
-        console.error("❌ Failed to send order confirmation email:", err);
-      });
-    }
-
-    // ✅ TRACK COUPON USAGE
-    if (orderData.coupon?.code) {
-      const { trackCouponUsage } = require("./coupon");
-      trackCouponUsage(orderData.coupon.code, savedOrder._id, userProfile?._id).catch(err => {
-        console.error("❌ Failed to track coupon usage:", err);
-      });
-    }
-
     // ✅ CREDIT REWARD POINTS (for paid orders)
     if (savedOrder.paymentStatus === 'Paid' && userProfile?._id) {
       const { creditPoints } = require("./reward");
       creditPoints(userProfile._id, savedOrder._id, savedOrder.amount).then(result => {
         if (result.success) {
-          console.log(`✅ Credited ${result.points} reward points`);
+          console.log(`✅ Background: Credited ${result.points} reward points`);
         }
       }).catch(err => {
-        console.error("❌ Failed to credit reward points:", err);
+        console.error("❌ Background: Failed to credit reward points:", err);
       });
     }
 
-    // ✅ LOW STOCK ALERTS (process stock changes and send Telegram alerts if needed)
-    if (stockChanges.length > 0) {
-      const { processInventoryChanges } = require("../utils/inventoryTracker");
-      processInventoryChanges(stockChanges, savedOrder._id).catch(err => {
-        console.error("❌ Failed to process inventory changes:", err);
-      });
-    }
-
-    // ✅ TELEGRAM NOTIFICATIONS
-    const telegramService = require("../services/telegramService");
-    telegramService.sendNewOrderNotification(savedOrder, customerInfo).catch(err => {
-      console.error("❌ Failed to send Telegram notification:", err);
-    });
-
-    return {
+    // ✅ FAST RESPONSE: Return immediately, process notifications in background
+    const response = {
       success: true,
       order: savedOrder,
-      trackingInfo: magicLink && pin ? {
-        orderId: savedOrder._id,
-        magicLink,
-        pin
-      } : null
+      trackingInfo: null // Will be generated in background
     };
+
+    // 🚀 BACKGROUND JOBS: Process all notifications and non-critical tasks asynchronously
+    setImmediate(async () => {
+      try {
+        console.log(`🚀 Processing background tasks for order ${savedOrder._id}`);
+
+        // ✅ GENERATE SECURE ACCESS TOKENS
+        const { createSecureAccess } = require("./secureOrder");
+        let magicLink = null;
+        let pin = null;
+        
+        const customerEmail = savedOrder.user?.email || savedOrder.guestInfo?.email;
+        if (customerEmail) {
+          try {
+            const secureAccess = await createSecureAccess(savedOrder._id, customerEmail);
+            if (secureAccess.success) {
+              magicLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/track/${Buffer.from(secureAccess.token).toString('base64url')}`;
+              pin = secureAccess.pin;
+              console.log('✅ Secure access tokens generated in background');
+            }
+          } catch (err) {
+            console.error('❌ Background: Failed to create secure access tokens:', err);
+          }
+        }
+
+        // ✅ SEND EMAIL CONFIRMATION
+        const emailService = require("../services/emailService");
+        const customerInfo = savedOrder.user || savedOrder.guestInfo;
+        
+        if (customerInfo?.email && magicLink && pin) {
+          emailService.sendOrderConfirmationWithTracking(savedOrder, customerInfo, magicLink, pin).catch(err => {
+            console.error("❌ Background: Failed to send order confirmation email:", err);
+          });
+        }
+
+        // ✅ TRACK COUPON USAGE
+        if (orderData.coupon?.code) {
+          const { trackCouponUsage } = require("./coupon");
+          trackCouponUsage(orderData.coupon.code, savedOrder._id, userProfile?._id).catch(err => {
+            console.error("❌ Background: Failed to track coupon usage:", err);
+          });
+        }
+
+        
+
+        // ✅ LOW STOCK ALERTS (process stock changes and send Telegram alerts if needed)
+        if (stockChanges.length > 0) {
+          const { processInventoryChanges } = require("../utils/inventoryTracker");
+          processInventoryChanges(stockChanges, savedOrder._id).catch(err => {
+            console.error("❌ Background: Failed to process inventory changes:", err);
+          });
+        }
+
+        // ✅ TELEGRAM NOTIFICATIONS
+        const telegramService = require("../services/telegramService");
+        telegramService.sendNewOrderNotification(savedOrder, customerInfo).catch(err => {
+          console.error("❌ Background: Failed to send Telegram notification:", err);
+        });
+
+        console.log(`✅ Background tasks completed for order ${savedOrder._id}`);
+
+      } catch (backgroundError) {
+        console.error(`❌ Background task error for order ${savedOrder._id}:`, backgroundError);
+      }
+    });
+
+    return response;
 
   } catch (error) {
     console.error('❌ UNIFIED ORDER CREATION FAILED:', error);
@@ -920,92 +933,90 @@ exports.createOrder = async (req, res) => {
         // Don't fail the order creation if secure access creation fails
       }
     }
-    
-    // Send combined order confirmation + tracking email (don't wait for it)
-    if (magicLink && pin) {
-      emailService.sendOrderConfirmationWithTracking(savedOrder, savedOrder.user, magicLink, pin).catch(err => {
-        console.error("Failed to send combined confirmation+tracking email:", err);
-        // Fallback to regular confirmation email
-        emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(fallbackErr => {
-          console.error("Failed to send fallback order confirmation email:", fallbackErr);
-        });
-      });
-    } else {
-      // Fallback to regular confirmation if secure access failed
-      emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(err => {
-        console.error("Failed to send order confirmation email:", err);
-      });
-    }
-    
-    // Track coupon usage if a coupon was applied
-    if (req.body.order.coupon && req.body.order.coupon.code) {
-      const { trackCouponUsage } = require("./coupon");
-      trackCouponUsage(
-        req.body.order.coupon.code, 
-        savedOrder._id, 
-        savedOrder.user ? savedOrder.user._id : null
-      ).catch(err => {
-        console.error("Failed to track coupon usage:", err);
-      });
-    }
-    
+
     // Credit reward points for paid orders (only for registered users)
     if (savedOrder.paymentStatus === 'Paid' && savedOrder.user && savedOrder.user._id) {
       creditPoints(savedOrder.user._id, savedOrder._id, savedOrder.amount).then(result => {
         if (result.success) {
-          console.log(`Credited ${result.points} reward points to user ${savedOrder.user._id} for order ${savedOrder._id}`);
+          console.log(`Background: Credited ${result.points} reward points to user ${savedOrder.user._id} for order ${savedOrder._id}`);
         }
       }).catch(err => {
-        console.error("Failed to credit reward points:", err);
+        console.error("Background: Failed to credit reward points:", err);
       });
     }
     
-    // 📄 INVOICE: Auto-generate invoice for paid orders
-    // if (savedOrder.paymentStatus === 'Paid') {
-    //   try {
-    //     const invoice = await invoiceService.createInvoiceFromOrder(savedOrder);
-    //     console.log(`✅ Invoice generated automatically: ${invoice.invoiceNumber}`);
-        
-    //     // Add invoice info to response (optional)
-    //     savedOrder.invoiceGenerated = true;
-    //     savedOrder.invoiceNumber = invoice.invoiceNumber;
-    //   } catch (invoiceError) {
-    //     console.error('Invoice generation error (order still created):', invoiceError);
-    //     // Don't fail the order if invoice generation fails - can be retried later
-    //   }
-    // }
     
-    // 📱 TELEGRAM: Send instant order notification to admin
-    telegramService.sendNewOrderNotification(savedOrder, savedOrder.user).catch(err => {
-      console.error("Failed to send Telegram notification:", err);
-      // Don't fail the order if Telegram notification fails
-    });
-    
-    // 🔥 High-value order alert
-    if (savedOrder.amount > 2000) {
-      telegramService.sendHighValueOrderAlert(savedOrder).catch(err => {
-        console.error("Failed to send high-value order alert:", err);
-      });
-    }
-    
-    // If Shiprocket is configured, create shipment
-    if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {
-      try {
-        // Create shipment in Shiprocket
-        const shipmentData = await shiprocketService.createShipment(savedOrder);
-        
-        // Update order with shipment details
-        savedOrder.shipping.shipmentId = shipmentData.shipment_id;
-        savedOrder.shipping.awbCode = shipmentData.awb_code;
-        savedOrder.shipping.courier = shipmentData.courier_name;
-        
-        await savedOrder.save();
-      } catch (shipmentError) {
-        console.error('Shiprocket error (order still created):', shipmentError);
-        // Don't fail the order if shipping fails - can be retried later
-      }
-    }
 
+    // 🚀 BACKGROUND JOBS: Process all notifications and non-critical tasks asynchronously
+    setImmediate(async () => {
+      try {
+        console.log(`🚀 Processing legacy background tasks for order ${savedOrder._id}`);
+
+        // Send combined order confirmation + tracking email
+        if (magicLink && pin) {
+          emailService.sendOrderConfirmationWithTracking(savedOrder, savedOrder.user, magicLink, pin).catch(err => {
+            console.error("Background: Failed to send combined confirmation+tracking email:", err);
+            // Fallback to regular confirmation email
+            emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(fallbackErr => {
+              console.error("Background: Failed to send fallback order confirmation email:", fallbackErr);
+            });
+          });
+        } else {
+          // Fallback to regular confirmation if secure access failed
+          emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(err => {
+            console.error("Background: Failed to send order confirmation email:", err);
+          });
+        }
+        
+        // Track coupon usage if a coupon was applied
+        if (req.body.order.coupon && req.body.order.coupon.code) {
+          const { trackCouponUsage } = require("./coupon");
+          trackCouponUsage(
+            req.body.order.coupon.code, 
+            savedOrder._id, 
+            savedOrder.user ? savedOrder.user._id : null
+          ).catch(err => {
+            console.error("Background: Failed to track coupon usage:", err);
+          });
+        }
+        
+        
+        
+        // 📱 TELEGRAM: Send instant order notification to admin
+        telegramService.sendNewOrderNotification(savedOrder, savedOrder.user).catch(err => {
+          console.error("Background: Failed to send Telegram notification:", err);
+        });
+        
+        // 🔥 High-value order alert
+        if (savedOrder.amount > 2000) {
+          telegramService.sendHighValueOrderAlert(savedOrder).catch(err => {
+            console.error("Background: Failed to send high-value order alert:", err);
+          });
+        }
+        
+        // If Shiprocket is configured, create shipment
+        if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {
+          try {
+            // Create shipment in Shiprocket
+            const shipmentData = await shiprocketService.createShipment(savedOrder);
+            
+            // Update order with shipment details
+            savedOrder.shipping.shipmentId = shipmentData.shipment_id;
+            savedOrder.shipping.awbCode = shipmentData.awb_code;
+            savedOrder.shipping.courier = shipmentData.courier_name;
+            
+            await savedOrder.save();
+            console.log(`Background: Shiprocket shipment created for order ${savedOrder._id}`);
+          } catch (shipmentError) {
+            console.error('Background: Shiprocket error (order still created):', shipmentError);
+          }
+        }
+        console.log(`✅ Legacy background tasks completed for order ${savedOrder._id}`);
+
+      } catch (backgroundError) {
+        console.error(`❌ Legacy background task error for order ${savedOrder._id}:`, backgroundError);
+      }
+    });
     res.json(savedOrder);
   } catch (err) {
     console.error('Order creation error:', err);
