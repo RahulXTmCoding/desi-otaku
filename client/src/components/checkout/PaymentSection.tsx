@@ -330,7 +330,7 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
     checked: false
   });
 
-  // Check bypass status on component mount and when customerPhone changes
+  // Check bypass status on component mount and when customerPhone has valid length
   React.useEffect(() => {
     const checkBypassStatus = async () => {
       try {
@@ -366,12 +366,15 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
       }
     };
 
-    if (!isTestMode && customerPhone) {
+    // ✅ OPTIMIZED: Only run when phone has valid length (10 digits) or on initial mount
+    const hasValidPhoneLength = customerPhone && customerPhone.length === 10;
+    const isInitialMount = !bypassStatus.checked;
+    
+    if (hasValidPhoneLength || isInitialMount) {
       checkBypassStatus();
-    } else {
-      setBypassStatus({ bypassEnabled: false, checked: true });
     }
-  }, [customerPhone, isTestMode]);
+     
+  }, [customerPhone, bypassStatus.checked]);
 
   // Separate effect to trigger auto-verification when bypass status is confirmed
   React.useEffect(() => {
