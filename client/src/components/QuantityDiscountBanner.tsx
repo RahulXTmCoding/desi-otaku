@@ -140,9 +140,6 @@ const QuantityDiscountBanner: React.FC<QuantityDiscountBannerProps> = ({
                 <p className="font-bold text-lg">
                   Add {nextTier.quantity - itemCount} more for {nextTier.discount}% OFF!
                 </p>
-                <p className="text-purple-100 text-sm">
-                  Potential savings: ₹{Math.round((currentTotal * nextTier.discount) / 100).toLocaleString('en-IN')}
-                </p>
               </div>
             </div>
             <div className="text-right">
