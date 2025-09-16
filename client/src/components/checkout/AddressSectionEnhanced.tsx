@@ -162,9 +162,8 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
   // Handle save with validation
   const handleSaveAddress = () => {
     if (validateAllFields()) {
-      // Clean phone number before saving
-      const cleanedPhone = cleanPhoneNumber(shippingInfo.phone);
-      onInputChange('phone', cleanedPhone);
+      // ✅ FIX: Clean phone number during save, not before
+      // Don't trigger additional state updates that can interfere with save
       onSaveAddress();
     }
   };

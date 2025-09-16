@@ -173,6 +173,8 @@ export const useOrderHandler = ({
       };
 
       let orderResult;
+      let autoAccountCreated = false; // ✅ CRITICAL FIX: Declare variable in proper scope
+      let existingAccountLinked = false; // ✅ CRITICAL FIX: Declare variable in proper scope
       
       try {
         if (isGuest) {
@@ -200,7 +202,10 @@ export const useOrderHandler = ({
           }
           
           orderResult = data.order;
-          console.log('✅ Guest COD order created successfully:', orderResult._id);
+          // ✅ CRITICAL FIX: Capture both flags from backend response
+          autoAccountCreated = data.autoAccountCreated || false;
+          existingAccountLinked = data.existingAccountLinked || false;
+          console.log('✅ Guest COD order created successfully:', orderResult._id, 'autoAccountCreated:', autoAccountCreated, 'existingAccountLinked:', existingAccountLinked);
           
         } else {
           console.log('🔐 Creating authenticated user COD order...');
@@ -221,6 +226,8 @@ export const useOrderHandler = ({
           }
           
           orderResult = data.order;
+          // For authenticated users, auto account creation doesn't apply
+          autoAccountCreated = false;
           console.log('✅ Authenticated COD order created successfully:', orderResult._id);
         }
 
@@ -244,6 +251,9 @@ export const useOrderHandler = ({
           shippingCost: selectedShipping?.rate || 0,
           appliedCoupon: appliedDiscount.coupon,
           appliedRewardPoints: isGuest ? null : appliedDiscount.rewardPoints,
+          // ✅ CRITICAL FIX: Include both flags from backend response
+          autoAccountCreated: autoAccountCreated,
+          existingAccountLinked: isGuest ? (existingAccountLinked || false) : false,
           isGuest,
           isBuyNow,
           createdAt: new Date().toISOString(),
@@ -419,6 +429,8 @@ export const useOrderHandler = ({
             };
             
             let orderResult;
+            let guestAutoAccountCreated = false; // ✅ CRITICAL FIX: Declare variable in proper scope
+            let guestExistingAccountLinked = false; // ✅ CRITICAL FIX: Declare variable in proper scope
             
             if (isGuest) {
               console.log('👤 Creating guest order...');
@@ -463,7 +475,10 @@ export const useOrderHandler = ({
               }
               
               orderResult = orderCreateData.order || orderCreateData;
-              console.log('✅ Guest order created successfully:', orderResult._id);
+              // ✅ CRITICAL FIX: Capture both flags for Razorpay guest orders too
+              guestAutoAccountCreated = orderCreateData.autoAccountCreated || false;
+              guestExistingAccountLinked = orderCreateData.existingAccountLinked || false;
+              console.log('✅ Guest order created successfully:', orderResult._id, 'autoAccountCreated:', guestAutoAccountCreated, 'existingAccountLinked:', guestExistingAccountLinked);
               
             } else {
               console.log('🔐 Creating authenticated user order...');
@@ -527,6 +542,9 @@ export const useOrderHandler = ({
               // ✅ FIXED: Pass applied discount info for proper display
               appliedCoupon: appliedDiscount.coupon,
               appliedRewardPoints: appliedDiscount.rewardPoints,
+              // ✅ CRITICAL FIX: Include both flags for Razorpay guest orders too
+              autoAccountCreated: isGuest ? guestAutoAccountCreated : false,
+              existingAccountLinked: isGuest ? (guestExistingAccountLinked || false) : false,
               isGuest,
               isBuyNow,
               createdAt: new Date().toISOString(),

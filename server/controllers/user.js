@@ -408,7 +408,17 @@ exports.addUserAddress = async (req, res) => {
 exports.updateUserAddress = async (req, res) => {
   try {
     const { addressId } = req.params;
-    const updates = req.body;
+    const {
+      fullName,
+      email,
+      phone,
+      address,
+      city,
+      state,
+      country,
+      pinCode,
+      isDefault
+    } = req.body;
     
     const user = await User.findById(req.profile._id);
     
@@ -429,20 +439,47 @@ exports.updateUserAddress = async (req, res) => {
     }
     
     // If setting as default, unset other defaults
-    if (updates.isDefault) {
+    if (isDefault) {
       user.addresses.forEach(addr => {
         addr.isDefault = false;
       });
     }
     
-    // Update the address
-    Object.assign(user.addresses[addressIndex], updates);
+    // ✅ CRITICAL FIX: Transform frontend field names to backend schema format
+    const schemaUpdates = {};
+    if (fullName !== undefined) schemaUpdates.name = fullName;           // fullName -> name
+    if (email !== undefined) schemaUpdates.email = email;
+    if (phone !== undefined) schemaUpdates.phone = phone;
+    if (address !== undefined) schemaUpdates.addressLine1 = address;     // address -> addressLine1
+    if (city !== undefined) schemaUpdates.city = city;
+    if (state !== undefined) schemaUpdates.state = state;
+    if (country !== undefined) schemaUpdates.country = country;
+    if (pinCode !== undefined) schemaUpdates.pinCode = pinCode;
+    if (isDefault !== undefined) schemaUpdates.isDefault = isDefault;
+    
+    // Update the address with transformed field names
+    Object.assign(user.addresses[addressIndex], schemaUpdates);
     
     await user.save();
     
+    // ✅ Return transformed addresses to match frontend expectations
+    const transformedAddresses = user.addresses.map(addr => ({
+      _id: addr._id,
+      fullName: addr.name,        // Transform back to frontend format
+      email: addr.email || user.email,
+      phone: addr.phone,
+      address: addr.addressLine1, // Transform back to frontend format
+      city: addr.city,
+      state: addr.state,
+      country: addr.country,
+      pinCode: addr.pinCode,
+      isDefault: addr.isDefault,
+      createdAt: addr.createdAt
+    }));
+    
     res.json({
       message: "Address updated successfully",
-      addresses: user.addresses
+      addresses: transformedAddresses
     });
   } catch (err) {
     return res.status(400).json({

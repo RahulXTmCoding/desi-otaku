@@ -330,11 +330,9 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
     checked: false
   });
 
-  // Check bypass status on component mount
+  // Check bypass status on component mount and when customerPhone changes
   React.useEffect(() => {
     const checkBypassStatus = async () => {
-      if (bypassStatus.checked) return;
-      
       try {
         const response = await fetch(`${API}/cod/bypass-status`, {
           method: 'GET',
@@ -350,10 +348,13 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
           console.log('🔍 COD Bypass Status:', data.bypassEnabled ? 'ENABLED' : 'DISABLED');
           setBypassStatus({ bypassEnabled: data.bypassEnabled, checked: true });
           
-          // If bypass is enabled, auto-verify immediately
-          if (data.bypassEnabled && customerPhone && !codVerification?.otpVerified) {
+          // If bypass is enabled and phone is available, auto-verify immediately
+          if (data.bypassEnabled && customerPhone && !codVerification?.otpVerified && !codVerification?.loading) {
             console.log('🔓 Auto-triggering bypass verification for', customerPhone);
-            handleBypassVerification();
+            // Use setTimeout to ensure state updates are complete
+            setTimeout(() => {
+              handleBypassVerification();
+            }, 100);
           }
         } else {
           console.warn('Failed to check bypass status:', data.error);
@@ -365,12 +366,20 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
       }
     };
 
-    if (!isTestMode) {
+    if (!isTestMode && customerPhone) {
       checkBypassStatus();
     } else {
       setBypassStatus({ bypassEnabled: false, checked: true });
     }
-  }, [customerPhone, codVerification?.otpVerified, isTestMode]);
+  }, [customerPhone, isTestMode]);
+
+  // Separate effect to trigger auto-verification when bypass status is confirmed
+  React.useEffect(() => {
+    if (bypassStatus.bypassEnabled && bypassStatus.checked && 
+        customerPhone && !codVerification?.otpVerified && !codVerification?.loading) {
+      handleBypassVerification();
+    }
+  }, [bypassStatus.bypassEnabled, bypassStatus.checked, customerPhone, codVerification?.otpVerified, codVerification?.loading]);
 
   const handleBypassVerification = async () => {
     if (!customerPhone) {

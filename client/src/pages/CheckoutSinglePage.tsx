@@ -67,6 +67,8 @@ const CheckoutSinglePage: React.FC = () => {
     country: 'India'
   });
 
+  // Debug tracking removed - issue resolved
+
   const shippingInfoRef = useRef(shippingInfo);
   useEffect(() => {
     shippingInfoRef.current = shippingInfo;
@@ -114,36 +116,47 @@ const CheckoutSinglePage: React.FC = () => {
     instance: {}
   });
 
-  // Check cart items on mount and track begin checkout
+  // Track begin checkout only once on mount
+  const hasTrackedBeginCheckout = useRef(false);
   useEffect(() => {
     if (!buyNowItem && (!regularCart || regularCart.length === 0)) {
       navigate('/cart');
       return;
     }
 
-    // Track begin checkout when user reaches checkout page
-    if (cart && cart.length > 0) {
+    // Track begin checkout only once when component mounts
+    if (cart && cart.length > 0 && !hasTrackedBeginCheckout.current) {
+      hasTrackedBeginCheckout.current = true;
       const couponCode = appliedDiscount.coupon?.code;
       trackBeginCheckout(cart, couponCode);
     }
-  }, [buyNowItem, regularCart, navigate, cart, trackBeginCheckout, appliedDiscount.coupon?.code]);
+  }, [buyNowItem, regularCart, navigate]);
 
-  // Track shipping info when selected
+  // Track shipping info only when shipping method actually changes
+  const lastShippingRef = useRef<string>('');
   useEffect(() => {
     if (selectedShipping && cart && cart.length > 0) {
-      trackAddShippingInfo(cart, selectedShipping.name || selectedShipping.label || 'Standard');
+      const shippingId = selectedShipping.courier_company_id || selectedShipping.name || 'standard';
+      if (shippingId !== lastShippingRef.current) {
+        lastShippingRef.current = shippingId;
+        trackAddShippingInfo(cart, selectedShipping.name || selectedShipping.label || 'Standard');
+      }
     }
-  }, [selectedShipping, cart, trackAddShippingInfo]);
+  }, [selectedShipping?.courier_company_id, selectedShipping?.name]);
 
-  // Track payment method when selected
+  // Track payment method only when it actually changes
+  const lastPaymentMethodRef = useRef<string>('');
   useEffect(() => {
     if (paymentMethod && cart && cart.length > 0) {
-      const paymentType = paymentMethod === 'razorpay' ? 'Online Payment' : 
-                         paymentMethod === 'cod' ? 'Cash on Delivery' : 
-                         'Credit Card';
-      trackAddPaymentInfo(cart, paymentType);
+      if (paymentMethod !== lastPaymentMethodRef.current) {
+        lastPaymentMethodRef.current = paymentMethod;
+        const paymentType = paymentMethod === 'razorpay' ? 'Online Payment' : 
+                           paymentMethod === 'cod' ? 'Cash on Delivery' : 
+                           'Credit Card';
+        trackAddPaymentInfo(cart, paymentType);
+      }
     }
-  }, [paymentMethod, cart, trackAddPaymentInfo]);
+  }, [paymentMethod]);
 
   // Load Razorpay script
   useEffect(() => {
@@ -298,7 +311,6 @@ const CheckoutSinglePage: React.FC = () => {
 
     if (applicableTier) {
       const discountAmount = Math.round((subtotal * applicableTier.discount) / 100);
-      console.log(`✅ AOV Calculation: ${totalQuantity} items, ${applicableTier.discount}% tier, ₹${discountAmount} discount`);
       return {
         discount: discountAmount,
         percentage: applicableTier.discount
@@ -308,22 +320,28 @@ const CheckoutSinglePage: React.FC = () => {
     return { discount: 0, percentage: 0 };
   }, [cart, quantityTiers]);
 
-  // ✅ Update applied discount when AOV discount changes
+  // ✅ Update applied discount when AOV discount changes (with loop prevention)
+  const lastAovDiscountRef = useRef<number>(-1);
   useEffect(() => {
-    if (frontendAovDiscount.discount > 0) {
-      const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
-      setAppliedDiscount(prev => ({
-        ...prev,
-        quantity: {
-          discount: frontendAovDiscount.discount,
-          percentage: frontendAovDiscount.percentage,
-          message: `${frontendAovDiscount.percentage}% off for ${totalQuantity} items`
-        }
-      }));
-    } else {
-      setAppliedDiscount(prev => ({ ...prev, quantity: null }));
+    // Prevent infinite loops by checking if discount actually changed
+    if (frontendAovDiscount.discount !== lastAovDiscountRef.current) {
+      lastAovDiscountRef.current = frontendAovDiscount.discount;
+      
+      if (frontendAovDiscount.discount > 0) {
+        const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
+        setAppliedDiscount(prev => ({
+          ...prev,
+          quantity: {
+            discount: frontendAovDiscount.discount,
+            percentage: frontendAovDiscount.percentage,
+            message: `${frontendAovDiscount.percentage}% off for ${totalQuantity} items`
+          }
+        }));
+      } else {
+        setAppliedDiscount(prev => ({ ...prev, quantity: null }));
+      }
     }
-  }, [frontendAovDiscount.discount, frontendAovDiscount.percentage, cart]);
+  }, [frontendAovDiscount.discount, frontendAovDiscount.percentage]);
 
   // ✅ STEP 3: Handle discount changes (NO API calls)
   const handleDiscountChange = useCallback((discount: any) => {
@@ -345,30 +363,17 @@ const CheckoutSinglePage: React.FC = () => {
   }, [shippingInfo.pinCode, getTotalAmount, selectedShipping]);
 
   const getFinalAmount = useCallback(() => {
-    // ✅ FIXED: Recalculate every time to ensure reactivity
     const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
     const shipping = selectedShipping?.rate || 0;
     let discountedSubtotal = subtotal;
     
-    console.log(`💰 CALCULATING FINAL AMOUNT (REACTIVE):`, {
-      subtotal,
-      shipping,
-      paymentMethod,
-      aovDiscount: frontendAovDiscount.discount,
-      couponDiscount: appliedDiscount.coupon?.discount || 0,
-      rewardDiscount: appliedDiscount.rewardPoints?.discount || 0,
-      timestamp: new Date().toISOString()
-    });
-    
     // 1️⃣ Apply AOV discount to subtotal
     const quantityDiscount = frontendAovDiscount.discount;
     discountedSubtotal = discountedSubtotal - quantityDiscount;
-    console.log(`🔸 After AOV: ₹${discountedSubtotal} (deducted ₹${quantityDiscount})`);
     
     // 2️⃣ Apply coupon discount to discounted subtotal
     const couponDiscount = appliedDiscount.coupon?.discount || 0;
     discountedSubtotal = discountedSubtotal - couponDiscount;
-    console.log(`🔸 After Coupon: ₹${discountedSubtotal} (deducted ₹${couponDiscount})`);
     
     // 3️⃣ Apply online payment discount to discounted subtotal
     const onlinePaymentDiscount = (paymentMethod === 'razorpay' || paymentMethod === 'card') 
@@ -376,18 +381,13 @@ const CheckoutSinglePage: React.FC = () => {
       : 0;
     discountedSubtotal = discountedSubtotal - onlinePaymentDiscount;
     
-    console.log(`💳 Online Payment Discount: ${paymentMethod} = ₹${onlinePaymentDiscount}`);
-    console.log(`🔸 After Online Discount: ₹${discountedSubtotal}`);
-    
     // 4️⃣ Apply reward points redemption (cash equivalent)
     const rewardDiscount = Math.min(appliedDiscount.rewardPoints?.discount || 0, discountedSubtotal);
     discountedSubtotal = discountedSubtotal - rewardDiscount;
-    console.log(`🔸 After Rewards: ₹${discountedSubtotal} (deducted ₹${rewardDiscount})`);
     
     // 5️⃣ Add shipping to final discounted subtotal
     const finalAmount = Math.max(0, Math.round(discountedSubtotal + shipping));
     
-    console.log(`✅ FINAL CALCULATION: ₹${finalAmount} (added shipping ₹${shipping})`);
     return finalAmount;
   }, [cart, selectedShipping?.rate, frontendAovDiscount.discount, appliedDiscount.coupon?.discount, appliedDiscount.rewardPoints?.discount, paymentMethod]);
 
@@ -537,13 +537,13 @@ const CheckoutSinglePage: React.FC = () => {
         if (editingAddressId) {
           updatedAddresses = savedAddresses.map(addr => 
             addr._id === editingAddressId
-              ? { ...addr, ...shippingInfoRef.current }
+              ? { ...addr, ...shippingInfo } // ✅ FIX: Use current shippingInfo state
               : addr
           );
         } else {
           const guestAddress: Address = {
             _id: `guest-${Date.now()}`,
-            ...shippingInfoRef.current,
+            ...shippingInfo, // ✅ FIX: Use current shippingInfo state
             isDefault: savedAddresses.length === 0
           };
           updatedAddresses = [...savedAddresses, guestAddress];
@@ -576,7 +576,7 @@ const CheckoutSinglePage: React.FC = () => {
     
     try {
       const addressData: Address = {
-        ...shippingInfoRef.current,
+        ...shippingInfo, // ✅ FIX: Use current shippingInfo state instead of ref
         isDefault: savedAddresses.length === 0
       };
 
@@ -593,15 +593,27 @@ const CheckoutSinglePage: React.FC = () => {
 
       if (result && result.addresses) {
         setSavedAddresses(result.addresses);
-        setShowAddressForm(false);
-        setEditingAddressId(null);
         
         const targetAddress = editingAddressId 
           ? result.addresses.find((addr: Address) => addr._id === editingAddressId)
           : result.addresses[result.addresses.length - 1];
           
+        console.log('Address saved successfully');
+        
         if (targetAddress) {
-          handleSelectAddress(targetAddress);
+          // ✅ Backend now properly saves data with correct field mapping
+          setSelectedAddressId(targetAddress._id || '');
+          setShowAddressForm(false);
+          setEditingAddressId(null);
+        } else {
+          // Fallback: select the last saved address if available
+          if (result.addresses && result.addresses.length > 0) {
+            const lastAddress = result.addresses[result.addresses.length - 1];
+            setSelectedAddressId(lastAddress._id || '');
+          }
+          
+          setShowAddressForm(false);
+          setEditingAddressId(null);
         }
       } else if (result && result.error) {
         throw new Error(result.error);
@@ -612,7 +624,7 @@ const CheckoutSinglePage: React.FC = () => {
     }
     
     setAddressLoading(false);
-  }, [validateShipping, auth, savedAddresses, editingAddressId, isTestMode, handleSelectAddress]);
+  }, [validateShipping, auth, savedAddresses, editingAddressId, isTestMode, handleSelectAddress, shippingInfo]); // ✅ FIX: Add shippingInfo to dependencies
 
   const handleDeleteAddress = useCallback(async (addressId: string) => {
     if (!confirm('Are you sure you want to delete this address?')) return;
@@ -988,7 +1000,6 @@ const CheckoutSinglePage: React.FC = () => {
                       discountedAmount -= frontendAovDiscount.discount;
                       discountedAmount -= appliedDiscount.coupon?.discount || 0;
                       const onlineDiscount = Math.round(discountedAmount * 0.05);
-                      console.log(`🎯 UI Online Discount: ${paymentMethod} = ₹${onlineDiscount}`);
                       return onlineDiscount;
                     })()}</span>
                   </div>

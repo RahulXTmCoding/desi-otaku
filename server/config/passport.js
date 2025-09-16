@@ -26,20 +26,53 @@ passport.use(new GoogleStrategy({
 },
 async (accessToken, refreshToken, profile, done) => {
   try {
-    const existingUser = await User.findOne({ googleId: profile.id });
-    if (existingUser) {
-      return done(null, existingUser);
+    const googleEmail = profile.emails[0].value;
+    
+    // 1. Check if user already has Google account linked
+    const existingGoogleUser = await User.findOne({ googleId: profile.id });
+    if (existingGoogleUser) {
+      return done(null, existingGoogleUser);
     }
+    
+    // 2. Check if there's an existing account with this email (guest or regular account)
+    const existingEmailUser = await User.findOne({ email: googleEmail });
+    if (existingEmailUser) {
+      // Link Google account to existing user (convert guest to Google user)
+      existingEmailUser.googleId = profile.id;
+      existingEmailUser.oauthProvider = 'google';
+      existingEmailUser.oauthId = profile.id;
+      
+      // Update name if the existing account doesn't have a full name
+      if (!existingEmailUser.name || existingEmailUser.name.length < 3) {
+        existingEmailUser.name = profile.displayName;
+      }
+      
+      // Mark as no longer auto-created since user is now actively using the account
+      if (existingEmailUser.autoCreated) {
+        existingEmailUser.autoCreated = false;
+      }
+      
+      await existingEmailUser.save();
+      
+      console.log(`✅ Linked Google account to existing user: ${googleEmail} (was guest: ${existingEmailUser.autoCreated})`);
+      return done(null, existingEmailUser);
+    }
+    
+    // 3. Create new user if no existing account found
     const newUser = new User({
       googleId: profile.id,
       name: profile.displayName,
-      email: profile.emails[0].value,
-      // You might want to handle profile picture as well
-      // photo: profile.photos[0].value
+      email: googleEmail,
+      oauthProvider: 'google',
+      oauthId: profile.id,
+      autoCreated: false
     });
     await newUser.save();
+    
+    console.log(`✅ Created new Google user: ${googleEmail}`);
     done(null, newUser);
   } catch (error) {
+    console.error('Google OAuth error:', error);
     done(error, false);
   }
 }));
@@ -55,19 +88,53 @@ passport.use(new FacebookStrategy({
 },
 async (accessToken, refreshToken, profile, done) => {
   try {
-    const existingUser = await User.findOne({ facebookId: profile.id });
-    if (existingUser) {
-      return done(null, existingUser);
+    const facebookEmail = profile.emails[0].value;
+    
+    // 1. Check if user already has Facebook account linked
+    const existingFacebookUser = await User.findOne({ facebookId: profile.id });
+    if (existingFacebookUser) {
+      return done(null, existingFacebookUser);
     }
+    
+    // 2. Check if there's an existing account with this email (guest or regular account)
+    const existingEmailUser = await User.findOne({ email: facebookEmail });
+    if (existingEmailUser) {
+      // Link Facebook account to existing user (convert guest to Facebook user)
+      existingEmailUser.facebookId = profile.id;
+      existingEmailUser.oauthProvider = 'facebook';
+      existingEmailUser.oauthId = profile.id;
+      
+      // Update name if the existing account doesn't have a full name
+      if (!existingEmailUser.name || existingEmailUser.name.length < 3) {
+        existingEmailUser.name = profile.displayName;
+      }
+      
+      // Mark as no longer auto-created since user is now actively using the account
+      if (existingEmailUser.autoCreated) {
+        existingEmailUser.autoCreated = false;
+      }
+      
+      await existingEmailUser.save();
+      
+      console.log(`✅ Linked Facebook account to existing user: ${facebookEmail} (was guest: ${existingEmailUser.autoCreated})`);
+      return done(null, existingEmailUser);
+    }
+    
+    // 3. Create new user if no existing account found
     const newUser = new User({
       facebookId: profile.id,
       name: profile.displayName,
-      email: profile.emails[0].value,
-      // photo: profile.photos[0].value
+      email: facebookEmail,
+      oauthProvider: 'facebook',
+      oauthId: profile.id,
+      autoCreated: false
     });
     await newUser.save();
+    
+    console.log(`✅ Created new Facebook user: ${facebookEmail}`);
     done(null, newUser);
   } catch (error) {
+    console.error('Facebook OAuth error:', error);
     done(error, false);
   }
 }));

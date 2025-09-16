@@ -1254,8 +1254,20 @@ exports.getOrder = (req, res) => {
     return res.json(req.order);
   }
   
-  // For regular users, ensure they are the owner
-  if (req.order.user._id.toString() !== req.profile._id.toString()) {
+  // ✅ ENHANCED: Handle both user orders and guest orders
+  let isOwner = false;
+  
+  // Check if user owns the order directly
+  if (req.order.user && req.order.user._id) {
+    isOwner = req.order.user._id.toString() === req.profile._id.toString();
+  }
+  
+  // ✅ CRITICAL FIX: Also check guest orders by email (for converted accounts)
+  if (!isOwner && req.order.guestInfo && req.order.guestInfo.email && req.profile.email) {
+    isOwner = req.order.guestInfo.email.toLowerCase() === req.profile.email.toLowerCase();
+  }
+  
+  if (!isOwner) {
     return res.status(403).json({
       error: "Access denied. You are not the owner of this order."
     });
@@ -1264,7 +1276,7 @@ exports.getOrder = (req, res) => {
   return res.json(req.order);
 };
 
-// ✅ NEW: Get user's orders with pagination support
+// ✅ ENHANCED: Get user's orders with unified email-based search
 exports.getUserOrders = async (req, res) => {
   
   try {
@@ -1277,6 +1289,15 @@ exports.getUserOrders = async (req, res) => {
       });
     }
     
+    // Get user details for email-based search
+    const User = require('../models/user');
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        error: "User not found"
+      });
+    }
+    
     // Extract pagination parameters
     const {
       page = 1,
@@ -1286,9 +1307,13 @@ exports.getUserOrders = async (req, res) => {
       sortOrder = 'desc'
     } = req.query;
     
-    
-    // Build query
-    let query = { user: userId };
+    // ✅ UNIFIED QUERY: Find orders by user ID OR email (for guest orders that got converted)
+    let query = {
+      $or: [
+        { user: userId }, // Orders directly linked to user
+        { 'guestInfo.email': user.email } // Guest orders with same email
+      ]
+    };
     
     // Status filter
     if (status && status !== 'all') {
@@ -1300,8 +1325,8 @@ exports.getUserOrders = async (req, res) => {
     const limitInt = parseInt(limit);
     const skip = (pageInt - 1) * limitInt;
     const sortDirection = sortOrder === 'desc' ? -1 : 1;
-    
-    
+
+
 
     // ✅ OPTIMIZED: Minimal population for speed (like old userPurchaseList)
     const [orders, totalCount] = await Promise.all([

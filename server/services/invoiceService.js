@@ -381,7 +381,7 @@ class InvoiceService {
     // Update invoice with metadata (no PDF file yet)
     invoice.files.pdfPath = null;
     invoice.files.pdfUrl = null;
-    invoice.status = 'Generated'; // Mark as generated, PDF will be created on frontend
+    invoice.status = 'Sent'; // Mark as sent, PDF will be created on frontend
     await invoice.save();
 
     console.log(`✅ Invoice HTML prepared for frontend: ${invoice.invoiceNumber}`);

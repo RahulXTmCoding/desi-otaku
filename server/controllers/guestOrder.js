@@ -98,10 +98,12 @@ exports.createGuestOrder = async (req, res) => {
     // Check if user exists with this email, or create auto-account
     let userId = null;
     let autoAccountCreated = false;
+    let existingAccountLinked = false;
     try {
       let existingUser = await User.findOne({ email: guestInfo.email });
       if (existingUser) {
         userId = existingUser._id;
+        existingAccountLinked = true;
         console.log('Found existing user for guest order:', guestInfo.email);
       } else {
         // Auto-create account for guest user to enable order tracking
@@ -356,6 +358,8 @@ exports.createGuestOrder = async (req, res) => {
     res.json({
       success: true,
       order: savedOrder,
+      autoAccountCreated: autoAccountCreated, // ✅ Tell frontend if we created an account
+      existingAccountLinked: existingAccountLinked, // ✅ NEW: Tell frontend if existing account was linked
       message: 'Guest order created successfully'
     });
 

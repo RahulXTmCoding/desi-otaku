@@ -291,12 +291,20 @@ exports.createCodOrder = async (req, res) => {
       codVerified // Legacy field for backwards compatibility
     } = req.body;
 
-    // 🔄 BACKWARDS COMPATIBILITY: Handle both new secure format and legacy format
+    // ✅ ENHANCED: Handle bypass mode more flexibly
     let phoneVerified = false;
     let verifiedPhone = null;
-
-    if (verificationToken && phone) {
-      console.log('📱 NEW FORMAT: Validating phone verification token for COD order...');
+    
+    // Check if bypass is enabled
+    const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
+    
+    if (isBypassEnabled && phone) {
+      // In bypass mode, allow orders with just phone number
+      console.log(`🔓 COD BYPASS ACTIVE - Auto-approving order for ${phone}`);
+      phoneVerified = true;
+      verifiedPhone = phone;
+    } else if (verificationToken && phone) {
+      console.log('📱 STANDARD FORMAT: Validating phone verification token for COD order...');
       
       const tokenData = verificationTokenStore.get(verificationToken);
       if (!tokenData) {
@@ -331,7 +339,7 @@ exports.createCodOrder = async (req, res) => {
       tokenData.used = true;
       phoneVerified = true;
       verifiedPhone = phone;
-      console.log(`✅ NEW FORMAT: Phone verification token validated for ${phone}`);
+      console.log(`✅ STANDARD FORMAT: Phone verification token validated for ${phone}`);
       
     } else {
       return res.status(400).json({
@@ -411,48 +419,94 @@ exports.createGuestCodOrder = async (req, res) => {
       });
     }
 
-    // 🔒 SECURITY: Validate verification token instead of trusting frontend
-    if (!verificationToken) {
-      return res.status(400).json({
-        error: "Phone verification token is required for COD orders"
-      });
-    }
+    // ✅ ENHANCED: Handle bypass mode for guest orders too
+    const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
+    
+    if (isBypassEnabled) {
+      // In bypass mode, allow guest orders with just phone validation
+      console.log(`🔓 COD BYPASS ACTIVE - Auto-approving guest order for ${guestInfo.phone}`);
+    } else {
+      // Standard verification token validation
+      if (!verificationToken) {
+        return res.status(400).json({
+          error: "Phone verification token is required for COD orders"
+        });
+      }
 
-    const tokenData = verificationTokenStore.get(verificationToken);
-    if (!tokenData) {
-      return res.status(400).json({
-        error: "Invalid verification token. Please verify your phone number again."
-      });
-    }
+      const tokenData = verificationTokenStore.get(verificationToken);
+      if (!tokenData) {
+        return res.status(400).json({
+          error: "Invalid verification token. Please verify your phone number again."
+        });
+      }
 
-    // Check if token expired
-    if (Date.now() > tokenData.expiresAt) {
-      verificationTokenStore.delete(verificationToken);
-      return res.status(400).json({
-        error: "Phone verification expired. Please verify your phone number again."
-      });
-    }
+      // Check if token expired
+      if (Date.now() > tokenData.expiresAt) {
+        verificationTokenStore.delete(verificationToken);
+        return res.status(400).json({
+          error: "Phone verification expired. Please verify your phone number again."
+        });
+      }
 
-    // Check if token already used
-    if (tokenData.used) {
-      return res.status(400).json({
-        error: "Phone verification already used. Please verify your phone number again."
-      });
-    }
+      // Check if token already used
+      if (tokenData.used) {
+        return res.status(400).json({
+          error: "Phone verification already used. Please verify your phone number again."
+        });
+      }
 
-    // Check if phone number matches guest info
-    if (tokenData.phone !== guestInfo.phone) {
-      return res.status(400).json({
-        error: "Phone number mismatch. Please verify your phone number again."
-      });
-    }
+      // Check if phone number matches guest info
+      if (tokenData.phone !== guestInfo.phone) {
+        return res.status(400).json({
+          error: "Phone number mismatch. Please verify your phone number again."
+        });
+      }
 
-    // Mark token as used to prevent replay attacks
-    tokenData.used = true;
-    console.log(`✅ Guest phone verification token validated for ${guestInfo.phone}`);
+      // Mark token as used to prevent replay attacks
+      tokenData.used = true;
+      console.log(`✅ Guest phone verification token validated for ${guestInfo.phone}`);
+    }
 
     // Generate unique transaction ID for COD
     const transaction_id = `cod_guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
+    // Check if user exists with this email, or create auto-account
+    let userId = null;
+    let autoAccountCreated = false;
+    let existingAccountLinked = false;
+    try {
+      const User = require("../models/user");
+      let existingUser = await User.findOne({ email: guestInfo.email });
+      if (existingUser) {
+        userId = existingUser._id;
+        existingAccountLinked = true;
+        console.log('Found existing user for guest COD order:', guestInfo.email);
+      } else {
+        // Auto-create account for guest user to enable order tracking
+        console.log('Creating auto-account for guest COD user:', guestInfo.email);
+        
+        // Generate a secure random password (user will reset it via email)
+        const tempPassword = crypto.randomBytes(32).toString('hex');
+        
+        const newUser = new User({
+          name: guestInfo.name,
+          email: guestInfo.email,
+          password: tempPassword, // Will be hashed by the model
+          role: 0, // Regular user
+          // Mark as auto-created so we know to send welcome email
+          autoCreated: true
+        });
+        
+        const savedUser = await newUser.save();
+        userId = savedUser._id;
+        autoAccountCreated = true;
+        
+        console.log('✅ Auto-account created for guest COD user:', guestInfo.email);
+      }
+    } catch (error) {
+      console.log('Error handling user account for guest COD order:', error);
+      // Continue without linking if there's an error
+    }
 
     // Generate guest ID
     const guestId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -468,6 +522,7 @@ exports.createGuestCodOrder = async (req, res) => {
       address,
       shipping,
       status: "Received",
+      user: userId, // Link to existing or newly created user
       guestInfo: {
         id: guestId,
         name: guestInfo.name,
@@ -497,6 +552,8 @@ exports.createGuestCodOrder = async (req, res) => {
     res.json({
       success: true,
       order: result.order,
+      autoAccountCreated: autoAccountCreated, // ✅ CRITICAL FIX: Include account creation flag
+      existingAccountLinked: existingAccountLinked, // ✅ NEW: Include existing account flag
       trackingInfo: result.trackingInfo,
       message: "Guest COD order created successfully with full discount calculation and email confirmation"
     });

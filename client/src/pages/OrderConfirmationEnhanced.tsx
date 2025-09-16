@@ -20,14 +20,17 @@ import OrderDiscountBreakdown from '../components/OrderDiscountBreakdown';
 import PDFGenerator from '../utils/pdfGenerator';
 
 const OrderConfirmationEnhanced: React.FC = () => {
-  // Immediate test to see if component loads
-  console.log('OrderConfirmationEnhanced component is loading!');
   
   const navigate = useNavigate();
   const location = useLocation();
   const { clearCart } = useCart();
   const auth = isAutheticated();
-  const isGuest = !auth || typeof auth === 'boolean' || !auth.user;
+  
+  // ✅ CRITICAL FIX: Use isGuest flag from order creation state, not recalculated value
+  // The order creation process knows the true user state at the time the order was placed
+  const orderStateDataPreview = location.state;
+  const wasGuestAtOrderTime = orderStateDataPreview?.isGuest;
+  const isGuest = wasGuestAtOrderTime !== undefined ? wasGuestAtOrderTime : (!auth || typeof auth === 'boolean' || !auth.user);
   
   // Try to get order data from location state first, then sessionStorage for guests
   let orderStateData = location.state;
@@ -45,15 +48,11 @@ const OrderConfirmationEnhanced: React.FC = () => {
     }
   }
   
-  // Debug logging
-  console.log('Order Confirmation - Order State Data:', orderStateData);
-  console.log('Order Confirmation - Auth:', auth);
-  console.log('Order Confirmation - Is Guest:', isGuest);
-  
   const [orderNumber] = useState(orderStateData?.orderId || `ORD${Date.now().toString().slice(-8)}`);
   const [copied, setCopied] = useState(false);
-  const [accountCreated, setAccountCreated] = useState(false);
-  const [accountExists, setAccountExists] = useState(false);
+  // ✅ Use backend flags for account notifications
+  const [accountCreated, setAccountCreated] = useState(orderStateData?.autoAccountCreated || false);
+  const [accountExists, setAccountExists] = useState(orderStateData?.existingAccountLinked || false);
   const [accountCreationLoading, setAccountCreationLoading] = useState(false);
   const [downloadingInvoice, setDownloadingInvoice] = useState(false);
   const [downloadError, setDownloadError] = useState('');
@@ -110,10 +109,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
       confetti();
     }, 500);
 
-    // Auto-create account for guest users
-    if (isGuest && shippingInfo?.email && !accountCreated) {
-      autoCreateAccount();
-    }
 
     return () => clearTimeout(timer);
   }, []);
@@ -215,9 +210,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
   const estimatedDelivery = new Date();
   estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
 
-  // ✅ CRITICAL DEBUG: Check all possible data sources
-  console.log('🔍 FULL OrderStateData structure:', JSON.stringify(orderStateData, null, 2));
-  console.log('🔍 OrderDetails structure:', JSON.stringify(orderDetails, null, 2));
   
     const finalAmount = orderStateData?.finalAmount || orderDetails?.amount || 0;
     const itemCount = orderStateData?.itemCount || orderDetails?.products?.length || 0;
@@ -375,7 +367,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
               <div className="flex-1 min-w-0">
                 <h3 className="text-base md:text-lg font-bold mb-2 text-green-400">Great News! Order Linked to Your Account</h3>
                 <p className="text-sm md:text-base text-gray-300 mb-3">
-                  We found your existing account with <span className="font-mono text-yellow-400 break-all">{shippingInfo?.email}</span> 
+                  We found your existing account with <span className="font-mono text-yellow-400 break-all">{shippingInfo?.email} </span> 
                   and automatically linked this order to it!
                 </p>
                 <div className="bg-gray-800 p-3 md:p-4 rounded-lg mb-3">
