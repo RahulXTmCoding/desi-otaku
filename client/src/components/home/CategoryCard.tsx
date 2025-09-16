@@ -42,6 +42,18 @@ const getCardGradient = (categoryName: string): string => {
   } else if (name.includes('dragon ball')) {
     // Golden gradient for Dragon Ball
     return 'radial-gradient(circle at center, rgba(245, 158, 11, 0.4) 0%, rgba(217, 119, 6, 0.3) 70%, rgba(180, 83, 9, 0.2) 100%)';
+  } else if (name.includes('exclusive')) {
+    // Luxury gold gradient for Exclusive
+    return 'radial-gradient(circle at center, rgba(255, 215, 0, 0.4) 0%, rgba(255, 193, 7, 0.3) 70%, rgba(255, 143, 0, 0.2) 100%)';
+  } else if (name.includes('indian') && name.includes('culture')) {
+    // Saffron and green gradient for Indian Culture
+    return 'radial-gradient(circle at center, rgba(255, 103, 0, 0.4) 0%, rgba(34, 197, 94, 0.3) 70%, rgba(22, 163, 74, 0.2) 100%)';
+  } else if (name.includes('magic')) {
+    // Mystical purple gradient for Magic
+    return 'radial-gradient(circle at center, rgba(147, 51, 234, 0.4) 0%, rgba(168, 85, 247, 0.3) 70%, rgba(124, 58, 237, 0.2) 100%)';
+  } else if (name.includes('wonderer')) {
+    // Sky blue gradient for Wonderer
+    return 'radial-gradient(circle at center, rgba(14, 165, 233, 0.4) 0%, rgba(59, 130, 246, 0.3) 70%, rgba(37, 99, 235, 0.2) 100%)';
   } else {
     // Default subtle gray gradient
     return 'radial-gradient(circle at center, rgba(156, 163, 175, 0.3) 0%, rgba(107, 114, 128, 0.2) 70%, rgba(75, 85, 99, 0.1) 100%)';
@@ -99,18 +111,18 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
               {/* <div className="absolute inset-0 bg-gradient-to-t to-transparent"></div> */}
             </div>
             <div className="absolute bottom-0 left-0 right-0 p-4">
-              <h3 className="font-bold text-lg mb-1">{name}</h3>
+              <h3 className="font-bold text-lg mb-1 text-gray-400">{name}</h3>
               {productCount !== undefined && (
-                <p className="text-gray-300 text-sm">{productCount} Products</p>
+                <p className="text-gray-500 text-sm">{productCount} Products</p>
               )}
             </div>
           </>
         ) : (
           <div className="p-6 text-center">
             {icon && <div className="text-4xl mb-4">{icon}</div>}
-            <h3 className="font-semibold mb-2">{name}</h3>
+            <h3 className="font-semibold mb-2 text-gray-400">{name}</h3>
             {productCount !== undefined && (
-              <p className="text-gray-400 text-sm">{productCount} designs</p>
+              <p className="text-gray-500 text-sm">{productCount} designs</p>
             )}
           </div>
         )}

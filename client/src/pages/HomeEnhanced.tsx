@@ -151,6 +151,38 @@ const HomeEnhanced: React.FC = () => {
     }
   ];
 
+
+   const creatorsCategories = [
+    { 
+      name: "Exclusive", 
+      icon: "👕", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczOmS6nwTpP8GNn3nF3xgpQg4kVyjpf7N5mBUArI4J5qMBcqpe7PRxBGadlyScymbxMi6EywrbnX8pVMm8f2maEUiydGCWCHNjhnppwpsg-aKWzDmsEdAc-UOzgd9cXaj84iLGqo7OCmIg26Lec-rUi8=w850-h913-s-no-gm?authuser=0", 
+      link: "/shop?category=68a889c0449b2f4867563c6e",
+      productCount: 156
+    },
+    { 
+      name: "Indian Culture", 
+      icon: "🧥", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczP-mRI14c-9ZkpamcLeZx8Q4Gwlz7PkpItQOFVHygflhKef6ZBBwQY744VFQX4YXe0QoZ6orKo3zWSKK2getoIT7ujIa5JHSOpVBcmntpASoUhRIeBFLez5enI_yiMGBwYST_N7Ub1gnWCXR5uw_-Cm=w735-h945-s-no-gm?authuser=0", 
+      link: "/shop?category=68a5f9d0da082faf2c5942ca",
+      productCount: 89
+    },
+    { 
+      name: "Magic", 
+      icon: "🎁", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczMpzZ9PFDG4CG0eQB0HmaTf_tLr2vC5eibaiGQ3k0ShvCaanZIh0vFYLosJOZ_IKrUnbuxXUV-xbSs1MyaH3tur-1nQPlFGikkc_zqlIlUVFIDF7W0HG222y_W8OgeCn7xfk2TlvXfCUB8f-oYx5I_Y=w725-h913-s-no-gm?authuser=0", 
+      link: "/shop?category=68a616eef8ae7a6fb4109f52",
+      productCount: 45
+    },
+    { 
+      name: "Wonderer", 
+      icon: "🎨", 
+      image: "https://lh3.googleusercontent.com/pw/AP1GczOzetCR4oX3v3kX_XIjsr4uEYWzGgjiaaHELAOI1P_F7-bK-jugaUAjEhbrsYhlIIuQ9B9RcfUTQAysqvzrR2JH5cIhJY8xBDC6h5o-mWvSZabEZDMKqu5FmfbKihJKLaAujjn8h0EeIfc-ljk5D5QV=w735-h945-s-no-gm?authuser=0", 
+      link: "/shop?category=68a8899a449b2f4867563c6b",
+      productCount: undefined
+    }
+  ];
+
   // Placeholder anime images - these would be replaced with actual category images
   const animeImages: { [key: string]: string } = {
     "naruto": "https://lh3.googleusercontent.com/pw/AP1GczNY8NaKs1RIyOjofmNt2MhwjklzuHD26vgbCdpgrmXj9T5AfUUpiPy4zicM7Ve-Lt7QSSgMAUBLbkVJLomnYkxGVGDC3TZNx3sw3NLIdXkB0AjaIQn4VbGlNQKPrTvUd-sOK46BKPR4Cr1dd-yhPqYj=w887-h945-s-no-gm?authuser=0",
@@ -457,7 +489,7 @@ const HomeEnhanced: React.FC = () => {
         <section className="py-8 sm:py-12 lg:py-16">
           <div className="w-[96%] mx-auto">
               <div className="text-center mb-8 sm:mb-12 lg:mb-16">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+              <h2 className="text-3xl sm:text-3xl lg:text-5xl font-bold md:mb-6 mb-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
                 OUR COLLECTION
               </h2>
               <div className="w-32 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-4"></div>
@@ -497,6 +529,8 @@ const HomeEnhanced: React.FC = () => {
           </div>
         </section>
 
+         
+
         {/* Shop By Anime */}
         <section className="py-8 sm:py-12 lg:py-16" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="w-[96%] mx-auto">
@@ -529,6 +563,29 @@ const HomeEnhanced: React.FC = () => {
                   />
                 ))
               )}
+            </div>
+          </div>
+        </section>
+
+        <section className="py-2 sm:py-12 lg:py-0 pb-8 md:pb-0" style={{ backgroundColor: 'var(--color-surface)' }}>
+          <div className="w-[96%] mx-auto">
+              <div className="text-center mb-8 sm:mb-12 lg:mb-16">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold md:mb-6 mb-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+                Explore Categories
+              </h2>
+              <div className="w-32 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-4"></div>
+            </div>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+              {creatorsCategories.map((category, index) => (
+                <CategoryCard
+                  key={index}
+                  name={category.name}
+                  icon={category.icon}
+                  image={category.image}
+                  // productCount={category.productCount}
+                  link={category.link}
+                />
+              ))}
             </div>
           </div>
         </section>
