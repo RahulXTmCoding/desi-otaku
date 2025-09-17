@@ -30,6 +30,7 @@ const Header: React.FC = () => {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
+  const [isMobileUserDropdownOpen, setIsMobileUserDropdownOpen] = useState(false);
   const [prevCartCount, setPrevCartCount] = useState(0);
 
   // Mobile menu dynamic data state
@@ -582,11 +583,112 @@ const Header: React.FC = () => {
               <User className="w-5 h-5" />
             </Link>
           ) : (
-            <Link to={auth.user.role === 1 ? "/admin/dashboard" : "/user/dashboard"} className="p-2 rounded-lg transition-all hover:scale-110" title="Account">
-              <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center">
-                <User className="w-3 h-3 text-gray-900" />
-              </div>
-            </Link>
+            <div className="relative">
+              <button 
+                onClick={() => setIsMobileUserDropdownOpen(!isMobileUserDropdownOpen)}
+                className="p-2 rounded-lg transition-all hover:scale-110" 
+                title="Account"
+              >
+                <div className="w-6 h-6 bg-gradient-to-br from-yellow-400 to-yellow-500 rounded-full flex items-center justify-center">
+                  <User className="w-3 h-3 text-gray-900" />
+                </div>
+              </button>
+
+              {/* Mobile User Dropdown Menu */}
+              {isMobileUserDropdownOpen && (
+                <>
+                  {/* Backdrop */}
+                  <div 
+                    className="fixed inset-0 z-40"
+                    onClick={() => setIsMobileUserDropdownOpen(false)}
+                  />
+                  
+                  {/* Dropdown Content */}
+                  <div className="absolute right-0 top-full mt-2 w-64 bg-gray-800 rounded-xl shadow-xl z-50 border border-gray-700 overflow-hidden">
+                    {/* User Info Header */}
+                    <div className="p-4 bg-gray-900 border-b border-gray-700">
+                      <p className="text-sm text-gray-400">Signed in as</p>
+                      <p className="font-medium text-white truncate">{auth.user.name || 'User'}</p>
+                      <p className="text-xs text-gray-500 truncate">{auth.user.email}</p>
+                    </div>
+
+                    {/* Dashboard Navigation Items */}
+                    {auth.user.role !== 1 && (
+                      <div className="py-2">
+                        <Link
+                          to="/user/dashboard?tab=overview"
+                          onClick={() => setIsMobileUserDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gray-700 hover:text-yellow-400 transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>📊 Overview</span>
+                        </Link>
+                        <Link
+                          to="/user/dashboard?tab=orders"
+                          onClick={() => setIsMobileUserDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gray-700 hover:text-yellow-400 transition-colors"
+                        >
+                          <Package className="w-4 h-4" />
+                          <span>📦 My Orders</span>
+                        </Link>
+                        <Link
+                          to="/user/dashboard?tab=addresses"
+                          onClick={() => setIsMobileUserDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gray-700 hover:text-yellow-400 transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>📍 Addresses</span>
+                        </Link>
+                        <Link
+                          to="/user/dashboard?tab=rewards"
+                          onClick={() => setIsMobileUserDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gray-700 hover:text-yellow-400 transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>🎁 Rewards</span>
+                        </Link>
+                        <Link
+                          to="/user/dashboard?tab=settings"
+                          onClick={() => setIsMobileUserDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gray-700 hover:text-yellow-400 transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>⚙️ Settings</span>
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Admin Dashboard Link */}
+                    {auth.user.role === 1 && (
+                      <div className="py-2">
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={() => setIsMobileUserDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 text-white hover:bg-gray-700 hover:text-yellow-400 transition-colors"
+                        >
+                          <User className="w-4 h-4" />
+                          <span>🏢 Admin Dashboard</span>
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Sign Out */}
+                    <div className="border-t border-gray-700">
+                      <button
+                        onClick={() => {
+                          handleSignout();
+                          setIsMobileUserDropdownOpen(false);
+                        }}
+                        className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-gray-700 hover:text-red-300 transition-colors w-full"
+                      >
+                        <User className="w-4 h-4" />
+                        <span>🚪 Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           )}
         </div>
       </nav>

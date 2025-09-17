@@ -62,20 +62,20 @@ const ProductActions: React.FC<ProductActionsProps> = ({
         </div>
       )}
 
-      {/* Premium Action Buttons with Inline Quantity */}
+      {/* Premium Action Buttons - Compact Single Row */}
       <div className="space-y-4">
-        {/* Quantity & Add to Cart Row */}
-        <div className="flex gap-3">
-          {/* Quantity Selector */}
+        {/* Compact Single Row Layout */}
+        <div className="flex gap-2">
+          {/* Compact Quantity Selector */}
           <div className="flex items-center border border-gray-600 rounded-lg">
             <button
               onClick={() => setQuantity(Math.max(1, quantity - 1))}
               disabled={!selectedSize || selectedSizeStock === 0 || quantity <= 1}
-              className="px-3 py-3 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 py-2 sm:px-3 sm:py-3 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <Minus className="w-4 h-4" />
+              <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
-            <span className="px-4 py-3 border-x border-gray-600 min-w-[60px] text-center font-medium">{quantity}</span>
+            <span className="px-2 py-2 sm:px-4 sm:py-3 border-x border-gray-600 min-w-[40px] sm:min-w-[60px] text-center font-medium text-sm sm:text-base">{quantity}</span>
             <button
               onClick={() => {
                 if (selectedSize && product.sizeStock) {
@@ -86,17 +86,17 @@ const ProductActions: React.FC<ProductActionsProps> = ({
                 }
               }}
               disabled={!selectedSize || quantity >= selectedSizeStock}
-              className="px-3 py-3 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="px-2 py-2 sm:px-3 sm:py-3 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
             </button>
           </div>
 
-          {/* Add to Cart Button */}
+          {/* Compact Add to Cart Button */}
           <button
             onClick={onAddToCart}
             disabled={!selectedSize || !isStockAvailable}
-            className={`flex-1 py-4 px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-2 ${
+            className={`flex-1 py-2 px-2 sm:py-4 sm:px-6 rounded-lg font-medium transition-colors flex items-center justify-center gap-1 sm:gap-2 ${
               selectedSize && isStockAvailable
                 ? 'hover:opacity-90'
                 : 'cursor-not-allowed opacity-50'
@@ -107,27 +107,37 @@ const ProductActions: React.FC<ProductActionsProps> = ({
               border: `1px solid ${selectedSize && isStockAvailable ? 'var(--color-primary)' : 'var(--color-border)'}`
             }}
           >
-            <ShoppingCart className="w-5 h-5" />
-            {!selectedSize 
-              ? 'Select a Size' 
-              : !isStockAvailable
-              ? 'Out of Stock'
-              : `Add to Cart ${(product.price * quantity? `• ₹${product.price * quantity}`:"").toLocaleString()}`}
+            <ShoppingCart className="w-3 h-3 sm:w-5 sm:h-5" />
+            <span className="text-s xs:text-xs sm:text-base">
+              {!selectedSize 
+                ? 'Select Size' 
+                : !isStockAvailable
+                ? 'Out of Stock'
+                : (
+                  <>
+                    <span className="whitespace-nowrap">Add to Cart</span>
+                   
+                    <span className="xs:inline"> • ₹{(product.price * quantity).toLocaleString()}</span>
+                
+                  </>
+                )
+              }
+            </span>
           </button>
 
-          {/* Wishlist Button - Integrated */}
+          {/* Compact Wishlist Button */}
           {userId && token && (
             <button 
               onClick={onWishlistToggle}
               disabled={wishlistLoading}
-              className="px-4 py-4 rounded-lg transition-colors hover:opacity-80"
+              className="px-2 py-2 sm:px-4 sm:py-4 rounded-lg transition-colors hover:opacity-80"
               style={{
                 backgroundColor: 'var(--color-surface)',
                 border: '1px solid var(--color-border)'
               }}
             >
               <Heart 
-                className={`w-5 h-5 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`}
+                className={`w-3 h-3 sm:w-5 sm:h-5 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`}
                 style={{ color: isWishlisted ? '#ef4444' : 'var(--color-text)' }}
               />
             </button>

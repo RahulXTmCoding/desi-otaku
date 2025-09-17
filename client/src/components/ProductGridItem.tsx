@@ -496,7 +496,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             </Link>
             
             {product.description && (
-              <p className="text-gray-400 text-xs sm:text-sm mb-2 line-clamp-2">
+              <p className="text-gray-400 text-xs sm:text-sm mb-2 line-clamp-2 hidden md:block">
                 {product.description}
               </p>
             )}

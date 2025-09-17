@@ -15,7 +15,7 @@ const Base: React.FC<BaseProps> = ({
 }) => (
   <div>
     {(title || description) && (
-      <div className="bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-gray-900 text-white text-center py-8">
+      <div className="bg-gradient-to-br from-purple-900/20 via-blue-900/20 to-gray-900 text-white text-center md:pt-8 pt-4">
         <h2 className="text-4xl font-bold">{title}</h2>
         <p className="text-xl text-gray-300 mt-2">{description}</p>
       </div>
