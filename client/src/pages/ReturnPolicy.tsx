@@ -250,7 +250,7 @@ const ReturnPolicy: React.FC = () => {
                 </li>
                 <li className="flex items-start">
                   <span className="text-orange-400 mr-2">•</span>
-                  <span className="text-white">Refunds processed to original payment method</span>
+                  <span className="text-white">Refunds will be processed to the original payment method within 3–4 business days.</span>
                 </li>
               </ul>
               <ul className="space-y-3">

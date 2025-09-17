@@ -142,7 +142,7 @@ const ShippingPolicy: React.FC = () => {
                 <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">3</div>
                 <div>
                   <h3 className="font-semibold text-yellow-400 mb-2">Packaging & Dispatch</h3>
-                  <p className="text-gray-300">Orders are carefully packaged and dispatched within 2-3 business days.</p>
+                  <p className="text-gray-300">Orders are carefully packaged and Shipped within 2-3 business days.</p>
                 </div>
               </div>
               <div className="flex items-start">
