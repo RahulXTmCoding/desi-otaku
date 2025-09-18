@@ -162,8 +162,6 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
   // Handle save with validation
   const handleSaveAddress = () => {
     if (validateAllFields()) {
-      // ✅ FIX: Clean phone number during save, not before
-      // Don't trigger additional state updates that can interfere with save
       onSaveAddress();
     }
   };
@@ -337,6 +335,9 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
                     : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
                 }`}
                 placeholder="Enter email address"
+                autoComplete="email"
+                inputMode="email"
+                autoCapitalize="off"
                 required
               />
               {errors.email && touched.email && (

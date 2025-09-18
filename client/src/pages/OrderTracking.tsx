@@ -2,12 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { Shield, Mail, Eye, EyeOff, Clock, AlertCircle, CheckCircle } from 'lucide-react';
 import { API } from '../backend';
-import { 
-  calculateCouponDiscountAmount, 
-  getCouponDiscountText, 
-  calculateTotalSavings, 
-  formatPrice 
-} from '../utils/orderUtils';
 import OrderDiscountBreakdown from '../components/OrderDiscountBreakdown';
 import { getColorName } from '../utils/colorUtils';
 
@@ -453,6 +447,9 @@ const OrderTracking: React.FC = () => {
                     value={pinForm.email}
                     onChange={(e) => setPinForm({ ...pinForm, email: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                    autoComplete="email"
+                    inputMode="email"
+                    autoCapitalize="off"
                     required
                   />
                 </div>
@@ -559,6 +556,9 @@ const OrderTracking: React.FC = () => {
                     value={emailForm.email}
                     onChange={(e) => setEmailForm({ ...emailForm, email: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 focus:border-transparent"
+                    autoComplete="email"
+                    inputMode="email"
+                    autoCapitalize="off"
                     required
                   />
                 </div>

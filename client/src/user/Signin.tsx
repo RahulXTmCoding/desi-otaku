@@ -127,7 +127,7 @@ const Signin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+    <div className="md:min-h-screen bg-gray-900 flex items-center justify-center p-4">
       {performRedirect()}
       
       {/* Background decoration */}
@@ -138,8 +138,8 @@ const Signin = () => {
 
       <div className="relative z-10 w-full max-w-md">
         {/* Logo/Title */}
-        <div className="text-center mb-6 md:mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
+        <div className="text-center mb-4 md:mb-8">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-1 md:mb-2">
             Welcome Back!
           </h1>
           <p className="text-gray-400 text-sm md:text-base">Sign in to your Attars Clothing account</p>
@@ -147,15 +147,15 @@ const Signin = () => {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-6 flex items-center gap-3">
+          <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3 md:p-4 mb-4 md:mb-6 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-red-400" />
             <p className="text-red-400">{error}</p>
           </div>
         )}
 
         {/* Sign In Form */}
-        <div className="bg-gray-800 rounded-2xl p-6 md:p-8 shadow-xl border border-gray-700">
-          <form onSubmit={onSubmit} className="space-y-6">
+        <div className="bg-gray-800 rounded-2xl p-4 md:p-8 shadow-xl border border-gray-700">
+          <form onSubmit={onSubmit} className="space-y-4 md:space-y-6">
             {/* Email Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -176,6 +176,9 @@ const Signin = () => {
                       : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400/20'
                   }`}
                   placeholder="your@email.com"
+                  autoComplete="email"
+                  inputMode="email"
+                  autoCapitalize="off"
                 />
               </div>
               {fieldErrors.email && touched.email && (
@@ -278,19 +281,6 @@ const Signin = () => {
               Sign up
             </Link>
           </p>
-        </div>
-
-        {/* Test Credentials */}
-        <div className="mt-4 text-center text-xs text-gray-500">
-          {isTestMode ? (
-            <div>
-              <p className="mb-1">Test Mode Credentials:</p>
-              <p>Admin: admin@example.com / admin123</p>
-              <p>User: any@email.com / password123</p>
-            </div>
-          ) : (
-            <p>Backend Mode: Use real credentials</p>
-          )}
         </div>
       </div>
     </div>
