@@ -15,6 +15,20 @@ interface Product {
   sold: number;
   stock: number;
   material?: string;
+  sizeStock?: {
+    S: number;
+    M: number;
+    L: number;
+    XL: number;
+    XXL: number;
+  };
+  inventory?: {
+    S?: { stock: number };
+    M?: { stock: number };
+    L?: { stock: number };
+    XL?: { stock: number };
+    XXL?: { stock: number };
+  };
 }
 
 interface ProductInfoProps {
@@ -36,6 +50,25 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
     Math.round(((product.mrp - product.price) / product.mrp) * 100) : 
     Math.round(((displayMRP - product.price) / displayMRP) * 100);
   const savings = displayMRP - product.price;
+
+  const getAvailableSizes = () => {
+    if (product.inventory) {
+      return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
+        product.inventory![size as keyof typeof product.inventory] && 
+        product.inventory![size as keyof typeof product.inventory]!.stock > 0
+      );
+    }
+    if (product.sizeStock) {
+      return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
+        product.sizeStock![size as keyof typeof product.sizeStock] > 0
+      );
+    }
+    return [];
+  };
+
+  const isOutOfStock = () => {
+    return product.stock === 0 || getAvailableSizes().length === 0;
+  };
 
   const handleShare = () => {
     const shareData = {
@@ -95,13 +128,24 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           • {product.sold}+ sold this week
         </span> */}
 
-         <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
-          <span className="text-sm font-medium" style={{ color: 'var(--color-textMuted)' }}>
-            Category:
-          </span>
-          <span className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
-            {product.category?.name}
-          </span>
+        <div className="flex items-center gap-3">
+          <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
+            <span className="text-sm font-medium" style={{ color: 'var(--color-textMuted)' }}>
+              Category:
+            </span>
+            <span className="text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
+              {product.category?.name}
+            </span>
+          </div>
+
+          {/* Out of Stock Badge */}
+          {isOutOfStock() && (
+            <div className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500/20 border border-red-500/30">
+              <span className="text-sm font-bold text-red-400">
+                Out of Stock
+              </span>
+            </div>
+          )}
         </div>
 
         <button 

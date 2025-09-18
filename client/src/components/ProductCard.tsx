@@ -117,10 +117,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
   };
 
   const getAvailableSizes = () => {
-    if (!product.inventory) return [];
-    return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
-      product.inventory[size] && product.inventory[size].stock > 0
-    );
+    if (product.inventory) {
+      return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
+        product.inventory[size] && product.inventory[size].stock > 0
+      );
+    }
+    if (product.sizeStock) {
+      return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
+        product.sizeStock[size] > 0
+      );
+    }
+    return [];
   };
 
   const isOutOfStock = () => {

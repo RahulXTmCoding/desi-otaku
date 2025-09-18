@@ -262,6 +262,19 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
     }
   };
 
+  const getAvailableSizes = () => {
+    if (product.sizeStock) {
+      return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
+        product.sizeStock![size as keyof typeof product.sizeStock] > 0
+      );
+    }
+    return [];
+  };
+
+  const isOutOfStock = () => {
+    return product.stock === 0 || getAvailableSizes().length === 0;
+  };
+
   const isSizeAvailable = (size: string) => {
     if (product.sizeAvailability) {
       return product.sizeAvailability[size as keyof typeof product.sizeAvailability];
@@ -473,7 +486,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             </div>
             
             {/* Stock Badge - Adjusted position for mobile buttons */}
-            {product.stock === 0 && (
+            {isOutOfStock() && (
               <div className="absolute top-2 left-2 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-semibold z-10">
                 Out of Stock
               </div>
