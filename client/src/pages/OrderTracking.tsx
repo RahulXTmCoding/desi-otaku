@@ -9,6 +9,7 @@ import {
   formatPrice 
 } from '../utils/orderUtils';
 import OrderDiscountBreakdown from '../components/OrderDiscountBreakdown';
+import { getColorName } from '../utils/colorUtils';
 
 interface Order {
   _id: string;
@@ -324,6 +325,9 @@ const OrderTracking: React.FC = () => {
                     <h3 className="text-white font-medium">{item.name}</h3>
                     <div className="text-gray-400 text-sm">
                       {item.size && <span>Size: {item.size}</span>}
+                      {item.color && item.customization && (
+                        <span className="ml-4">Color: {getColorName(item.color)}</span>
+                      )}
                       <span className="ml-4">Qty: {item.count}</span>
                     </div>
                   </div>

@@ -161,7 +161,7 @@ const Customize: React.FC = () => {
       if (defaultProduct) {
         setBasePrice(defaultProduct.price);
       }
-    } else if (productsData && !productsData.error) {
+    } else if (productsData && !productsData.error && Array.isArray(productsData)) {
       // Find the cheapest t-shirt as base price
       const tshirts = productsData.filter((p: any) => 
         p.productType === 't-shirt' || !p.productType

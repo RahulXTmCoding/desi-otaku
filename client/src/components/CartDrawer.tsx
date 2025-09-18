@@ -8,6 +8,7 @@ import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
 import { getMockProductImage } from '../data/mockData';
 import CartTShirtPreview from './CartTShirtPreview';
+import { getColorName } from '../utils/colorUtils';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -277,7 +278,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
               </div>
             )}
             
-            <div className="h-full overflow-y-auto p-6" style={{ paddingBottom: cart.length > 0 ? '380px' : '24px' }}>
+            <div className="h-full overflow-y-auto p-2" style={{ paddingBottom: cart.length > 0 ? '380px' : '24px' }}>
               {loading && cart.length === 0 ? (
                 <div className="flex justify-center items-center h-full">
                   <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
@@ -297,136 +298,188 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {cart.map((item) => (
-                    <div
-                      key={item._id}
-                      className={`rounded-lg p-3 transition-all ${
-                        isRemoving === item._id ? 'opacity-50 scale-95' : ''
-                      }`}
-                      style={{ backgroundColor: 'var(--color-surfaceHover)' }}
-                      onMouseEnter={(e) => !isRemoving && (e.currentTarget.style.backgroundColor = 'var(--color-border)')}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-surfaceHover)'}
-                    >
-                      <div className="flex gap-3">
-                        {/* Product Image - Compact size */}
-                        <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0" style={{ backgroundColor: 'var(--color-border)' }}>
-                          {item.isCustom && item.customization ? (
-                            <CartTShirtPreview
-                              design={null}
-                              color={item.color}
-                              image={null}
-                              customization={{
-                                frontDesign: item.customization.frontDesign ? {
-                                  designImage: item.customization.frontDesign.designImage,
-                                  position: item.customization.frontDesign.position
-                                } : undefined,
-                                backDesign: item.customization.backDesign ? {
-                                  designImage: item.customization.backDesign.designImage,
-                                  position: item.customization.backDesign.position
-                                } : undefined
-                              }}
-                            />
-                          ) : (
-                            <img
-                              src={getProductImage(item)}
-                              alt={item.name}
-                              className="w-full h-full object-contain"
-                              onError={(e) => {
-                                (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
-                              }}
-                            />
-                          )}
-                        </div>
-
-                        {/* Product Details */}
-                        <div className="flex-1">
-                          <h3 className="font-semibold mb-1" style={{ color: 'var(--color-text)' }}>{item.name}</h3>
-                          <div className="text-sm space-y-1" style={{ color: 'var(--color-textMuted)' }}>
-                            <p>Size: {item.size}</p>
+                <div className="space-y-2">
+                  {cart.map((item, index) => {
+                    // Generate a unique gradient for each item based on index
+                    const gradients = [
+                      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+                      'linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)',
+                      'linear-gradient(135deg, #ff8a80 0%, #ea6100 100%)'
+                    ];
+                    const itemGradient = gradients[index % gradients.length];
+                    
+                    return (
+                      <div
+                        key={item._id}
+                        className={`rounded-xl p-2 transition-all duration-300 border border-gray-600/30 ${
+                          isRemoving === item._id ? 'opacity-50 scale-95' : 'hover:shadow-lg hover:shadow-black/10'
+                        }`}
+                        style={{ 
+                          backgroundColor: 'var(--color-surfaceHover)',
+                          borderColor: isRemoving === item._id ? 'var(--color-error)' : 'var(--color-border)'
+                        }}
+                      >
+                        <div className="flex gap-4">
+                          {/* Enhanced Product Image */}
+                          <div 
+                            className="w-20 h-24 rounded-xl overflow-hidden flex-shrink-0 shadow-lg"
+                            style={{ 
+                              background: item.isCustom ? itemGradient : 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
+                            }}
+                          >
+                            <div className="w-full h-full p-1">
+                              {item.isCustom && item.customization ? (
+                                <div className="w-full h-full  rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
+                                  <CartTShirtPreview
+                                    design={null}
+                                    color={item.color}
+                                    image={null}
+                                    customization={{
+                                      frontDesign: item.customization.frontDesign ? {
+                                        designImage: item.customization.frontDesign.designImage,
+                                        position: item.customization.frontDesign.position
+                                      } : undefined,
+                                      backDesign: item.customization.backDesign ? {
+                                        designImage: item.customization.backDesign.designImage,
+                                        position: item.customization.backDesign.position
+                                      } : undefined
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="w-full h-full rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
+                                  <img
+                                    src={getProductImage(item)}
+                                    alt={item.name}
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
+                                    }}
+                                  />
+                                </div>
+                              )}
+                            </div>
                             {item.isCustom && (
-                              <p className="text-xs" style={{ color: 'var(--color-primary)' }}>Custom Design</p>
+                              <div className="absolute top-1 right-1">
+                                <div className="w-3 h-3 rounded-full bg-yellow-400 border border-white shadow-sm"></div>
+                              </div>
                             )}
                           </div>
-                        </div>
 
-                        {/* Price with Optional MRP Display */}
-                        <div className="text-right">
-                          <div className="space-y-1">
-                            <p className="font-bold" style={{ color: 'var(--color-primary)' }}>
-                              ₹{item.price.toLocaleString('en-IN')}
-                            </p>
-                            {(item as any).mrp && (item as any).mrp > item.price && (
-                              <>
-                                <p className="text-xs line-through opacity-60" style={{ color: 'var(--color-textMuted)' }}>
-                                  ₹{((item as any).mrp).toLocaleString('en-IN')}
-                                </p>
-                                <p className="text-xs text-green-600 font-medium">
-                                  Save ₹{((item as any).mrp - item.price).toLocaleString('en-IN')}
-                                </p>
-                              </>
-                            )}
-                            {/* Show price per item if quantity > 1 */}
-                            {item.quantity > 1 && (
-                              <p className="text-xs" style={{ color: 'var(--color-textMuted)' }}>
-                                ₹{item.price} each
+                          {/* Enhanced Product Details */}
+                          <div className="flex-1 flex flex-col justify-between">
+                            <div>
+                              <h3 className="font-semibold text-base leading-tight mb-1" style={{ color: 'var(--color-text)' }}>
+                                {item.name}
+                              </h3>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm" style={{ color: 'var(--color-textMuted)' }}>
+                                <span className="flex items-center gap-1">
+                                  <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                                  Size: {item.size}
+                                </span>
+                                {item.isCustom && item.color && (
+                                  <span className="flex items-center gap-1">
+                                    <span className="w-1 h-1 rounded-full bg-gray-400"></span>
+                                    Color: {getColorName(item.color)}
+                                  </span>
+                                )}
+                              </div>
+                           
+                            </div>
+
+                            {/* Quantity Controls - Improved */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                <button
+                                  onClick={() => handleQuantityUpdate(item._id!, item.quantity - 1)}
+                                  disabled={isUpdating === item._id || item.quantity <= 1}
+                                  className="w-6 h-6 rounded-lg flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+                                  style={{ 
+                                    backgroundColor: 'var(--color-border)', 
+                                    color: 'var(--color-text)',
+                                    border: '1px solid var(--color-borderHover)'
+                                  }}
+                                  onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--color-borderHover)')}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
+                                >
+                                  {isUpdating === item._id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Minus className="w-4 h-4" />
+                                  )}
+                                </button>
+                                <span className="w-4 text-center font-semibold text-md" style={{ color: 'var(--color-text)' }}>
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() => handleQuantityUpdate(item._id!, item.quantity + 1)}
+                                  disabled={isUpdating === item._id}
+                                  className="w-6 h-6 rounded-lg flex items-center justify-center transition-all disabled:opacity-50 shadow-sm"
+                                  style={{ 
+                                    backgroundColor: 'var(--color-border)', 
+                                    color: 'var(--color-text)',
+                                    border: '1px solid var(--color-borderHover)'
+                                  }}
+                                  onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--color-borderHover)')}
+                                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
+                                >
+                                  {isUpdating === item._id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Plus className="w-4 h-4" />
+                                  )}
+                                </button>
+                              </div>
+                              
+                              <button
+                                onClick={() => handleRemoveItem(item._id!)}
+                                disabled={isRemoving === item._id}
+                                className="p-2 rounded-lg transition-all disabled:opacity-50 hover:bg-red-500/10"
+                                style={{ color: 'var(--color-textMuted)' }}
+                                onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.color = 'var(--color-error)')}
+                                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
+                              >
+                                {isRemoving === item._id ? (
+                                  <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-5 h-5" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Enhanced Price Section */}
+                          <div className="text-right">
+                            <div className="space-y-1">
+                              <p className="font-bold text-lg" style={{ color: 'var(--color-primary)' }}>
+                                ₹{(item.price * item.quantity).toLocaleString('en-IN')}
                               </p>
-                            )}
+                              {(item as any).mrp && (item as any).mrp > item.price && (
+                                <>
+                                  <p className="text-xs line-through opacity-60" style={{ color: 'var(--color-textMuted)' }}>
+                                    ₹{(((item as any).mrp) * item.quantity).toLocaleString('en-IN')}
+                                  </p>
+                                  <p className="text-xs text-green-500 font-medium">
+                                    Save ₹{(((item as any).mrp - item.price) * item.quantity).toLocaleString('en-IN')}
+                                  </p>
+                                </>
+                              )}
+                              {item.quantity > 1 && (
+                                <p className="text-xs" style={{ color: 'var(--color-textMuted)' }}>
+                                  ₹{item.price} each
+                                </p>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-
-                      {/* Quantity Controls - Compact */}
-                      <div className="mt-3 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleQuantityUpdate(item._id!, item.quantity - 1)}
-                            disabled={isUpdating === item._id || item.quantity <= 1}
-                            className="p-1 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                            style={{ backgroundColor: 'var(--color-border)', color: 'var(--color-text)' }}
-                            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--color-borderHover)')}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-                          >
-                            {isUpdating === item._id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Minus className="w-4 h-4" />
-                            )}
-                          </button>
-                          <span className="w-8 text-center" style={{ color: 'var(--color-text)' }}>{item.quantity}</span>
-                          <button
-                            onClick={() => handleQuantityUpdate(item._id!, item.quantity + 1)}
-                            disabled={isUpdating === item._id}
-                            className="p-1 rounded transition-colors disabled:opacity-50"
-                            style={{ backgroundColor: 'var(--color-border)', color: 'var(--color-text)' }}
-                            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--color-borderHover)')}
-                            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--color-border)'}
-                          >
-                            {isUpdating === item._id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              <Plus className="w-4 h-4" />
-                            )}
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => handleRemoveItem(item._id!)}
-                          disabled={isRemoving === item._id}
-                          className="p-2 transition-colors disabled:opacity-50"
-                          style={{ color: 'var(--color-textMuted)' }}
-                          onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.color = 'var(--color-error)')}
-                          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
-                        >
-                          {isRemoving === item._id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -463,7 +516,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                 <div className="flex items-center justify-between p-3 rounded-lg" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
                   <div className="flex items-center gap-2">
                     <Gift className="w-4 h-4 text-green-600" />
-                    <span className="text-sm font-medium text-green-700">{percentage}% OFF Applied</span>
+                    <span className="text-sm font-medium text-green-700">{percentage}% OFF Applied At Checkout</span>
                   </div>
                   <span className="text-sm font-bold text-green-700">-₹{discount}</span>
                 </div>

@@ -24,6 +24,7 @@ import { useOrderHandler } from '../components/checkout/OrderHandler';
 import { getMockProductImage } from '../data/mockData';
 import CartTShirtPreview from '../components/CartTShirtPreview';
 import { API } from '../backend';
+import { getColorName } from '../utils/colorUtils';
 
 // Import all existing components
 import AddressSectionEnhanced from '../components/checkout/AddressSectionEnhanced';
@@ -889,6 +890,11 @@ const CheckoutSinglePage: React.FC = () => {
                         )}
                         <div className="flex gap-2 mt-1 text-xs text-gray-400">
                           {item.size && <span>Size: {item.size}</span>}
+                          {item.isCustom && item.color && (
+                            <span className="flex items-center gap-1">
+                              Color: {getColorName(item.color)}
+                            </span>
+                          )}
                         </div>
                         <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                       </div>

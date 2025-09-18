@@ -8,6 +8,7 @@ import { API } from '../backend';
 import CartTShirtPreview from '../components/CartTShirtPreview';
 import QuantityDiscountBanner from '../components/QuantityDiscountBanner';
 import FreeShippingProgress from '../components/FreeShippingProgress';
+import { getColorName } from '../utils/colorUtils';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
@@ -203,9 +204,9 @@ const Cart: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:py-8 py-4">
         {/* Page Header */}
-        <div className="mb-8">
+        <div className="md:mb-8 mb-4">
           <h1 className="text-3xl md:text-4xl font-bold">Shopping Cart</h1>
           <p className="text-gray-400 mt-2">{getItemCount()} items in your cart</p>
         </div>
@@ -226,13 +227,13 @@ const Cart: React.FC = () => {
               return (
                 <div
                   key={item._id}
-                  className={`bg-gray-800 rounded-xl p-4 md:p-6 border border-gray-700 transition-all ${
+                  className={`bg-gray-800 rounded-xl md:p-4 p-2 border border-gray-700 transition-all ${
                     isRemoving === item._id ? 'opacity-50 scale-95' : ''
                   }`}
                 >
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    {/* Product Image */}
-                    <div className="w-full sm:w-32 h-40 sm:h-32 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                    <div className="flex gap-4">
+                      {/* Product Image */}
+                      <div className="md:w-28 w-24 sm:w-32 h-30 md:h-28 sm:h-32 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
                       {isCustomDesign && item.customization ? (
                         <CartTShirtPreview
                           design={null}
@@ -271,6 +272,11 @@ const Cart: React.FC = () => {
                           )}
                           <div className="flex gap-4 mt-1 text-sm text-gray-400">
                             {item.size && <span>Size: {item.size}</span>}
+                            {item.isCustom && item.color && (
+                              <span className="flex items-center gap-1">
+                                Color: {getColorName(item.color)}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <button
@@ -288,7 +294,7 @@ const Cart: React.FC = () => {
                       </div>
 
                       {/* Price and Quantity */}
-                      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                      <div className="flex flex-col sm:flex-row sm:items-end justify-between md:gap-4 gap-2">
                         <div className="text-xl font-bold text-yellow-400">
                           ₹{item.price * item.quantity}
                           <span className="text-sm text-gray-400 ml-2">
@@ -309,7 +315,7 @@ const Cart: React.FC = () => {
                               <Minus className="w-4 h-4" />
                             )}
                           </button>
-                          <span className="w-12 text-center font-medium">{item.quantity}</span>
+                          <span className="md:w-12 w-6 text-center font-medium">{item.quantity}</span>
                           <button
                             onClick={() => handleQuantityUpdate(item._id!, item.quantity + 1)}
                             disabled={isUpdating === item._id || item.quantity >= 10}
