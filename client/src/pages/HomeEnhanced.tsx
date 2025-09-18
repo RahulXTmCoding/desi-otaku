@@ -516,7 +516,7 @@ const HomeEnhanced: React.FC = () => {
         <FashionScrollBanner />
 
         {/* Newly Launched Products */}
-        <section className="py-8" style={{ backgroundColor: 'var(--color-background)' }}>
+        <section className="md:py-8 pt-4" style={{ backgroundColor: 'var(--color-background)' }}>
           <div className="w-[96%] mx-auto">
             <ProductGrid
               title="Newly Launched"
