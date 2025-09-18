@@ -271,11 +271,6 @@ const Cart: React.FC = () => {
                           )}
                           <div className="flex gap-4 mt-1 text-sm text-gray-400">
                             {item.size && <span>Size: {item.size}</span>}
-                            {item.color && (
-                              <span className="flex items-center gap-1">
-                                Color: {item.color}
-                              </span>
-                            )}
                           </div>
                         </div>
                         <button

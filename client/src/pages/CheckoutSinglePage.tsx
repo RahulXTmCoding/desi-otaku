@@ -889,11 +889,6 @@ const CheckoutSinglePage: React.FC = () => {
                         )}
                         <div className="flex gap-2 mt-1 text-xs text-gray-400">
                           {item.size && <span>Size: {item.size}</span>}
-                          {item.color && (
-                            <span className="flex items-center gap-1">
-                              Color: {item.color}
-                            </span>
-                          )}
                         </div>
                         <p className="text-xs text-gray-400">Qty: {item.quantity}</p>
                       </div>

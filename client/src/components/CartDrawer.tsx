@@ -344,7 +344,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                           <h3 className="font-semibold mb-1" style={{ color: 'var(--color-text)' }}>{item.name}</h3>
                           <div className="text-sm space-y-1" style={{ color: 'var(--color-textMuted)' }}>
                             <p>Size: {item.size}</p>
-                            <p>Color: {item.color}</p>
                             {item.isCustom && (
                               <p className="text-xs" style={{ color: 'var(--color-primary)' }}>Custom Design</p>
                             )}
