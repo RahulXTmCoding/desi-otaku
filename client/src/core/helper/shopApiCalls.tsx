@@ -13,6 +13,7 @@ export const getFilteredProducts = async (filters: {
   sortOrder?: string;
   page?: number;
   limit?: number;
+  excludeFeatured?: boolean;
 }) => {
   try {
     // Build query string
@@ -31,6 +32,7 @@ export const getFilteredProducts = async (filters: {
     if (filters.sortOrder) queryParams.append('sortOrder', filters.sortOrder);
     if (filters.page) queryParams.append('page', filters.page.toString());
     if (filters.limit) queryParams.append('limit', filters.limit.toString());
+    if (filters.excludeFeatured) queryParams.append('excludeFeatured', 'true');
 
     const response = await fetch(`${API}/products/filtered?${queryParams}`, {
       method: "GET",
@@ -41,7 +43,6 @@ export const getFilteredProducts = async (filters: {
 
     return response.json();
   } catch (err) {
-    console.log(err);
     return { error: "Failed to fetch products" };
   }
 };
@@ -57,7 +58,6 @@ export const getSimilarProducts = async (productId: string, limit: number = 4) =
     
     return data;
   } catch (err) {
-    console.log('getSimilarProducts error:', err);
     return { error: err instanceof Error ? err.message : 'Failed to fetch similar products' };
   }
 };

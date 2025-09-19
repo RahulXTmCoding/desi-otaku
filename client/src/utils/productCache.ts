@@ -17,7 +17,6 @@ class ProductCache {
       expires: now + this.TTL
     });
     if (import.meta.env.DEV) {
-      console.log(`Product ${productId} cached at ${new Date(now).toISOString()}`);
     }
   }
 
@@ -25,7 +24,6 @@ class ProductCache {
     const cached = this.cache.get(productId);
     if (!cached) {
       if (import.meta.env.DEV) {
-        console.log(`Product ${productId} not in cache`);
       }
       return null;
     }
@@ -33,7 +31,6 @@ class ProductCache {
     const now = Date.now();
     if (now > cached.expires) {
       if (import.meta.env.DEV) {
-        console.log(`Product ${productId} cache expired`);
       }
       this.cache.delete(productId);
       return null;
@@ -41,7 +38,6 @@ class ProductCache {
 
     const age = (now - cached.timestamp) / 1000;
     if (import.meta.env.DEV) {
-      console.log(`Product ${productId} served from cache (${age.toFixed(1)}s old)`);
     }
     return cached.data;
   }
@@ -49,7 +45,6 @@ class ProductCache {
   clear(): void {
     this.cache.clear();
     if (import.meta.env.DEV) {
-      console.log('Product cache cleared');
     }
   }
 

@@ -37,7 +37,6 @@ class AttributionManager {
       }
 
       if (this.config.debug_mode && this.config.console_logging) {
-        console.log('Attribution Manager initialized:', this.currentAttribution);
       }
     } catch (error) {
       console.error('Attribution Manager initialization failed:', error);
@@ -217,7 +216,6 @@ class AttributionManager {
     this.saveAttributionToStorage();
     
     if (this.config.debug_mode && this.config.console_logging) {
-      console.log('Attribution updated:', this.currentAttribution);
     }
   }
 
@@ -373,7 +371,6 @@ class AttributionManager {
     }
     
     if (this.config.debug_mode && this.config.console_logging) {
-      console.log('Attribution cleared');
     }
   }
 
@@ -382,7 +379,6 @@ class AttributionManager {
     this.config = { ...this.config, ...newConfig };
     
     if (this.config.debug_mode && this.config.console_logging) {
-      console.log('Attribution config updated:', this.config);
     }
   }
 

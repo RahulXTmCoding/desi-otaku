@@ -23,7 +23,6 @@ class PDFGenerator {
     } = options;
 
     try {
-      console.log('🔄 Generating PDF download using jsPDF + html2canvas...');
 
       // Dynamic import for dependencies
       const [{ default: jsPDF }, { default: html2canvas }] = await Promise.all([
@@ -95,7 +94,6 @@ class PDFGenerator {
         throw new Error('Could not access iframe content');
       }
 
-      console.log('📄 Iframe content loaded, generating canvas...');
 
       // Convert iframe content to canvas with better options
       const canvas = await html2canvas(iframeBody, {
@@ -109,12 +107,6 @@ class PDFGenerator {
         height: iframeBody.scrollHeight,
         windowWidth: 794, // A4 width in pixels
         windowHeight: 1123 // A4 height in pixels
-      });
-
-      console.log('🖼️ Canvas generated:', {
-        width: canvas.width,
-        height: canvas.height,
-        dataURL: canvas.toDataURL('image/png').substring(0, 100) + '...'
       });
 
       // Check if canvas has content
@@ -173,7 +165,6 @@ class PDFGenerator {
       // Clean up
       document.body.removeChild(iframe);
 
-      console.log('✅ PDF downloaded successfully:', filename);
 
     } catch (error) {
       console.error('❌ PDF generation failed:', error);
@@ -192,7 +183,6 @@ class PDFGenerator {
     const { filename = 'invoice.pdf' } = options;
 
     try {
-      console.log('🔄 Using browser print-to-PDF fallback...');
 
       // Check if browser supports print-to-PDF
       if (!window.print) {
@@ -259,7 +249,6 @@ class PDFGenerator {
       
       printWindow.document.close();
 
-      console.log('✅ Print dialog opened for PDF generation');
 
     } catch (error) {
       console.error('❌ Print fallback failed:', error);
@@ -275,7 +264,6 @@ class PDFGenerator {
     filename?: string
   ): Promise<void> {
     try {
-      console.log('🔄 Fetching invoice HTML from server...');
 
       const response = await fetch(invoiceUrl);
       
@@ -299,7 +287,6 @@ class PDFGenerator {
         throw new Error('Invalid invoice content received from server');
       }
 
-      console.log('✅ Invoice HTML fetched successfully');
 
       // Convert to PDF using primary method
       await this.downloadHTMLAsPDF(htmlContent, {
@@ -331,7 +318,6 @@ class PDFGenerator {
       // Try primary method (jsPDF + html2canvas)
       await this.downloadHTMLAsPDF(htmlContent, options);
     } catch (error) {
-      console.log('⚠️ Primary PDF method failed, trying fallback...');
       try {
         // Fallback to browser print-to-PDF
         await this.downloadHTMLAsPDFPrint(htmlContent, options);

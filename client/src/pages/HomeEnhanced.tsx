@@ -12,7 +12,7 @@ import ProgressiveBanner from '../components/ProgressiveBanner';
 import FashionScrollBanner from '../components/FashionScrollBanner';
 import { useCart } from '../context/CartContext';
 import { useThemeClasses } from '../hooks/useThemeClasses';
-import { useFilteredProducts } from '../hooks/useProducts';
+import { useFilteredProducts, useFeaturedProducts } from '../hooks/useProducts';
 import { getCategories } from '../core/helper/coreapicalls';
 import { API } from '../backend';
 import { useDevMode } from '../context/DevModeContext';
@@ -87,8 +87,12 @@ const HomeEnhanced: React.FC = () => {
   const newProductsQuery = useFilteredProducts({
     sortBy: 'newest', 
     sortOrder: 'desc', 
-    limit: 8
+    limit: 8,
+    excludeFeatured: true // Exclude featured products to prevent duplication
   });
+
+  // Featured products query using React Query
+  const featuredProductsQuery = useFeaturedProducts(8);
 
   // Mock or real products
   const newProducts = useMemo(() => {
@@ -193,7 +197,7 @@ const HomeEnhanced: React.FC = () => {
     "dragon ball": "https://lh3.googleusercontent.com/pw/AP1GczP_MnjsBnaSYbj_sfV5IFfc59rT0k-_a5qDRUfTW5MAt9le3C7hQxV4xItIfSTQJUvV1KuPZo-Y2WUVVsuO-3YdZFqgoYIkfZDjYXUBj10lmHJl1v1kf-tgUJ1rVvgsdRwvHzuaT3yCvmPh-yND1alK=w735-h945-s-no-gm?authuser=0"
   };
 
-  // Load categories only (products are handled by React Query)
+  // Load categories
   useEffect(() => {
     loadCategories();
   }, [isTestMode]);
@@ -231,10 +235,10 @@ const HomeEnhanced: React.FC = () => {
           }
         }
       } catch (err) {
-        console.log('Error loading categories:', err);
       }
     }
   };
+
 
   const handleQuickView = (product: Product) => {
     setSelectedProduct(product);
@@ -285,7 +289,6 @@ const HomeEnhanced: React.FC = () => {
       }
       
       if (!randomDesign) {
-        console.log('No designs available');
         setIsGenerating(false);
         toast.error('No designs available');
         return;
@@ -344,12 +347,6 @@ const HomeEnhanced: React.FC = () => {
       const designName = `${randomSelection.position === 'front' ? 'Front' : 'Back'}: ${randomSelection.design.name}`;
       const designImageUrl = getDesignImageUrl(randomSelection.design);
       
-      console.log('🛒 Adding to cart:', {
-        design: randomSelection.design,
-        designImageUrl,
-        position: randomSelection.position,
-        designPosition: randomSelection.designPosition
-      });
       
       const cartItem = {
         name: `Custom T-Shirt - ${designName}`,
@@ -374,7 +371,6 @@ const HomeEnhanced: React.FC = () => {
         }
       };
 
-      console.log('🛒 Cart item:', cartItem);
       
       await addToCart(cartItem);
       setAddedToCart(true);
@@ -394,15 +390,12 @@ const HomeEnhanced: React.FC = () => {
   };
 
   const getDesignImageUrl = (design: any) => {
-    console.log('🖼️ Getting design image URL for:', design);
     
     if (design.imageUrl && (design.imageUrl.startsWith('http') || design.imageUrl.startsWith('data:'))) {
-      console.log('✅ Using design.imageUrl:', design.imageUrl);
       return design.imageUrl;
     }
     
     const apiImageUrl = `${API}/design/image/${design._id}`;
-    console.log('🔗 Using API image URL:', apiImageUrl);
     return apiImageUrl;
   };
 
@@ -488,12 +481,12 @@ const HomeEnhanced: React.FC = () => {
         {/* Most In Demand Categories */}
         <section className="py-8 sm:py-12 lg:py-16">
           <div className="w-[96%] mx-auto">
-              <div className="text-center mb-8 sm:mb-12 lg:mb-16">
-              <h2 className="text-3xl sm:text-3xl lg:text-5xl font-bold md:mb-6 mb-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+              <div className="text-center md:mb-8 mb-6 sm:mb-12 lg:mb-16">
+              <h2 className="md:text-3xl text-2xl sm:text-2xl lg:text-4xl font-bold md:mb-6 mb-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
                 OUR COLLECTION
               </h2>
               <div className="w-32 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-4"></div>
-              <p className="text-gray-400 text-xl max-w-3xl mx-auto leading-relaxed">
+              <p className="text-gray-400 md:text-xl text-lg max-w-3xl mx-auto leading-relaxed">
                 Explore our premium collection of carefully curated fashion pieces
               </p>
             </div>
@@ -515,26 +508,28 @@ const HomeEnhanced: React.FC = () => {
         {/* Fashion Scroll Banner */}
         <FashionScrollBanner />
 
-        {/* Newly Launched Products */}
-        <section className="md:py-8 pt-4" style={{ backgroundColor: 'var(--color-background)' }}>
-          <div className="w-[96%] mx-auto">
-            <ProductGrid
-              title="Newly Launched"
-              products={newProducts}
-              viewAllLink="/shop?sort=newest"
-              loading={loading}
-              onQuickView={handleQuickView}
-              maxItems={8}
-            />
-          </div>
-        </section>
+        
 
-         
+        {/* Featured Products */}
+        {featuredProductsQuery.data && featuredProductsQuery.data.length > 0 && (
+          <section className="pt-8" style={{ backgroundColor: 'var(--color-background)' }}>
+            <div className="w-[96%] mx-auto">
+              <ProductGrid
+                title="⭐ Featured Products"
+                products={featuredProductsQuery.data}
+                viewAllLink="/shop"
+                loading={featuredProductsQuery.isLoading}
+                onQuickView={handleQuickView}
+                maxItems={8}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Shop By Anime */}
         <section className="py-8 sm:py-12 lg:py-16" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="w-[96%] mx-auto">
-            <h2 className="text-3xl font-bold text-center mb-12">Shop By Anime</h2>
+            <h2 className="md:text-4xl text-2xl font-bold text-center md:mb-12 mb-6 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">Shop By Anime</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
               {animeCategories.length > 0 ? (
                 animeCategories.map((anime) => (
@@ -567,10 +562,24 @@ const HomeEnhanced: React.FC = () => {
           </div>
         </section>
 
-        <section className="py-2 sm:py-12 lg:py-0 pb-8 md:pb-0" style={{ backgroundColor: 'var(--color-surface)' }}>
+        {/* Newly Launched Products */}
+        <section className="md:pt-16 pt-8" style={{ backgroundColor: 'var(--color-background)' }}>
+          <div className="w-[96%] mx-auto">
+            <ProductGrid
+              title="Newly Launched"
+              products={newProducts}
+              viewAllLink="/shop?sort=newest"
+              loading={loading}
+              onQuickView={handleQuickView}
+              maxItems={8}
+            />
+          </div>
+        </section>
+
+        <section className="py-8 sm:py-12 lg:py-14 pb-8 md:pb-0" style={{ backgroundColor: 'var(--color-surface)' }}>
           <div className="w-[96%] mx-auto">
               <div className="text-center mb-8 sm:mb-12 lg:mb-16">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold md:mb-6 mb-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
+              <h2 className="text-2xl sm:text-2xl lg:text-4xl font-bold md:mb-6 mb-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
                 Explore Categories
               </h2>
               <div className="w-32 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-4"></div>

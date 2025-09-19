@@ -13,9 +13,7 @@ const Footer: React.FC = () => {
               <img src="/brand.png" alt="Attars Club Logo" className="w-32 object-contain logo-adaptive" />
             </div>
           </div>
-          <p className="text-gray-400 text-sm">
-            Your one-stop shop for premium fashion and contemporary designs.
-          </p>
+          
         </div>
 
         {/* Mobile: 2 Columns, Desktop: 4 Columns */}

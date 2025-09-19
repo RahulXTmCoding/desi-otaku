@@ -3,10 +3,7 @@ import {
   Search, 
   Filter,
   X,
-  Grid,
-  List,
   ChevronDown,
-  ShoppingCart,
   ChevronLeft,
   ChevronRight,
   Loader
@@ -254,16 +251,6 @@ const ShopWithBackendFilters: React.FC = () => {
         shouldHaveMore = receivedProducts.length >= productsPerPage;
       }
       
-      console.log(`📊 Infinite scroll check - Page: ${currentPage}, Received: ${receivedProducts.length}, HasMore: ${shouldHaveMore}`);
-      if (pagination) {
-        console.log(`📊 Pagination info:`, {
-          totalProducts: pagination.totalProducts,
-          totalPages: pagination.totalPages,
-          hasMore: pagination.hasMore,
-          currentlyLoaded: currentPage === 1 ? receivedProducts.length : allProducts.length + receivedProducts.length
-        });
-      }
-      
       setHasMore(shouldHaveMore);
       setIsLoadingMore(false);
       
@@ -364,7 +351,6 @@ const ShopWithBackendFilters: React.FC = () => {
             setCategories(data);
           }
         })
-        .catch((err: any) => console.log(err));
     }
   };
 
@@ -376,7 +362,6 @@ const ShopWithBackendFilters: React.FC = () => {
           setProductTypes(types);
         }
       } catch (err) {
-        console.log('Error loading product types:', err);
       }
     }
   };
@@ -420,7 +405,6 @@ const ShopWithBackendFilters: React.FC = () => {
         // Double-check conditions before making request
         if (isLoadingRef.current || isLoadingMore || !hasMore || currentLoading || isFetching) return;
         
-        console.log(`🔄 Infinite scroll triggered at ${Math.round(scrollPercentage * 100)}% - loading next page`);
         
         // Set loading flags to prevent concurrent requests
         isLoadingRef.current = true;

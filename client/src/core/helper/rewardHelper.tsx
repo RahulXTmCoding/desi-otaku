@@ -36,7 +36,6 @@ export const getRewardBalance = (userId: string, token: string) => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get reward transaction history
@@ -49,7 +48,6 @@ export const getRewardHistory = (userId: string, token: string, page = 1, limit 
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Admin: Adjust user points
@@ -70,7 +68,6 @@ export const adjustUserPoints = (
     body: JSON.stringify({ userId: targetUserId, amount, reason })
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Admin: Toggle rewards system
@@ -85,7 +82,6 @@ export const toggleRewardsSystem = (userId: string, token: string, enabled: bool
     body: JSON.stringify({ enabled })
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Admin: Get rewards system status
@@ -98,7 +94,6 @@ export const getRewardsSystemStatus = (userId: string, token: string) => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Admin: Get all users' reward balances
@@ -117,7 +112,6 @@ export const getAllUsersRewards = (
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Format reward transaction type for display

@@ -144,7 +144,6 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
       const primaryImage = (product as any).images.find((img: any) => img.isPrimary);
        
       if (!primaryImage) {
-        console.log("No primary image found, using first image");
       }
       
       const imageToUse = primaryImage || (product as any).images[0];
@@ -503,13 +502,31 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
           {/* Product Info */}
           <div className="p-3 sm:p-4">
             <Link to={`/product/${product._id}`}>
-              <h3 className="font-semibold text-sm sm:text-lg mb-1 line-clamp-1 hover:text-yellow-400 transition-colors">
+              <h3 
+                className="font-semibold text-sm sm:text-lg mb-1 hover:text-yellow-400 transition-colors"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 1,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
                 {product.name}
               </h3>
             </Link>
             
             {product.description && (
-              <p className="text-gray-400 text-xs sm:text-sm mb-2 line-clamp-2 hidden md:block">
+              <p 
+                className="text-gray-400 text-xs sm:text-sm mb-2 hidden md:block"
+                style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
                 {product.description}
               </p>
             )}
@@ -598,7 +615,18 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
           </button>
 
           {/* Product Info */}
-          <h3 className="font-semibold text-sm sm:text-lg mb-1 sm:mb-2 line-clamp-1">{product.name}</h3>
+          <h3 
+            className="font-semibold text-sm sm:text-lg mb-1 sm:mb-2"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {product.name}
+          </h3>
           <p className="text-lg sm:text-2xl font-bold text-yellow-400 mb-2 sm:mb-4">₹{product.price}</p>
 
           {/* Size Selection */}

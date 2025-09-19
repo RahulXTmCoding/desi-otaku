@@ -33,7 +33,6 @@ export const signup = (user: User): Promise<AuthResponse> => {
       return response.json();
     })
     .catch(err => {
-      console.log(err);
       return { error: "Failed to connect to server" };
     });
 };
@@ -51,7 +50,6 @@ export const signin = (user: User): Promise<AuthResponse> => {
       return response.json();
     })
     .catch(err => {
-      console.log(err);
       return { error: "Failed to connect to server" };
     });
 };
@@ -72,8 +70,6 @@ export const signout = (next: () => void) => {
     return fetch(`${API}/signout`, {
       method: "GET"
     })
-      .then(response => console.log("signout success"))
-      .catch(err => console.log(err));
   }
 };
 
@@ -102,7 +98,6 @@ export const socialLogin = (provider: 'google' | 'facebook', response: any): Pro
       return response.json();
     })
     .catch(err => {
-      console.log(err);
       return { error: "Failed to connect to server" };
     });
 };

@@ -100,7 +100,6 @@ const ManageDesigns = () => {
           setCategories(data);
         }
       })
-      .catch((err) => console.log("Error loading categories:", err));
   };
 
   const loadDesigns = async () => {

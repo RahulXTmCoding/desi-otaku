@@ -24,6 +24,9 @@ const {
   removeProductImage,
   updateProductImage,
   getProductImages,
+  toggleFeatured,
+  getFeaturedProducts,
+  getTrendingProducts,
 } = require("../controllers/product");
 const { 
   getProductVariants, 
@@ -182,5 +185,20 @@ router.put(
   isAdmin,
   updateProductJson
 );
+
+// Featured Products Management Routes
+
+// Admin route to toggle featured status
+router.put(
+  "/product/:productId/toggle-featured/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  toggleFeatured
+);
+
+// Public routes for featured and trending products
+router.get("/products/featured", getFeaturedProducts);
+router.get("/products/trending", getTrendingProducts);
 
 module.exports = router;

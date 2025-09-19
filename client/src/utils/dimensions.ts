@@ -33,8 +33,6 @@ export const updateTshirtImageDimensions = (canvasWidth: number, canvasHeight: n
     y: canvasHeight / REAL_TSHIRT_SIZE_L_MM.height  // px/mm for height
   };
   
-  console.log(`Canvas/T-shirt size: ${canvasWidth}x${canvasHeight}px`);
-  console.log(`T-shirt scale factor: ${SCALE_FACTOR.x.toFixed(2)} px/mm (width), ${SCALE_FACTOR.y.toFixed(2)} px/mm (height)`);
   
   // Calculate print area based on real-world dimensions
   const printAreaWidth = REAL_TSHIRT_PRINT_AREA_MM.width * SCALE_FACTOR.x;
@@ -53,13 +51,6 @@ export const updateTshirtImageDimensions = (canvasWidth: number, canvasHeight: n
     offsetY: chestStartPx  // Position based on real measurements
   };
   
-  console.log(`=== PRINT AREA CALCULATIONS ===`);
-  console.log(`Canvas/T-shirt size: ${canvasWidth}x${canvasHeight}px`);
-  console.log(`Scale factor: ${SCALE_FACTOR.x.toFixed(2)} px/mm (width), ${SCALE_FACTOR.y.toFixed(2)} px/mm (height)`);
-  console.log(`Print area size in mm: ${REAL_TSHIRT_PRINT_AREA_MM.width}x${REAL_TSHIRT_PRINT_AREA_MM.height}mm`);
-  console.log(`Print area size in px: ${printAreaWidth.toFixed(0)}x${printAreaHeight.toFixed(0)}px`);
-  console.log(`Print area position: (${CANVAS_PRINT_AREA.offsetX.toFixed(0)}, ${CANVAS_PRINT_AREA.offsetY.toFixed(0)})`);
-  console.log(`===============================`);
 };
 
 /**
@@ -98,7 +89,6 @@ export const getPrintAreaOnCanvas = (printSize: 'A4' | 'A3' | 'A2') => {
   const paperWidth = dimensions.width;
   const paperHeight = dimensions.height;
   
-  console.log(`Paper ${printSize}: ${dimensions.width}x${dimensions.height}mm displayed at actual size`);
   
   return {
     width: paperWidth * SCALE_FACTOR.x,   // mm * (px/mm) = px

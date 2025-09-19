@@ -84,6 +84,7 @@ const AddProduct = () => {
   const [imageInputType, setImageInputType] = useState<'file' | 'url'>('file');
   const [imageUrl, setImageUrl] = useState("");
   const [loadedImages, setLoadedImages] = useState<any[]>([]);
+  const [isFeatured, setIsFeatured] = useState(false);
 
   const {
     name,
@@ -157,9 +158,6 @@ const AddProduct = () => {
 
   // Comprehensive image URL generation logic (same as ProductGridItem)
   const getImageUrl = (imageData: any, index: number = 0): string => {
-    console.log("=== getImageUrl Debug ===");
-    console.log("Image data:", imageData);
-    console.log("Index:", index);
     
     // Handle different image data structures
     let imageUrl = '';
@@ -176,32 +174,25 @@ const AddProduct = () => {
       }
     }
     
-    console.log("Extracted imageUrl:", imageUrl);
     
     if (!imageUrl) {
-      console.log("No image URL found, returning placeholder");
       return '/placeholder.png';
     }
     
     // Handle different URL types
     if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-      console.log("Direct URL detected:", imageUrl);
       return imageUrl;
     } else if (imageUrl.startsWith('/api/')) {
       const processedUrl = `${import.meta.env.VITE_API_URL}${imageUrl.substring(4)}`;
-      console.log("API endpoint detected, processed to:", processedUrl);
       return processedUrl;
     } else if (imageUrl.startsWith('data:')) {
-      console.log("Base64 data URL detected");
       return imageUrl;
     } else if (imageUrl.startsWith('/')) {
       const processedUrl = `${import.meta.env.VITE_API_URL}${imageUrl}`;
-      console.log("Root path detected, processed to:", processedUrl);
       return processedUrl;
     } else {
       // Assume it's a relative path that needs API base
       const processedUrl = `${import.meta.env.VITE_API_URL}/${imageUrl}`;
-      console.log("Relative path detected, processed to:", processedUrl);
       return processedUrl;
     }
   };
@@ -225,16 +216,12 @@ const AddProduct = () => {
     const files = e.target.files;
     if (!files) return;
 
-    console.log("=== File Upload Debug ===");
-    console.log("Files selected:", files.length);
-    console.log("Current images count:", images.length);
 
     const fileArray = Array.from(files);
     const newImages: ImageItem[] = new Array(fileArray.length);
     let loadedCount = 0;
 
     fileArray.forEach((file, index) => {
-      console.log(`Reading file ${index + 1}:`, file.name);
       const reader = new FileReader();
       reader.onloadend = () => {
         // Check if there's already a primary image in the current state
@@ -250,14 +237,11 @@ const AddProduct = () => {
         };
         newImages[index] = newImage; // Preserve order
         loadedCount++;
-        console.log(`File ${index + 1} loaded. Total loaded: ${loadedCount}/${fileArray.length}`);
         
         // Once all files are loaded, update state once
         if (loadedCount === fileArray.length) {
-          console.log("All files loaded. Updating state with", newImages.length, "new images");
           setImages(prev => {
             const updated = [...prev, ...newImages];
-            console.log("Updated images state:", updated.length, "total images");
             return updated;
           });
         }
@@ -337,10 +321,6 @@ const AddProduct = () => {
         productData.primaryImageIndex = primaryIndex;
       }
       
-      console.log("=== Creating Product with JSON API ===");
-      console.log("Product data:", productData);
-      console.log("URL images:", urlImages.length);
-      console.log("File images:", fileImages.length);
       
       // Use the new JSON-based API
       const data = await createProductWithImages(
@@ -354,6 +334,26 @@ const AddProduct = () => {
       if (data.error) {
         setValues({ ...values, error: data.error, loading: false });
       } else {
+        // If featured toggle is enabled, set the product as featured
+        if (isFeatured && !isTestMode) {
+          try {
+            const featuredResponse = await fetch(`${import.meta.env.VITE_API_URL}/product/${data._id}/toggle-featured/${user._id}`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (!featuredResponse.ok) {
+              console.warn('Failed to set product as featured, but product created successfully');
+            }
+          } catch (featuredError) {
+            console.warn('Error setting featured status:', featuredError);
+            // Don't fail the whole operation for this
+          }
+        }
+        
         setValues({
           ...values,
           name: "",
@@ -369,6 +369,7 @@ const AddProduct = () => {
         });
         setImages([]);
         setSizeStock({ S: "0", M: "0", L: "0", XL: "0", XXL: "0" });
+        setIsFeatured(false); // Reset featured toggle
         // Reset hierarchical category state
         setSelectedMainCategory("");
         setAvailableSubcategories([]);
@@ -434,11 +435,9 @@ const AddProduct = () => {
                   testFormData.set("description", "Test Description");
                   
                   const fileImages = images.filter(img => img.file);
-                  console.log("Testing with", fileImages.length, "file images");
                   
                   fileImages.forEach((img, index) => {
                     if (img.file) {
-                      console.log(`Appending test image ${index + 1}:`, img.file.name);
                       testFormData.append("images", img.file);
                     }
                   });
@@ -449,7 +448,6 @@ const AddProduct = () => {
                       body: testFormData
                     });
                     const result = await response.json();
-                    console.log("Test server response:", result);
                     alert(`Test server received ${result.imageCount} images. Check console for details.`);
                   } catch (error) {
                     console.error("Test failed:", error);
@@ -492,23 +490,18 @@ const AddProduct = () => {
             {images.length > 0 && (
               <div className="grid grid-cols-3 gap-4 mb-4">
                 {images.map((img, index) => {
-                  console.log(`=== Image ${index + 1} Display Debug ===`);
-                  console.log("Image object:", img);
                   
                   // Use comprehensive URL logic for displaying images
                   let displayUrl = '';
                   if (img.file) {
                     // For file uploads, use the preview (base64)
                     displayUrl = img.preview;
-                    console.log("Using file preview:", displayUrl.substring(0, 50) + '...');
                   } else if (img.url) {
                     // For URL images, use the comprehensive URL logic
                     displayUrl = getImageUrl(img.url);
-                    console.log("Using comprehensive URL logic result:", displayUrl);
                   } else {
                     // Fallback to preview
                     displayUrl = img.preview || '/placeholder.png';
-                    console.log("Using fallback:", displayUrl);
                   }
                   
                   return (
@@ -518,7 +511,6 @@ const AddProduct = () => {
                         alt="Product" 
                         className="w-full h-32 object-cover rounded-lg"
                         onError={(e) => {
-                          console.log("Image failed to load:", displayUrl);
                           e.currentTarget.src = '/placeholder.png';
                         }}
                       />
@@ -825,7 +817,7 @@ const AddProduct = () => {
           </div>
 
           {/* Tags */}
-          <div className="mb-8">
+          <div className="mb-6">
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Tags (comma separated)
             </label>
@@ -840,6 +832,48 @@ const AddProduct = () => {
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">Tags help customers find this product when searching</p>
+          </div>
+
+          {/* Featured Product Toggle */}
+          <div className="mb-8">
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              Product Showcase
+            </label>
+            <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">⭐</div>
+                  <div>
+                    <h4 className="font-medium text-white">Featured Product</h4>
+                    <p className="text-sm text-gray-400">
+                      Featured products appear prominently on the home page
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFeatured(!isFeatured)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    isFeatured 
+                      ? 'bg-yellow-400' 
+                      : 'bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      isFeatured ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              {isFeatured && (
+                <div className="mt-3 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+                  <p className="text-sm text-yellow-400 font-medium">
+                    ✨ This product will be featured and appear on the home page
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Form Actions */}

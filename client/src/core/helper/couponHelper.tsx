@@ -10,7 +10,6 @@ export const getAllCoupons = (userId: string, token: string) => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Create coupon (Admin)
@@ -25,7 +24,6 @@ export const createCoupon = (userId: string, token: string, coupon: any) => {
     body: JSON.stringify(coupon)
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Update coupon (Admin)
@@ -40,7 +38,6 @@ export const updateCoupon = (couponId: string, userId: string, token: string, co
     body: JSON.stringify(coupon)
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Delete coupon (Admin)
@@ -53,7 +50,6 @@ export const deleteCoupon = (couponId: string, userId: string, token: string) =>
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get single coupon
@@ -66,7 +62,6 @@ export const getCoupon = (couponId: string, userId: string, token: string) => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Validate coupon
@@ -86,7 +81,6 @@ export const validateCoupon = (code: string, subtotal: number, token?: string) =
     body: JSON.stringify({ code, subtotal })
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get active coupons
@@ -98,7 +92,6 @@ export const getActiveCoupons = () => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get promotional coupons for homepage
@@ -110,7 +103,6 @@ export const getPromotionalCoupons = () => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get best auto-apply coupon
@@ -124,5 +116,4 @@ export const getBestAutoApplyCoupon = (subtotal: number, userId?: string) => {
     body: JSON.stringify({ subtotal, userId })
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };

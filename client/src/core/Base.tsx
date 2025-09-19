@@ -9,7 +9,7 @@ interface BaseProps {
 
 const Base: React.FC<BaseProps> = ({
   title = "My Title",
-  description = "My desription",
+  description = "",
   className = "bg-gray-900 text-white",
   children,
 }) => (

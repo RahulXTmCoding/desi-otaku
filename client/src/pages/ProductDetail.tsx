@@ -257,7 +257,6 @@ const ProductDetail: React.FC = () => {
   const saveSizePreference = (categoryName: string, size: string) => {
     try {
       localStorage.setItem(getSizePreferenceKey(categoryName), size);
-      console.log(`💾 Saved size preference: ${categoryName} -> ${size}`);
     } catch (error) {
       console.warn('Error saving size preference:', error);
     }
@@ -273,11 +272,9 @@ const ProductDetail: React.FC = () => {
         
         // First, try to use saved size preference for this category
         const savedSize = getSavedSizePreference(categoryName);
-        console.log(`🔍 Checking saved size preference for ${categoryName}:`, savedSize);
         
         // Check if saved size is available in stock
         if (savedSize && product.sizeStock[savedSize as keyof typeof product.sizeStock] > 0) {
-          console.log(`✅ Using saved size preference: ${savedSize}`);
           setSelectedSize(savedSize);
         } else {
           // Fallback to first available size
@@ -285,7 +282,6 @@ const ProductDetail: React.FC = () => {
             product.sizeStock && product.sizeStock[size as keyof typeof product.sizeStock] > 0
           );
           if (firstAvailableSize) {
-            console.log(`🔄 Using first available size: ${firstAvailableSize}`);
             setSelectedSize(firstAvailableSize);
           }
         }

@@ -129,13 +129,6 @@ export const useOrderHandler = ({
       // ✅ NEW: Show processing modal for COD orders too
       setShowProcessingModal(true);
       
-      // COD implementation for both authenticated and guest users
-      console.log('🎯 CREATING COD ORDER:', {
-        userType: isGuest ? 'guest' : 'authenticated',
-        cartItems: cart.length,
-        codVerified: codVerification?.otpVerified,
-        totalAmount
-      });
 
       if (!isTestMode && !codVerification?.otpVerified) {
         // ✅ Hide modal on error
@@ -180,7 +173,6 @@ export const useOrderHandler = ({
       
       try {
         if (isGuest) {
-          console.log('👤 Creating guest COD order...');
           
           const response = await fetch(`${API}/cod/order/guest/create`, {
             method: 'POST',
@@ -207,10 +199,8 @@ export const useOrderHandler = ({
           // ✅ CRITICAL FIX: Capture both flags from backend response
           autoAccountCreated = data.autoAccountCreated || false;
           existingAccountLinked = data.existingAccountLinked || false;
-          console.log('✅ Guest COD order created successfully:', orderResult._id, 'autoAccountCreated:', autoAccountCreated, 'existingAccountLinked:', existingAccountLinked);
           
         } else {
-          console.log('🔐 Creating authenticated user COD order...');
           
           const response = await fetch(`${API}/cod/order/create`, {
             method: 'POST',
@@ -230,11 +220,9 @@ export const useOrderHandler = ({
           orderResult = data.order;
           // For authenticated users, auto account creation doesn't apply
           autoAccountCreated = false;
-          console.log('✅ Authenticated COD order created successfully:', orderResult._id);
         }
 
         // ✅ SUCCESS: COD Order created successfully, store navigation data for modal completion
-        console.log('🎉 COD ORDER CREATION SUCCESSFUL - PREPARING NAVIGATION');
         
         const navigationState = {
           orderId: orderResult._id,
@@ -275,9 +263,7 @@ export const useOrderHandler = ({
         
         // Clear cart after successful order processing (but before navigation)
         if (!isBuyNow) {
-          clearCart()
-            .then(() => console.log('✅ Cart cleared after successful COD order'))
-            .catch((error) => console.error('Cart clear error (non-blocking):', error));
+          clearCart().catch((error) => console.error('Cart clear error (non-blocking):', error));
         }
         
       } catch (error: any) {
@@ -305,15 +291,6 @@ export const useOrderHandler = ({
         isCustom: item.isCustom,
         color: item.color
       }));
-
-      console.log('🎯 CREATING UNIFIED RAZORPAY ORDER:', {
-        userType: isGuest ? 'guest' : 'authenticated',
-        cartItems: cartItems.length,
-        couponCode: appliedDiscount.coupon?.code,
-        rewardPoints: isGuest ? null : appliedDiscount.rewardPoints?.points,
-        frontendAmount: totalAmount,
-        shippingCost: selectedShipping?.rate
-      });
 
       // ✅ SINGLE API CALL - Auto-detects user type based on auth header
       const headers: Record<string, string> = {
@@ -367,11 +344,6 @@ export const useOrderHandler = ({
         throw new Error(orderResponse.error);
       }
       
-      console.log('🎯 About to initialize Razorpay checkout with:', {
-        order_id: orderResponse.order.id,
-        amount: orderResponse.order.amount,
-        key_id: orderResponse.key_id
-      });
       
       initializeRazorpayCheckout(
         {
@@ -391,13 +363,11 @@ export const useOrderHandler = ({
           }
         },
         async (paymentData: any) => {
-          console.log('🎯 PAYMENT SUCCESS CALLBACK TRIGGERED:', paymentData);
           
           // ✅ NEW: Show processing modal immediately after successful payment
           setShowProcessingModal(true);
           
           // ✅ CRITICAL FIX: Wait for order creation to complete BEFORE navigating
-          console.log('🔄 PROCESSING ORDER CREATION...');
           
           try {
             // ✅ FIXED: Let backend calculate all discounts - don't duplicate logic
@@ -438,7 +408,6 @@ export const useOrderHandler = ({
             let guestExistingAccountLinked = false; // ✅ CRITICAL FIX: Declare variable in proper scope
             
             if (isGuest) {
-              console.log('👤 Creating guest order...');
               
               // Step 1: Verify payment
               const verifyResponse = await fetch(`${API}/razorpay/payment/guest/verify`, {
@@ -455,7 +424,6 @@ export const useOrderHandler = ({
                 throw new Error(`Payment verification failed: ${verifyData.error || 'Unknown error'}`);
               }
               
-              console.log('✅ Guest payment verified');
               
               // Step 2: Create order
               const orderResponse = await fetch(`${API}/guest/order/create`, {
@@ -483,10 +451,8 @@ export const useOrderHandler = ({
               // ✅ CRITICAL FIX: Capture both flags for Razorpay guest orders too
               guestAutoAccountCreated = orderCreateData.autoAccountCreated || false;
               guestExistingAccountLinked = orderCreateData.existingAccountLinked || false;
-              console.log('✅ Guest order created successfully:', orderResult._id, 'autoAccountCreated:', guestAutoAccountCreated, 'existingAccountLinked:', guestExistingAccountLinked);
               
             } else {
-              console.log('🔐 Creating authenticated user order...');
               
               // Step 1: Verify payment
               const verifyResponse = await fetch(`${API}/razorpay/payment/verify/${(auth as any).user._id}`, {
@@ -504,7 +470,6 @@ export const useOrderHandler = ({
                 throw new Error(`Payment verification failed: ${verifyData.error || 'Unknown error'}`);
               }
               
-              console.log('✅ Authenticated payment verified');
               
               // Step 2: Create order
               const createOrderResult = await createOrder((auth as any).user._id, (auth as any).token, orderData);
@@ -513,11 +478,9 @@ export const useOrderHandler = ({
               }
               
               orderResult = createOrderResult;
-              console.log('✅ Authenticated order created successfully:', orderResult._id);
             }
             
             // ✅ SUCCESS: Order created successfully, store navigation data for modal completion
-            console.log('🎉 ORDER CREATION SUCCESSFUL - PREPARING NAVIGATION');
             
             // ✅ FIXED: Get final discount data from the created order or calculate it
             const serverSubtotal = orderResult.originalAmount || getTotalAmount();
@@ -569,7 +532,6 @@ export const useOrderHandler = ({
             // Clear cart after successful order processing (but before navigation)
             if (!isBuyNow) {
               clearCart()
-                .then(() => console.log('✅ Cart cleared after successful order'))
                 .catch((error) => console.error('Cart clear error (non-blocking):', error));
             }
             
@@ -598,14 +560,9 @@ export const useOrderHandler = ({
   };
 
   const handleModalComplete = () => {
-    console.log('🎯 MODAL COMPLETE TRIGGERED');
-    console.log('🎯 PENDING NAVIGATION AT MODAL COMPLETE:', pendingNavigation);
     setShowProcessingModal(false);
     setIsProcessingComplete(false); // ✅ Reset for next use
     if (pendingNavigation) {
-      console.log('✅ Navigating to order confirmation with pending navigation');
-      console.log('🎯 NAVIGATION PATH:', pendingNavigation.path);
-      console.log('🎯 NAVIGATION STATE KEYS:', Object.keys(pendingNavigation.state || {}));
       navigate(pendingNavigation.path, { state: pendingNavigation.state, replace: true  });
       setPendingNavigation(null);
     } else {

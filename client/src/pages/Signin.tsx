@@ -40,7 +40,6 @@ const Signin = () => {
           });
         }
       })
-      .catch(() => console.log("signin request failed"));
   };
 
   const performRedirect = () => {
@@ -140,7 +139,6 @@ const Signin = () => {
               <GoogleLogin
                 onSuccess={responseGoogle}
                 onError={() => {
-                  console.log('Login Failed');
                 }}
               />
             </GoogleOAuthProvider>

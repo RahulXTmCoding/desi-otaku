@@ -216,15 +216,12 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
             }}
             onError={(e) => {
               const target = e.target as HTMLImageElement;
-              console.log('Image failed to load:', target.src);
-              console.log('Design object:', design);
               // Try alternative sources
               if (!target.dataset.triedAlternatives) {
                 target.dataset.triedAlternatives = 'true';
                 
                 // If we have an imageUrl that's different from current src, try it
                 if (design.imageUrl && !target.src.includes(design.imageUrl)) {
-                  console.log('Trying imageUrl:', design.imageUrl);
                   target.src = design.imageUrl;
                   return;
                 }
@@ -232,7 +229,6 @@ const RealTShirtPreview: React.FC<RealTShirtPreviewProps> = ({
                 // If current src doesn't have /api/design/image/, try that
                 if (!target.src.includes('/design/image/')) {
                   const apiUrl = `${API}/design/image/${design._id}`;
-                  console.log('Trying API URL:', apiUrl);
                   target.src = apiUrl;
                   return;
                 }

@@ -33,12 +33,6 @@ class SessionTracker {
       // Load or create customer journey
       this.loadCustomerJourney();
       
-      if (this.debug) {
-        console.log('Session tracker initialized:', {
-          session: this.currentSession,
-          journey: this.currentJourney
-        });
-      }
     } catch (error) {
       console.error('Session tracker initialization failed:', error);
       this.startNewSession();
@@ -61,9 +55,6 @@ class SessionTracker {
     
     this.saveCurrentSession();
     
-    if (this.debug) {
-      console.log('New session started:', this.currentSession);
-    }
   }
 
   // Get attribution data for new session
@@ -226,10 +217,6 @@ class SessionTracker {
     
     // Update customer journey
     this.updateCustomerJourney();
-
-    if (this.debug) {
-      console.log('Page visit tracked:', pageVisit);
-    }
   }
 
   // Track attributed event
@@ -263,9 +250,6 @@ class SessionTracker {
     // Update customer journey
     this.updateCustomerJourney();
 
-    if (this.debug) {
-      console.log('Event tracked:', attributedEvent);
-    }
   }
 
   // Check if event is a conversion event
@@ -317,9 +301,6 @@ class SessionTracker {
       this.currentJourney.customer_id = customerId;
       this.saveCustomerJourney();
       
-      if (this.debug) {
-        console.log('Customer ID set:', customerId);
-      }
     }
   }
 
@@ -374,9 +355,6 @@ class SessionTracker {
       this.saveCurrentSession();
       this.updateCustomerJourney();
       
-      if (this.debug) {
-        console.log('Session ended:', this.currentSession);
-      }
     }
   }
 
@@ -389,9 +367,6 @@ class SessionTracker {
       this.currentSession = null;
       this.currentJourney = null;
       
-      if (this.debug) {
-        console.log('All tracking data cleared');
-      }
     } catch (error) {
       console.error('Failed to clear tracking data:', error);
     }

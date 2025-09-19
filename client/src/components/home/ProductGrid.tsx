@@ -67,7 +67,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   return (
     <div className="mb-8 sm:mb-12 lg:mb-16">
       {/* Enhanced Section Header */}
-      <div className="text-center mb-12">
+      <div className="text-center md:mb-12 mb-6">
         <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
           {title}
         </h2>

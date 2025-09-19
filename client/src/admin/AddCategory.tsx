@@ -50,7 +50,6 @@ const AddCategory = () => {
           setMainCategories(data);
         }
       } catch (err) {
-        console.log("Error loading categories:", err);
       }
     }
   };

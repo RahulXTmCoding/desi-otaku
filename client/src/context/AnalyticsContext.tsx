@@ -95,7 +95,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
   useEffect(() => {
     if (!config.enabled) {
       if (config.debug) {
-        console.log('Analytics: Disabled via configuration');
       }
       return;
     }
@@ -105,7 +104,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       if (config.metaPixelId && config.metaPixelId !== 'your_meta_pixel_id_here') {
         initializeMetaPixel(config.metaPixelId, config.debug);
         if (config.debug) {
-          console.log('Analytics: Meta Pixel initialized');
         }
       }
 
@@ -113,7 +111,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       if (config.ga4MeasurementId && config.ga4MeasurementId !== 'your_ga4_measurement_id_here') {
         initializeGA4(config.ga4MeasurementId, config.googleAdsConversionId, config.debug);
         if (config.debug) {
-          console.log('Analytics: GA4 initialized');
         }
       }
 
@@ -136,7 +133,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       initializeEnhancedAnalytics(config.debug);
 
       if (config.debug) {
-        console.log('Analytics: Attribution system, session tracking, and enhanced analytics initialized');
       }
 
       setIsInitialized(true);
@@ -168,7 +164,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Page view tracked', { pagePath, pageTitle });
       }
     } catch (error) {
       console.error('Analytics: Page view tracking failed:', error);
@@ -225,7 +220,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Product view tracked', productData);
       }
     } catch (error) {
       console.error('Analytics: Product view tracking failed:', error);
@@ -292,7 +286,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Add to cart tracked', cartItem);
       }
     } catch (error) {
       console.error('Analytics: Add to cart tracking failed:', error);
@@ -350,7 +343,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Remove from cart tracked', cartItem);
       }
     } catch (error) {
       console.error('Analytics: Remove from cart tracking failed:', error);
@@ -392,7 +384,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: View cart tracked', { totalValue, itemCount: cartItems.length });
       }
     } catch (error) {
       console.error('Analytics: View cart tracking failed:', error);
@@ -466,7 +457,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Begin checkout tracked', { totalValue, itemCount: cartItems.length, coupon });
       }
     } catch (error) {
       console.error('Analytics: Begin checkout tracking failed:', error);
@@ -509,7 +499,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Add shipping info tracked', { totalValue, shippingTier });
       }
     } catch (error) {
       console.error('Analytics: Add shipping info tracking failed:', error);
@@ -552,7 +541,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Add payment info tracked', { totalValue, paymentType });
       }
     } catch (error) {
       console.error('Analytics: Add payment info tracking failed:', error);
@@ -637,7 +625,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Purchase tracked', purchaseData);
       }
     } catch (error) {
       console.error('Analytics: Purchase tracking failed:', error);
@@ -676,7 +663,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Sign up tracked', { method });
       }
     } catch (error) {
       console.error('Analytics: Sign up tracking failed:', error);
@@ -698,7 +684,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Login tracked', { method });
       }
     } catch (error) {
       console.error('Analytics: Login tracking failed:', error);
@@ -730,7 +715,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Search tracked', { searchTerm });
       }
     } catch (error) {
       console.error('Analytics: Search tracking failed:', error);
@@ -763,7 +747,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Start design tool tracked', { productId, sourcePage });
       }
     } catch (error) {
       console.error('Analytics: Start design tool tracking failed:', error);
@@ -799,7 +782,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Customize product tracked', { productId, designPosition, designType });
       }
     } catch (error) {
       console.error('Analytics: Customize product tracking failed:', error);
@@ -833,7 +815,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: Save design tracked', { productId, designComplexity, timeSpent });
       }
     } catch (error) {
       console.error('Analytics: Save design tracking failed:', error);
@@ -864,7 +845,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: User data set', userData);
       }
     } catch (error) {
       console.error('Analytics: Setting user data failed:', error);
@@ -892,7 +872,6 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
-        console.log('Analytics: User data cleared');
       }
     } catch (error) {
       console.error('Analytics: Clearing user data failed:', error);

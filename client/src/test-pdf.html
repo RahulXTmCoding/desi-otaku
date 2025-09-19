@@ -58,7 +58,6 @@
             statusDiv.textContent = message;
             statusDiv.style.backgroundColor = type === 'error' ? '#f8d7da' : type === 'success' ? '#d4edda' : '#d1ecf1';
             statusDiv.style.color = type === 'error' ? '#721c24' : type === 'success' ? '#155724' : '#0c5460';
-            console.log(`[${type.toUpperCase()}] ${message}`);
         }
 
         // Simplified PDF generation function for testing
@@ -102,7 +101,6 @@
                 if (response.ok) {
                     const htmlContent = await response.text();
                     showStatus(`✅ Invoice API responded with ${htmlContent.length} characters`, 'success');
-                    console.log('Invoice HTML preview:', htmlContent.substring(0, 500) + '...');
                 } else {
                     showStatus(`⚠️ Invoice API returned ${response.status}: ${response.statusText}`, 'error');
                 }

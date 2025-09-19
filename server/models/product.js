@@ -155,7 +155,19 @@ const productSchema = new Schema(
       type: String,
       trim: true,
       lowercase: true
-    }]
+    }],
+    
+    // Featured product flag for admin control
+    isFeatured: {
+      type: Boolean,
+      default: false
+    },
+    
+    // Featured date for tracking when product was featured
+    featuredAt: {
+      type: Date,
+      default: null
+    }
   },
   { timestamps: true }
 );
@@ -202,6 +214,7 @@ productSchema.index({
 productSchema.index({ isDeleted: 1, isActive: 1, subcategory: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, price: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, averageRating: -1 });
+productSchema.index({ isDeleted: 1, isActive: 1, isFeatured: -1, featuredAt: -1 }); // Featured products index
 productSchema.index({ name: "text", description: "text", tags: "text" });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ sold: -1 });

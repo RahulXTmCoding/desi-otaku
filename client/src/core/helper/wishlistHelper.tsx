@@ -46,7 +46,6 @@ export const addToWishlist = (userId: string, token: string, productId: string) 
     },
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Initialize mock wishlist from localStorage
@@ -84,7 +83,6 @@ export const removeFromWishlist = (userId: string, token: string, productId: str
     },
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get wishlist with pagination support
@@ -151,7 +149,6 @@ export const getWishlist = (userId: string, token: string, options?: { page?: nu
     },
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Check if product is in wishlist
@@ -172,7 +169,6 @@ export const isInWishlist = (userId: string, token: string, productId: string) =
     },
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get wishlist count
@@ -193,7 +189,6 @@ export const getWishlistCount = (userId: string, token: string) => {
     },
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Clear wishlist
@@ -217,7 +212,6 @@ export const clearWishlist = (userId: string, token: string) => {
     },
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Move to cart
@@ -231,7 +225,6 @@ export const moveToCart = (userId: string, token: string, productId: string) => 
     },
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Helper to toggle wishlist (add if not present, remove if present)
@@ -245,7 +238,6 @@ export const toggleWishlist = async (userId: string, token: string, productId: s
       return await addToWishlist(userId, token, productId);
     }
   } catch (err) {
-    console.log("Error toggling wishlist:", err);
     return { error: "Failed to update wishlist" };
   }
 };

@@ -27,7 +27,6 @@ export const getUserAddresses = async (userId: string, token: string) => {
     
     // If we get a 400 or 404, don't retry - just return empty array
     if (response.status === 400 || response.status === 404 || response.status === 401) {
-      console.log(`Address fetch failed with status ${response.status}`);
       return [];
     }
     
@@ -35,13 +34,11 @@ export const getUserAddresses = async (userId: string, token: string) => {
     
     // If response has error property, return empty array
     if (data.error) {
-      console.log('Address fetch error:', data.error);
       return [];
     }
     
     return data;
   } catch (err) {
-    console.log('Address fetch exception:', err);
     return [];
   }
 };
@@ -60,7 +57,6 @@ export const addUserAddress = async (userId: string, token: string, address: Add
     });
     return await response.json();
   } catch (err) {
-    console.log(err);
     return { error: "Failed to add address" };
   }
 };
@@ -84,7 +80,6 @@ export const updateUserAddress = async (
     });
     return await response.json();
   } catch (err) {
-    console.log(err);
     return { error: "Failed to update address" };
   }
 };
@@ -101,7 +96,6 @@ export const deleteUserAddress = async (userId: string, token: string, addressId
     });
     return await response.json();
   } catch (err) {
-    console.log(err);
     return { error: "Failed to delete address" };
   }
 };

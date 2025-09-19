@@ -345,12 +345,10 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
         const data = await response.json();
         
         if (response.ok && data.success) {
-          console.log('🔍 COD Bypass Status:', data.bypassEnabled ? 'ENABLED' : 'DISABLED');
           setBypassStatus({ bypassEnabled: data.bypassEnabled, checked: true });
           
           // If bypass is enabled and phone is available, auto-verify immediately
           if (data.bypassEnabled && customerPhone && !codVerification?.otpVerified && !codVerification?.loading) {
-            console.log('🔓 Auto-triggering bypass verification for', customerPhone);
             // Use setTimeout to ensure state updates are complete
             setTimeout(() => {
               handleBypassVerification();
@@ -416,12 +414,6 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
           loading: false,
           verificationToken: data.verificationToken,
           verifiedPhone: customerPhone,
-          bypassed: true
-        });
-        
-        console.log('✅ COD verification bypassed successfully:', {
-          token: data.verificationToken,
-          phone: customerPhone,
           bypassed: true
         });
       } else {
@@ -534,11 +526,6 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
             verifiedPhone: customerPhone
           });
           
-          console.log('✅ COD verification successful:', {
-            token: data.verificationToken,
-            phone: customerPhone,
-            expiresIn: data.expiresIn
-          });
           
           alert('Phone number verified successfully!');
         } else {

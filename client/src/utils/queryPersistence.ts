@@ -32,7 +32,6 @@ class QueryCachePersistence {
       existingCache[cacheKey] = entry;
       localStorage.setItem(CACHE_KEY, JSON.stringify(existingCache));
       
-      console.log(`💾 Persisted query: ${cacheKey}`);
     } catch (error) {
       console.warn('Failed to persist query cache:', error);
     }
@@ -48,19 +47,16 @@ class QueryCachePersistence {
       const entry = cache[cacheKey];
       
       if (!entry) {
-        console.log(`❌ No cached data for: ${cacheKey}`);
         return null;
       }
       
       // Check if entry has expired
       const age = Date.now() - entry.timestamp;
       if (age > CACHE_TTL) {
-        console.log(`⏰ Cache expired for: ${cacheKey} (${Math.round(age/1000)}s old)`);
         this.removeQuery(queryKey);
         return null;
       }
       
-      console.log(`✅ Serving cached data for: ${cacheKey} (${Math.round(age/1000)}s old)`);
       return entry.data;
     } catch (error) {
       console.warn('Failed to get cached query:', error);
@@ -88,7 +84,6 @@ class QueryCachePersistence {
     
     try {
       localStorage.removeItem(CACHE_KEY);
-      console.log('🗑️ Cleared all persisted cache');
     } catch (error) {
       console.warn('Failed to clear cache:', error);
     }
@@ -128,7 +123,6 @@ class QueryCachePersistence {
       
       if (cleaned > 0) {
         localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
-        console.log(`🧹 Cleaned ${cleaned} expired cache entries`);
       }
     } catch (error) {
       console.warn('Failed to cleanup cache:', error);

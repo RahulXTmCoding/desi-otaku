@@ -19,8 +19,6 @@ const OrderDetail = () => {
 
   useEffect(() => {
     renderCount.current += 1;
-    console.log(`OrderDetail Component Rendered: ${renderCount.current} times`);
-    console.log({
       loading,
       error,
       order,
@@ -31,9 +29,7 @@ const OrderDetail = () => {
 
   useEffect(() => {
     const fetchOrderDetail = async () => {
-      console.log("fetchOrderDetail called");
       if (!auth) {
-        console.log("No auth object, setting error.");
         setError("You must be logged in to view order details.");
         setLoading(false);
         return;
@@ -41,13 +37,11 @@ const OrderDetail = () => {
 
       const { user, token } = auth;
       if (!user || !token || !orderId) {
-        console.log("Missing user, token, or orderId.", { user, token, orderId });
         setError("Missing required information to fetch order.");
         setLoading(false);
         return;
       }
 
-      console.log(`Fetching order ${orderId} for user ${user._id}`);
       try {
         const response = await fetch(`${API}/order/${orderId}/${user._id}`, {
           method: "GET",
@@ -63,7 +57,6 @@ const OrderDetail = () => {
         }
 
         const data = await response.json();
-        console.log("Order data received:", data);
         setOrder(data);
       } catch (err) {
         setError(err.message);
@@ -208,25 +201,21 @@ const OrderDetail = () => {
                                       : product.photoUrl.startsWith('http') 
                                         ? product.photoUrl 
                                         : `${API}${product.photoUrl}`;
-                                    console.log('📸 OrderDetail - Using item photoUrl:', product.photoUrl, '-> Full URL:', imageUrl);
                                     return imageUrl;
                                   }
                                   
                                   // ✅ PRIORITY 2: Product object with _id
                                   if (product.product && typeof product.product === 'object' && product.product._id) {
                                     const imageUrl = `${API}/product/image/${product.product._id}/0`;
-                                    console.log('📸 OrderDetail - Using product object _id:', imageUrl);
                                     return imageUrl;
                                   }
                                   
                                   // ✅ PRIORITY 3: Product as string ID
                                   if (typeof product.product === 'string' && product.product) {
                                     const imageUrl = `${API}/product/image/${product.product}/0`;
-                                    console.log('📸 OrderDetail - Using product string ID:', imageUrl);
                                     return imageUrl;
                                   }
                                   
-                                  console.log('❌ OrderDetail - No image source found, using placeholder');
                                   return '/placeholder.png';
                                 })()} 
                                 alt={product.name} 

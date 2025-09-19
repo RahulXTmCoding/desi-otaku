@@ -21,6 +21,7 @@ interface FilteredProductsParams {
   sortOrder?: string;
   page?: number;
   limit?: number;
+  excludeFeatured?: boolean;
 }
 
 // Hook for fetching similar products with caching
@@ -41,25 +42,11 @@ export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
     queryFn: async () => {
-      if (import.meta.env.DEV) {
-        console.log(`🌐 HOME PAGE: API CALL INITIATED for products list`);
-      }
-      const startTime = Date.now();
       
       try {
         const data = await getProducts();
-        const endTime = Date.now();
-        if (import.meta.env.DEV) {
-          console.log(`✅ HOME PAGE: API CALL COMPLETED for products list (${endTime - startTime}ms)`);
-          console.log(`📦 HOME PAGE: ${data.length} products received`);
-          console.log(`💾 Saving to React Query cache for home page`);
-        }
         return data;
       } catch (error) {
-        const endTime = Date.now();
-        if (import.meta.env.DEV) {
-          console.log(`❌ HOME PAGE: API CALL FAILED for products list (${endTime - startTime}ms)`, error);
-        }
         throw error;
       }
     },
@@ -72,7 +59,6 @@ export const useProducts = () => {
     // Use cached data while fetching fresh in background
     placeholderData: (previousData) => {
       if (previousData && import.meta.env.DEV) {
-        console.log(`💾 HOME PAGE: PLACEHOLDER DATA used for products list`);
       }
       return previousData;
     },
@@ -93,39 +79,18 @@ export const useProduct = (productId: string) => {
   return useQuery({
     queryKey,
     queryFn: async () => {
-      if (import.meta.env.DEV) {
-        console.log(`🌐 API CALL INITIATED for product: ${productId}`);
-      }
-      const startTime = Date.now();
       
       try {
         const data = await getProduct(productId);
-        const endTime = Date.now();
-        
         // Check if product is newly launched (within last 7 days)
         const createdAt = new Date(data.createdAt);
         const now = new Date();
         const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
         const isNewlyLaunched = daysSinceCreation <= 7;
         
-        if (import.meta.env.DEV) {
-          console.log(`✅ API CALL COMPLETED for product: ${productId} (${endTime - startTime}ms)`);
-          console.log(`📦 Product data received:`, { 
-            id: data._id, 
-            name: data.name, 
-            isNewlyLaunched,
-            daysSinceCreation: Math.round(daysSinceCreation),
-            size: JSON.stringify(data).length + ' bytes' 
-          });
-          console.log(`💾 Cache TTL: ${isNewlyLaunched ? '2min/5min (new)' : '5min/10min (older)'}`);
-        }
         
         return data;
       } catch (error) {
-        const endTime = Date.now();
-        if (import.meta.env.DEV) {
-          console.log(`❌ API CALL FAILED for product: ${productId} (${endTime - startTime}ms)`, error);
-        }
         throw error;
       }
     },
@@ -141,7 +106,6 @@ export const useProduct = (productId: string) => {
     // Use cached data if available while fetching fresh in background
     placeholderData: (previousData) => {
       if (previousData && import.meta.env.DEV) {
-        console.log(`💾 PLACEHOLDER DATA used for product: ${productId}`);
       }
       return previousData;
     },
@@ -160,9 +124,6 @@ export const useProduct = (productId: string) => {
               if (JSON.stringify(query.queryKey) === queryHash && query.state.data) {
                 const cacheAge = Date.now() - query.state.dataUpdatedAt;
                 if (cacheAge < 30 * 60 * 1000) { // Within 30 minutes
-                  if (import.meta.env.DEV) {
-                    console.log(`🗄️ RESTORED from localStorage: product ${productId} (${Math.round(cacheAge/1000)}s old)`);
-                  }
                   return query.state.data;
                 }
               }
@@ -170,7 +131,6 @@ export const useProduct = (productId: string) => {
           }
         } catch (e) {
           if (import.meta.env.DEV) {
-            console.log('Failed to parse persisted cache:', e);
           }
         }
       }
@@ -210,7 +170,8 @@ export const useFilteredProducts = (params: FilteredProductsParams) => {
       sortBy: params.sortBy || 'newest',
       sortOrder: params.sortOrder || 'desc',
       page: params.page || 1,
-      limit: params.limit || 12
+      limit: params.limit || 12,
+      excludeFeatured: params.excludeFeatured || undefined
     };
 
     // Remove undefined values for cleaner cache key
@@ -270,7 +231,8 @@ export const usePrefetchFilteredProducts = () => {
         sortBy: params.sortBy || 'newest',
         sortOrder: params.sortOrder || 'desc',
         page: params.page || 1,
-        limit: params.limit || 12
+        limit: params.limit || 12,
+        excludeFeatured: params.excludeFeatured || undefined
       };
 
       const cleanParams = Object.fromEntries(
@@ -557,4 +519,108 @@ export const usePrefetchProductImages = () => {
   };
 
   return prefetchProductImages;
+};
+
+// Hook for fetching featured products with React Query caching
+export const useFeaturedProducts = (limit: number = 8) => {
+  return useQuery({
+    queryKey: ['featuredProducts', limit],
+    queryFn: async () => {
+      if (import.meta.env.DEV) {
+      }
+      const startTime = Date.now();
+      
+      try {
+        const response = await fetch(`${API}/products/featured?limit=${limit}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch featured products');
+        }
+        const data = await response.json();
+        const endTime = Date.now();
+        
+        if (import.meta.env.DEV) {
+        }
+        
+        return data.products || [];
+      } catch (error) {
+        const endTime = Date.now();
+        if (import.meta.env.DEV) {
+        }
+        // Return empty array instead of throwing to gracefully handle no featured products
+        return [];
+      }
+    },
+    staleTime: 3 * 60 * 1000, // 3 minutes (featured products should stay fresh)
+    gcTime: 10 * 60 * 1000, // 10 minutes max cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    // Use cached data while fetching fresh in background
+    placeholderData: (previousData) => {
+      if (previousData && import.meta.env.DEV) {
+      }
+      return previousData;
+    },
+    // Better structural sharing for featured product lists
+    structuralSharing: true,
+    // Add meta for debugging
+    meta: {
+      hookType: 'useFeaturedProducts',
+      purpose: 'homePageFeatured',
+      limit
+    }
+  });
+};
+
+// Hook for fetching trending products with React Query caching
+export const useTrendingProducts = (limit: number = 8) => {
+  return useQuery({
+    queryKey: ['trendingProducts', limit],
+    queryFn: async () => {
+      if (import.meta.env.DEV) {
+      }
+      const startTime = Date.now();
+      
+      try {
+        const response = await fetch(`${API}/products/trending?limit=${limit}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch trending products');
+        }
+        const data = await response.json();
+        const endTime = Date.now();
+        
+        if (import.meta.env.DEV) {
+        }
+        
+        return data.products || [];
+      } catch (error) {
+        const endTime = Date.now();
+        if (import.meta.env.DEV) {
+        }
+        // Return empty array instead of throwing to gracefully handle no trending products
+        return [];
+      }
+    },
+    staleTime: 2 * 60 * 1000, // 2 minutes (trending changes more frequently)
+    gcTime: 8 * 60 * 1000, // 8 minutes max cache
+    retry: 2,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchInterval: false,
+    // Use cached data while fetching fresh in background
+    placeholderData: (previousData) => {
+      if (previousData && import.meta.env.DEV) {
+      }
+      return previousData;
+    },
+    // Better structural sharing for trending product lists
+    structuralSharing: true,
+    // Add meta for debugging
+    meta: {
+      hookType: 'useTrendingProducts',
+      purpose: 'homePageTrending',
+      limit
+    }
+  });
 };

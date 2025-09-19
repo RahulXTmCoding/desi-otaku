@@ -166,7 +166,6 @@ const ManageCategories = () => {
       } else if (auth && auth.user && auth.token) {
         deleteCategory(categoryId, auth.user._id, auth.token).then((data: any) => {
           if (data.error) {
-            console.log(data.error);
           } else {
             preload();
           }

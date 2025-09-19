@@ -729,7 +729,8 @@ exports.getFilteredProducts = async (req, res) => {
       sortBy,
       sortOrder,
       page = 1,
-      limit = 12
+      limit = 12,
+      excludeFeatured
     } = req.query;
 
     // Create cache key for Redis caching
@@ -765,6 +766,12 @@ exports.getFilteredProducts = async (req, res) => {
       isDeleted: { $ne: true },
       isActive: { $ne: false }
     };
+
+    // Exclude featured products if requested (prevents duplication with featured section)
+    if (excludeFeatured === 'true') {
+      baseConditions.isFeatured = { $ne: true };
+      console.log('🆕 NEWLY LAUNCHED: Excluding featured products to prevent duplication');
+    }
 
     // === STEP 1: Apply Category Filters (Base Constraint) ===
     const mongoose = require("mongoose");
@@ -1790,6 +1797,283 @@ exports.getProductImages = (req, res) => {
   } catch (err) {
     return res.status(400).json({
       error: "Failed to get images",
+      details: err.message
+    });
+  }
+};
+
+// Featured Products Management
+
+// Toggle featured status of a product (Admin only)
+exports.toggleFeatured = async (req, res) => {
+  try {
+    // Check if user is admin
+    if (!req.profile || req.profile.role !== 1) {
+      return res.status(403).json({
+        error: "Access denied. Admin only."
+      });
+    }
+
+    const productId = req.params.productId;
+    const product = await Product.findById(productId);
+    
+    if (!product) {
+      return res.status(404).json({
+        error: "Product not found"
+      });
+    }
+
+    // Toggle featured status
+    product.isFeatured = !product.isFeatured;
+    product.featuredAt = product.isFeatured ? new Date() : null;
+    
+    await product.save();
+
+    // Clear featured products cache
+    try {
+      await redisService.connect();
+      const cacheKeys = [
+        'products:featured',
+        'products:trending',
+        `product:${product._id}`
+      ];
+      
+      for (const key of cacheKeys) {
+        await redisService.del(key);
+      }
+      console.log('🔄 Featured products cache cleared');
+    } catch (redisError) {
+      console.error('Redis cache clear failed:', redisError);
+    }
+
+    res.json({
+      success: true,
+      message: `Product ${product.isFeatured ? 'marked as featured' : 'removed from featured'}`,
+      product: {
+        _id: product._id,
+        name: product.name,
+        isFeatured: product.isFeatured,
+        featuredAt: product.featuredAt
+      }
+    });
+
+  } catch (err) {
+    console.error('Toggle featured error:', err);
+    return res.status(500).json({
+      error: "Failed to toggle featured status",
+      details: err.message
+    });
+  }
+};
+
+// Get featured products for home page
+exports.getFeaturedProducts = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 8;
+    const cacheKey = `products:featured:${limit}`;
+
+    // Try Redis cache first
+    try {
+      await redisService.connect();
+      const cachedFeatured = await redisService.get(cacheKey);
+      
+      if (cachedFeatured) {
+        console.log(`🔥 FEATURED CACHE HIT: ${limit} products`);
+        return res.json({
+          ...cachedFeatured,
+          _cached: true,
+          _cacheAge: Date.now() - cachedFeatured._cachedAt
+        });
+      }
+    } catch (redisError) {
+      console.log('Featured cache miss:', redisError.message);
+    }
+
+    console.log(`💾 Featured products cache miss - fetching from DB`);
+
+    // Get featured products from database
+    const featuredProducts = await Product.find({
+      isFeatured: true,
+      isActive: true,
+      isDeleted: { $ne: true },
+      totalStock: { $gt: 0 } // Only show products in stock
+    })
+      .select("-images.data") // Exclude heavy binary data
+      .populate("category", "name")
+      .populate("productType", "name")
+      .sort({ featuredAt: -1, sold: -1 }) // Most recently featured first, then by sales
+      .limit(limit)
+      .lean();
+
+    // Clean up data for response
+    const cleanedProducts = featuredProducts.map(product => {
+      if (product.images && product.images.length > 0) {
+        product.images = product.images.map(img => ({
+          _id: img._id,
+          url: img.url,
+          isPrimary: img.isPrimary,
+          order: img.order,
+          caption: img.caption
+        }));
+      }
+      
+      // Add featured badge info
+      product.featured = {
+        isFeatured: true,
+        featuredAt: product.featuredAt
+      };
+      
+      return product;
+    });
+
+    // Prepare response
+    const response = {
+      products: cleanedProducts,
+      count: cleanedProducts.length,
+      _cachedAt: Date.now()
+    };
+
+    // Cache the results
+    try {
+      await redisService.set(cacheKey, response, 300); // 5 minutes cache
+      console.log(`✅ Featured products cached: ${cleanedProducts.length} items`);
+    } catch (cacheError) {
+      console.log('Featured cache save failed:', cacheError.message);
+    }
+
+    res.json({
+      ...response,
+      _cached: false
+    });
+
+  } catch (err) {
+    console.error('Get featured products error:', err);
+    return res.status(500).json({
+      error: "Failed to get featured products",
+      details: err.message
+    });
+  }
+};
+
+// Get trending products (future use - hybrid algorithm)
+exports.getTrendingProducts = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 8;
+    const cacheKey = `products:trending:${limit}`;
+
+    // Try Redis cache first
+    try {
+      await redisService.connect();
+      const cachedTrending = await redisService.get(cacheKey);
+      
+      if (cachedTrending) {
+        console.log(`🔥 TRENDING CACHE HIT: ${limit} products`);
+        return res.json({
+          ...cachedTrending,
+          _cached: true,
+          _cacheAge: Date.now() - cachedTrending._cachedAt
+        });
+      }
+    } catch (redisError) {
+      console.log('Trending cache miss:', redisError.message);
+    }
+
+    console.log(`💾 Trending products cache miss - calculating trends`);
+
+    // Step 1: Get manually featured products first (highest priority)
+    const featuredProducts = await Product.find({
+      isFeatured: true,
+      isActive: true,
+      isDeleted: { $ne: true },
+      totalStock: { $gt: 0 }
+    })
+      .select("-images.data")
+      .populate("category", "name")
+      .populate("productType", "name")
+      .sort({ featuredAt: -1, sold: -1 })
+      .limit(limit)
+      .lean();
+
+    let trendingProducts = [...featuredProducts];
+
+    // Step 2: If we need more products, fill with algorithm-based trending
+    if (trendingProducts.length < limit) {
+      const remaining = limit - trendingProducts.length;
+      
+      // Get products not already featured
+      const featuredIds = featuredProducts.map(p => p._id);
+      
+      // Calculate trending score based on sales, ratings, and recency
+      const algorithmicProducts = await Product.find({
+        _id: { $nin: featuredIds },
+        isFeatured: { $ne: true },
+        isActive: true,
+        isDeleted: { $ne: true },
+        totalStock: { $gt: 0 }
+      })
+        .select("-images.data")
+        .populate("category", "name")
+        .populate("productType", "name")
+        .sort({ 
+          sold: -1,           // Sales priority
+          averageRating: -1,  // Rating priority  
+          createdAt: -1       // Recency priority
+        })
+        .limit(remaining)
+        .lean();
+
+      trendingProducts.push(...algorithmicProducts);
+    }
+
+    // Clean up data for response
+    const cleanedProducts = trendingProducts.map(product => {
+      if (product.images && product.images.length > 0) {
+        product.images = product.images.map(img => ({
+          _id: img._id,
+          url: img.url,
+          isPrimary: img.isPrimary,
+          order: img.order,
+          caption: img.caption
+        }));
+      }
+      
+      // Add trending info
+      product.trending = {
+        isFeatured: product.isFeatured || false,
+        trendingScore: (product.sold || 0) + (product.averageRating || 0) * 10
+      };
+      
+      return product;
+    });
+
+    // Prepare response
+    const response = {
+      products: cleanedProducts,
+      count: cleanedProducts.length,
+      algorithm: {
+        featured: featuredProducts.length,
+        algorithmic: cleanedProducts.length - featuredProducts.length
+      },
+      _cachedAt: Date.now()
+    };
+
+    // Cache the results
+    try {
+      await redisService.set(cacheKey, response, 180); // 3 minutes cache
+      console.log(`✅ Trending products cached: ${cleanedProducts.length} items`);
+    } catch (cacheError) {
+      console.log('Trending cache save failed:', cacheError.message);
+    }
+
+    res.json({
+      ...response,
+      _cached: false
+    });
+
+  } catch (err) {
+    console.error('Get trending products error:', err);
+    return res.status(500).json({
+      error: "Failed to get trending products",
       details: err.message
     });
   }

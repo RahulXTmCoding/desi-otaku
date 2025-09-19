@@ -198,7 +198,6 @@ const CheckoutFixed: React.FC = () => {
       if (auth && typeof auth !== 'boolean' && auth.user && auth.user._id && auth.user._id.includes('mock')) {
         // Clear mock auth data that shouldn't be in production
         if (!isTestMode) {
-          console.log('Clearing invalid mock auth data');
           localStorage.removeItem('jwt');
           window.location.reload();
           return;
@@ -334,13 +333,11 @@ const CheckoutFixed: React.FC = () => {
       
       // ✅ PREVENT DUPLICATE CALLS: Skip if same parameters
       if (currentParams === lastCalculationParams.current) {
-        console.log('🔄 Skipping duplicate backend calculation request');
         return;
       }
       
       // ✅ PREVENT REQUEST IN PROGRESS: Skip if already calculating
       if (calculationInProgress.current) {
-        console.log('🔄 Skipping - calculation already in progress');
         return;
       }
       
@@ -348,7 +345,6 @@ const CheckoutFixed: React.FC = () => {
       calculationInProgress.current = true;
       setBackendCalculationLoading(true);
       
-      console.log(`🔍 FRONTEND: Sending calculation request with payment method: ${paymentMethod}`);
       const requestPayload = {
         cartItems: cart.map(item => ({
           product: item.product || item._id?.split('-')[0] || '',
@@ -365,7 +361,6 @@ const CheckoutFixed: React.FC = () => {
         paymentMethod: paymentMethod // ✅ CRITICAL FIX: Send current payment method for online discount
       };
       
-      console.log(`🔍 FRONTEND: Complete request payload:`, requestPayload);
       
       fetch(`${API}/razorpay/calculate-amount`, {
         method: 'POST',
@@ -378,9 +373,7 @@ const CheckoutFixed: React.FC = () => {
       })
       .then(response => response.json())
       .then(data => {
-        console.log('✅ BACKEND CALCULATION RESPONSE:', data);
         if (data.success && !data.error) {
-          console.log(`🎯 BACKEND CALCULATED TOTAL: ₹${data.total} (with ${appliedDiscount.rewardPoints?.points || 0} reward points)`);
           setBackendCalculatedAmount(data.total);
           
           // ✅ PREVENT LOOP: Only update quantity discount if it actually changed
@@ -469,7 +462,6 @@ const CheckoutFixed: React.FC = () => {
           const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
           const percentage = Math.round((data.quantityDiscount / (data.subtotal + data.shippingCost)) * 100);
           setFrontendAovDiscount({ discount: data.quantityDiscount, percentage });
-          console.log(`✅ Frontend AOV from server: ${percentage}% (₹${data.quantityDiscount}) for ${totalQuantity} items`);
         } else {
           setFrontendAovDiscount({ discount: 0, percentage: 0 });
         }
@@ -535,7 +527,6 @@ const CheckoutFixed: React.FC = () => {
   const getFinalAmount = useCallback(() => {
     const frontendAmount = getFrontendCalculatedAmount();
     
-    console.log('🎯 GET FINAL AMOUNT DEBUG:', {
       isTestMode,
       isAuthenticated: !!(auth && typeof auth !== 'boolean' && auth.user),
       backendCalculatedAmount,
@@ -547,11 +538,9 @@ const CheckoutFixed: React.FC = () => {
     });
     
     if (!isTestMode && auth && typeof auth !== 'boolean' && auth.user && backendCalculatedAmount !== null) {
-      console.log(`✅ USING BACKEND AMOUNT: ₹${backendCalculatedAmount}`);
       return backendCalculatedAmount;
     }
     
-    console.log(`✅ USING FRONTEND AMOUNT: ₹${frontendAmount}`);
     return frontendAmount;
   }, [isTestMode, auth && typeof auth !== 'boolean' ? auth.user._id : null, backendCalculatedAmount, getFrontendCalculatedAmount, appliedDiscount, getTotalAmount, selectedShipping]);
 
@@ -656,7 +645,6 @@ const CheckoutFixed: React.FC = () => {
           handleSelectAddress(targetAddress);
         }
         
-        console.log('Guest address saved to localStorage');
       } catch (error: any) {
         console.error('Failed to save guest address:', error);
         alert('Failed to save address. Please try again.');
@@ -726,7 +714,6 @@ const CheckoutFixed: React.FC = () => {
         handleAddNewAddress();
       }
       
-      console.log('Guest address deleted from localStorage');
       return;
     }
 
@@ -770,7 +757,6 @@ const CheckoutFixed: React.FC = () => {
       // Update localStorage
       localStorage.setItem('guest_addresses', JSON.stringify(updatedAddresses));
       
-      console.log('Guest default address updated in localStorage');
       return;
     }
 
@@ -920,7 +906,6 @@ const CheckoutFixed: React.FC = () => {
                       setSavedAddresses(updatedAddresses);
                       setSelectedAddressId(newAddress._id!);
                       
-                      console.log('✅ Guest address auto-saved for future use');
                     }
                   } catch (error) {
                     console.error('Failed to auto-save guest address:', error);

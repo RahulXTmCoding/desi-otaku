@@ -87,7 +87,6 @@ const AddDesign = () => {
           }
         }
       })
-      .catch((err) => console.log("Error loading categories:", err));
   };
 
   const placementOptions = [

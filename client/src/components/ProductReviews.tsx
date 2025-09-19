@@ -76,8 +76,6 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       
       const method = userReview ? 'PUT' : 'POST';
       
-      console.log('Submitting review to:', url);
-      console.log('Review data:', formData);
       
       const response = await fetch(url, {
         method,
@@ -89,7 +87,6 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       });
 
       const data = await response.json();
-      console.log('Review response:', response.status, data);
 
       if (response.ok) {
         // Invalidate React Query cache to refetch fresh data
@@ -273,7 +270,6 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
         !userReview && !showReviewForm && (
           <button
             onClick={() => {
-              console.log('Opening review form');
               setShowReviewForm(true);
             }}
             className="mb-8 px-6 py-3 bg-yellow-400 text-gray-900 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"

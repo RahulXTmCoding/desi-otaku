@@ -91,7 +91,6 @@ const UpdateDesign = () => {
           setCategories(data);
         }
       })
-      .catch((err) => console.log("Error loading categories:", err));
   };
 
   const preload = async (designId: string) => {

@@ -80,7 +80,6 @@ const Home: React.FC = () => {
           setLoading(false);
         })
         .catch((err: any) => {
-          console.log(err);
           setError('Failed to load products');
           setLoading(false);
         });
@@ -97,7 +96,6 @@ const Home: React.FC = () => {
             setCategories(data);
           }
         })
-        .catch((err: any) => console.log(err));
     }
   };
 

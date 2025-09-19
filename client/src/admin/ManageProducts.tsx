@@ -81,21 +81,18 @@ const ManageProducts = () => {
           setCategories(data);
         }
       })
-      .catch((err: any) => console.log(err));
       
     getProductTypes()
       .then((data: any) => {
         if (data && !data.error) {
           if (data.length === 0) {
             // If no product types found, try to seed default types
-            console.log('No product types found, seeding defaults...');
             // For now, just show empty dropdown - admin can manage product types separately
           }
           setProductTypes(data);
         }
       })
       .catch((err: any) => {
-        console.log('Product Types Error:', err);
       });
   }, []);
 

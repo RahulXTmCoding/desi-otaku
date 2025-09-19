@@ -10,7 +10,6 @@ export const getDashboardStats = (userId: string, token: string) => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get sales data over time
@@ -23,7 +22,6 @@ export const getSalesData = (userId: string, token: string, period: string = "mo
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get top products
@@ -36,7 +34,6 @@ export const getTopProducts = (userId: string, token: string, limit: number = 10
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get category performance
@@ -49,7 +46,6 @@ export const getCategoryPerformance = (userId: string, token: string) => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get customer analytics
@@ -62,7 +58,6 @@ export const getCustomerAnalytics = (userId: string, token: string) => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get order analytics
@@ -75,7 +70,6 @@ export const getOrderAnalytics = (userId: string, token: string) => {
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Get revenue analytics
@@ -92,7 +86,6 @@ export const getRevenueAnalytics = (userId: string, token: string, year?: number
     }
   })
     .then(response => response.json())
-    .catch(err => console.log(err));
 };
 
 // Mock data for test mode

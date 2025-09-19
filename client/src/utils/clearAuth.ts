@@ -8,12 +8,10 @@ export const clearBadAuthData = () => {
       
       // Check if it's mock data that shouldn't be there
       if (parsed.user && parsed.user._id && parsed.user._id.includes('mock')) {
-        console.log('Clearing mock authentication data');
         localStorage.removeItem('jwt');
         return true;
       }
     } catch (e) {
-      console.log('Invalid JWT in localStorage, clearing');
       localStorage.removeItem('jwt');
       return true;
     }
@@ -25,7 +23,6 @@ export const clearBadAuthData = () => {
 // Call this function on app startup
 export const initializeAuth = () => {
   if (clearBadAuthData()) {
-    console.log('Bad auth data cleared, please reload the page');
     // Optionally reload
     // window.location.reload();
   }

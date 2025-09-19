@@ -17,7 +17,6 @@ const OrderDiscountBreakdown: React.FC<DiscountBreakdownProps> = ({
 }) => {
   // ✅ FIXED: Use exact same logic as backend calculator
   const extractDiscountData = () => {
-    console.log('🔍 FRONTEND DISCOUNT BREAKDOWN - Extracting data from:', {
       order: !!order,
       orderStateData: !!orderStateData,
       orderKeys: order ? Object.keys(order) : [],
@@ -84,11 +83,9 @@ const OrderDiscountBreakdown: React.FC<DiscountBreakdownProps> = ({
         if (discountValue <= 100 && discountValue > 0) {
           // Likely a percentage (e.g., 10 = 10%)
           couponDiscount = Math.floor((couponBaseAmount * discountValue) / 100);
-          console.log(`🔄 CONSISTENT coupon calc: ${discountValue}% of ₹${couponBaseAmount} = ₹${couponDiscount}`);
         } else {
           // Likely a fixed amount
           couponDiscount = discountValue;
-          console.log(`🔄 CONSISTENT fixed coupon: ₹${couponDiscount}`);
         }
       }
     }
@@ -117,7 +114,6 @@ const OrderDiscountBreakdown: React.FC<DiscountBreakdownProps> = ({
         discountedAmount -= quantityDiscount;
         discountedAmount -= couponDiscount;
         onlinePaymentDiscount = Math.round(discountedAmount * 0.05);
-        console.log(`🔄 FRONTEND using checkout logic: ₹${onlinePaymentDiscount} (5% of ₹${discountedAmount})`);
       }
     }
 
@@ -145,7 +141,6 @@ const OrderDiscountBreakdown: React.FC<DiscountBreakdownProps> = ({
       totalSavings: quantityDiscount + couponDiscount + rewardDiscount + onlinePaymentDiscount
     };
 
-    console.log('💰 DISCOUNT BREAKDOWN - Extracted data:', result);
     return result;
   };
 

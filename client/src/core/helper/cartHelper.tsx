@@ -45,7 +45,6 @@ export const getUserCart = (userId: string, token: string) => {
       return response.json();
     })
     .catch(err => {
-      console.log('Error fetching cart:', err);
       // Return error response instead of undefined
       return { success: false, error: err.message };
     });
@@ -83,7 +82,6 @@ export const addItemToCart = (
       return response.json();
     })
     .catch(err => {
-      console.log('Error adding to cart:', err);
       return { success: false, error: err.message };
     });
 };
@@ -111,7 +109,6 @@ export const updateCartItemQuantity = (
       return response.json();
     })
     .catch(err => {
-      console.log('Error updating cart:', err);
       return { success: false, error: err.message };
     });
 };
@@ -137,7 +134,6 @@ export const removeItemFromCart = (
       return response.json();
     })
     .catch(err => {
-      console.log('Error removing from cart:', err);
       return { success: false, error: err.message };
     });
 };
@@ -159,7 +155,6 @@ export const clearUserCart = (userId: string, token: string) => {
       return response.json();
     })
     .catch(err => {
-      console.log('Error clearing cart:', err);
       return { success: false, error: err.message };
     });
 };
@@ -192,7 +187,6 @@ export const mergeGuestCart = (
       return response.json();
     })
     .catch(err => {
-      console.log('Error merging cart:', err);
       return { success: false, error: err.message };
     });
 };
@@ -219,7 +213,6 @@ export const syncUserCart = (
       return response.json();
     })
     .catch(err => {
-      console.log('Error syncing cart:', err);
       return { success: false, error: err.message };
     });
 };

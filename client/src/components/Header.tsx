@@ -129,7 +129,6 @@ const Header: React.FC = () => {
       }
       
       if (!randomDesign) {
-        console.log('No designs available');
         setIsGenerating(false);
         return;
       }
@@ -187,12 +186,6 @@ const Header: React.FC = () => {
       const designName = `${randomSelection.position === 'front' ? 'Front' : 'Back'}: ${randomSelection.design.name}`;
       const designImageUrl = getDesignImageUrl(randomSelection.design);
       
-      console.log('🛒 Adding to cart:', {
-        design: randomSelection.design,
-        designImageUrl,
-        position: randomSelection.position,
-        designPosition: randomSelection.designPosition
-      });
       
       const cartItem = {
         name: `Custom T-Shirt - ${designName}`,
@@ -217,7 +210,6 @@ const Header: React.FC = () => {
         }
       };
 
-      console.log('🛒 Cart item:', cartItem);
       
       await addToCart(cartItem);
       setAddedToCart(true);
@@ -237,15 +229,12 @@ const Header: React.FC = () => {
   };
 
   const getDesignImageUrl = (design: any) => {
-    console.log('🖼️ Getting design image URL for:', design);
     
     if (design.imageUrl && (design.imageUrl.startsWith('http') || design.imageUrl.startsWith('data:'))) {
-      console.log('✅ Using design.imageUrl:', design.imageUrl);
       return design.imageUrl;
     }
     
     const apiImageUrl = `${API}/design/image/${design._id}`;
-    console.log('🔗 Using API image URL:', apiImageUrl);
     return apiImageUrl;
   };
 

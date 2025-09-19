@@ -13,7 +13,6 @@ export const createDesign = (userId: string, token: string, design: FormData) =>
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Get all designs (with pagination)
@@ -46,7 +45,6 @@ export const getDesigns = (page = 1, limit = 20, filters = {}) => {
       }
       return data;
     })
-    .catch((err) => console.log(err));
 };
 
 // Get a single design
@@ -57,7 +55,6 @@ export const getDesign = (designId: string) => {
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Update a design
@@ -78,7 +75,6 @@ export const updateDesign = (
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Delete a design
@@ -93,7 +89,6 @@ export const deleteDesign = (designId: string, userId: string, token: string) =>
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Get popular designs
@@ -104,7 +99,6 @@ export const getPopularDesigns = (limit = 10) => {
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Get featured designs
@@ -115,7 +109,6 @@ export const getFeaturedDesigns = (limit = 8) => {
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Get designs by category
@@ -126,7 +119,6 @@ export const getDesignsByCategory = (category: string, limit = 20) => {
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Get designs by tag
@@ -137,7 +129,6 @@ export const getDesignsByTag = (tag: string, limit = 20) => {
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Get all tags
@@ -148,7 +139,6 @@ export const getAllDesignTags = () => {
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Toggle like design
@@ -164,7 +154,6 @@ export const toggleLikeDesign = (designId: string, like: boolean) => {
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Get random design - OPTIMIZED for Surprise Me feature
@@ -179,7 +168,6 @@ export const getRandomDesign = () => {
     .then((response) => {
       return response.json();
     })
-    .catch((err) => console.log(err));
 };
 
 // Mock functions for test mode

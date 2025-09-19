@@ -118,7 +118,6 @@ export const getOrders = (
       return response.json();
     })
     .catch(err => {
-      console.log(err);
       return { error: "Failed to fetch orders" };
     });
 };

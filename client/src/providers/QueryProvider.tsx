@@ -66,14 +66,7 @@ const createPersister = () => {
               localStorage.removeItem(key);
               return null;
             }
-            
-            if (import.meta.env.DEV && parsed.timestamp) {
-              const ageHours = ((Date.now() - parsed.timestamp) / (60 * 60 * 1000)).toFixed(1);
-              console.log('🔄 Cache restored from localStorage:', {
-                age: `${ageHours}h`,
-                size: `${(item.length / 1024).toFixed(1)}KB`
-              });
-            }
+          
             
             return item;
           } catch (error) {
@@ -98,12 +91,6 @@ const createPersister = () => {
             
             localStorage.setItem(key, finalValue);
             
-            if (import.meta.env.DEV) {
-              console.log('💾 Cache persisted to localStorage:', {
-                size: `${(finalValue.length / 1024).toFixed(1)}KB`,
-                timestamp: new Date().toLocaleTimeString()
-              });
-            }
           } catch (error) {
             console.warn('🚫 Failed to persist cache:', error);
             // Try to clear some space
@@ -114,7 +101,6 @@ const createPersister = () => {
           try {
             localStorage.removeItem(key);
             if (import.meta.env.DEV) {
-              console.log('🗑️ Cache cleared from localStorage');
             }
           } catch (error) {
             console.warn('🚫 Failed to clear cache:', error);
@@ -138,10 +124,6 @@ let singletonPersister: ReturnType<typeof createPersister> | null = null;
 const getQueryClient = () => {
   if (!singletonQueryClient) {
     singletonQueryClient = createQueryClient();
-    
-    if (import.meta.env.DEV) {
-      console.log('🚀 QueryClient created with localStorage persistence:', singletonQueryClient);
-    }
   }
   return singletonQueryClient;
 };
@@ -150,9 +132,6 @@ const getPersister = () => {
   if (singletonPersister === null) {
     singletonPersister = createPersister();
     
-    if (singletonPersister && import.meta.env.DEV) {
-      console.log('💾 React Query persistence initialized with localStorage');
-    }
   }
   return singletonPersister;
 };
@@ -234,7 +213,4 @@ export const clearQueryCache = () => {
     singletonQueryClient.clear();
   }
   
-  if (import.meta.env.DEV) {
-    console.log('🗑️ All caches cleared');
-  }
 };

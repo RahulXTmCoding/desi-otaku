@@ -269,10 +269,30 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
           to={`/product/${product._id}`}
           className="block hover:text-yellow-400 transition-colors"
         >
-          <h3 className="font-semibold text-lg line-clamp-1">{product.name}</h3>
+          <h3 
+            className="font-semibold text-lg"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}
+          >
+            {product.name}
+          </h3>
         </Link>
         
-        <p className="text-gray-400 text-sm mt-1 line-clamp-2">
+        <p 
+          className="text-gray-400 text-sm mt-1"
+          style={{
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis'
+          }}
+        >
           {product.description}
         </p>
 

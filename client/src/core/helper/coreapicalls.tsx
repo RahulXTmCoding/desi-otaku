@@ -6,7 +6,6 @@ export const getProducts = () => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };
 
 // Get a single product
@@ -26,7 +25,6 @@ export const getCategories = () => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };
 
 // Get products by category
@@ -35,7 +33,6 @@ export const getProductsByCategory = (categoryId: string) => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };
 
 // Search products
@@ -44,7 +41,6 @@ export const searchProducts = (searchTerm: string) => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };
 
 // Get main categories only (no subcategories)
@@ -53,7 +49,6 @@ export const getMainCategories = () => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };
 
 // Get subcategories for a parent category
@@ -62,7 +57,6 @@ export const getSubcategories = (parentId: string) => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };
 
 // Get category hierarchy (category with its subcategories)
@@ -71,7 +65,6 @@ export const getCategoryHierarchy = (categoryId: string) => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };
 
 // Get all categories in tree structure
@@ -80,7 +73,6 @@ export const getCategoryTree = () => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };
 
 // Get all product types
@@ -89,5 +81,4 @@ export const getProductTypes = () => {
     .then(response => {
       return response.json();
     })
-    .catch(err => console.log(err));
 };

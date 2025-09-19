@@ -48,7 +48,6 @@ const ProductBundles: React.FC<ProductBundlesProps> = ({ currentProduct }) => {
   const generateBundles = async () => {
     try {
       setLoading(true);
-      console.log('🎯 Generating bundles for product:', currentProduct.name);
       
       // Try to fetch related products from the same category
       let relatedProducts: BundleProduct[] = [];
@@ -58,11 +57,9 @@ const ProductBundles: React.FC<ProductBundlesProps> = ({ currentProduct }) => {
         const categoryResponse = await fetch(
           `${API}/products?category=${currentProduct.category._id}&limit=15`
         );
-        console.log('📦 Category API response status:', categoryResponse.status);
         
         if (categoryResponse.ok) {
           const categoryData = await categoryResponse.json();
-          console.log('📦 Category data received:', categoryData);
           relatedProducts = categoryData.products?.filter(
             (p: BundleProduct) => p._id !== currentProduct._id && p.stock > 0
           ) || [];
@@ -75,11 +72,9 @@ const ProductBundles: React.FC<ProductBundlesProps> = ({ currentProduct }) => {
         const popularResponse = await fetch(
           `${API}/products?sortBy=sold&sortOrder=desc&limit=10`
         );
-        console.log('🔥 Popular API response status:', popularResponse.status);
         
         if (popularResponse.ok) {
           const popularData = await popularResponse.json();
-          console.log('🔥 Popular data received:', popularData);
           popularProducts = popularData.products?.filter(
             (p: BundleProduct) => p._id !== currentProduct._id && p.stock > 0
           ) || [];
@@ -88,8 +83,6 @@ const ProductBundles: React.FC<ProductBundlesProps> = ({ currentProduct }) => {
         console.warn('⚠️ Popular API failed:', err);
       }
       
-      console.log('📊 Found related products:', relatedProducts.length);
-      console.log('📊 Found popular products:', popularProducts.length);
       
       const generatedBundles: Bundle[] = [];
       
@@ -135,11 +128,9 @@ const ProductBundles: React.FC<ProductBundlesProps> = ({ currentProduct }) => {
         }
       } else {
         // Fallback: Create mock bundles if API calls fail
-        console.log('🔄 Creating fallback mock bundles');
         generatedBundles.push(createMockBundle());
       }
       
-      console.log('✅ Generated bundles:', generatedBundles.length);
       setBundles(generatedBundles);
     } catch (error) {
       console.error('❌ Error generating bundles:', error);

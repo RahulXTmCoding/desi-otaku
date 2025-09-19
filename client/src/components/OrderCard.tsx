@@ -38,10 +38,8 @@ const OrderCard = ({ order }) => {
     // Strategy 6: Try to extract from name-based pattern
     if (item.name && !item.isCustom && !item.customization) {
       // Some items might have product reference embedded in name or other fields
-      console.log('📸 No image source found for regular product:', item.name);
     }
 
-    console.log('❌ No image source found for item:', item.name);
     return null;
   };
 
@@ -108,14 +106,12 @@ const OrderCard = ({ order }) => {
                         alt={item.name}
                         className="w-16 h-16 object-cover rounded-md"
                         onError={(e) => {
-                          console.log('❌ Image failed to load:', imageUrl);
                           const target = e.target as HTMLImageElement;
                           target.style.display = 'none';
                           const fallback = target.nextElementSibling;
                           if (fallback) (fallback as HTMLElement).style.display = 'flex';
                         }}
                         onLoad={() => {
-                          console.log('✅ Image loaded successfully:', imageUrl);
                         }}
                       />
                       <div className="w-16 h-16 bg-gray-700 rounded-md flex items-center justify-center" style={{ display: 'none' }}>

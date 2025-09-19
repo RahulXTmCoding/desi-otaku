@@ -23,7 +23,6 @@ class MetaPixel {
   init(): void {
     if (this.isInitialized || !this.pixelId || this.pixelId === 'your_meta_pixel_id_here') {
       if (this.debug) {
-        console.log('Meta Pixel: Skipping initialization - already initialized or invalid pixel ID');
       }
       return;
     }
@@ -56,7 +55,6 @@ class MetaPixel {
       this.isInitialized = true;
 
       if (this.debug) {
-        console.log('Meta Pixel: Initialized successfully with ID:', this.pixelId);
       }
     } catch (error) {
       console.error('Meta Pixel: Initialization failed:', error);
@@ -71,7 +69,6 @@ class MetaPixel {
       window.fbq('track', 'PageView');
       
       if (this.debug) {
-        console.log('Meta Pixel: PageView tracked');
       }
     } catch (error) {
       console.error('Meta Pixel: PageView tracking failed:', error);
@@ -86,7 +83,6 @@ class MetaPixel {
       window.fbq('track', 'ViewContent', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: ViewContent tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: ViewContent tracking failed:', error);
@@ -101,7 +97,6 @@ class MetaPixel {
       window.fbq('track', 'AddToCart', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: AddToCart tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: AddToCart tracking failed:', error);
@@ -116,7 +111,6 @@ class MetaPixel {
       window.fbq('track', 'RemoveFromCart', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: RemoveFromCart tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: RemoveFromCart tracking failed:', error);
@@ -131,7 +125,6 @@ class MetaPixel {
       window.fbq('track', 'InitiateCheckout', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: InitiateCheckout tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: InitiateCheckout tracking failed:', error);
@@ -146,7 +139,6 @@ class MetaPixel {
       window.fbq('track', 'Purchase', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: Purchase tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: Purchase tracking failed:', error);
@@ -161,7 +153,6 @@ class MetaPixel {
       window.fbq('track', 'CompleteRegistration', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: CompleteRegistration tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: CompleteRegistration tracking failed:', error);
@@ -176,7 +167,6 @@ class MetaPixel {
       window.fbq('track', 'Search', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: Search tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: Search tracking failed:', error);
@@ -191,7 +181,6 @@ class MetaPixel {
       window.fbq('track', 'Contact', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: Contact tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: Contact tracking failed:', error);
@@ -206,7 +195,6 @@ class MetaPixel {
       window.fbq('trackCustom', 'CustomizeProduct', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: CustomizeProduct tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: CustomizeProduct tracking failed:', error);
@@ -220,7 +208,6 @@ class MetaPixel {
       window.fbq('trackCustom', 'StartDesignTool', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: StartDesignTool tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: StartDesignTool tracking failed:', error);
@@ -234,7 +221,6 @@ class MetaPixel {
       window.fbq('trackCustom', 'SaveDesign', data);
       
       if (this.debug) {
-        console.log('Meta Pixel: SaveDesign tracked:', data);
       }
     } catch (error) {
       console.error('Meta Pixel: SaveDesign tracking failed:', error);
@@ -277,7 +263,6 @@ class MetaPixel {
         window.fbq('setUserData', advancedMatchingData);
         
         if (this.debug) {
-          console.log('Meta Pixel: User data set for advanced matching:', advancedMatchingData);
         }
       }
     } catch (error) {
@@ -293,7 +278,6 @@ class MetaPixel {
       window.fbq('setUserData', {});
       
       if (this.debug) {
-        console.log('Meta Pixel: User data cleared');
       }
     } catch (error) {
       console.error('Meta Pixel: Clearing user data failed:', error);

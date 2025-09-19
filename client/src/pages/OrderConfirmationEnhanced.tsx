@@ -41,7 +41,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
     if (storedData) {
       try {
         orderStateData = JSON.parse(storedData);
-        console.log('Retrieved guest order from sessionStorage:', orderStateData);
       } catch (error) {
         console.error('Failed to parse stored order data:', error);
       }
@@ -88,7 +87,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
     // ✅ FIX: Store order data in sessionStorage as backup
     if (orderStateData) {
       sessionStorage.setItem('orderConfirmation', JSON.stringify(orderStateData));
-      console.log('✅ Order data stored in sessionStorage as backup');
     }
     
     // Only clear cart if it was NOT a Buy Now purchase
@@ -98,10 +96,8 @@ const OrderConfirmationEnhanced: React.FC = () => {
     if (!wasBuyNow) {
       // Clear cart after successful cart checkout (not Buy Now)
       clearCart().then(() => {
-        console.log('Cart cleared after cart checkout');
       });
     } else {
-      console.log('Buy Now purchase detected - preserving original cart');
     }
 
     // Celebration animation
@@ -180,19 +176,16 @@ const OrderConfirmationEnhanced: React.FC = () => {
       if (!signupData.error) {
         // Account was successfully created (first time user)
         setAccountCreated(true);
-        console.log('✅ New account created successfully for:', shippingInfo.email);
         
         // Link the order to the newly created user
         if (orderStateData?.orderId) {
           try {
-            console.log('Order linked to new account:', orderStateData.orderId);
           } catch (error) {
             console.error('Failed to link order to new account:', error);
           }
         }
       } else if (signupData.error.includes('already exists') || signupData.error.includes('Email already registered')) {
         // User already has an account - this is a returning guest customer
-        console.log('✅ Existing account detected - order already linked for:', shippingInfo.email);
         setAccountExists(true);
       } else {
         // Some other error occurred
@@ -246,13 +239,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
     subtotal = Math.max(0, subtotal);
   
   // ✅ CRITICAL DEBUG: Log all possible data sources
-  console.log('📊 Order Confirmation Data Analysis:');
-  console.log(`   Available fields in orderStateData:`, Object.keys(orderStateData || {}));
-  console.log(`   finalAmount: ₹${finalAmount} (from: ${orderStateData?.finalAmount ? 'orderStateData.finalAmount' : 'orderDetails.amount'})`);
-  console.log(`   subtotal: ₹${subtotal} (from: ${orderStateData?.subtotal ? 'orderStateData.subtotal' : orderStateData?.originalAmount ? 'orderStateData.originalAmount' : 'calculated'})`);
-  console.log(`   shippingCost: ₹${shippingCost} (from: ${orderStateData?.shippingCost ? 'orderStateData.shippingCost' : 'default/calculated'})`);
-  console.log(`   couponDiscount: ₹${couponDiscount} (from: ${orderStateData?.couponDiscount ? 'orderStateData.couponDiscount' : 'default'})`);
-  console.log(`   quantityDiscount: ₹${quantityDiscount} (from: ${orderStateData?.quantityDiscount ? 'orderStateData.quantityDiscount' : orderStateData?.aovDiscount ? 'orderStateData.aovDiscount' : 'default'})`);
   
   // ✅ UPDATED: Use new HTML-to-PDF conversion system
   const handleDownloadInvoice = async () => {
@@ -264,7 +250,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
     setDownloadingInvoice(true);
     setDownloadError('');
     
-    console.log('🎯 Attempting to download invoice for:', {
       orderNumber,
       paymentId: orderStateData?.paymentDetails?.razorpay_payment_id,
       actualOrderId: orderStateData?.orderDetails?._id
@@ -279,7 +264,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
       } catch (firstError) {
         // If that fails and we have a payment ID, try with payment ID
         if (orderStateData?.paymentDetails?.razorpay_payment_id) {
-          console.log('🔄 Trying with payment ID...');
           invoiceUrl = `${API}/invoice/order/${orderStateData.paymentDetails.razorpay_payment_id}/download`;
           await PDFGenerator.downloadInvoiceFromServer(invoiceUrl, `invoice-${orderNumber}.pdf`);
         } else {
@@ -293,7 +277,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
       // ✅ Fallback: Show order details if invoice fails
       setTimeout(() => {
         if (confirm('Invoice download failed. Would you like to see order details instead?')) {
-          console.log('Order Details:', {
             orderNumber,
             amount: finalAmount,
             items: itemCount,

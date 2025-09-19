@@ -35,7 +35,6 @@ export default function Signup() {
           });
         }
       })
-      .catch(err => console.log("Error in signup", err));
   };
 
   const signUpForm = () => {

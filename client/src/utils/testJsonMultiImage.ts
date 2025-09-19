@@ -1,7 +1,6 @@
 // Test utility to verify JSON-based multi-image upload
 
 export const testJsonMultiImageUpload = async () => {
-  console.log("=== Testing JSON Multi-Image Upload ===");
   
   // Create test files
   const testFiles = [
@@ -25,9 +24,7 @@ export const testJsonMultiImageUpload = async () => {
       testFiles.map(file => fileToBase64(file))
     );
     
-    console.log("✅ All files converted to base64:");
     base64Results.forEach((result, index) => {
-      console.log(`  File ${index + 1}: ${result.substring(0, 50)}...`);
     });
     
     // Test payload structure
@@ -51,12 +48,6 @@ export const testJsonMultiImageUpload = async () => {
       primaryImageIndex: 2 // Third image overall (1 URL + 2nd file)
     };
     
-    console.log("\n📦 Test payload structure:");
-    console.log(`  - Product name: ${testPayload.name}`);
-    console.log(`  - URL images: ${testPayload.imageUrls.length}`);
-    console.log(`  - File images: ${testPayload.imageFiles.length}`);
-    console.log(`  - Total images: ${testPayload.imageUrls.length + testPayload.imageFiles.length}`);
-    console.log(`  - Primary image index: ${testPayload.primaryImageIndex}`);
     
     return {
       success: true,

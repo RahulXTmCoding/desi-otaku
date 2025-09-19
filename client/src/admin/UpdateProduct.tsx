@@ -86,6 +86,7 @@ const UpdateProduct = () => {
   const [imageInputType, setImageInputType] = useState<'file' | 'url'>('file');
   const [imageUrl, setImageUrl] = useState("");
   const [isLoadingProduct, setIsLoadingProduct] = useState(true);
+  const [isFeatured, setIsFeatured] = useState(false);
 
   const {
     name,
@@ -154,10 +155,6 @@ const UpdateProduct = () => {
         const productTypeId = data.productType?._id || data.productType || "";
         
         // Set values
-        console.log("=== MRP Debug in UpdateProduct ===");
-        console.log("Full product data received:", data);
-        console.log("MRP value from backend:", data.mrp);
-        console.log("MRP type:", typeof data.mrp);
         
         setValues(prev => ({
           ...prev,
@@ -171,16 +168,15 @@ const UpdateProduct = () => {
           productType: productTypeId,
           formData: new FormData(),
         }));
-        
-        console.log("Values state after setting MRP:", {
-          mrp: data.mrp || "",
-          price: data.price
-        });
 
         // Set size stock
         if (data.sizeStock) {
           setSizeStock(data.sizeStock);
         }
+
+        // Set featured status
+        setIsFeatured(data.isFeatured || false);
+        setOriginalIsFeatured(data.isFeatured || false);
 
         // Load existing images using the same logic as ProductGridItem
         const loadedImages: ImageItem[] = [];
@@ -404,15 +400,12 @@ const UpdateProduct = () => {
   };
 
   const setPrimaryImage = (id: string) => {
-    console.log("Setting primary image:", id);
-    console.log("Current images:", images);
     
     const updatedImages = images.map(img => ({
       ...img,
       isPrimary: img.id === id
     }));
     
-    console.log("Updated images:", updatedImages);
     setImages(updatedImages);
   };
 
@@ -422,6 +415,9 @@ const UpdateProduct = () => {
       [size]: e.target.value
     });
   };
+
+  // Track original featured status to detect changes
+  const [originalIsFeatured, setOriginalIsFeatured] = useState(false);
 
   const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -461,14 +457,6 @@ const UpdateProduct = () => {
         }
       });
       
-      console.log("=== IMAGE REMOVAL DEBUG ===");
-      console.log("All images in state:", images.map(img => ({ id: img.id, existingImage: img.existingImage })));
-      console.log("Existing images filtered:", existingImages.map(img => ({ id: img.id })));
-      console.log("Existing images to keep (indices):", existingImagesToKeep);
-      console.log("Images that will be removed:", 
-        // Show which original indices are NOT in the keep list
-        Array.from({ length: 10 }, (_, i) => i).filter(i => !existingImagesToKeep.includes(i))
-      );
       
       // Prepare URL images
       const urlImages = newUrlImages.map((img) => ({
@@ -507,11 +495,6 @@ const UpdateProduct = () => {
         }
       }
       
-      console.log("=== Updating Product with JSON API ===");
-      console.log("Product data:", productData);
-      console.log("Existing images to keep:", existingImagesToKeep);
-      console.log("New URL images:", urlImages.length);
-      console.log("New file images:", fileImages.length);
       
       if (isTestMode) {
         // Mock update in test mode
@@ -539,6 +522,26 @@ const UpdateProduct = () => {
         if (data.error) {
           setValues({ ...values, error: data.error, loading: false });
         } else {
+          // Check if featured status has changed and update it
+          if (isFeatured !== originalIsFeatured) {
+            try {
+              const featuredResponse = await fetch(`${API}/product/${productId}/toggle-featured/${user._id}`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (!featuredResponse.ok) {
+                console.warn('Failed to update featured status, but product updated successfully');
+              }
+            } catch (featuredError) {
+              console.warn('Error updating featured status:', featuredError);
+              // Don't fail the whole operation for this
+            }
+          }
+          
           setValues({
             ...values,
             loading: false,
@@ -940,7 +943,7 @@ const UpdateProduct = () => {
           </div>
 
           {/* Tags */}
-          <div className="mb-8">
+          <div className="mb-6">
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Tags (comma separated)
             </label>
@@ -955,6 +958,48 @@ const UpdateProduct = () => {
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">Tags help customers find this product when searching</p>
+          </div>
+
+          {/* Featured Product Toggle */}
+          <div className="mb-8">
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              Product Showcase
+            </label>
+            <div className="bg-gray-700/50 rounded-lg p-4 border border-gray-600">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="text-2xl">⭐</div>
+                  <div>
+                    <h4 className="font-medium text-white">Featured Product</h4>
+                    <p className="text-sm text-gray-400">
+                      Featured products appear prominently on the home page
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsFeatured(!isFeatured)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    isFeatured 
+                      ? 'bg-yellow-400' 
+                      : 'bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      isFeatured ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              {isFeatured && (
+                <div className="mt-3 p-3 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+                  <p className="text-sm text-yellow-400 font-medium">
+                    ✨ This product is featured and will appear on the home page
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Form Actions */}

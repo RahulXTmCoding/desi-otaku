@@ -25,7 +25,6 @@ class GoogleAnalytics {
   init(): void {
     if (this.isInitialized || !this.measurementId || this.measurementId === 'your_ga4_measurement_id_here') {
       if (this.debug) {
-        console.log('GA4: Skipping initialization - already initialized or invalid measurement ID');
       }
       return;
     }
@@ -63,9 +62,7 @@ class GoogleAnalytics {
       this.isInitialized = true;
 
       if (this.debug) {
-        console.log('GA4: Initialized successfully with ID:', this.measurementId);
         if (this.googleAdsConversionId) {
-          console.log('GA4: Google Ads conversion tracking enabled:', this.googleAdsConversionId);
         }
       }
     } catch (error) {
@@ -81,7 +78,6 @@ class GoogleAnalytics {
       window.gtag('event', 'page_view', data);
       
       if (this.debug) {
-        console.log('GA4: page_view tracked:', data);
       }
     } catch (error) {
       console.error('GA4: page_view tracking failed:', error);
@@ -96,7 +92,6 @@ class GoogleAnalytics {
       window.gtag('event', 'view_item', data);
       
       if (this.debug) {
-        console.log('GA4: view_item tracked:', data);
       }
     } catch (error) {
       console.error('GA4: view_item tracking failed:', error);
@@ -111,7 +106,6 @@ class GoogleAnalytics {
       window.gtag('event', 'add_to_cart', data);
       
       if (this.debug) {
-        console.log('GA4: add_to_cart tracked:', data);
       }
     } catch (error) {
       console.error('GA4: add_to_cart tracking failed:', error);
@@ -126,7 +120,6 @@ class GoogleAnalytics {
       window.gtag('event', 'remove_from_cart', data);
       
       if (this.debug) {
-        console.log('GA4: remove_from_cart tracked:', data);
       }
     } catch (error) {
       console.error('GA4: remove_from_cart tracking failed:', error);
@@ -141,7 +134,6 @@ class GoogleAnalytics {
       window.gtag('event', 'view_cart', data);
       
       if (this.debug) {
-        console.log('GA4: view_cart tracked:', data);
       }
     } catch (error) {
       console.error('GA4: view_cart tracking failed:', error);
@@ -156,7 +148,6 @@ class GoogleAnalytics {
       window.gtag('event', 'begin_checkout', data);
       
       if (this.debug) {
-        console.log('GA4: begin_checkout tracked:', data);
       }
     } catch (error) {
       console.error('GA4: begin_checkout tracking failed:', error);
@@ -171,7 +162,6 @@ class GoogleAnalytics {
       window.gtag('event', 'add_shipping_info', data);
       
       if (this.debug) {
-        console.log('GA4: add_shipping_info tracked:', data);
       }
     } catch (error) {
       console.error('GA4: add_shipping_info tracking failed:', error);
@@ -186,7 +176,6 @@ class GoogleAnalytics {
       window.gtag('event', 'add_payment_info', data);
       
       if (this.debug) {
-        console.log('GA4: add_payment_info tracked:', data);
       }
     } catch (error) {
       console.error('GA4: add_payment_info tracking failed:', error);
@@ -201,7 +190,6 @@ class GoogleAnalytics {
       window.gtag('event', 'purchase', data);
       
       if (this.debug) {
-        console.log('GA4: purchase tracked:', data);
       }
     } catch (error) {
       console.error('GA4: purchase tracking failed:', error);
@@ -216,7 +204,6 @@ class GoogleAnalytics {
       window.gtag('event', 'sign_up', data);
       
       if (this.debug) {
-        console.log('GA4: sign_up tracked:', data);
       }
     } catch (error) {
       console.error('GA4: sign_up tracking failed:', error);
@@ -231,7 +218,6 @@ class GoogleAnalytics {
       window.gtag('event', 'login', data);
       
       if (this.debug) {
-        console.log('GA4: login tracked:', data);
       }
     } catch (error) {
       console.error('GA4: login tracking failed:', error);
@@ -246,7 +232,6 @@ class GoogleAnalytics {
       window.gtag('event', 'search', data);
       
       if (this.debug) {
-        console.log('GA4: search tracked:', data);
       }
     } catch (error) {
       console.error('GA4: search tracking failed:', error);
@@ -261,7 +246,6 @@ class GoogleAnalytics {
       window.gtag('event', 'start_design_tool', data);
       
       if (this.debug) {
-        console.log('GA4: start_design_tool tracked:', data);
       }
     } catch (error) {
       console.error('GA4: start_design_tool tracking failed:', error);
@@ -275,7 +259,6 @@ class GoogleAnalytics {
       window.gtag('event', 'customize_product', data);
       
       if (this.debug) {
-        console.log('GA4: customize_product tracked:', data);
       }
     } catch (error) {
       console.error('GA4: customize_product tracking failed:', error);
@@ -289,7 +272,6 @@ class GoogleAnalytics {
       window.gtag('event', 'save_design', data);
       
       if (this.debug) {
-        console.log('GA4: save_design tracked:', data);
       }
     } catch (error) {
       console.error('GA4: save_design tracking failed:', error);
@@ -304,7 +286,6 @@ class GoogleAnalytics {
       window.gtag('event', 'conversion', data);
       
       if (this.debug) {
-        console.log(`GA4: Google Ads ${eventName} conversion tracked:`, data);
       }
     } catch (error) {
       console.error(`GA4: Google Ads ${eventName} conversion tracking failed:`, error);
@@ -338,7 +319,6 @@ class GoogleAnalytics {
         window.gtag('set', 'user_properties', userProperties);
         
         if (this.debug) {
-          console.log('GA4: User properties set:', userProperties);
         }
       }
     } catch (error) {
@@ -356,7 +336,6 @@ class GoogleAnalytics {
       });
       
       if (this.debug) {
-        console.log('GA4: User ID set:', userId);
       }
     } catch (error) {
       console.error('GA4: Setting user ID failed:', error);
@@ -373,7 +352,6 @@ class GoogleAnalytics {
       });
       
       if (this.debug) {
-        console.log('GA4: User ID cleared');
       }
     } catch (error) {
       console.error('GA4: Clearing user ID failed:', error);

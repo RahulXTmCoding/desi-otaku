@@ -14,7 +14,6 @@ export const getBraintreeClientToken = (userId: string, token: string) => {
       return response.json();
     })
     .catch(err => {
-      console.log(err);
       return { error: "Failed to get payment token" };
     });
 };
@@ -34,7 +33,6 @@ export const processPayment = (userId: string, token: string, paymentData: { pay
       return response.json();
     })
     .catch(err => {
-      console.log(err);
       return { error: "Payment processing failed" };
     });
 };

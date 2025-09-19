@@ -277,7 +277,6 @@ const OrderManagement: React.FC = () => {
             sortOrder: backendSortOrder
           });
 
-          console.log('🔍 Loading orders with params:', {
             dateRange,
             startDate,
             endDate,
@@ -300,7 +299,6 @@ const OrderManagement: React.FC = () => {
 
           const data = await response.json();
           
-          console.log('📊 Orders API Response:', {
             ordersCount: data.orders?.length || 0,
             totalOrders: data.pagination?.totalOrders || 0,
             currentPage: data.pagination?.currentPage || 1

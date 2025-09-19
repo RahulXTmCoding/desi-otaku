@@ -193,7 +193,6 @@ const CheckoutSinglePage: React.FC = () => {
     const loadAddresses = async () => {
       if (auth && typeof auth !== 'boolean' && auth.user && auth.user._id && auth.user._id.includes('mock')) {
         if (!isTestMode) {
-          console.log('Clearing invalid mock auth data');
           localStorage.removeItem('jwt');
           window.location.reload();
           return;
@@ -558,7 +557,6 @@ const CheckoutSinglePage: React.FC = () => {
           handleSelectAddress(targetAddress);
         }
         
-        console.log('Guest address saved to localStorage');
       } catch (error: any) {
         console.error('Failed to save guest address:', error);
         alert('Failed to save address. Please try again.');
@@ -594,7 +592,6 @@ const CheckoutSinglePage: React.FC = () => {
           ? result.addresses.find((addr: Address) => addr._id === editingAddressId)
           : result.addresses[result.addresses.length - 1];
           
-        console.log('Address saved successfully');
         
         if (targetAddress) {
           // ✅ Backend now properly saves data with correct field mapping
@@ -636,7 +633,6 @@ const CheckoutSinglePage: React.FC = () => {
         handleAddNewAddress();
       }
       
-      console.log('Guest address deleted from localStorage');
       return;
     }
 
@@ -676,7 +672,6 @@ const CheckoutSinglePage: React.FC = () => {
       setSavedAddresses(updatedAddresses);
       localStorage.setItem('guest_addresses', JSON.stringify(updatedAddresses));
       
-      console.log('Guest default address updated in localStorage');
       return;
     }
 

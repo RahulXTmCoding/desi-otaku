@@ -20,7 +20,6 @@ const OrderConfirmation: React.FC = () => {
   useEffect(() => {
     // Clear cart after successful order
     clearCart().then(() => {
-      console.log('Cart cleared');
     });
 
     // Celebration animation

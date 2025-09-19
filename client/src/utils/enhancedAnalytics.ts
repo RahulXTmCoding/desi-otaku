@@ -59,7 +59,6 @@ class EnhancedAnalytics {
     };
 
     if (this.debug) {
-      console.log('Enhanced page view created:', enhancedPageView);
     }
 
     return enhancedPageView;
@@ -128,7 +127,6 @@ class EnhancedAnalytics {
     };
 
     if (this.debug) {
-      console.log('Enhanced conversion created:', enhancedConversion);
     }
 
     return enhancedConversion;
@@ -235,7 +233,6 @@ class EnhancedAnalytics {
     });
 
     if (this.debug) {
-      console.log('Attributed product view tracked:', eventData);
     }
   }
 
@@ -267,7 +264,6 @@ class EnhancedAnalytics {
     });
 
     if (this.debug) {
-      console.log('Attributed add to cart tracked:', eventData);
     }
   }
 
@@ -297,7 +293,6 @@ class EnhancedAnalytics {
     });
 
     if (this.debug) {
-      console.log('Attributed begin checkout tracked:', eventData);
     }
   }
 
@@ -336,7 +331,6 @@ class EnhancedAnalytics {
     });
 
     if (this.debug) {
-      console.log('Attributed purchase tracked:', enhancedConversion);
     }
 
     return enhancedConversion;
@@ -372,7 +366,6 @@ class EnhancedAnalytics {
     });
 
     if (this.debug) {
-      console.log('Attributed signup tracked:', eventData);
     }
   }
 

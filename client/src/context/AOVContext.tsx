@@ -47,7 +47,6 @@ export const AOVProvider: React.FC<AOVProviderProps> = ({ children }) => {
       const data = await response.json();
       setQuantityTiers(data.tiers || []);
       
-      console.log('✅ AOV quantity tiers loaded globally:', data.tiers?.length || 0, 'tiers');
     } catch (error) {
       console.error('❌ Failed to fetch AOV quantity tiers:', error);
       setError(error instanceof Error ? error.message : 'Failed to load quantity tiers');

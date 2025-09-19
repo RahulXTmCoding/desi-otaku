@@ -67,7 +67,6 @@ const MockupStudio: React.FC = () => {
     // First, load the front-white image to get real dimensions
     const calibrationImg = new Image();
     calibrationImg.onload = () => {
-      console.log(`T-shirt image dimensions: ${calibrationImg.width}x${calibrationImg.height}px`);
       
       // Ensure canvas element exists and hasn't been initialized already
       if (!canvasRef.current || fabricCanvasRef.current) return;
@@ -92,7 +91,6 @@ const MockupStudio: React.FC = () => {
 
       // Don't add print area guide yet - wait for canvas to be properly sized
       
-      console.log('Canvas created, waiting for resize to add print guide');
       
       // After adding objects to canvas, ensure print guide is on top
       canvas.on('object:added', () => {
@@ -125,7 +123,6 @@ const MockupStudio: React.FC = () => {
         const container = document.getElementById('tshirt-container');
         const tshirtImg = container?.querySelector('img');
         if (!container || !tshirtImg) {
-          console.log('Container or t-shirt image not found');
           return;
         }
         
@@ -139,7 +136,6 @@ const MockupStudio: React.FC = () => {
           const imgNaturalHeight = tshirtImg.naturalHeight;
           
           if (!imgNaturalWidth || !imgNaturalHeight) {
-            console.log('T-shirt image not loaded yet, retrying...');
             setTimeout(handleResize, 100);
             return;
           }
@@ -156,7 +152,6 @@ const MockupStudio: React.FC = () => {
           const imgWidth = imgNaturalWidth * scale;
           const imgHeight = imgNaturalHeight * scale;
           
-          console.log(`Container: ${containerWidth}x${containerHeight}, Image rendered: ${imgWidth}x${imgHeight}`);
           
           // Set both the canvas element attributes and fabric dimensions
           canvasRef.current!.width = imgWidth;
@@ -188,7 +183,6 @@ const MockupStudio: React.FC = () => {
             const printArea = getPrintAreaOnCanvas(printSize);
             const printPosition = getPrintAreaPosition(printSize);
             
-            console.log(`Creating print area guide: ${printArea.width}x${printArea.height} at (${printPosition.left}, ${printPosition.top})`);
             
             const guideRect = new fabric.Rect({
               left: printPosition.left,
@@ -212,7 +206,6 @@ const MockupStudio: React.FC = () => {
             const printArea = getPrintAreaOnCanvas(printSize);
             const printPosition = getPrintAreaPosition(printSize);
             
-            console.log(`Updating print area guide to: ${printArea.width}x${printArea.height} at (${printPosition.left}, ${printPosition.top})`);
             
             printAreaGuideRef.current.set({
               left: printPosition.left,
@@ -253,11 +246,9 @@ const MockupStudio: React.FC = () => {
       
       // Initial resize - delay to ensure DOM is ready
       setTimeout(() => {
-        console.log('Attempting initial resize...');
         handleResize();
         // Try again after a longer delay if still not sized
         setTimeout(() => {
-          console.log('Attempting second resize...');
           handleResize();
         }, 1000);
       }, 200);
@@ -283,7 +274,6 @@ const MockupStudio: React.FC = () => {
     
     // Try to load front-white.avif first, fallback to front.png
     calibrationImg.onerror = () => {
-      console.log('Loading fallback front.png for calibration');
       calibrationImg.src = '/front.png';
     };
     calibrationImg.src = '/front-white.avif';

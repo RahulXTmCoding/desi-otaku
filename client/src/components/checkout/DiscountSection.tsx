@@ -120,7 +120,6 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
       
       // ✅ CRITICAL FIX: Use AOV-discounted subtotal for sequential calculation
       const aovDiscountedSubtotal = subtotal - aovDiscount;
-      console.log(`🔍 Coupon validation: Original ₹${subtotal} - AOV ₹${aovDiscount} = ₹${aovDiscountedSubtotal}`);
       
       const result = await validateCoupon(couponCode, subtotal, token); // Still validate against original for minimum purchase
       
@@ -142,7 +141,6 @@ const DiscountSection: React.FC<DiscountSectionProps> = ({
           actualDiscount = Math.min(result.coupon.discountValue, aovDiscountedSubtotal);
         }
         
-        console.log(`✅ Sequential coupon: ${result.coupon.discountType} discount of ₹${actualDiscount} on ₹${aovDiscountedSubtotal}`);
         
         const sequentialCoupon = {
           ...result.coupon,

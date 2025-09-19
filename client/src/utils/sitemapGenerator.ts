@@ -147,7 +147,6 @@ export const fetchDynamicCategoryPages = async (): Promise<SitemapUrl[]> => {
       });
     }
     
-    console.log(`Generated ${dynamicPages.length} dynamic sitemap URLs from real backend data`);
     return dynamicPages;
     
   } catch (error) {
