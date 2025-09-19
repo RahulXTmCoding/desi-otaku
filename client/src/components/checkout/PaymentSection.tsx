@@ -48,8 +48,8 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
         icon: <span className="text-sm">₹</span>,
         recommended: true,
         discount: '5% discount',
-        disabled: true, // ✅ TEMPORARILY DISABLED
-        comingSoon: true
+        disabled: false, // ✅ ENABLED - was previously disabled
+        comingSoon: false
       }
       // ,
       // {
@@ -67,7 +67,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
         name: 'Cash on Delivery (COD)',
         description: 'Pay when your order is delivered',
         icon: <Smartphone className="w-5 h-5" />,
-        recommended: false, // ✅ NOW RECOMMENDED SINCE IT'S THE ONLY OPTION
+        recommended: false,
         discount: undefined, // Make discount optional for COD
         disabled: false, // ✅ COD is available
         comingSoon: false
@@ -191,7 +191,7 @@ const PaymentForm = memo(({ paymentMethod, isTestMode, razorpayReady, paymentDat
             <div className="text-center">
               <p className="text-sm text-gray-300 mb-2">Click "Place Order" to open Razorpay</p>
               <p className="text-xs text-gray-400">You'll be redirected to secure Razorpay checkout</p>
-              <div className="mt-4 flex justify-center gap-4 text-xs">
+              <div className="mt-4 flex justify-center gap-3 text-xs flex-wrap">
                 <span className="flex items-center gap-1">✅ UPI</span>
                 <span className="flex items-center gap-1">✅ Cards</span>
                 <span className="flex items-center gap-1">✅ NetBanking</span>

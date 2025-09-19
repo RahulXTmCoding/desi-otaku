@@ -75,12 +75,7 @@ const CheckoutSinglePage: React.FC = () => {
     shippingInfoRef.current = shippingInfo;
   }, [shippingInfo]);
   
-  // ✅ SMART DEFAULT: Select COD when online payments are disabled, otherwise select online payment
-  const [paymentMethod, setPaymentMethod] = useState(() => {
-    // Currently online payments are disabled, so default to COD
-    const onlinePaymentsDisabled = true; // This matches the disabled state in PaymentSection.tsx
-    return onlinePaymentsDisabled ? 'cod' : 'razorpay';
-  });
+  const [paymentMethod, setPaymentMethod] = useState('razorpay');
   const [selectedShipping, setSelectedShipping] = useState<any>(null);
   
   // Discount states
@@ -365,7 +360,7 @@ const CheckoutSinglePage: React.FC = () => {
 
   const getFinalAmount = useCallback(() => {
     const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-    const shipping = selectedShipping?.rate || 0;
+    const shipping = subtotal >= 999 ? 0 : 79;
     let discountedSubtotal = subtotal;
     
     // 1️⃣ Apply AOV discount to subtotal
@@ -1014,35 +1009,29 @@ const CheckoutSinglePage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Place Order Button with Payment Method Conditions */}
-              {paymentMethod === 'cod' ? (
-                <button
-                  onClick={handlePlaceOrderWithValidation}
-                  disabled={loading || !selectedShipping || !validateShipping() }
-                  className="w-full mt-6 bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 py-4 rounded-lg font-bold text-lg disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Shield className="w-5 h-5" />
-                      Place COD Order • ₹{getFinalAmount()}
-                    </>
-                  )}
-                </button>
-              ) : (
-                <button
-                  onClick={() => {}}
-                  disabled={true}
-                  className="w-full mt-6 bg-orange-500/20 border border-orange-500/50 text-orange-400 py-4 rounded-lg font-bold text-lg cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-                >
-                  <AlertCircle className="w-5 h-5" />
-                  Online Payments Coming Soon
-                </button>
-              )}
+              {/* Unified Place Order Button */}
+              <button
+                onClick={handlePlaceOrderWithValidation}
+                disabled={loading || !selectedShipping || !validateShipping() || (!isTestMode && !razorpayReady)}
+                className="w-full mt-6 bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 py-4 rounded-lg font-bold text-lg disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : !razorpayReady && !isTestMode ? (
+                  <>
+                    <Loader className="w-5 h-5 animate-spin" />
+                    Loading Payment Gateway...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-5 h-5" />
+                    Complete Order • ₹{getFinalAmount()}
+                  </>
+                )}
+              </button>
               <p className="text-xs text-gray-500 text-center mt-3">
                 By placing this order, you agree to our Terms & Conditions
               </p>
