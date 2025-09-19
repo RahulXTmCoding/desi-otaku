@@ -108,9 +108,6 @@ router.post('/order/database/create', async (req, res, next) => {
   next();
 }, createRazorpayDatabaseOrder);
 
-// Test mode order creation - no auth required
-router.post('/order/test', createTestOrder);
-
 // Verify payment - requires authentication
 router.post('/payment/verify/:userId', isSignedIn, isAuthenticated, verifyRazorpayPayment);
 

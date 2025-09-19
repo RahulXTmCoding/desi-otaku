@@ -28,10 +28,6 @@ router.post(
   signin
 );
 router.get("/signout", signOut);
-router.get("/testroute", isSignedIn, (req, res) => {
-  return res.json(req.auth);
-});
-
 // Google Auth Routes
 router.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 

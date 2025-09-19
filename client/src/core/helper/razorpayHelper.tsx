@@ -33,23 +33,6 @@ export const createRazorpayOrder = (userId: string, token: string, orderData: an
     });
 };
 
-// Create test order (no auth required)
-export const createTestRazorpayOrder = (orderData: any) => {
-  return fetch(`${API}/razorpay/order/test`, {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(orderData)
-  })
-    .then(response => response.json())
-    .catch(err => {
-      console.log('Test order creation error:', err);
-      return { error: 'Failed to create test order' };
-    });
-};
-
 // Verify payment
 export const verifyRazorpayPayment = (userId: string, token: string, paymentData: any) => {
   return fetch(`${API}/razorpay/payment/verify/${userId}`, {
