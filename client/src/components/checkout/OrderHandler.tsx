@@ -10,6 +10,7 @@ import {
   initializeRazorpayCheckout
 } from '../../core/helper/razorpayHelper';
 import { redeemPoints, trackCouponUsage } from '../../core/helper/checkoutHelper';
+import { useTheme } from '../../context/ThemeContext';
 import PaymentProcessingModal from '../PaymentProcessingModal';
 
 interface OrderHandlerProps {
@@ -54,6 +55,7 @@ export const useOrderHandler = ({
   codVerification
 }: OrderHandlerProps) => {
   const navigate = useNavigate();
+  const { theme } = useTheme(); // ✅ NEW: Get current user theme
   const [showProcessingModal, setShowProcessingModal] = useState(false);
   const [isProcessingComplete, setIsProcessingComplete] = useState(false); // ✅ NEW: Track when order processing is done
   const [pendingNavigation, setPendingNavigation] = useState<any>(null);
@@ -383,6 +385,9 @@ export const useOrderHandler = ({
             name: shippingInfo.fullName,
             email: shippingInfo.email,
             phone: shippingInfo.phone
+          },
+          theme: {
+            color: theme.colors.primary // ✅ NEW: Use user's selected theme color!
           }
         },
         async (paymentData: any) => {
