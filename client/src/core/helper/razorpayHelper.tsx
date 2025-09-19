@@ -92,7 +92,7 @@ export const initializeRazorpayCheckout = (options: any, onSuccess: Function, on
     key: key_id,
     amount: amount,
     currency: currency || 'INR',
-    name: name || 'T-Shirt Store',
+    name: name || 'Attars',
     description: description || 'Order Payment',
     order_id: order_id,
     prefill: {

@@ -377,7 +377,7 @@ export const useOrderHandler = ({
           amount: orderResponse.order.amount,
           currency: orderResponse.order.currency,
           key_id: orderResponse.key_id,
-          name: 'T-Shirt Store',
+          name: 'Attars',
           description: 'Order Payment',
           prefill: {
             name: shippingInfo.fullName,

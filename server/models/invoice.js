@@ -51,11 +51,11 @@ const invoiceSchema = new mongoose.Schema({
   
   // Company details
   company: {
-    name: { type: String, default: 'Anime T-Shirt Store' },
-    address: { type: String, default: 'Mumbai, Maharashtra, India' },
-    email: { type: String, default: 'orders@animeshop.com' },
-    phone: { type: String, default: '+91-9876543210' },
-    website: { type: String, default: 'www.animeshop.com' },
+    name: { type: String, default: 'Attars' },
+    address: { type: String, default: 'Attars, siddheshwar nagar iti colony jhansi' },
+    email: { type: String, default: 'hello@attars.club' },
+    phone: { type: String, default: '+91-8707339611' },
+    website: { type: String, default: 'www.attars.com' },
     gstNumber: String, // Add when GST registration obtained
     logo: String // URL to company logo
   },

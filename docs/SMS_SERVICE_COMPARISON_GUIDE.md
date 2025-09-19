@@ -235,8 +235,6 @@ const sendOTP = async (phone, otp) => {
 
 ## 🎯 **Final Recommendation**
 
-**For Indian T-Shirt Store:**
-
 **🥇 Start with: MSG91**
 - 25 free SMS to test
 - Best delivery rates in India
