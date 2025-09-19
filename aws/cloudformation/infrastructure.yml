@@ -330,7 +330,7 @@ Resources:
         - Key: Name
           Value: !Sub '${ProjectName}-${Environment}-alb'
 
-  # Target Group
+  # Target Group - ZERO DOWNTIME OPTIMIZED
   TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
@@ -341,19 +341,31 @@ Resources:
       HealthCheckEnabled: true
       HealthCheckPath: /health
       HealthCheckProtocol: HTTP
-      HealthCheckIntervalSeconds: 30
-      HealthCheckTimeoutSeconds: 5
+      HealthCheckIntervalSeconds: 15
+      HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 2
-      UnhealthyThresholdCount: 3
+      UnhealthyThresholdCount: 2
       TargetType: instance
       TargetGroupAttributes:
+        # CRITICAL: Extended connection draining for zero downtime
         - Key: deregistration_delay.timeout_seconds
-          Value: '60'
+          Value: '300'
+        # Improved load distribution
         - Key: stickiness.enabled
           Value: 'false'
+        # Enhanced health checking
+        - Key: load_balancing.algorithm.type
+          Value: 'round_robin'
+        # Connection keep-alive optimization
+        - Key: target_group_health.dns_failover.minimum_healthy_targets.count
+          Value: '1'
+        - Key: target_group_health.dns_failover.minimum_healthy_targets.percentage
+          Value: 'off'
       Tags:
         - Key: Name
           Value: !Sub '${ProjectName}-${Environment}-tg'
+        - Key: Purpose
+          Value: 'Zero-Downtime-Deployment'
 
   # ALB Listener
   ALBListener:

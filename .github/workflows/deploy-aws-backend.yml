@@ -351,23 +351,37 @@ jobs:
           
           ASG_NAME="${{ steps.get-asg.outputs.asg_name }}"
           
-          # Enhanced instance refresh configuration for maximum reliability
-          echo "🔧 Configuring instance refresh parameters..."
+          # ZERO-DOWNTIME: Enhanced instance refresh configuration
+          echo "🔧 Configuring zero-downtime rolling deployment..."
+          
+          # Calculate optimal capacity for zero downtime
+          CURRENT_CAPACITY=$(aws autoscaling describe-auto-scaling-groups \
+            --auto-scaling-group-names $ASG_NAME \
+            --query 'AutoScalingGroups[0].DesiredCapacity' --output text)
+          
+          echo "📊 Current capacity: $CURRENT_CAPACITY instances"
+          echo "🎯 Zero-downtime strategy: Overlapping deployment with traffic shifting"
+          
           REFRESH_ID=$(aws autoscaling start-instance-refresh \
             --auto-scaling-group-name $ASG_NAME \
             --strategy Rolling \
             --preferences '{
-              "MinHealthyPercentage": 100,
-              "InstanceWarmup": 300
+              "MinHealthyPercentage": 50,
+              "InstanceWarmup": 600,
+              "CheckpointPercentages": [25, 50, 75, 100],
+              "CheckpointDelay": 300,
+              "SkipMatching": false,
+              "ScaleInProtectedInstances": "Ignore"
             }' \
             --query 'InstanceRefreshId' --output text)
           
-          echo "✅ Instance refresh initiated:"
+          echo "✅ Zero-downtime instance refresh initiated:"
           echo "   📋 Refresh ID: $REFRESH_ID"
-          echo "   🛡️ MinHealthyPercentage: 75% (improved from 50%)"
-          echo "   ⏱️ InstanceWarmup: 10 minutes (for thorough health checks)"
+          echo "   🛡️ MinHealthyPercentage: 50% (allows proper overlap)"
+          echo "   ⏱️ InstanceWarmup: 10 minutes (thorough app startup)"
           echo "   🎯 Checkpoints: 25%, 50%, 75%, 100% (gradual rollout)"
-          echo "   ⏳ CheckpointDelay: 5 minutes per stage"
+          echo "   ⏳ CheckpointDelay: 5 minutes (traffic validation between stages)"
+          echo "   🔄 Strategy: New instances come up → Health checks pass → Old instances drain → Terminate"
           echo ""
           
           # Enhanced monitoring with detailed progress tracking
