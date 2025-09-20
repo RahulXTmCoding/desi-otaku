@@ -17,11 +17,6 @@ const OrderDiscountBreakdown: React.FC<DiscountBreakdownProps> = ({
 }) => {
   // ✅ FIXED: Use exact same logic as backend calculator
   const extractDiscountData = () => {
-      order: !!order,
-      orderStateData: !!orderStateData,
-      orderKeys: order ? Object.keys(order) : [],
-      stateKeys: orderStateData ? Object.keys(orderStateData) : []
-    });
 
     // ✅ FIXED: Calculate product subtotal ONLY (no shipping) - matches backend
     let productSubtotal = 0;

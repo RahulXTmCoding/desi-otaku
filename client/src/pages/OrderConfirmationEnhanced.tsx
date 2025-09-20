@@ -250,11 +250,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
     setDownloadingInvoice(true);
     setDownloadError('');
     
-      orderNumber,
-      paymentId: orderStateData?.paymentDetails?.razorpay_payment_id,
-      actualOrderId: orderStateData?.orderDetails?._id
-    });
-    
     try {
       // Try with order number first, then payment ID if available
       let invoiceUrl = `${API}/invoice/order/${orderNumber}/download`;
@@ -277,11 +272,6 @@ const OrderConfirmationEnhanced: React.FC = () => {
       // ✅ Fallback: Show order details if invoice fails
       setTimeout(() => {
         if (confirm('Invoice download failed. Would you like to see order details instead?')) {
-            orderNumber,
-            amount: finalAmount,
-            items: itemCount,
-            customer: shippingInfo?.email
-          });
           alert(`Order Details:\n\nOrder ID: ${orderNumber}\nTotal Amount: ₹${finalAmount}\nItems: ${itemCount}\nEmail: ${shippingInfo?.email}\n\nPlease save this information for your records.`);
         }
       }, 1000);

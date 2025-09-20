@@ -182,14 +182,6 @@ const AdminOrders: React.FC = () => {
             sortOrder: 'desc'
           });
 
-            dateRange,
-            startDate,
-            endDate,
-            currentPage: resetPage ? 1 : currentPage,
-            statusFilter,
-            searchQuery
-          });
-
           const response = await fetch(`${baseUrl}?${params}`, {
             headers: {
               'Accept': 'application/json',
@@ -202,11 +194,6 @@ const AdminOrders: React.FC = () => {
           }
 
           const data = await response.json();
-          
-            ordersCount: data.orders?.length || 0,
-            totalOrders: data.pagination?.totalOrders || 0,
-            currentPage: data.pagination?.currentPage || 1
-          });
           
           if (data.error) {
             setError(data.error);

@@ -277,15 +277,6 @@ const OrderManagement: React.FC = () => {
             sortOrder: backendSortOrder
           });
 
-            dateRange,
-            startDate,
-            endDate,
-            currentPage: resetPage ? 1 : currentPage,
-            statusFilter,
-            searchQuery,
-            paymentFilter
-          });
-
           const response = await fetch(`${API}/order/all/${user._id}?${params}`, {
             headers: {
               'Accept': 'application/json',
@@ -298,11 +289,6 @@ const OrderManagement: React.FC = () => {
           }
 
           const data = await response.json();
-          
-            ordersCount: data.orders?.length || 0,
-            totalOrders: data.pagination?.totalOrders || 0,
-            currentPage: data.pagination?.currentPage || 1
-          });
           
           if (data.error) {
             setError(data.error);
