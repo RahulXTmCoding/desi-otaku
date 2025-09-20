@@ -527,16 +527,6 @@ const CheckoutFixed: React.FC = () => {
   const getFinalAmount = useCallback(() => {
     const frontendAmount = getFrontendCalculatedAmount();
     
-      isTestMode,
-      isAuthenticated: !!(auth && typeof auth !== 'boolean' && auth.user),
-      backendCalculatedAmount,
-      frontendAmount,
-      rewardPoints: appliedDiscount.rewardPoints?.points || 0,
-      rewardDiscount: appliedDiscount.rewardPoints?.discount || 0,
-      subtotal: getTotalAmount(),
-      shipping: selectedShipping?.rate || 0
-    });
-    
     if (!isTestMode && auth && typeof auth !== 'boolean' && auth.user && backendCalculatedAmount !== null) {
       return backendCalculatedAmount;
     }
