@@ -19,12 +19,6 @@ const OrderDetail = () => {
 
   useEffect(() => {
     renderCount.current += 1;
-      loading,
-      error,
-      order,
-      auth,
-      orderId
-    });
   });
 
   useEffect(() => {
