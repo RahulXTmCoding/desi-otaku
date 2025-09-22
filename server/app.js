@@ -40,6 +40,10 @@ const AOVService = require("./services/aovService");
 const redisService = require("./services/redisService");
 const spotTerminationService = require("./services/spotTerminationService");
 
+const corsOptions = {
+  origin: 'https://attars.club' // Allow only this domain to access your backend
+};
+
 const app = express();
 
 //DB Connections
@@ -67,7 +71,7 @@ mongoose
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
-app.use(cors());
+app.use(cors(corsOptions));
 
 // Session configuration for OAuth
 app.use(session({
