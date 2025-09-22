@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Loader2, Cloud, CloudOff, Gift, Package, TrendingUp } from 'lucide-react';
+import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Loader2, Cloud, CloudOff, Gift, Package, TrendingUp, ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
@@ -164,6 +164,38 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
     navigate('/shop');
   };
 
+  // Get product ID for navigation
+  const getProductId = (item: any) => {
+    // For custom designs, we can't navigate to a product page
+    if (item.isCustom || item.type === 'custom' || item.category === 'custom') {
+      return null;
+    }
+    
+    // Try to get product ID from various sources
+    if (item.product && typeof item.product === 'object' && item.product._id) {
+      return item.product._id;
+    }
+    
+    if (item.product && typeof item.product === 'string') {
+      return item.product;
+    }
+    
+    if (item._id && !item._id.startsWith('temp_') && !item._id.startsWith('custom')) {
+      return item._id;
+    }
+    
+    return null;
+  };
+
+  // Handle clicking on cart item to view product
+  const handleViewProduct = (item: any) => {
+    const productId = getProductId(item);
+    if (productId) {
+      onClose(); // Close the cart drawer first
+      navigate(`/product/${productId}`);
+    }
+  };
+
   const cartTotal = getTotal();
   const shipping = cartTotal > 0 && cartTotal < 999 ? 79 : 0;
   const finalTotal = cartTotal + shipping;
@@ -326,57 +358,110 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                       >
                         <div className="flex gap-4">
                           {/* Enhanced Product Image */}
-                          <div 
-                            className="w-20 h-24 rounded-xl overflow-hidden flex-shrink-0 shadow-lg"
-                            style={{ 
-                              background: item.isCustom ? itemGradient : 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
-                            }}
-                          >
-                            <div className="w-full h-full p-1">
-                              {item.isCustom && item.customization ? (
-                                <div className="w-full h-full  rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
-                                  <CartTShirtPreview
-                                    design={null}
-                                    color={item.color}
-                                    image={null}
-                                    customization={{
-                                      frontDesign: item.customization.frontDesign ? {
-                                        designImage: item.customization.frontDesign.designImage,
-                                        position: item.customization.frontDesign.position
-                                      } : undefined,
-                                      backDesign: item.customization.backDesign ? {
-                                        designImage: item.customization.backDesign.designImage,
-                                        position: item.customization.backDesign.position
-                                      } : undefined
-                                    }}
-                                  />
-                                </div>
-                              ) : (
-                                <div className="w-full h-full rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
-                                  <img
-                                    src={getProductImage(item)}
-                                    alt={item.name}
-                                    className="w-full h-full object-contain"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
-                                    }}
-                                  />
-                                </div>
-                              )}
-                            </div>
-                            {item.isCustom && (
-                              <div className="absolute top-1 right-1">
-                                <div className="w-3 h-3 rounded-full bg-yellow-400 border border-white shadow-sm"></div>
+                          {getProductId(item) ? (
+                            <button
+                              onClick={() => handleViewProduct(item)}
+                              className="w-20 h-24 rounded-xl overflow-hidden flex-shrink-0 shadow-lg group relative transition-transform hover:scale-105"
+                              style={{ 
+                                background: item.isCustom ? itemGradient : 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
+                              }}
+                            >
+                              <div className="w-full h-full p-1">
+                                {item.isCustom && item.customization ? (
+                                  <div className="w-full h-full  rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
+                                    <CartTShirtPreview
+                                      design={null}
+                                      color={item.color}
+                                      image={null}
+                                      customization={{
+                                        frontDesign: item.customization.frontDesign ? {
+                                          designImage: item.customization.frontDesign.designImage,
+                                          position: item.customization.frontDesign.position
+                                        } : undefined,
+                                        backDesign: item.customization.backDesign ? {
+                                          designImage: item.customization.backDesign.designImage,
+                                          position: item.customization.backDesign.position
+                                        } : undefined
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-full rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
+                                    <img
+                                      src={getProductImage(item)}
+                                      alt={item.name}
+                                      className="w-full h-full object-contain"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
+                                      }}
+                                    />
+                                  </div>
+                                )}
                               </div>
-                            )}
-                          </div>
+                              {/* Hover overlay for clickable items */}
+                              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                <ExternalLink className="w-4 h-4 text-white" />
+                              </div>
+                            </button>
+                          ) : (
+                            <div 
+                              className="w-20 h-24 rounded-xl overflow-hidden flex-shrink-0 shadow-lg relative"
+                              style={{ 
+                                background: item.isCustom ? itemGradient : 'linear-gradient(135deg, #374151 0%, #4b5563 100%)'
+                              }}
+                            >
+                              <div className="w-full h-full p-1">
+                                {item.isCustom && item.customization ? (
+                                  <div className="w-full h-full  rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
+                                    <CartTShirtPreview
+                                      design={null}
+                                      color={item.color}
+                                      image={null}
+                                      customization={{
+                                        frontDesign: item.customization.frontDesign ? {
+                                          designImage: item.customization.frontDesign.designImage,
+                                          position: item.customization.frontDesign.position
+                                        } : undefined,
+                                        backDesign: item.customization.backDesign ? {
+                                          designImage: item.customization.backDesign.designImage,
+                                          position: item.customization.backDesign.position
+                                        } : undefined
+                                      }}
+                                    />
+                                  </div>
+                                ) : (
+                                  <div className="w-full h-full rounded-lg overflow-hidden bg-white/10 backdrop-blur-sm">
+                                    <img
+                                      src={getProductImage(item)}
+                                      alt={item.name}
+                                      className="w-full h-full object-contain"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAiIGhlaWdodD0iODAiIHZpZXdCb3g9IjAgMCA4MCA4MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjgwIiBoZWlnaHQ9IjgwIiBmaWxsPSIjNEI1NTYzIi8+CjxwYXRoIGQ9Ik00MCA0MEMzNS41ODE3IDQwIDMyIDQzLjU4MTcgMzIgNDhDMzIgNTIuNDE4MyAzNS41ODE3IDU2IDQwIDU2QzQ0LjQxODMgNTYgNDggNTIuNDE4MyA0OCA0OEM0OCA0My41ODE3IDQ0LjQxODMgNDAgNDAgNDBaIiBmaWxsPSIjNkI3MjgwIi8+CjxwYXRoIGQ9Ik0yNCAyOEMyNCAyNi44OTU0IDI0Ljg5NTQgMjYgMjYgMjZINTRDNTUuMTA0NiAyNiA1NiAyNi44OTU0IDU2IDI4VjM2SDI0VjI4WiIgZmlsbD0iIzZCNzI4MCIvPgo8L3N2Zz4=';
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Enhanced Product Details */}
                           <div className="flex-1 flex flex-col justify-between">
                             <div>
-                              <h3 className="font-semibold text-base leading-tight mb-1" style={{ color: 'var(--color-text)' }}>
-                                {item.name}
-                              </h3>
+                              {getProductId(item) ? (
+                                <button
+                                  onClick={() => handleViewProduct(item)}
+                                  className="text-left w-full group"
+                                >
+                                  <h3 className="font-semibold text-base leading-tight mb-1 group-hover:text-yellow-400 transition-colors flex items-center gap-1" style={{ color: 'var(--color-text)' }}>
+                                    {item.name}
+                                  </h3>
+                                </button>
+                              ) : (
+                                <h3 className="font-semibold text-base leading-tight mb-1" style={{ color: 'var(--color-text)' }}>
+                                  {item.name}
+                                </h3>
+                              )}
                               <div className="flex flex-wrap gap-x-3 gap-y-1 text-sm" style={{ color: 'var(--color-textMuted)' }}>
                                 <span className="flex items-center gap-1">
                                   <span className="w-1 h-1 rounded-full bg-gray-400"></span>

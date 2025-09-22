@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Loader2, Tag } from 'lucide-react';
+import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Loader2, Tag, ExternalLink } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
 import { getMockProductImage } from '../data/mockData';
@@ -126,6 +126,37 @@ const Cart: React.FC = () => {
     }
   };
 
+  // Get product ID for navigation
+  const getProductId = (item: any) => {
+    // For custom designs, we can't navigate to a product page
+    if (item.isCustom || item.type === 'custom' || item.category === 'custom') {
+      return null;
+    }
+    
+    // Try to get product ID from various sources
+    if (item.product && typeof item.product === 'object' && item.product._id) {
+      return item.product._id;
+    }
+    
+    if (item.product && typeof item.product === 'string') {
+      return item.product;
+    }
+    
+    if (item._id && !item._id.startsWith('temp_') && !item._id.startsWith('custom')) {
+      return item._id;
+    }
+    
+    return null;
+  };
+
+  // Handle clicking on cart item to view product
+  const handleViewProduct = (item: any) => {
+    const productId = getProductId(item);
+    if (productId) {
+      navigate(`/product/${productId}`);
+    }
+  };
+
   // Calculate quantity discounts
   useEffect(() => {
     const calculateQuantityDiscount = async () => {
@@ -233,41 +264,92 @@ const Cart: React.FC = () => {
                 >
                     <div className="flex gap-4">
                       {/* Product Image */}
-                      <div className="md:w-28 w-24 sm:w-32 h-30 md:h-28 sm:h-32 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
-                      {isCustomDesign && item.customization ? (
-                        <CartTShirtPreview
-                          design={null}
-                          color={item.color}
-                          image={null}
-                          customization={{
-                            frontDesign: item.customization.frontDesign ? {
-                              designImage: item.customization.frontDesign.designImage,
-                              position: item.customization.frontDesign.position
-                            } : undefined,
-                            backDesign: item.customization.backDesign ? {
-                              designImage: item.customization.backDesign.designImage,
-                              position: item.customization.backDesign.position
-                            } : undefined
-                          }}
-                        />
+                      {getProductId(item) ? (
+                        <button
+                          onClick={() => handleViewProduct(item)}
+                          className="md:w-28 w-24 sm:w-32 h-30 md:h-28 sm:h-32 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0 group relative transition-transform hover:scale-105"
+                        >
+                          {isCustomDesign && item.customization ? (
+                            <CartTShirtPreview
+                              design={null}
+                              color={item.color}
+                              image={null}
+                              customization={{
+                                frontDesign: item.customization.frontDesign ? {
+                                  designImage: item.customization.frontDesign.designImage,
+                                  position: item.customization.frontDesign.position
+                                } : undefined,
+                                backDesign: item.customization.backDesign ? {
+                                  designImage: item.customization.backDesign.designImage,
+                                  position: item.customization.backDesign.position
+                                } : undefined
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src={getProductImage(item)}
+                              alt={item.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/api/placeholder/80/80';
+                              }}
+                            />
+                          )}
+                          {/* Hover overlay for clickable items */}
+                          <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                            <ExternalLink className="w-5 h-5 text-white" />
+                          </div>
+                        </button>
                       ) : (
-                        <img
-                          src={getProductImage(item)}
-                          alt={item.name}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/api/placeholder/80/80';
-                          }}
-                        />
+                        <div className="md:w-28 w-24 sm:w-32 h-30 md:h-28 sm:h-32 bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                          {isCustomDesign && item.customization ? (
+                            <CartTShirtPreview
+                              design={null}
+                              color={item.color}
+                              image={null}
+                              customization={{
+                                frontDesign: item.customization.frontDesign ? {
+                                  designImage: item.customization.frontDesign.designImage,
+                                  position: item.customization.frontDesign.position
+                                } : undefined,
+                                backDesign: item.customization.backDesign ? {
+                                  designImage: item.customization.backDesign.designImage,
+                                  position: item.customization.backDesign.position
+                                } : undefined
+                              }}
+                            />
+                          ) : (
+                            <img
+                              src={getProductImage(item)}
+                              alt={item.name}
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/api/placeholder/80/80';
+                              }}
+                            />
+                          )}
+                        </div>
                       )}
-                    </div>
 
                     {/* Product Details */}
                     <div className="flex-1 space-y-2">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h3 className="font-semibold text-lg">{item.name}</h3>
-                          {isCustomDesign && (
+                          {getProductId(item) ? (
+                            <button
+                              onClick={() => handleViewProduct(item)}
+                              className="text-left group"
+                            >
+                              <h3 className="font-semibold text-lg group-hover:text-yellow-400 transition-colors flex items-center gap-1">
+                                {item.name}
+                              </h3>
+                            </button>
+                          ) : (
+                            <h3 className="font-semibold text-lg">
+                              {item.name}
+                            </h3>
+                          )}
+                          {isCustomDesign && getProductId(item) && (
                             <p className="text-sm text-yellow-400">Custom Design</p>
                           )}
                           <div className="flex gap-4 mt-1 text-sm text-gray-400">
