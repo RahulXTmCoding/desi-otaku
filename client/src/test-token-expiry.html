@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Expiry Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .warning {
+            background: #ff9800;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .error {
+            background: #f44336;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .info {
+            background: #2196F3;
+            color: white;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        #output {
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 20px;
+            white-space: pre-wrap;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔐 JWT Token Expiry Test</h1>
+        <p>This test validates that expired tokens are automatically detected and cleaned up.</p>
+        
+        <div class="warning">
+            <strong>Note:</strong> This test simulates token expiry by creating tokens with very short expiry times.
+        </div>
+        
+        <div>
+            <button onclick="testValidToken()">Test Valid Token (2 weeks)</button>
+            <button onclick="testExpiredToken()">Test Expired Token (immediate)</button>
+            <button onclick="testTokenCleanup()">Test Token Cleanup</button>
+            <button onclick="clearStorage()">Clear Storage</button>
+            <button onclick="checkCurrentAuth()">Check Current Auth State</button>
+        </div>
+        
+        <div id="output"></div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            output.innerHTML += `[${timestamp}] ${message}\n`;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        function clearOutput() {
+            output.innerHTML = '';
+        }
+        
+        // Simulate the isAutheticated function
+        function isAutheticated() {
+            if (typeof window == "undefined") {
+                return false;
+            }
+            
+            const jwt = localStorage.getItem("jwt");
+            if (!jwt) {
+                return false;
+            }
+            
+            try {
+                const authData = JSON.parse(jwt);
+                
+                // Check if token has expired
+                if (authData.expiryTime && Date.now() > authData.expiryTime) {
+                    // Token expired - clean up localStorage and return false
+                    log("JWT token has expired, logging out user", "warning");
+                    localStorage.removeItem("jwt");
+                    localStorage.removeItem("cart");
+                    return false;
+                }
+                
+                // Token is still valid
+                return authData;
+            } catch (error) {
+                // Invalid JWT data in localStorage - clean up
+                log("Invalid JWT data in localStorage: " + error.message, "error");
+                localStorage.removeItem("jwt");
+                localStorage.removeItem("cart");
+                return false;
+            }
+        }
+        
+        function testValidToken() {
+            clearOutput();
+            log("Testing valid token (2 weeks expiry)...", "info");
+            
+            // Create a valid token with 2 week expiry
+            const validToken = {
+                token: "test-valid-token-123",
+                expiryTime: Date.now() + (14 * 24 * 60 * 60 * 1000), // 2 weeks
+                user: {
+                    _id: "test-user-id",
+                    name: "Test User",
+                    email: "test@example.com",
+                    role: 0
+                }
+            };
+            
+            localStorage.setItem("jwt", JSON.stringify(validToken));
+            log("Valid token stored in localStorage", "success");
+            
+            const auth = isAutheticated();
+            if (auth) {
+                log("✅ SUCCESS: Valid token correctly authenticated", "success");
+                log("User: " + auth.user.name + " (" + auth.user.email + ")", "info");
+                log("Token expires: " + new Date(auth.expiryTime).toLocaleString(), "info");
+            } else {
+                log("❌ FAILED: Valid token was rejected", "error");
+            }
+        }
+        
+        function testExpiredToken() {
+            clearOutput();
+            log("Testing expired token (immediate expiry)...", "info");
+            
+            // Create an expired token
+            const expiredToken = {
+                token: "test-expired-token-456",
+                expiryTime: Date.now() - 1000, // Expired 1 second ago
+                user: {
+                    _id: "test-user-id",
+                    name: "Test User",
+                    email: "test@example.com",
+                    role: 0
+                }
+            };
+            
+            localStorage.setItem("jwt", JSON.stringify(expiredToken));
+            log("Expired token stored in localStorage", "info");
+            
+            const auth = isAutheticated();
+            if (!auth) {
+                log("✅ SUCCESS: Expired token correctly rejected and cleaned up", "success");
+                
+                // Verify localStorage was cleaned
+                const remainingJwt = localStorage.getItem("jwt");
+                if (!remainingJwt) {
+                    log("✅ SUCCESS: localStorage was properly cleaned", "success");
+                } else {
+                    log("❌ FAILED: localStorage was not cleaned", "error");
+                }
+            } else {
+                log("❌ FAILED: Expired token was not detected", "error");
+                log("Auth data: " + JSON.stringify(auth, null, 2), "error");
+            }
+        }
+        
+        function testTokenCleanup() {
+            clearOutput();
+            log("Testing token cleanup with invalid data...", "info");
+            
+            // Store invalid JSON
+            localStorage.setItem("jwt", "invalid-json-data");
+            log("Invalid JSON stored in localStorage", "info");
+            
+            const auth = isAutheticated();
+            if (!auth) {
+                log("✅ SUCCESS: Invalid token data correctly handled", "success");
+                
+                // Verify localStorage was cleaned
+                const remainingJwt = localStorage.getItem("jwt");
+                if (!remainingJwt) {
+                    log("✅ SUCCESS: Invalid data was properly cleaned", "success");
+                } else {
+                    log("❌ FAILED: Invalid data was not cleaned", "error");
+                }
+            } else {
+                log("❌ FAILED: Invalid data was not detected", "error");
+            }
+        }
+        
+        function clearStorage() {
+            clearOutput();
+            localStorage.removeItem("jwt");
+            localStorage.removeItem("cart");
+            log("✅ localStorage cleared", "success");
+        }
+        
+        function checkCurrentAuth() {
+            clearOutput();
+            log("Checking current authentication state...", "info");
+            
+            const jwt = localStorage.getItem("jwt");
+            if (!jwt) {
+                log("No JWT found in localStorage", "info");
+                return;
+            }
+            
+            try {
+                const authData = JSON.parse(jwt);
+                log("JWT found in localStorage:", "info");
+                log("Token: " + authData.token, "info");
+                if (authData.expiryTime) {
+                    const isExpired = Date.now() > authData.expiryTime;
+                    log("Expires: " + new Date(authData.expiryTime).toLocaleString(), "info");
+                    log("Status: " + (isExpired ? "EXPIRED" : "VALID"), isExpired ? "warning" : "success");
+                } else {
+                    log("No expiry time found (old token format)", "warning");
+                }
+                if (authData.user) {
+                    log("User: " + authData.user.name + " (" + authData.user.email + ")", "info");
+                }
+            } catch (error) {
+                log("Invalid JWT data: " + error.message, "error");
+            }
+            
+            const auth = isAutheticated();
+            log("isAutheticated() result: " + (auth ? "AUTHENTICATED" : "NOT AUTHENTICATED"), auth ? "success" : "warning");
+        }
+        
+        // Run initial check
+        window.onload = function() {
+            log("Token Expiry Test Loaded", "info");
+            log("Ready to test JWT token expiry behavior", "info");
+        };
+    </script>
+</body>
+</html>

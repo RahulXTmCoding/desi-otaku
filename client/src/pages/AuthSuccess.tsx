@@ -11,6 +11,7 @@ const AuthSuccess: React.FC = () => {
     const handleAuthSuccess = async () => {
       try {
         const token = searchParams.get('token');
+        const expiryTimeParam = searchParams.get('expiryTime');
         const userParam = searchParams.get('user');
         const error = searchParams.get('error');
 
@@ -34,7 +35,8 @@ const AuthSuccess: React.FC = () => {
         // Store authentication data in the format expected by isAutheticated()
         const authData = {
           token: token,
-          user: user
+          user: user,
+          ...(expiryTimeParam && { expiryTime: parseInt(expiryTimeParam) }) // Include expiry time if provided
         };
         localStorage.setItem('jwt', JSON.stringify(authData));
 
@@ -46,7 +48,7 @@ const AuthSuccess: React.FC = () => {
           if (user.role === 1) {
             navigate('/admin/dashboard');
           } else {
-            navigate('/user/dashboard');
+            navigate('/'); // Redirect regular users to home page
           }
         }, 2000);
 

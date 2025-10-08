@@ -118,7 +118,7 @@ const Signin = () => {
       if (auth && auth.user && auth.user.role === 1) {
         return <Navigate to="/admin/dashboard" />;
       } else {
-        return <Navigate to="/user/dashboard" />;
+        return <Navigate to="/" />; // Redirect regular users to home page
       }
     }
     if (isAutheticated()) {

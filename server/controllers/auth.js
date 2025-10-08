@@ -93,8 +93,12 @@ exports.signin = async (req, res) => {
       });
     }
     
-    //create token
-    const token = jwt.sign({ _id: user._id }, process.env.SECRET);
+    //create token with 2 week expiry
+    const expiresIn = '14d'; // 2 weeks
+    const token = jwt.sign({ _id: user._id }, process.env.SECRET, { expiresIn });
+
+    // Calculate expiry timestamp for frontend (2 weeks in milliseconds)
+    const expiryTime = Date.now() + (14 * 24 * 60 * 60 * 1000);
 
     //Put token into cookie
     res.cookie("token", token, { expire: new Date() + 999 });
@@ -102,7 +106,11 @@ exports.signin = async (req, res) => {
     //Send respond to frontend
     const { _id, name, role } = user;
 
-    return res.json({ token, user: { _id, name, email: user.email, role } });
+    return res.json({ 
+      token, 
+      expiryTime, // Include expiry timestamp for frontend
+      user: { _id, name, email: user.email, role } 
+    });
   } catch (err) {
     console.error("Signin error:", err);
     return res.status(500).json({

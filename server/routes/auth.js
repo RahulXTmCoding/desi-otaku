@@ -38,7 +38,8 @@ router.get('/auth/google/callback',
   }),
   (req, res) => {
     try {
-      // Generate JWT token for the authenticated user
+      // Generate JWT token with 2-week expiry (consistent with regular signin)
+      const expiresIn = '14d'; // 2 weeks
       const token = jwt.sign(
         { 
           _id: req.user._id,
@@ -46,17 +47,22 @@ router.get('/auth/google/callback',
           role: req.user.role || 0
         }, 
         process.env.SECRET, 
-        { expiresIn: '7d' }
+        { expiresIn }
       );
       
-      // Redirect to frontend with token
+      // Calculate expiry timestamp for frontend (2 weeks in milliseconds)
+      const expiryTime = Date.now() + (14 * 24 * 60 * 60 * 1000);
+      
+      // Redirect to frontend with token and expiry time
       const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-      res.redirect(`${clientUrl}/auth-success?token=${token}&user=${encodeURIComponent(JSON.stringify({
+      const userData = {
         _id: req.user._id,
         name: req.user.name,
         email: req.user.email,
         role: req.user.role || 0
-      }))}`);
+      };
+      
+      res.redirect(`${clientUrl}/auth-success?token=${token}&expiryTime=${expiryTime}&user=${encodeURIComponent(JSON.stringify(userData))}`);
     } catch (error) {
       console.error('OAuth callback error:', error);
       res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
@@ -69,10 +75,21 @@ router.post('/auth/google/callback', (req, res) => {
     const { token } = req.body;
     // Here you would typically verify the token with Google, but for now we'll just decode it
     const decoded = jwt.decode(token);
+    
+    // Create JWT token with 2-week expiry (consistent with regular signin)
+    const expiresIn = '14d'; // 2 weeks
+    const appToken = jwt.sign({ _id: decoded.sub }, process.env.SECRET, { expiresIn });
+    
+    // Calculate expiry timestamp for frontend (2 weeks in milliseconds)
+    const expiryTime = Date.now() + (14 * 24 * 60 * 60 * 1000);
+    
     // Find or create user
     // Then create a new JWT for your app
-    const appToken = jwt.sign({ _id: decoded.sub }, process.env.SECRET, { expiresIn: '1h' });
-    res.json({ token: appToken, user: { _id: decoded.sub, name: decoded.name, email: decoded.email, role: 0 } });
+    res.json({ 
+        token: appToken, 
+        expiryTime, // Include expiry timestamp for frontend
+        user: { _id: decoded.sub, name: decoded.name, email: decoded.email, role: 0 } 
+    });
 });
 
 // Facebook Auth Routes
@@ -80,11 +97,22 @@ router.get('/auth/facebook', passport.authenticate('facebook', { scope: ['email'
 
 router.post('/auth/facebook/callback', (req, res) => {
     const { accessToken, userID } = req.body;
+    
+    // Create JWT token with 2-week expiry (consistent with regular signin)
+    const expiresIn = '14d'; // 2 weeks
+    const appToken = jwt.sign({ _id: userID }, process.env.SECRET, { expiresIn });
+    
+    // Calculate expiry timestamp for frontend (2 weeks in milliseconds)
+    const expiryTime = Date.now() + (14 * 24 * 60 * 60 * 1000);
+    
     // Here you would typically verify the token with Facebook
     // Find or create user
     // Then create a new JWT for your app
-    const appToken = jwt.sign({ _id: userID }, process.env.SECRET, { expiresIn: '1h' });
-    res.json({ token: appToken, user: { _id: userID, name: req.body.name, email: req.body.email, role: 0 } });
+    res.json({ 
+        token: appToken, 
+        expiryTime, // Include expiry timestamp for frontend
+        user: { _id: userID, name: req.body.name, email: req.body.email, role: 0 } 
+    });
 });
 
 module.exports = router;

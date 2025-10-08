@@ -9,6 +9,7 @@ interface User {
 
 interface AuthResponse {
   token?: string;
+  expiryTime?: number; // JWT expiry timestamp
   user?: {
     _id: string;
     name: string;
@@ -77,10 +78,31 @@ export const isAutheticated = (): AuthResponse | false => {
   if (typeof window == "undefined") {
     return false;
   }
+  
   const jwt = localStorage.getItem("jwt");
-  if (jwt) {
-    return JSON.parse(jwt);
-  } else {
+  if (!jwt) {
+    return false;
+  }
+  
+  try {
+    const authData = JSON.parse(jwt);
+    
+    // Check if token has expired
+    if (authData.expiryTime && Date.now() > authData.expiryTime) {
+      // Token expired - clean up localStorage and return false
+      console.log("JWT token has expired, logging out user");
+      localStorage.removeItem("jwt");
+      localStorage.removeItem("cart");
+      return false;
+    }
+    
+    // Token is still valid
+    return authData;
+  } catch (error) {
+    // Invalid JWT data in localStorage - clean up
+    console.error("Invalid JWT data in localStorage:", error);
+    localStorage.removeItem("jwt");
+    localStorage.removeItem("cart");
     return false;
   }
 };
@@ -104,10 +126,14 @@ export const socialLogin = (provider: 'google' | 'facebook', response: any): Pro
 
 // Mock authentication for test mode
 export const mockSignin = (email: string, password: string): AuthResponse => {
+  // Calculate 2-week expiry for mock tokens
+  const expiryTime = Date.now() + (14 * 24 * 60 * 60 * 1000);
+  
   // Mock admin user
   if (email === "admin@example.com" && password === "admin123") {
     return {
       token: "mock-admin-token",
+      expiryTime,
       user: {
         _id: "mock-admin-id",
         name: "Admin User",
@@ -121,6 +147,7 @@ export const mockSignin = (email: string, password: string): AuthResponse => {
   if (password === "password123") {
     return {
       token: "mock-user-token",
+      expiryTime,
       user: {
         _id: "mock-user-id",
         name: email.split('@')[0],
@@ -149,9 +176,13 @@ export const mockSignup = (name: string, email: string, password: string): AuthR
     };
   }
   
+  // Calculate 2-week expiry for mock tokens
+  const expiryTime = Date.now() + (14 * 24 * 60 * 60 * 1000);
+  
   // Mock successful signup
   return {
     token: "mock-user-token",
+    expiryTime,
     user: {
       _id: "mock-new-user-id",
       name: name,

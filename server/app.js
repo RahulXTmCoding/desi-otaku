@@ -41,7 +41,7 @@ const redisService = require("./services/redisService");
 const spotTerminationService = require("./services/spotTerminationService");
 
 const corsOptions = {
-  origin: 'https://attars.club' // Allow only this domain to access your backend
+  origin: ['https://attars.club', 'http://localhost:5173'] // Allow only this domain to access your backend
 };
 
 const app = express();
