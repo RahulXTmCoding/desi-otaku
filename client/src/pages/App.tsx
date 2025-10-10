@@ -63,6 +63,7 @@ const UpdateCoupon = lazy(() => import('../admin/UpdateCoupon'));
 const ProductVariantsPage = lazy(() => import('../admin/ProductVariantsPage'));
 const OrderManagement = lazy(() => import('../admin/OrderManagement'));
 const ManageProductTypes = lazy(() => import('../admin/ManageProductTypes'));
+const EmailMarketing = lazy(() => import('../admin/EmailMarketing'));
 
 // Loading component
 const PageLoader = () => (
@@ -228,6 +229,11 @@ export default function App() {
             <Route path="/admin/reward-settings" element={
               <AdminRoute>
                 <RewardSettings />
+              </AdminRoute>
+            } />
+            <Route path="/admin/email-marketing" element={
+              <AdminRoute>
+                <EmailMarketing />
               </AdminRoute>
             } />
             <Route path="/user/profile" element={

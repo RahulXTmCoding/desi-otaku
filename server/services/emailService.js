@@ -1134,6 +1134,153 @@ class EmailService {
     return await this.sendEmail(customerInfo.email, subject, html);
   }
 
+  // Marketing email with product showcase
+  async sendMarketingEmail(buyer, subject, products) {
+    const getProductImageUrl = (product) => {
+      if (product.images && product.images.length > 0) {
+        const primaryImage = product.images.find(img => img.isPrimary);
+        return primaryImage ? primaryImage.url : product.images[0].url;
+      }
+      return product.photoUrl || '/placeholder.png';
+    };
+
+    // Generate product grid HTML
+    const productGridHtml = products.slice(0, 6).map(product => `
+      <td style="width: 33.33%; padding: 10px; vertical-align: top;" class="product-cell">
+        <div style="background-color: #374151; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 10px;">
+          <img
+            src="${getProductImageUrl(product)}"
+            alt="${product.name}"
+            style="width: 100%; max-width: 150px; height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;"
+          />
+          <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #FFFFFF; line-height: 1.3;">
+            ${product.name}
+          </h3>
+          <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: #FCD34D;">
+            ₹${product.price.toLocaleString('en-IN')}
+          </p>
+          <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/product/${product._id}" 
+             style="display: inline-block; background-color: #FCD34D; color: #1F2937; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;">
+            Shop Now
+          </a>
+        </div>
+      </td>
+    `).join('');
+
+    // Split products into rows of 3
+    const productRows = [];
+    for (let i = 0; i < products.length; i += 3) {
+      const rowProducts = products.slice(i, i + 3);
+      const rowHtml = `
+        <tr>
+          ${rowProducts.map(product => `
+            <td style="width: 33.33%; padding: 10px; vertical-align: top;">
+              <div style="background-color: #374151; border-radius: 8px; padding: 15px; text-align: center;">
+                <img
+                  src="${getProductImageUrl(product)}"
+                  alt="${product.name}"
+                  style="width: 100%; max-width: 150px; height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 10px;"
+                />
+                <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold; color: #FFFFFF; line-height: 1.3;">
+                  ${product.name}
+                </h3>
+                <p style="margin: 0 0 12px 0; font-size: 18px; font-weight: bold; color: #FCD34D;">
+                  ₹${product.price.toLocaleString('en-IN')}
+                </p>
+                <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/product/${product._id}" 
+                   style="display: inline-block; background-color: #FCD34D; color: #1F2937; padding: 8px 16px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 12px;">
+                  Shop Now
+                </a>
+              </div>
+            </td>
+          `).join('')}
+          ${rowProducts.length < 3 ? '<td style="width: 33.33%;"></td>'.repeat(3 - rowProducts.length) : ''}
+        </tr>
+      `;
+      productRows.push(rowHtml);
+    }
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>${subject}</title>
+        <style>
+          body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #1F2937; color: #ffffff; }
+          .header { background-color: #FCD34D; color: #1F2937; padding: 30px; text-align: center; }
+          .content { padding: 30px; }
+          .button { display: inline-block; background-color: #FCD34D; color: #1F2937; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
+          .footer { background-color: #111827; padding: 20px; text-align: center; font-size: 12px; color: #9CA3AF; }
+          .highlight { color: #FCD34D; }
+          h1 { margin: 0; font-size: 28px; }
+          h2 { color: #FCD34D; }
+          .product-grid { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          
+          /* Mobile responsiveness */
+          @media only screen and (max-width: 480px) {
+            .container { width: 100% !important; }
+            .content { padding: 20px !important; }
+            .product-grid td { width: 100% !important; display: block !important; }
+            .product-grid tr { display: block !important; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>${subject}</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px;">Discover amazing designs just for you!</p>
+          </div>
+          <div class="content">
+            <p>Hi ${buyer.name || 'Valued Customer'},</p>
+            <p>We thought you'd love these awesome designs that just landed in our store! 🎉</p>
+            
+            <h2 class="highlight">Featured Products</h2>
+            
+            <table class="product-grid" cellpadding="0" cellspacing="0">
+              ${productRows.join('')}
+            </table>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/shop" class="button" style="font-size: 16px; padding: 15px 30px;">
+                🛍️ Shop All Designs
+              </a>
+            </div>
+            
+            <div style="background-color: #374151; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin-top: 0; color: #FCD34D;">Why Shop With Us?</h3>
+              <ul style="margin: 10px 0; color: #D1D5DB;">
+                <li>🎨 Unique anime-inspired designs</li>
+                <li>👕 Premium quality materials</li>
+                <li>🚚 Fast shipping across India</li>
+                <li>💝 Perfect for anime fans</li>
+              </ul>
+            </div>
+            
+            <p>Happy shopping!<br>The Attars Team</p>
+            
+            <hr style="border: none; border-top: 1px solid #374151; margin: 30px 0;">
+            
+            <p style="font-size: 12px; color: #9CA3AF;">
+              You received this email because you're a valued customer. 
+              <a href="#" style="color: #FCD34D;">Unsubscribe</a> if you no longer wish to receive these updates.
+            </p>
+          </div>
+          <div class="footer">
+            <p>&copy; 2025 Attars. All rights reserved.</p>
+            <p>Premium anime fashion for true fans</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return await this.sendEmail(buyer.email, subject, html);
+  }
+
   // Test email functionality
   async sendTestEmail(to) {
     const subject = 'Test Email from Attars';
