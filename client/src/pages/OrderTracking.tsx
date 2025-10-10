@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { Shield, Mail, Eye, EyeOff, Clock, AlertCircle, CheckCircle } from 'lucide-react';
+import { Shield, Mail, Eye, EyeOff, Clock, AlertCircle, CheckCircle, Truck, ExternalLink } from 'lucide-react';
 import { API } from '../backend';
 import OrderDiscountBreakdown from '../components/OrderDiscountBreakdown';
 import { getColorName } from '../utils/colorUtils';
@@ -24,6 +24,7 @@ interface Order {
   shipping?: {
     courier?: string;
     trackingId?: string;
+    trackingLink?: string;
     estimatedDelivery?: string;
     shippingCost?: number;
   };
@@ -307,6 +308,31 @@ const OrderTracking: React.FC = () => {
                 </div>
               )}
             </div>
+            
+            {/* Tracking Link Section */}
+            {order.shipping?.trackingLink && (
+              <div className="mt-6 pt-4 border-t border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-3 flex items-center">
+                  <Truck className="w-5 h-5 mr-2 text-blue-400" />
+                  Package Tracking
+                </h3>
+                <div className="bg-gray-700/50 rounded-lg p-4">
+                  <p className="text-gray-300 text-sm mb-3">
+                    Track your package in real-time on the courier's website
+                  </p>
+                  <a
+                    href={order.shipping.trackingLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+                  >
+                    <Truck className="w-4 h-4" />
+                    Track Package Live
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Order Items */}

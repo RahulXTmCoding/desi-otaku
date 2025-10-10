@@ -13,6 +13,7 @@ const {
   getUserOrders,
   getOrderStatus,
   updateStatus,
+  updateTrackingLink,
   calculateShipping,
   checkPincode,
   generateLabel,
@@ -78,11 +79,20 @@ router.get(
   getOrderStatus
 );
 router.put(
-  "/order/:orderId/status/:userId",
+  "/status/:orderId/:userId",
   isSignedIn,
   isAuthenticated,
   isAdmin,
   updateStatus
+);
+
+// ✅ NEW: Update tracking link for admin
+router.put(
+  "/tracking-link/:orderId/:userId",
+  isSignedIn,
+  isAuthenticated,
+  isAdmin,
+  updateTrackingLink
 );
 
 // Shipping routes

@@ -214,6 +214,7 @@ const OrderSchema = new Schema(
       shippingCost: Number,
       courier: String,
       trackingId: String,
+      trackingLink: String, // Full URL to courier tracking page
       shipmentId: String,
       awbCode: String, // Airway bill number
       estimatedDelivery: Date
@@ -285,6 +286,7 @@ OrderSchema.index({ transaction_id: 1 });
 
 // For shipping/tracking queries
 OrderSchema.index({ "shipping.trackingId": 1 });
+OrderSchema.index({ "shipping.trackingLink": 1 });
 OrderSchema.index({ "shipping.courier": 1, status: 1 });
 
 // Compound index for analytics date range queries

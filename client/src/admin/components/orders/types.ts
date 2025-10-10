@@ -29,6 +29,7 @@ export interface ShippingInfo {
   shippingCost?: number;
   courier?: string;
   trackingId?: string;
+  trackingLink?: string; // ✅ NEW: Full URL to courier tracking page
   trackingNumber?: string; // Keep for backward compatibility
   shipmentId?: string;
   awbCode?: string;

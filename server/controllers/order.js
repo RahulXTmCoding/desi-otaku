@@ -1584,3 +1584,63 @@ exports.createShipment = async (req, res) => {
     });
   }
 };
+
+// ✅ NEW: Update tracking link for admin
+exports.updateTrackingLink = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { trackingLink, trackingId, courier } = req.body;
+    
+    // Find order
+    const order = await Order.findById(orderId);
+    if (!order) {
+      return res.status(404).json({
+        error: "Order not found"
+      });
+    }
+    
+    // Update shipping information
+    if (!order.shipping) {
+      order.shipping = {};
+    }
+    
+    if (trackingLink) {
+      order.shipping.trackingLink = trackingLink;
+    }
+    
+    if (trackingId) {
+      order.shipping.trackingId = trackingId;
+    }
+    
+    if (courier) {
+      order.shipping.courier = courier;
+    }
+    
+    // Set updated timestamp
+    order.updated = Date.now();
+    
+    await order.save();
+    
+    console.log(`✅ Tracking link updated for order ${orderId}:`, {
+      trackingLink: order.shipping.trackingLink,
+      trackingId: order.shipping.trackingId,
+      courier: order.shipping.courier
+    });
+    
+    res.json({
+      success: true,
+      message: "Tracking information updated successfully",
+      order: {
+        _id: order._id,
+        shipping: order.shipping
+      }
+    });
+    
+  } catch (err) {
+    console.error('Update tracking link error:', err);
+    res.status(500).json({
+      error: "Failed to update tracking information",
+      details: err.message
+    });
+  }
+};

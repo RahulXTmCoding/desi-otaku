@@ -1,5 +1,5 @@
-import React from 'react';
-import { ChevronDown, Loader, Mail, Phone, MapPin, Package, PhoneCall, ExternalLink } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronDown, Loader, Mail, Phone, MapPin, Package, PhoneCall, ExternalLink, Truck } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Order } from './types';
@@ -7,6 +7,7 @@ import OrderStatusBadge from './OrderStatusBadge';
 import CartTShirtPreview from '../../../components/CartTShirtPreview';
 import { getProductImageUrl } from './utils/imageHelper';
 import { API } from '../../../backend';
+import TrackingLinkModal from './TrackingLinkModal';
 
 interface OrderListItemProps {
   order: Order;
@@ -32,9 +33,16 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
   onViewDetails
 }) => {
   const orderStatuses = ['Received', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+  const [showTrackingModal, setShowTrackingModal] = useState(false);
+  const [currentOrder, setCurrentOrder] = useState(order);
 
   // Check if this is a COD order
   const isCODOrder = order.paymentMethod?.toLowerCase() === 'cod';
+
+  const handleTrackingUpdate = (updatedOrder: Order) => {
+    setCurrentOrder(updatedOrder);
+    // Optionally trigger a refresh of the parent list
+  };
 
   return (
     <div className={`rounded-xl border overflow-hidden ${
@@ -502,6 +510,16 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
             >
               View Full Details
             </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTrackingModal(true);
+              }}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors text-sm flex items-center gap-2"
+            >
+              <Truck className="w-4 h-4" />
+              {currentOrder.shipping?.trackingLink ? 'Update Tracking' : 'Add Tracking'}
+            </button>
             {onAddNote && (
               <button
                 onClick={() => onAddNote(order._id)}
@@ -512,6 +530,16 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
             )}
           </div>
         </div>
+      )}
+
+      {/* Tracking Link Modal */}
+      {showTrackingModal && (
+        <TrackingLinkModal
+          order={currentOrder}
+          isOpen={showTrackingModal}
+          onClose={() => setShowTrackingModal(false)}
+          onSuccess={handleTrackingUpdate}
+        />
       )}
     </div>
   );

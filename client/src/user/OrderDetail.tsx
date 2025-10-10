@@ -366,21 +366,39 @@ const OrderDetail = () => {
                 </div>
               </div>
 
-              {order.shipping?.trackingId && (
+              {(order.shipping?.trackingId || order.shipping?.trackingLink) && (
                 <div className="bg-gray-700/50 backdrop-blur p-6 rounded-xl border border-gray-600">
                   <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
                     <Truck className="w-5 h-5 mr-2 text-yellow-400" />
                     Tracking Information
                   </h2>
                   <div className="space-y-3">
-                    <div>
-                      <p className="text-xs text-gray-400 mb-1">Tracking ID</p>
-                      <p className="font-mono text-sm text-white bg-gray-800 p-2 rounded break-all">{order.shipping.trackingId}</p>
-                    </div>
+                    {order.shipping.trackingId && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Tracking ID</p>
+                        <p className="font-mono text-sm text-white bg-gray-800 p-2 rounded break-all">{order.shipping.trackingId}</p>
+                      </div>
+                    )}
                     {order.shipping.courier && (
                       <div>
                         <p className="text-xs text-gray-400 mb-1">Courier Partner</p>
                         <p className="text-sm text-white font-medium">{order.shipping.courier}</p>
+                      </div>
+                    )}
+                    {order.shipping.trackingLink && (
+                      <div>
+                        <p className="text-xs text-gray-400 mb-1">Track Your Order</p>
+                        <a
+                          href={order.shipping.trackingLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors font-medium text-sm"
+                        >
+                          <Truck className="w-4 h-4" />
+                          Track Package
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                        <p className="text-xs text-gray-400 mt-1">Click to view real-time tracking on courier website</p>
                       </div>
                     )}
                     {order.shipping.estimatedDelivery && (
