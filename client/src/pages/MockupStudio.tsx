@@ -98,6 +98,7 @@ const MockupStudio: React.FC = () => {
           fabricCanvasRef.current.bringObjectToFront(printAreaGuideRef.current);
         }
       });
+      
 
       // Handle selection events
       canvas.on('selection:created', (e) => {
