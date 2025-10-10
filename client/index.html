@@ -154,27 +154,47 @@
     }
     </script>
     
-    <!-- Google Analytics 4 - Optimized Loading -->
+    <!-- Meta Pixel Code (Facebook Pixel) -->
     <script>
-      // Defer GA loading to improve performance
-      window.addEventListener('load', function() {
-        // Load GA after page load
-        var script = document.createElement('script');
-        script.async = true;
-        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-59F1CDXX1M';
-        document.head.appendChild(script);
-        
-        script.onload = function() {
-          window.dataLayer = window.dataLayer || [];
-          function gtag(){dataLayer.push(arguments);}
-          gtag('js', new Date());
-          gtag('config', 'G-59F1CDXX1M', {
-            page_title: 'Attars Clothing - Premium Streetwear India',
-            page_location: window.location.href,
-            anonymize_ip: true
-          });
-        };
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '1133467228701583');
+      fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+    src="https://www.facebook.com/tr?id=1133467228701583&ev=PageView&noscript=1"
+    /></noscript>
+    <!-- End Meta Pixel Code -->
+
+    <!-- Google Analytics 4 & Google Ads - Enhanced Implementation -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-59F1CDXX1M"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      
+      // Configure Google Analytics 4
+      gtag('config', 'G-59F1CDXX1M', {
+        page_title: 'Attars Club - Premium Streetwear India',
+        page_location: window.location.href,
+        anonymize_ip: true,
+        allow_google_signals: true,
+        allow_ad_personalization_signals: true
       });
+      
+      // Configure Google Ads Conversion Tracking
+      gtag('config', 'AW-17539518573', {
+        allow_enhanced_conversions: true
+      });
+      
+      // Mark that HTML analytics are loaded
+      window.htmlAnalyticsLoaded = true;
     </script>
     
     <!-- Google Search Console Verification -->

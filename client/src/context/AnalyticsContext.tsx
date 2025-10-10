@@ -95,23 +95,44 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
   useEffect(() => {
     if (!config.enabled) {
       if (config.debug) {
+        console.log('Analytics: Disabled via configuration');
       }
       return;
     }
 
     try {
-      // Initialize Meta Pixel
-      if (config.metaPixelId && config.metaPixelId !== 'your_meta_pixel_id_here') {
-        initializeMetaPixel(config.metaPixelId, config.debug);
-        if (config.debug) {
-        }
+      // Check if HTML analytics are already loaded
+      const htmlAnalyticsLoaded = !!(window as any).htmlAnalyticsLoaded;
+      const metaPixelLoaded = !!(window as any).fbq;
+      const gaLoaded = !!(window as any).gtag;
+
+      if (config.debug) {
+        console.log('Analytics: Initialization status check', {
+          htmlAnalyticsLoaded,
+          metaPixelLoaded,
+          gaLoaded,
+          configEnabled: config.enabled
+        });
       }
 
-      // Initialize Google Analytics 4
-      if (config.ga4MeasurementId && config.ga4MeasurementId !== 'your_ga4_measurement_id_here') {
+      // Only initialize Meta Pixel if not already loaded via HTML
+      if (!metaPixelLoaded && config.metaPixelId && config.metaPixelId !== 'your_meta_pixel_id_here') {
+        initializeMetaPixel(config.metaPixelId, config.debug);
+        if (config.debug) {
+          console.log('Analytics: Meta Pixel initialized via React');
+        }
+      } else if (metaPixelLoaded && config.debug) {
+        console.log('Analytics: Meta Pixel already loaded via HTML');
+      }
+
+      // Only initialize Google Analytics if not already loaded via HTML
+      if (!gaLoaded && config.ga4MeasurementId && config.ga4MeasurementId !== 'your_ga4_measurement_id_here') {
         initializeGA4(config.ga4MeasurementId, config.googleAdsConversionId, config.debug);
         if (config.debug) {
+          console.log('Analytics: GA4 initialized via React');
         }
+      } else if (gaLoaded && config.debug) {
+        console.log('Analytics: GA4 already loaded via HTML');
       }
 
       // Initialize Attribution System
@@ -133,6 +154,11 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       initializeEnhancedAnalytics(config.debug);
 
       if (config.debug) {
+        console.log('Analytics: React Context initialization complete', {
+          metaPixelReady: !!(window as any).fbq,
+          ga4Ready: !!(window as any).gtag,
+          configDebug: config.debug
+        });
       }
 
       setIsInitialized(true);
