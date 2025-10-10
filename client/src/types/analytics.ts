@@ -135,6 +135,33 @@ export interface MetaPixelEvents {
     design_elements: number;
     design_complexity: 'simple' | 'medium' | 'complex';
   };
+  // NEW Standard Events
+  AddPaymentInfo: {
+    content_type?: 'product';
+    content_ids?: string[];
+    contents?: CartItem[];
+    value?: number;
+    currency?: string;
+  };
+  AddToWishlist: {
+    content_type?: 'product';
+    content_ids?: string[];
+    contents?: ProductData[];
+    value?: number;
+    currency?: string;
+  };
+  Lead: {
+    content_name?: string;
+    content_category?: string;
+    value?: number;
+    currency?: string;
+  };
+  Subscribe: {
+    value?: number;
+    currency?: string;
+    predicted_ltv?: number;
+    content_name?: string;
+  };
 }
 
 // Google Analytics 4 Events

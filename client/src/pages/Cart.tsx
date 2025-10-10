@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Loader2, Tag, ExternalLink } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
+import { useAnalytics } from '../context/AnalyticsContext';
 import { getMockProductImage } from '../data/mockData';
 import { API } from '../backend';
 import CartTShirtPreview from '../components/CartTShirtPreview';
@@ -14,6 +15,7 @@ const Cart: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const { cart, loading, error, updateQuantity, removeFromCart, clearCart, getTotal, getItemCount } = useCart();
+  const { trackViewCart, trackRemoveFromCart } = useAnalytics();
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
   const [quantityDiscount, setQuantityDiscount] = useState<{
@@ -107,8 +109,17 @@ const Cart: React.FC = () => {
 
   const handleRemoveItem = async (itemId: string) => {
     setIsRemoving(itemId);
+    
+    // Find the item being removed for analytics
+    const itemToRemove = cart.find(item => item._id === itemId);
+    
     try {
       await removeFromCart(itemId);
+      
+      // Track remove from cart for analytics
+      if (itemToRemove) {
+        trackRemoveFromCart(itemToRemove, itemToRemove.quantity);
+      }
     } catch (error) {
       console.error('Failed to remove item:', error);
     } finally {
@@ -156,6 +167,14 @@ const Cart: React.FC = () => {
       navigate(`/product/${productId}`);
     }
   };
+
+  // Track cart view when cart has items
+  useEffect(() => {
+    if (cart.length > 0 && !loading) {
+      // Track view cart for analytics
+      trackViewCart(cart);
+    }
+  }, [cart, loading, trackViewCart]);
 
   // Calculate quantity discounts
   useEffect(() => {

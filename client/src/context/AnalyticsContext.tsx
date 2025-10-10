@@ -60,6 +60,11 @@ interface AnalyticsContextType {
   trackCustomizeProduct: (productId: string, designPosition: string, designType: string) => void;
   trackSaveDesign: (productId: string, designComplexity: string, timeSpent: number) => void;
   
+  // NEW Standard events
+  trackAddToWishlist: (product: any) => void;
+  trackLead: (leadType: string, value?: number) => void;
+  trackSubscribe: (subscriptionType: string, value?: number, predictedLtv?: number) => void;
+  
   // User management
   setUser: (userData: UserData) => void;
   clearUser: () => void;
@@ -847,6 +852,90 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     }
   };
 
+  // Track add to wishlist (NEW - High Priority)
+  const trackAddToWishlist = (product: any) => {
+    if (!config.enabled || !product) return;
+
+    try {
+      const metaPixel = getMetaPixel();
+
+      const productData: ProductData = {
+        content_id: product._id || product.id || '',
+        content_name: product.name || product.title || '',
+        content_category: product.category || 'T-Shirt',
+        value: product.price || 0,
+        currency: 'INR'
+      };
+
+      // Meta Pixel add to wishlist
+      if (metaPixel?.isLoaded()) {
+        metaPixel.trackAddToWishlist({
+          content_type: 'product',
+          content_ids: [productData.content_id],
+          contents: [productData],
+          value: productData.value,
+          currency: productData.currency
+        });
+      }
+
+      if (config.debug) {
+        console.log('Analytics: Add to wishlist tracked', productData);
+      }
+    } catch (error) {
+      console.error('Analytics: Add to wishlist tracking failed:', error);
+    }
+  };
+
+  // Track lead generation (NEW - Medium Priority)
+  const trackLead = (leadType: string, value: number = 0) => {
+    if (!config.enabled) return;
+
+    try {
+      const metaPixel = getMetaPixel();
+
+      // Meta Pixel lead event
+      if (metaPixel?.isLoaded()) {
+        metaPixel.trackLead({
+          content_name: leadType,
+          content_category: 'Lead Generation',
+          value: value,
+          currency: 'INR'
+        });
+      }
+
+      if (config.debug) {
+        console.log('Analytics: Lead tracked', { leadType, value });
+      }
+    } catch (error) {
+      console.error('Analytics: Lead tracking failed:', error);
+    }
+  };
+
+  // Track subscription (NEW - Medium Priority)
+  const trackSubscribe = (subscriptionType: string, value: number = 0, predictedLtv: number = 0) => {
+    if (!config.enabled) return;
+
+    try {
+      const metaPixel = getMetaPixel();
+
+      // Meta Pixel subscribe event
+      if (metaPixel?.isLoaded()) {
+        metaPixel.trackSubscribe({
+          value: value,
+          currency: 'INR',
+          predicted_ltv: predictedLtv,
+          content_name: subscriptionType
+        });
+      }
+
+      if (config.debug) {
+        console.log('Analytics: Subscribe tracked', { subscriptionType, value, predictedLtv });
+      }
+    } catch (error) {
+      console.error('Analytics: Subscribe tracking failed:', error);
+    }
+  };
+
   // Set user data
   const setUser = (userData: UserData) => {
     if (!config.enabled) return;
@@ -951,6 +1040,9 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     trackStartDesignTool,
     trackCustomizeProduct,
     trackSaveDesign,
+    trackAddToWishlist,
+    trackLead,
+    trackSubscribe,
     setUser,
     clearUser,
     isLoaded,

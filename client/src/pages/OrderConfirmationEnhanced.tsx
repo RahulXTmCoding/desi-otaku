@@ -14,6 +14,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAnalytics } from '../context/AnalyticsContext';
 import { isAutheticated, signup, authenticate } from '../auth/helper';
 import { API } from '../backend';
 import OrderDiscountBreakdown from '../components/OrderDiscountBreakdown';
@@ -24,6 +25,7 @@ const OrderConfirmationEnhanced: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { clearCart } = useCart();
+  const { trackPurchase } = useAnalytics();
   const auth = isAutheticated();
   
   // ✅ CRITICAL FIX: Use isGuest flag from order creation state, not recalculated value
@@ -87,6 +89,28 @@ const OrderConfirmationEnhanced: React.FC = () => {
     // ✅ FIX: Store order data in sessionStorage as backup
     if (orderStateData) {
       sessionStorage.setItem('orderConfirmation', JSON.stringify(orderStateData));
+    }
+    
+    // ✅ CRITICAL: Track purchase completion
+    if (orderStateData && orderDetails) {
+      const orderToTrack = {
+        _id: orderStateData.orderId || orderNumber,
+        id: orderStateData.orderId || orderNumber,
+        amount: orderStateData.finalAmount || orderDetails.amount || 0,
+        finalAmount: orderStateData.finalAmount || orderDetails.amount || 0,
+        products: orderDetails.products || [],
+        coupon: orderDetails.coupon,
+        paymentMethod: orderStateData.paymentMethod || paymentMethod,
+        user: !isGuest,
+        tax: 0,
+        shipping: {
+          shippingCost: orderStateData.shippingCost || orderDetails.shipping?.shippingCost || 0
+        },
+        discount: orderStateData.quantityDiscount || orderDetails.quantityDiscount?.amount || 0,
+        rewardPointsRedeemed: orderStateData.rewardPointsUsed || orderDetails.rewardPointsRedeemed || 0
+      };
+      
+      trackPurchase(orderToTrack);
     }
     
     // Only clear cart if it was NOT a Buy Now purchase

@@ -4,6 +4,7 @@ import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
 import { signin, authenticate, isAutheticated, mockSignin } from "../auth/helper";
 import { useDevMode } from "../context/DevModeContext";
 import { useCart } from "../context/CartContext";
+import { useAnalytics } from "../context/AnalyticsContext";
 import { API } from "../backend";
 import { validateEmail, validatePassword } from "../utils/validation";
 import GoogleLogo from "../components/GoogleLogo";
@@ -11,6 +12,7 @@ import GoogleLogo from "../components/GoogleLogo";
 const Signin = () => {
   const { isTestMode } = useDevMode();
   const { syncCart } = useCart();
+  const { trackLogin } = useAnalytics();
   const [values, setValues] = useState({
     email: "",
     password: "",
@@ -83,6 +85,9 @@ const Signin = () => {
         setValues({ ...values, error: mockData.error, loading: false });
       } else {
         authenticate(mockData, async () => {
+          // Track login for analytics
+          trackLogin('email');
+          
           // Sync cart after successful authentication
           await syncCart();
           setValues({
@@ -99,6 +104,9 @@ const Signin = () => {
             setValues({ ...values, error: data.error, loading: false });
           } else {
             authenticate(data, async () => {
+              // Track login for analytics
+              trackLogin('email');
+              
               // Sync cart after successful authentication
               await syncCart();
               setValues({

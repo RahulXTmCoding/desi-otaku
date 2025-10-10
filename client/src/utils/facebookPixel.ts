@@ -227,6 +227,66 @@ class MetaPixel {
     }
   }
 
+  // Track add payment info (NEW - High Priority)
+  trackAddPaymentInfo(data: MetaPixelEvents['AddPaymentInfo']): void {
+    if (!this.isReady()) return;
+
+    try {
+      window.fbq('track', 'AddPaymentInfo', data);
+      
+      if (this.debug) {
+        console.log('Meta Pixel: AddPaymentInfo tracked', data);
+      }
+    } catch (error) {
+      console.error('Meta Pixel: AddPaymentInfo tracking failed:', error);
+    }
+  }
+
+  // Track add to wishlist (NEW - High Priority)
+  trackAddToWishlist(data: MetaPixelEvents['AddToWishlist']): void {
+    if (!this.isReady()) return;
+
+    try {
+      window.fbq('track', 'AddToWishlist', data);
+      
+      if (this.debug) {
+        console.log('Meta Pixel: AddToWishlist tracked', data);
+      }
+    } catch (error) {
+      console.error('Meta Pixel: AddToWishlist tracking failed:', error);
+    }
+  }
+
+  // Track lead generation (NEW - Medium Priority)
+  trackLead(data: MetaPixelEvents['Lead']): void {
+    if (!this.isReady()) return;
+
+    try {
+      window.fbq('track', 'Lead', data);
+      
+      if (this.debug) {
+        console.log('Meta Pixel: Lead tracked', data);
+      }
+    } catch (error) {
+      console.error('Meta Pixel: Lead tracking failed:', error);
+    }
+  }
+
+  // Track subscription (NEW - Medium Priority)
+  trackSubscribe(data: MetaPixelEvents['Subscribe']): void {
+    if (!this.isReady()) return;
+
+    try {
+      window.fbq('track', 'Subscribe', data);
+      
+      if (this.debug) {
+        console.log('Meta Pixel: Subscribe tracked', data);
+      }
+    } catch (error) {
+      console.error('Meta Pixel: Subscribe tracking failed:', error);
+    }
+  }
+
   // Set user data for advanced matching
   setUserData(userData: UserData): void {
     if (!this.isReady()) return;

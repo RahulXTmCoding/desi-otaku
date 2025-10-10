@@ -72,7 +72,7 @@ const ProductDetail: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const { addToCart, getItemCount } = useCart();
-  const { trackProductView } = useAnalytics();
+  const { trackProductView, trackAddToWishlist, trackAddToCart } = useAnalytics();
   
   // React Query for product data
   const { 
@@ -120,7 +120,7 @@ const ProductDetail: React.FC = () => {
 
   // Dynamic product type detection and descriptions
   const getProductType = (product: Product): 'printed-tee' | 'oversized' | 'hoodie' | 'tshirt' => {
-    const category = product?.productType?.name?.toLowerCase() || '';
+    const category = product?.category?.name?.toLowerCase() || '';
     
     if (category.includes('hoodie')) {
       return 'hoodie';
@@ -350,7 +350,13 @@ const ProductDetail: React.FC = () => {
     try {
       const result = await toggleWishlist(userId, token, product?._id || '');
       if (!result.error) {
-        setIsWishlisted(!isWishlisted);
+        const newWishlistState = !isWishlisted;
+        setIsWishlisted(newWishlistState);
+        
+        // Track analytics for adding to wishlist
+        if (newWishlistState && product) {
+          trackAddToWishlist(product);
+        }
       }
     } catch (err) {
       console.error('Error toggling wishlist:', err);
@@ -424,6 +430,9 @@ const ProductDetail: React.FC = () => {
       }
       
       await addToCart(cartItem);
+      
+      // Track add to cart for analytics
+      trackAddToCart(product, quantity);
       
       setShowSuccessMessage(true);
       setTimeout(() => setShowSuccessMessage(false), 3000);

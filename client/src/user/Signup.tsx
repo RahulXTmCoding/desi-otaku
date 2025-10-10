@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Mail, Lock, User, Loader2, AlertCircle, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { signup, mockSignup } from "../auth/helper";
 import { useDevMode } from "../context/DevModeContext";
+import { useAnalytics } from "../context/AnalyticsContext";
 import { API } from "../backend";
 import { validateEmail, validatePassword, validateName, validateConfirmPassword } from "../utils/validation";
 import GoogleLogo from "../components/GoogleLogo";
@@ -10,6 +11,7 @@ import GoogleLogo from "../components/GoogleLogo";
 const Signup = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
+  const { trackSubscribe } = useAnalytics();
   const [values, setValues] = useState({
     name: "",
     email: "",
@@ -103,6 +105,9 @@ const Signup = () => {
       if (mockData.error) {
         setValues({ ...values, error: mockData.error, success: false, loading: false });
       } else {
+        // Track subscription (signup)
+        trackSubscribe('Account Registration', 0, 1500);
+        
         setValues({
           ...values,
           name: "",
@@ -124,6 +129,9 @@ const Signup = () => {
           if (data.error) {
             setValues({ ...values, error: data.error, success: false, loading: false });
           } else {
+            // Track subscription (signup)
+            trackSubscribe('Account Registration', 0, 1500);
+            
             setValues({
               ...values,
               name: "",

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAnalytics } from '../context/AnalyticsContext';
 import { 
   Mail, 
   Phone, 
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 
 const Contact: React.FC = () => {
+  const { trackLead } = useAnalytics();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,6 +30,9 @@ const Contact: React.FC = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Track lead generation
+    trackLead('Contact Form', 0);
     
     // Create mailto link with form data
     const subject = encodeURIComponent(`Contact Form: ${formData.subject}`);
