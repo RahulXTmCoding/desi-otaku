@@ -389,7 +389,7 @@ const OrderManagement: React.FC = () => {
         toast.success('Order status updated successfully');
       } else {
         if (user && token) {
-          const response = await fetch(`${API}/order/${orderId}/status/${user._id}`, {
+          const response = await fetch(`${API}/status/${orderId}/${user._id}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',

@@ -120,7 +120,7 @@ const ProductDetail: React.FC = () => {
 
   // Dynamic product type detection and descriptions
   const getProductType = (product: Product): 'printed-tee' | 'oversized' | 'hoodie' | 'tshirt' => {
-    const category = product?.category?.name?.toLowerCase() || '';
+    const category = product?.productType?.name?.toLowerCase() || '';
     
     if (category.includes('hoodie')) {
       return 'hoodie';

@@ -286,7 +286,7 @@ export const mockGetAllOrders = (): Promise<any> => {
 
 // Update order status
 export const updateOrderStatus = (userId: string, token: string, orderId: string, status: string) => {
-  return fetch(`${API}/order/${orderId}/status/${userId}`, {
+  return fetch(`${API}/status/${orderId}/${userId}`, {
     method: "PUT",
     headers: {
       Accept: "application/json",
