@@ -36,13 +36,17 @@ interface ProductInfoProps {
   isFetching?: boolean;
   isLoading?: boolean;
   isTestMode?: boolean;
+  isMobile?: boolean;
+  defaultFeatures?: String[];
 }
 
 const ProductInfo: React.FC<ProductInfoProps> = ({
   product,
   isFetching,
   isLoading,
-  isTestMode
+  isTestMode,
+  isMobile,
+  defaultFeatures
 }) => {
   // Use actual MRP if available, otherwise calculate for display
   const displayMRP = product.mrp && product.mrp > product.price ? product.mrp : Math.round(product.price * 1.33);
@@ -91,9 +95,11 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-3xl font-bold" style={{ color: 'var(--color-text)' }}>
+        <h1 className="flex items-center justify-between text-3xl font-bold display-inline" style={{ color: 'var(--color-text)' }}>
           {product.name}
         </h1>
+
+        
         <div className="flex items-center gap-3">
           {!isTestMode && isFetching && !isLoading && (
             <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--color-success)' }}>
@@ -105,7 +111,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
       </div>
       
       {/* Premium Rating and Social Proof */}
-      <div className="flex items-center gap-6 mb-6">
+      {/* {isMobile?<></>:<div className="flex items-center gap-6 mb-6"> */}
         {/* <div className="flex items-center gap-2">
           <div className="flex items-center">
             {[...Array(5)].map((_, i) => (
@@ -128,7 +134,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           • {product.sold}+ sold this week
         </span> */}
 
-        <div className="flex items-center gap-3">
+        {/* <div className="flex items-center gap-3">
           <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg" style={{ backgroundColor: 'var(--color-surface)', border: '1px solid var(--color-border)' }}>
             <span className="text-sm font-medium" style={{ color: 'var(--color-textMuted)' }}>
               Category:
@@ -138,7 +144,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             </span>
           </div>
 
-          {/* Out of Stock Badge */}
           {isOutOfStock() && (
             <div className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-red-500/20 border border-red-500/30">
               <span className="text-sm font-bold text-red-400">
@@ -146,43 +151,52 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
               </span>
             </div>
           )}
-        </div>
 
-        <button 
-          onClick={handleShare}
-          className="flex items-center gap-1 text-sm transition-colors hover:opacity-80"
-          style={{ color: 'var(--color-textMuted)' }}
-        >
-          <Share2 className="w-4 h-4" />
-          <span>Share</span>
-        </button>
-      </div>
+          
+          <button 
+              onClick={handleShare}
+              className="flex items-center gap-1 text-sm transition-colors hover:opacity-80"
+              style={{ color: 'var(--color-textMuted)' }}
+            >
+              <Share2 className="w-4 h-4" />
+              <span>Share</span>
+          </button>
+        </div> */}
+      {/* </div>} */}
+      
 
       {/* Compact Dual Pricing Display */}
       <div>
         {/* MRP and Original Discount Info */}
         {(product.mrp && product.mrp > product.price) && (
           <div className="flex items-center gap-2 mb-3">
+            {isMobile?<span className="font-bold" style={{ color: 'var(--color-success)' }}>
+                ₹{Math.round(product.price * 0.95).toLocaleString('en-IN')}
+            </span> :<></>}
+            
+            {/* MRP: ₹{product.mrp.toLocaleString('en-IN')} ({actualDiscount}% OFF)  */}
             <span className="text-base line-through" style={{ color: 'var(--color-textMuted)' }}>
               MRP ₹{product.mrp.toLocaleString('en-IN')}
             </span>
             <span className="px-2 py-1 rounded text-xs font-bold bg-red-500 text-white">
               {actualDiscount}% OFF
             </span>
+            {!isMobile?<></>:<span>
+            (COD price: ₹{product.price.toLocaleString('en-IN')})
+            </span>}
           </div>
         )}
 
         {/* Compact Pricing Information */}
-        <div className="mb-3">
+        {isMobile? <></>: 
+        <div className="mb-3 display-none md:display-block">
           <div className="mb-2">
             <span className="text-sm font-medium" style={{ color: 'var(--color-textMuted)' }}>
               💰 Payment Options:
             </span>
           </div>
 
-          {/* Compact Pricing Rows */}
           <div className="space-y-1">
-            {/* Online Payment */}
             <div className="flex items-center justify-between py-1.5 px-2 rounded text-sm" style={{ backgroundColor: 'var(--color-surface)' }}>
               <div className="flex items-center gap-2">
                 <span>💳</span>
@@ -198,7 +212,6 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
               </div>
             </div>
 
-            {/* COD Payment */}
             <div className="flex items-center justify-between py-1.5 px-2 rounded text-sm">
               <div className="flex items-center gap-2">
                 <span>🚚</span>
@@ -210,21 +223,24 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
             </div>
           </div>
         </div>
+}
 
-        {/* Additional Savings from MRP */}
-        {(product.mrp && product.mrp > product.price) && (
+{/*         
+        {isMobile? <></>:(product.mrp && product.mrp > product.price) && (
           <div className="text-xs font-medium mb-2" style={{ color: 'var(--color-success)' }}>
             🎉 Total savings: ₹{savings.toLocaleString('en-IN')} + ₹{Math.round(product.price * 0.05).toLocaleString('en-IN')} online discount
           </div>
         )}
 
-        {(!product.mrp || product.mrp <= product.price) && (
+        {isMobile?<></>:(!product.mrp || product.mrp <= product.price) && (
           <div className="text-xs font-medium" style={{ color: 'var(--color-success)' }}>
             ✨ Best price guaranteed with online savings
           </div>
-        )}
+        )} */}
       </div>
-      <p className="mb-4 mt-4" style={{ color: 'var(--color-textMuted)' }}>{product.description}</p>
+      <p style={{ color: 'var(--color-textMuted)' }}>
+        {defaultFeatures.join('. ')}
+      </p>
       </div>
       
   );

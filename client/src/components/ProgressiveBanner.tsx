@@ -106,7 +106,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
     if (onClick) {
       onClick();
     } else {
-      navigate('/shop');
+      navigate('/shop?category=68644353659ea7d89d2a0427');
     }
   };
 
@@ -205,7 +205,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
           <button 
             onClick={(e) => {
               e.stopPropagation();
-              navigate('/shop');
+              navigate('/shop?category=68644353659ea7d89d2a0427');
             }}
             className="border border-yellow-400 text-yellow-400 px-6 py-3 rounded-full font-semibold hover:bg-yellow-400 hover:text-gray-900 transition-all"
           >

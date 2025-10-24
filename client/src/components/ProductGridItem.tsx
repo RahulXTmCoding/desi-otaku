@@ -321,7 +321,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
       const target = e.target as HTMLElement;
       const isButton = target.closest('button');
       if (!isButton) {
-        navigate(`/product/${product._id}`);
+        navigate(`/product/${product._id}#details`);
       }
     }
   };

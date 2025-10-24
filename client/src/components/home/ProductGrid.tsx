@@ -25,6 +25,7 @@ interface ProductGridProps {
   loading?: boolean;
   onQuickView: (product: Product) => void;
   maxItems?: number;
+  sub?: string;
 }
 
 const ProductGrid: React.FC<ProductGridProps> = ({
@@ -33,7 +34,8 @@ const ProductGrid: React.FC<ProductGridProps> = ({
   viewAllLink,
   loading,
   onQuickView,
-  maxItems = 8
+  maxItems = 8,
+  sub = "Discover our latest collection of premium designs and trending styles"
 }) => {
   // Limit products to display
   const displayProducts = products.slice(0, maxItems);
@@ -73,7 +75,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({
         </h2>
         <div className="w-24 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-3"></div>
         <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-          Discover our latest collection of premium designs and trending styles
+          {sub}
         </p>
       </div>
 

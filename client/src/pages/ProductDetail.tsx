@@ -93,6 +93,14 @@ const ProductDetail: React.FC = () => {
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [viewersCount, setViewersCount] = useState(Math.floor(Math.random() * 15) + 8);
+  const [isMobile, setIsMobile] = useState(() => {
+      // Check if window is available (client-side)
+      if (typeof window !== 'undefined') {
+        return window.innerWidth < 768;
+      }
+      // Default to mobile for SSR to prevent hydration mismatch
+      return true;
+    });
   
   const auth = isAutheticated();
   const userId = auth && auth.user ? auth.user._id : null;
@@ -226,6 +234,21 @@ const ProductDetail: React.FC = () => {
   const defaultFeatures = productDescriptions.features;
   const defaultCareInstructions = productDescriptions.careInstructions;
   const defaultMaterial = productDescriptions.material;
+
+  useEffect(() => {
+      const checkIsMobile = () => {
+        const mobile = window.innerWidth < 768;
+        setIsMobile(mobile);
+      };
+      
+      // Check initially (in case SSR default was wrong)
+      checkIsMobile();
+      
+      // Listen for window resize
+      window.addEventListener('resize', checkIsMobile);
+      
+      return () => window.removeEventListener('resize', checkIsMobile);
+    }, []);
 
   // Simulate live viewers with slight fluctuation
   useEffect(() => {
@@ -533,7 +556,7 @@ const ProductDetail: React.FC = () => {
           </div>
         </div>
 
-        <div className="product-detail-container md:py-8">
+        <div className="product-detail-container md:py-8" id="details">
           <div className="grid md:grid-cols-5 md:gap-8  gap-6">
             {/* Product Images Section - Takes 3/5 of the width (60%) */}
             <div className="md:col-span-3">
@@ -553,6 +576,8 @@ const ProductDetail: React.FC = () => {
                 isFetching={isFetching}
                 isLoading={isLoading}
                 isTestMode={isTestMode}
+                isMobile={isMobile}
+                defaultFeatures={defaultFeatures}
               />
 
               <ProductOptions

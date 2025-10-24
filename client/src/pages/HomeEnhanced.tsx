@@ -483,11 +483,11 @@ const HomeEnhanced: React.FC = () => {
           <div className="w-[96%] mx-auto">
               <div className="text-center md:mb-8 mb-6 sm:mb-12 lg:mb-16">
               <h2 className="md:text-3xl text-2xl sm:text-2xl lg:text-4xl font-bold md:mb-6 mb-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
-                OUR COLLECTION
+                YOUR NEW STAPLES
               </h2>
               <div className="w-32 h-1 bg-gradient-to-r from-yellow-400 to-orange-500 mx-auto rounded-full mb-4"></div>
               <p className="text-gray-400 md:text-xl text-lg max-w-3xl mx-auto leading-relaxed">
-                Explore our premium collection of carefully curated fashion pieces
+                 Discover graphic T-Shirts, Hoodies, and modern Oversized Tees.
               </p>
             </div>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
@@ -521,6 +521,7 @@ const HomeEnhanced: React.FC = () => {
                 loading={featuredProductsQuery.isLoading}
                 onQuickView={handleQuickView}
                 maxItems={8}
+                sub='Shop our most popular graphic tees, hoodies, and oversized fits'
               />
             </div>
           </section>

@@ -14,7 +14,7 @@ interface ProductTabsProps {
   product: Product;
   productType: string;
   defaultMaterial: string;
-  defaultFeatures: string[];
+  // defaultFeatures: string[];
   defaultCareInstructions: string[];
 }
 
@@ -22,14 +22,14 @@ const ProductTabs: React.FC<ProductTabsProps> = ({
   product,
   productType,
   defaultMaterial,
-  defaultFeatures,
+  // defaultFeatures,
   defaultCareInstructions
 }) => {
   const [activeTab, setActiveTab] = useState('description');
 
   const tabs = [
     { id: 'description', label: 'Description' },
-    { id: 'features', label: 'Features' },
+    // { id: 'features', label: 'Features' },
     { id: 'care', label: 'Care Instructions' }
   ];
 
@@ -91,7 +91,7 @@ const ProductTabs: React.FC<ProductTabsProps> = ({
           </div>
         )}
 
-        {activeTab === 'features' && (
+        {/* {activeTab === 'features' && (
           <div className="grid md:grid-cols-2 gap-6">
             {(product.features || defaultFeatures).map((feature, index) => (
               <div 
@@ -110,7 +110,7 @@ const ProductTabs: React.FC<ProductTabsProps> = ({
               </div>
             ))}
           </div>
-        )}
+        )} */}
 
         {activeTab === 'care' && (
           <div className="grid md:grid-cols-2 gap-4">

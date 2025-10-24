@@ -215,9 +215,10 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
       </div>
     );
   }
-
+  
   return (
     <div className="mt-12">
+      {stats.totalReviews?<>
       <h2 className="text-2xl font-bold mb-6">Customer Reviews</h2>
 
       {/* Review Stats */}
@@ -264,7 +265,7 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
           </div>
         </div>
       )}
-
+      </>:<></>}
       {/* Write Review Button/Form */}
       {userId ? (
         !userReview && !showReviewForm && (
@@ -414,12 +415,6 @@ const ProductReviews: React.FC<ProductReviewsProps> = ({ productId, productImage
           </div>
         ))}
       </div>
-
-      {reviews.length === 0 && !userReview && (
-        <p className="text-center text-gray-400 py-4">
-          No reviews yet. Be the first to review this product!
-        </p>
-      )}
     </div>
   );
 };
