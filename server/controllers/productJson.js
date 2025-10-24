@@ -1,5 +1,6 @@
 const Product = require("../models/product");
 const _ = require("lodash");
+const { uploadToR2, generateImageKey, isR2Enabled } = require("../utils/r2Storage");
 
 // Create product with JSON payload
 exports.createProductJson = async (req, res) => {
@@ -67,24 +68,56 @@ exports.createProductJson = async (req, res) => {
       });
     }
 
-    // Handle base64 file images
+    // Handle base64 file images with R2 support
     if (imageFiles && Array.isArray(imageFiles)) {
       console.log(`Processing ${imageFiles.length} base64 images`);
+      console.log(`R2 enabled: ${isR2Enabled()}`);
       
-      imageFiles.forEach((fileData, index) => {
-        // Extract base64 data from data URL
+      for (let index = 0; index < imageFiles.length; index++) {
+        const fileData = imageFiles[index];
         const base64Data = fileData.data.split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
         
         console.log(`  Processing image ${index + 1}: ${fileData.name}`);
         
-        product.images.push({
-          data: buffer,
-          contentType: fileData.type,
-          isPrimary: false, // Will be set based on primaryImageIndex
-          order: product.images.length
-        });
-      });
+        if (isR2Enabled()) {
+          try {
+            // Upload to R2
+            const extension = fileData.name.split('.').pop() || 'jpg';
+            const imageKey = generateImageKey(product._id.toString(), index, extension);
+            const r2Url = await uploadToR2(buffer, imageKey, fileData.type);
+            
+            console.log(`  ✅ R2 upload successful: ${r2Url}`);
+            
+            product.images.push({
+              url: r2Url,
+              storageType: 'r2',
+              isPrimary: false, // Will be set based on primaryImageIndex
+              order: product.images.length,
+              originalName: fileData.name
+            });
+          } catch (error) {
+            console.error(`  ❌ R2 upload failed for ${fileData.name}:`, error.message);
+            // Fallback to MongoDB GridFS storage
+            product.images.push({
+              data: buffer,
+              contentType: fileData.type,
+              storageType: 'gridfs',
+              isPrimary: false,
+              order: product.images.length
+            });
+          }
+        } else {
+          // Use existing MongoDB GridFS storage
+          product.images.push({
+            data: buffer,
+            contentType: fileData.type,
+            storageType: 'gridfs',
+            isPrimary: false, // Will be set based on primaryImageIndex
+            order: product.images.length
+          });
+        }
+      }
     }
 
     // Set primary image
@@ -187,24 +220,56 @@ exports.updateProductJson = async (req, res) => {
       });
     }
 
-    // Add new base64 file images
+    // Add new base64 file images with R2 support
     if (imageFiles && Array.isArray(imageFiles)) {
       console.log(`Processing ${imageFiles.length} new base64 images`);
+      console.log(`R2 enabled: ${isR2Enabled()}`);
       
-      imageFiles.forEach((fileData, index) => {
-        // Extract base64 data from data URL
+      for (let index = 0; index < imageFiles.length; index++) {
+        const fileData = imageFiles[index];
         const base64Data = fileData.data.split(',')[1];
         const buffer = Buffer.from(base64Data, 'base64');
         
         console.log(`  Processing image ${index + 1}: ${fileData.name}`);
         
-        newImagesArray.push({
-          data: buffer,
-          contentType: fileData.type,
-          isPrimary: false,
-          order: newImagesArray.length
-        });
-      });
+        if (isR2Enabled()) {
+          try {
+            // Upload to R2
+            const extension = fileData.name.split('.').pop() || 'jpg';
+            const imageKey = generateImageKey(product._id.toString(), newImagesArray.length, extension);
+            const r2Url = await uploadToR2(buffer, imageKey, fileData.type);
+            
+            console.log(`  ✅ R2 upload successful: ${r2Url}`);
+            
+            newImagesArray.push({
+              url: r2Url,
+              storageType: 'r2',
+              isPrimary: false,
+              order: newImagesArray.length,
+              originalName: fileData.name
+            });
+          } catch (error) {
+            console.error(`  ❌ R2 upload failed for ${fileData.name}:`, error.message);
+            // Fallback to MongoDB GridFS storage
+            newImagesArray.push({
+              data: buffer,
+              contentType: fileData.type,
+              storageType: 'gridfs',
+              isPrimary: false,
+              order: newImagesArray.length
+            });
+          }
+        } else {
+          // Use existing MongoDB GridFS storage
+          newImagesArray.push({
+            data: buffer,
+            contentType: fileData.type,
+            storageType: 'gridfs',
+            isPrimary: false,
+            order: newImagesArray.length
+          });
+        }
+      }
     }
 
     // Update product images

@@ -248,7 +248,7 @@ exports.getProduct = async (req, res) => {
   }
 };
 
-// Get product image by index or primary image
+// Get product image by index or primary image (R2 + GridFS hybrid support)
 exports.getProductImage = (req, res, next) => {
   const { imageIndex } = req.params;
   const product = req.product;
@@ -280,15 +280,26 @@ exports.getProductImage = (req, res, next) => {
     return res.status(404).json({ error: "No image available for this product" });
   }
   
-  // If image has binary data, send it
+  // ✅ NEW: Handle R2 images with fast CDN redirect
+  if (image.storageType === 'r2' && image.url) {
+    console.log('🚀 R2 CDN REDIRECT:', image.url);
+    // Set cache headers for better performance
+    res.set('Cache-Control', 'public, max-age=31536000'); // 1 year cache
+    return res.redirect(301, image.url); // Permanent redirect to R2 CDN
+  }
+  
+  // ✅ EXISTING: Handle GridFS binary data
   if (image.data && image.contentType) {
+    console.log('📁 GridFS binary data serve');
     res.set("Content-Type", image.contentType);
+    res.set('Cache-Control', 'public, max-age=86400'); // 1 day cache
     return res.send(image.data);
   }
   
-  // If image has URL, redirect to it
+  // ✅ FALLBACK: Handle legacy URL images (Cloudinary, etc.)
   if (image.url) {
-    console.log('✅ IMAGE ENDPOINT: Redirecting to URL:', image.url);
+    console.log('🔗 Legacy URL redirect:', image.url);
+    res.set('Cache-Control', 'public, max-age=3600'); // 1 hour cache
     return res.redirect(image.url);
   }
   

@@ -349,7 +349,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             <img 
               src={getImageUrl()}
               alt={product.name}
-              className={`w-full h-full object-contain transition-all duration-500 ${
+              className={`w-full h-full object-cover md:object-contain transition-all duration-500 ${
                 hasSecondImage() ? 'group-hover:opacity-0' : 'group-hover:scale-110'
               }`}
               onError={handleImageError}
