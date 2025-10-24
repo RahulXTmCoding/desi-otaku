@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Loader2, Cloud, CloudOff, Gift, Package, TrendingUp } from 'lucide-react';
+import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Loader2, Cloud, CloudOff, Gift, Package, TrendingUp, ExternalLink, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
@@ -284,9 +284,9 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   <Loader2 className="w-8 h-8 text-yellow-400 animate-spin" />
                 </div>
               ) : cart.length === 0 ? (
-                <div className="text-center py-12">
-                  <ShoppingCart className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-textMuted)' }} />
-                  <p className="mb-6" style={{ color: 'var(--color-textMuted)' }}>Your cart is empty</p>
+                <div className="text-center  py-6">
+                  {/* <ShoppingCart className="w-16 h-16 mx-auto mb-4" style={{ color: 'var(--color-textMuted)' }} /> */}
+                  <p className="mb-4 text-xl" style={{ color: 'var(--color-textMuted)' }}>Your cart is empty</p>
                   <button
                     onClick={handleContinueShopping}
                     className="px-6 py-3 rounded-lg font-semibold transition-colors"
@@ -296,6 +296,21 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                   >
                     Start Shopping
                   </button>
+                    <p className="mt-4 mb-2 text-small" style={{ color: 'var(--color-textMuted)' }}>Have an account?</p>
+                   <p className="text-sm" style={{ color: 'var(--color-textMuted)' }}>
+                  <a href="/signin" className="link underline">Log in</a> to check out faster.
+                </p>
+                    {/* <p style={{ color: 'var(--color-textMuted)' }}>Log in to check out faster.</p> */}
+                  <div className="relative rounded-2xl overflow-hidden group mt-6 ml-6 mr-6" style={{ backgroundColor: 'var(--color-surface)' }}>
+                              <div 
+                                className="aspect-square relative cursor-zoom-in transition-transform duration-500" 
+                                style={{ backgroundColor: "rgba(209, 250, 229, 0.2)" }}
+                              >
+                    <img src="https://lh3.googleusercontent.com/pw/AP1GczOSyLqdj_put2CROuP9CeZCTnGeh3vF5PwCdJHUNcLRLbRw9xAta1t0GF25m90sMfkRr44HabSwnAoNfnKUvwXU8Uu6G58RWltpuQy8xa2M_Lb2jKfqjlvegft3msjxBjyTtVnT00_ev4aO6OJxjIkP=w735-h945-s-no-gm?authuser=0" alt="Image 1" class="w-full h-full object-contain transition-transform duration-300 scale-100"></img>
+                  </div>
+                  </div>
+                  <a href="/shop" className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 font-large transition-colors group ml-6 mt-2 full-unstyled-link">Shop All <ChevronDown className="w-3 h-3 rotate-[-90deg]" />
+                  </a>
                 </div>
               ) : (
                 <div className="space-y-2">
