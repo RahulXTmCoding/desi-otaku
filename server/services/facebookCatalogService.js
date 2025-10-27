@@ -14,7 +14,6 @@ async function upsertProductsToFacebookCatalog(productsToUpsert) {
 
     console.log(`Sending upsert request for ${productsToUpsert.length} items to Facebook catalog ${YOUR_CATALOG_ID}...`);
 
-    // This is the main payload for the API request
     const payload = {
         "access_token": YOUR_ACCESS_TOKEN,
         "item_type": "PRODUCT_ITEM",
