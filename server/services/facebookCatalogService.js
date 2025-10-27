@@ -1,8 +1,4 @@
-// Use 'import' if you are using ES Modules (add "type": "module" in your package.json)
-import axios from 'axios';
-
-// Or use 'require' if you are using CommonJS (the default in older Node.js)
-// const axios = require('axios');
+const axios = require('axios');
 
 // --- Your Configuration ---
 const YOUR_CATALOG_ID = process.env.FACEBOOK_CATALOG_ID;
@@ -33,7 +29,7 @@ async function upsertProductsToFacebookCatalog(productsToUpsert) {
         const response = await axios.post(API_URL, payload);
 
         console.log("Success! Batch request submitted to Facebook Catalog.");
-        console.log("API Response:", JSON.stringify(response.data));
+        console.log("API Response:", response.data);
         console.log("---");
         console.log("IMPORTANT: This batch is now processing in the background.");
         console.log(`Use this handle to check its status: ${response.data.handle}`);
@@ -53,4 +49,4 @@ async function upsertProductsToFacebookCatalog(productsToUpsert) {
     }
 }
 
-export { upsertProductsToFacebookCatalog };
+module.exports = { upsertProductsToFacebookCatalog };
