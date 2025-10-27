@@ -374,8 +374,6 @@ jobs:
             --value "$FACEBOOK_ACCESS_TOKEN" \
             --type "SecureString" \
             --overwrite
-          
-
             
           echo "✅ All parameters updated successfully in Parameter Store"
 
