@@ -333,6 +333,49 @@ jobs:
             --value "${{ secrets.COD_BYPASS_OTP }}" \
             --type "String" \
             --overwrite
+
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/USE_R2" \
+            --value "$USE_R2" \
+            --type "String" \
+            --overwrite
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/R2_ACCOUNT_ID" \  
+            --value "$R2_ACCOUNT_ID" \
+            --type "String" \
+            --overwrite
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/R2_ACCESS_KEY_ID" \
+            --value "$R2_ACCESS_KEY_ID" \
+            --type "SecureString" \ 
+            --overwrite
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/R2_SECRET_ACCESS_KEY" \
+            --value "$R2_SECRET_ACCESS_KEY" \
+            --type "SecureString" \
+            --overwrite
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/R2_BUCKET_NAME" \
+            --value "$R2_BUCKET_NAME" \
+            --type "String" \
+            --overwrite
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/R2_PUBLIC_URL" \
+            --value "$R2_PUBLIC_URL" \
+            --type "String" \
+            --overwrite
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/FACEBOOK_CATALOG_ID" \
+            --value "$FACEBOOK_CATALOG_ID" \
+            --type "String" \
+            --overwrite
+          aws ssm put-parameter \
+            --name "$PARAM_PREFIX/FACEBOOK_ACCESS_TOKEN" \
+            --value "$FACEBOOK_ACCESS_TOKEN" \
+            --type "SecureString" \
+            --overwrite
+          
+
             
           echo "✅ All parameters updated successfully in Parameter Store"
 
