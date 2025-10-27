@@ -57,6 +57,9 @@ const UpdateProduct = () => {
     description: "",
     price: "",
     mrp: "",
+    seoTitle: "", // New SEO field
+    metaDescription: "", // New SEO field
+    slug: "", // New SEO field
     tags: "",
     productType: "",
     categories: [] as any[],
@@ -92,6 +95,9 @@ const UpdateProduct = () => {
     name,
     description,
     price,
+    seoTitle, // Destructure new SEO fields
+    metaDescription,
+    slug,
     tags,
     productType,
     categories,
@@ -162,6 +168,9 @@ const UpdateProduct = () => {
           description: data.description,
           price: data.price,
           mrp: data.mrp || "",
+          seoTitle: data.seoTitle || "", // Pre-populate SEO title
+          metaDescription: data.metaDescription || "", // Pre-populate meta description
+          slug: data.slug || "", // Pre-populate slug
           category: data.category._id,
           subcategory: data.subcategory?._id || data.subcategory || "",
           tags: data.tags ? data.tags.join(", ") : "",
@@ -357,7 +366,7 @@ const UpdateProduct = () => {
         id: Date.now().toString(),
         url: imageUrl,
         preview: imageUrl,
-        isPrimary: !hasPrimary // Only set as primary if no primary exists
+        isPrimary: !hasPrimary
       };
       setImages([...images, newImage]);
       setImageUrl("");
@@ -378,7 +387,7 @@ const UpdateProduct = () => {
             id: Date.now().toString() + index,
             file: file,
             preview: reader.result as string,
-            isPrimary: !hasPrimary && index === 0 // Only set as primary if no primary exists
+            isPrimary: !hasPrimary && index === 0
           };
           return [...prev, newImage];
         });
@@ -432,6 +441,9 @@ const UpdateProduct = () => {
         description,
         price,
         mrp: values.mrp,
+        seoTitle, // Include new SEO fields
+        metaDescription,
+        slug,
         category,
         tags,
         productType,
@@ -719,21 +731,21 @@ const UpdateProduct = () => {
                   </label>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="space-y-3">
                   <input
                     type="url"
                     value={imageUrl}
                     onChange={(e) => setImageUrl(e.target.value)}
-                    className="flex-1 px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                    className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
                     placeholder="https://example.com/image.jpg"
                   />
                   <button
                     type="button"
                     onClick={addImage}
                     disabled={!imageUrl}
-                    className="px-4 py-2 bg-yellow-400 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 rounded-lg font-medium transition-colors"
+                    className="w-full px-4 py-3 bg-yellow-400 disabled:bg-gray-600 text-gray-900 disabled:text-gray-400 rounded-lg font-medium transition-colors"
                   >
-                    Add URL
+                    Add URL Image
                   </button>
                 </div>
               )}
@@ -770,6 +782,59 @@ const UpdateProduct = () => {
             />
           </div>
 
+          {/* SEO Title */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              SEO Title <span className="text-gray-500 text-xs">(for search engines)</span>
+            </label>
+            <input
+              type="text"
+              value={seoTitle}
+              onChange={handleChange("seoTitle")}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+              placeholder="Catchy title for search results (max 60 characters)"
+              maxLength={60}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Appears in search engine results and browser tabs. Keep it concise and descriptive.
+            </p>
+          </div>
+
+          {/* Meta Description */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Meta Description <span className="text-gray-500 text-xs">(for search engines)</span>
+            </label>
+            <textarea
+              value={metaDescription}
+              onChange={handleChange("metaDescription")}
+              rows={3}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all resize-none"
+              placeholder="Brief summary of the product for search engines (max 160 characters)"
+              maxLength={160}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              A short, compelling summary that appears under the SEO title in search results.
+            </p>
+          </div>
+
+          {/* Slug */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              URL Slug <span className="text-gray-500 text-xs">(unique, URL-friendly identifier)</span>
+            </label>
+            <input
+              type="text"
+              value={slug}
+              onChange={handleChange("slug")}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+              placeholder="e.g., premium-anime-tshirt-naruto"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Automatically generated from product name if left empty. Must be unique.
+            </p>
+          </div>
+
           {/* Product Type */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-300 mb-3">
@@ -777,7 +842,7 @@ const UpdateProduct = () => {
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               {productTypes.length > 0 ? (
-                productTypes.map((type) => (
+                productTypes?.map((type) => (
                   <button
                     key={type._id}
                     type="button"

@@ -308,7 +308,7 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
 
                 {/* Product Grid */}
                 <div className="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto">
-                  {productTypes.map((product, index) => (
+                  {productTypes?.map((product, index) => (
                     <div
                       key={product._id}
                       onClick={() => handleNavigation(`/shop?type=${product._id}`)}

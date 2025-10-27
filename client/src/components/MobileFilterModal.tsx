@@ -67,7 +67,7 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
 
   const productTypesOptions = [
     { id: 'all', name: 'All Types', icon: '📦' },
-    ...productTypes.map(type => ({
+    ...productTypes?.map(type => ({
       id: type._id,
       name: type.displayName,
       icon: type.icon || '📦'

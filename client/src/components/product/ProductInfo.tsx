@@ -238,10 +238,10 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
           </div>
         )} */}
       </div>
-      <p style={{ color: 'var(--color-textMuted)' }}>
+        <p style={{ color: 'var(--color-textMuted)' }}>
         {defaultFeatures.join('. ')}
       </p>
-      </div>
+    </div>
       
   );
 };

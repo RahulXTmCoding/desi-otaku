@@ -84,6 +84,7 @@ const SEOHead: React.FC<SEOHeadProps> = ({
     <Helmet>
       {/* Basic Meta Tags */}
       <title>{finalTitle}</title>
+      <meta name="title" content={finalTitle} />
       <meta name="description" content={finalDescription} />
       <meta name="keywords" content={finalKeywords.join(', ')} />
       

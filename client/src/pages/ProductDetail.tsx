@@ -10,6 +10,7 @@ import { mockProducts, getMockProductImage } from '../data/mockData';
 import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import SEOHead from '../components/SEOHead';
+import SchemaMarkup from '../components/SchemaMarkup';
 import QuantityDiscountBanner from '../components/QuantityDiscountBanner';
 import FreeShippingProgress from '../components/FreeShippingProgress';
 import ProductBundles from '../components/ProductBundles';
@@ -31,7 +32,14 @@ interface Product {
   price: number;
   mrp?: number;
   description: string;
+  seoTitle?: string;
+  metaDescription?: string;
+  slug?: string;
   category: {
+    _id: string;
+    name: string;
+  };
+  productType?: {
     _id: string;
     name: string;
   };
@@ -397,7 +405,7 @@ const ProductDetail: React.FC = () => {
       product.images.forEach((img: any, index: number) => {
         images.push({
           url: img.url || `${API}/product/image/${product._id}/${index}`,
-          caption: img.caption || `Image ${index + 1}`,
+          caption: img.caption,
           isPrimary: img.isPrimary || false,
           order: img.order || index
         });
@@ -525,17 +533,22 @@ const ProductDetail: React.FC = () => {
     <>
       {/* SEO Optimization */}
       {product && (
-        <SEOHead 
-          product={product}
-          category={product.category?.name?.toLowerCase()}
-          includeOrganizationData={true}
-          breadcrumbs={[
-            { name: 'Home', url: '/' },
-            { name: 'Shop', url: '/shop' },
-            { name: product.category?.name || 'Products', url: `/category/${product.category?.name?.toLowerCase()}` },
-            { name: product.name, url: `/product/${product._id}` }
-          ]}
-        />
+        <>
+          <SEOHead 
+            title={product.seoTitle || product.name}
+            description={product.metaDescription || product.description}
+            product={product}
+            category={product.category?.name?.toLowerCase()}
+            includeOrganizationData={true}
+            breadcrumbs={[
+              { name: 'Home', url: '/' },
+              { name: 'Shop', url: '/shop' },
+              { name: product.category?.name || 'Products', url: `/category/${product.category?.name?.toLowerCase()}` },
+              { name: product.name, url: `/product/${product.slug || product._id}` }
+            ]}
+          />
+          <SchemaMarkup product={product} />
+        </>
       )}
       
       <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
@@ -620,7 +633,6 @@ const ProductDetail: React.FC = () => {
             product={product}
             productType={productType}
             defaultMaterial={defaultMaterial}
-            defaultFeatures={defaultFeatures}
             defaultCareInstructions={defaultCareInstructions}
           />
 

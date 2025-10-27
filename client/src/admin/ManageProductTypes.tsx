@@ -350,7 +350,7 @@ const ManageProductTypes: React.FC = () => {
 
         {/* Product Types List */}
         <div className="space-y-4">
-          {productTypes.map((type, index) => (
+          {productTypes?.map((type, index) => (
             <div
               key={type._id}
               draggable

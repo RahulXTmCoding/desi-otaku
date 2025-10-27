@@ -13,7 +13,7 @@ export const BASE_URL = 'https://attars.club'; // Production domain
 
 export const DEFAULT_SEO = {
   siteName: 'Attars Club - Premium Fashion India',
-  defaultTitle: 'Attars Club - Premium Fashion India | Attars',
+  defaultTitle: 'Attars Club – Official Website | Premium Streetwear Brand India',
   defaultDescription: 'Attars Club - Premium fashion destination in India. Shop at Attars for exclusive Streetwear, Anime, Indian Culture, TV Shows & Original Designs. Attars Fashion brings you the best in contemporary style with fast delivery across India.',
   defaultKeywords: [
     'attars',

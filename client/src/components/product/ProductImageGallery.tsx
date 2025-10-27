@@ -183,13 +183,13 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
             style={{ backgroundColor: generateLightColorWithOpacity(product._id, 0.2) }}
           >
             {/* Enhanced Main Image */}
-            <img 
-              src={productImages.length > 0 && productImages[currentImageIndex]?.url 
-                ? productImages[currentImageIndex].url 
-                : getProductImage(product)}
-              alt={productImages[currentImageIndex]?.caption || product.name}
-              className={`w-full h-full object-contain transition-transform duration-300 ${
-                imageZoomActive ? 'scale-150' : 'scale-100'
+              <img 
+                src={productImages.length > 0 && productImages[currentImageIndex]?.url 
+                  ? productImages[currentImageIndex].url 
+                  : getProductImage(product)}
+                alt={productImages[currentImageIndex]?.caption || product.name}
+                className={`w-full h-full object-contain transition-transform duration-300 ${
+                  imageZoomActive ? 'scale-150' : 'scale-100'
               }`}
               onError={(e) => {
                 (e.target as HTMLImageElement).src = getProductImage(product);

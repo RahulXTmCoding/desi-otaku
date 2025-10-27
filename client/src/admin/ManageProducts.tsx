@@ -490,7 +490,7 @@ const ManageProducts = () => {
                   className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white"
                 >
                   <option value="all">All Product Types</option>
-                  {productTypes.map((type) => (
+                  {productTypes?.map((type) => (
                     <option key={type._id} value={type._id}>
                       {type.displayName || type.name}
                     </option>

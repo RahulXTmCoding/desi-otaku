@@ -56,6 +56,7 @@ export class SEOUtils {
       description: productDescription,
       keywords: [
         product.name.toLowerCase(),
+        ...(product.tags ? product.tags:[]),
         ...(category ? CATEGORY_SEO_TEMPLATES[category as keyof typeof CATEGORY_SEO_TEMPLATES]?.keywords || [] : []),
         ...INDIA_FASHION_KEYWORDS.primary,
         'premium quality india',

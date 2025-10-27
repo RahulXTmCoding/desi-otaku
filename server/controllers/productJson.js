@@ -1,7 +1,31 @@
 const Product = require("../models/product");
 const _ = require("lodash");
 const { uploadToR2, generateImageKey, isR2Enabled } = require("../utils/r2Storage");
+const { upsertProductsToFacebookCatalog } = require("../services/facebookCatalogService");
 
+// Helper function to format product data for Facebook Catalog API
+const formatProductForFacebook = (product) => {
+  const CLIENT_URL = process.env.PRODUCTION_CLIENT_URL || process.env.CLIENT_URL; // Use production URL if available
+
+  const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
+  const imageUrl = primaryImage ? primaryImage.url : (product.photoUrl || 'https://yourstore.com/placeholder.jpg'); // Fallback to placeholder
+  console.log(JSON.stringify(product.images));
+  console.log(`Formatting product ${product._id} for Facebook Catalog with image URL: ${imageUrl}`);
+  return {
+    method: "UPDATE", // Use UPDATE for upsert, will create if retailer_id doesn't exist
+    data: {
+      id: product._id.toString(),
+      title: product.name,
+      description: product.description,
+      price: `${product.price}.00 INR`,
+      availability: product.totalStock > 0 ? "in stock" : "out of stock",
+      brand: "Attars", // As per project brief
+      link: `${CLIENT_URL}/product/${product._id}`,
+      image_link: imageUrl,
+      condition: "new"
+    }
+  };
+};
 // Create product with JSON payload
 exports.createProductJson = async (req, res) => {
   try {
@@ -17,7 +41,8 @@ exports.createProductJson = async (req, res) => {
       sizeStock,
       imageUrls,
       imageFiles,
-      primaryImageIndex
+      primaryImageIndex,
+      seoTitle, metaDescription, slug
     } = req.body;
 
     // Validate required fields
@@ -36,7 +61,8 @@ exports.createProductJson = async (req, res) => {
       category,
       subcategory: subcategory && subcategory.trim() !== '' ? subcategory : null,
       productType,
-      tags: tags ? tags.split(',').map(t => t.trim()) : []
+      tags: tags ? tags.split(',').map(t => t.trim()) : [],
+      seoTitle, metaDescription, slug
     });
 
     // Handle size stock
@@ -133,6 +159,16 @@ exports.createProductJson = async (req, res) => {
 
     // Save product
     await product.save();
+
+      // Attempt to upsert product to Facebook Catalog
+    try {
+      const facebookProductData = formatProductForFacebook(product);
+      await upsertProductsToFacebookCatalog([facebookProductData]);
+      console.log(`✅ Product ${product._id} sent to Facebook Catalog.`);
+    } catch (facebookError) {
+      console.error(`❌ Failed to send product ${product._id} to Facebook Catalog:`, facebookError.message);
+      // Log the error but do not fail the product creation
+    }
     res.json(product);
   } catch (err) {
     console.error("Error creating product:", err);
@@ -159,7 +195,8 @@ exports.updateProductJson = async (req, res) => {
       keepExistingImages,
       imageUrls,
       imageFiles,
-      primaryImageIndex
+      primaryImageIndex,
+      seoTitle, metaDescription, slug
     } = req.body;
 
     let product = req.product;
@@ -174,6 +211,9 @@ exports.updateProductJson = async (req, res) => {
     product.subcategory = subcategory !== undefined ? (subcategory && subcategory.trim() !== '' ? subcategory : null) : product.subcategory;
     product.productType = productType || product.productType;
     product.tags = tags ? tags.split(',').map(t => t.trim()) : product.tags;
+    product.seoTitle = seoTitle || product.seoTitle;
+    product.metaDescription = metaDescription || product.metaDescription;
+    product.slug = slug || product.slug;
 
     // Update size stock
     if (sizeStock) {
@@ -288,6 +328,16 @@ exports.updateProductJson = async (req, res) => {
 
     // Save product
     await product.save();
+
+    // Attempt to upsert product to Facebook Catalog
+    try {
+      const facebookProductData = formatProductForFacebook(product);
+      await upsertProductsToFacebookCatalog([facebookProductData]);
+      console.log(`✅ Product ${product._id} updated in Facebook Catalog.`);
+    } catch (facebookError) {
+      console.error(`❌ Failed to update product ${product._id} in Facebook Catalog:`, facebookError.message);
+      // Log the error but do not fail the product update
+    }
     res.json(product);
   } catch (err) {
     console.error("Error updating product:", err);

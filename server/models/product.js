@@ -16,6 +16,21 @@ const productSchema = new Schema(
       trim: true,
       maxlength: 2500,
     },
+    seoTitle: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+    },
+    metaDescription: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+    slug: {
+      type: String,
+      trim: true,
+      unique: true,
+    },
     // Pricing structure for GST-inclusive model
     price: {
       type: Number,
@@ -218,9 +233,13 @@ productSchema.index({ isDeleted: 1, isActive: 1, isFeatured: -1, featuredAt: -1 
 productSchema.index({ name: "text", description: "text", tags: "text" });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ sold: -1 });
+productSchema.index({ slug: 1 });
 
 // Pre-save hook to calculate total stock and pricing
 productSchema.pre('save', function(next) {
+  if (!this.slug) {
+    this.slug = this.name.toLowerCase().replace(/ /g, '-').replace(/[^\w-]+/g, '');
+  }
   // Calculate total stock from size inventory
   let total = 0;
   if (this.sizeStock) {
