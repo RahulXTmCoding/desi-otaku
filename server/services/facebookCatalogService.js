@@ -7,7 +7,6 @@ const API_VERSION = 'v19.0';
 
 const API_URL = `https://graph.facebook.com/${API_VERSION}/${YOUR_CATALOG_ID}/items_batch`;
 
-// Asynchronous function to run the API call
 async function upsertProductsToFacebookCatalog(productsToUpsert) {
     if (!YOUR_CATALOG_ID || !YOUR_ACCESS_TOKEN) {
         console.error("Facebook Catalog API credentials are not set. Skipping upsert.");
