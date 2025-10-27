@@ -333,42 +333,50 @@ jobs:
             --value "${{ secrets.COD_BYPASS_OTP }}" \
             --type "String" \
             --overwrite
-
+          
+          echo "Setting Cloudflare R2 parameters..."
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/USE_R2" \
             --value "${{ secrets.USE_R2 }}" \
             --type "String" \
             --overwrite
+          echo "Setting R2_ACCOUNT_ID"
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/R2_ACCOUNT_ID" \  
             --value "${{ secrets.R2_ACCOUNT_ID }}" \
             --type "String" \
             --overwrite
+          echo "Setting R2_ACCESS_KEY_ID"
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/R2_ACCESS_KEY_ID" \
             --value "${{ secrets.R2_ACCESS_KEY_ID }}" \
             --type "SecureString" \ 
             --overwrite
+          echo "Setting R2_SECRET_ACCESS_KEY"
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/R2_SECRET_ACCESS_KEY" \
             --value "${{ secrets.R2_SECRET_ACCESS_KEY }}" \
             --type "SecureString" \
             --overwrite
+          echo "Setting R2_BUCKET_NAME"
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/R2_BUCKET_NAME" \
             --value "${{ secrets.R2_BUCKET_NAME }}" \
             --type "String" \
             --overwrite
+          echo "Setting R2_PUBLIC_URL"
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/R2_PUBLIC_URL" \
             --value "${{ secrets.R2_PUBLIC_URL }}" \
             --type "String" \
             --overwrite
+          echo "Setting Facebook Id"
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/FACEBOOK_CATALOG_ID" \
             --value "${{ secrets.FACEBOOK_CATALOG_ID }}" \
             --type "String" \
             --overwrite
+          echo "Setting Facebook Access Token"
           aws ssm put-parameter \
             --name "$PARAM_PREFIX/FACEBOOK_ACCESS_TOKEN" \
             --value "${{ secrets.FACEBOOK_ACCESS_TOKEN }}" \

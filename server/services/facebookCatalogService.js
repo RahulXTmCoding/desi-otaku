@@ -1,6 +1,5 @@
 const axios = require('axios');
 
-// --- Your Configuration ---
 const YOUR_CATALOG_ID = process.env.FACEBOOK_CATALOG_ID;
 const YOUR_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN;
 const API_VERSION = 'v19.0';
