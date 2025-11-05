@@ -353,7 +353,6 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                 hasSecondImage() ? 'group-hover:opacity-0' : 'group-hover:scale-110'
               }`}
               onError={handleImageError}
-              loading="lazy"
             />
             
             {/* Second Image (if available) */}
