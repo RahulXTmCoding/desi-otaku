@@ -12,7 +12,7 @@ import { isAutheticated } from '../auth/helper';
 import SEOHead from '../components/SEOHead';
 import SchemaMarkup from '../components/SchemaMarkup';
 import QuantityDiscountBanner from '../components/QuantityDiscountBanner';
-import FreeShippingProgress from '../components/FreeShippingProgress';
+// import FreeShippingProgress from '../components/FreeShippingProgress';
 import ProductBundles from '../components/ProductBundles';
 
 // Import our new modular components
@@ -622,7 +622,7 @@ const ProductDetail: React.FC = () => {
               {getItemCount() > 0 && (
                 <div className="space-y-6 pt-6 border-t" style={{ borderColor: 'var(--color-border)' }}>
                   <QuantityDiscountBanner currentQuantity={0} />
-                  <FreeShippingProgress />
+                  {/* <FreeShippingProgress /> */}
                 </div>
               )}
             </div>

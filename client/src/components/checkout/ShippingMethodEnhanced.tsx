@@ -15,7 +15,7 @@ const ShippingMethodEnhanced: React.FC<ShippingMethodProps> = ({
   cartTotal = 0
 }) => {
   // Check if free shipping applies (orders ₹999 and above)
-  const isFreeShipping = cartTotal >= 999;
+  const isFreeShipping = true; // Free shipping for all orders
   const shippingCharge = isFreeShipping ? 0 : 79;
 
   // Single shipping option to keep it simple

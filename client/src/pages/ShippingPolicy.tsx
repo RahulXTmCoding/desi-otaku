@@ -37,8 +37,8 @@ const ShippingPolicy: React.FC = () => {
               <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <h3 className="text-lg font-semibold mb-3 text-yellow-400">Domestic Orders</h3>
                 <p className="text-gray-100 mb-4">
-                  ✅ Free shipping on all orders above ₹999<br/>
-                  ✅ Standard shipping ₹79 for orders below ₹999<br/>
+                  ✅ Free shipping on all orders<br/>
+                  ✅ No minimum order value<br/>  
                 </p>
               </div>
               <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">

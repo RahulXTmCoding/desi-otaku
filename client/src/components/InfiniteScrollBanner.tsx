@@ -10,7 +10,7 @@ const InfiniteScrollBanner: React.FC = () => {
   const bannerItems: BannerItem[] = [
     {
       icon: <Truck className="w-4 h-4" />,
-      text: "FREE DELIVERY FROM ₹999"
+      text: "FREE Shipping On all Orders"
     },
     {
       icon: <Percent className="w-4 h-4" />,

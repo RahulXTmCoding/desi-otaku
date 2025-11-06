@@ -956,10 +956,7 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
     }
     
     // 5️⃣ FIFTH: Add shipping charges to final discounted subtotal
-    let shippingCost = 0;
-    if (subtotal < 999) { // Free shipping threshold based on original subtotal
-      shippingCost = 79;
-    }
+    let shippingCost = 0; // Free shipping for all orders
     
     const total = Math.round(Math.max(0, discountedSubtotal + shippingCost));
     

@@ -47,7 +47,7 @@ const OrderDiscountBreakdown: React.FC<DiscountBreakdownProps> = ({
     }
 
     // Shipping cost
-    const shippingCost = orderStateData?.shippingCost || order?.shipping?.shippingCost || 0;
+    const shippingCost = 0;
 
     // Quantity discount (AOV)
     const quantityDiscount = orderStateData?.quantityDiscount || order?.quantityDiscount?.amount || 0;
@@ -180,17 +180,10 @@ const OrderDiscountBreakdown: React.FC<DiscountBreakdownProps> = ({
         </div>
 
         {/* Shipping */}
-        {data.shippingCost > 0 ? (
-          <div className="flex justify-between">
-            <span className="text-gray-400">Shipping:</span>
-            <span>₹{data.shippingCost.toLocaleString('en-IN')}</span>
-          </div>
-        ) : (
-          <div className="flex justify-between">
-            <span className="text-gray-400">Shipping:</span>
-            <span className="text-green-400">FREE</span>
-          </div>
-        )}
+        <div className="flex justify-between">
+          <span className="text-gray-400">Shipping:</span>
+          <span className="text-green-400">FREE</span>
+        </div>
 
         {/* Quantity Discount (AOV) */}
         {data.quantityDiscount > 0 && (

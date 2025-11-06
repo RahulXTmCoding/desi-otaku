@@ -8,7 +8,7 @@ import { getMockProductImage } from '../data/mockData';
 import { API } from '../backend';
 import CartTShirtPreview from '../components/CartTShirtPreview';
 import QuantityDiscountBanner from '../components/QuantityDiscountBanner';
-import FreeShippingProgress from '../components/FreeShippingProgress';
+// import FreeShippingProgress from '../components/FreeShippingProgress';
 import { getColorName } from '../utils/colorUtils';
 
 const Cart: React.FC = () => {
@@ -220,7 +220,7 @@ const Cart: React.FC = () => {
   const cartTotal = getTotal();
   const quantityDiscountAmount = quantityDiscount?.discount || 0;
   const discountedSubtotal = cartTotal - quantityDiscountAmount;
-  const shipping = discountedSubtotal > 0 && discountedSubtotal < 999 ? 79 : 0;
+  const shipping = 0;
   const finalTotal = discountedSubtotal + shipping;
 
   if (loading) {
@@ -448,7 +448,7 @@ const Cart: React.FC = () => {
             {/* Premium ROI Enhancement Components */}
             <div className="space-y-4 mt-8">
               <QuantityDiscountBanner currentQuantity={0} />
-              <FreeShippingProgress />
+              {/* <FreeShippingProgress /> */}
             </div>
           </div>
 

@@ -239,7 +239,7 @@ class EmailService {
               <li>Browse our exclusive premium fashion collection</li>
               <li>Create custom designs with your favorite styles</li>
               <li>Explore our premium collections and limited editions</li>
-              <li>Enjoy fast shipping across India</li>
+              <li>Enjoy free delivery all over India</li>
             </ul>
             
             <p>As a welcome gift, enjoy <strong class="highlight">10% OFF</strong> your first order with code: <strong>WELCOME10</strong></p>
@@ -1253,11 +1253,11 @@ class EmailService {
             <div style="background-color: #374151; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin-top: 0; color: #FCD34D;">Why Shop With Us?</h3>
               <ul style="margin: 10px 0; color: #D1D5DB;">
-                <li>🎨 Unique anime-inspired designs</li>
-                <li>👕 Premium quality materials</li>
-                <li>🚚 Fast shipping across India</li>
-                <li>💝 Perfect for anime fans</li>
-              </ul>
+              <li>🎨 Unique anime-inspired designs</li>
+              <li>👕 Premium quality materials</li>
+              <li>🚚 Free delivery all over India</li>
+              <li>💝 Perfect for anime fans</li>
+            </ul>
             </div>
             
             <p>Happy shopping!<br>The Attars Team</p>

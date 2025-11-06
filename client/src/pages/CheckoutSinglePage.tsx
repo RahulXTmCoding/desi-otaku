@@ -346,7 +346,7 @@ const CheckoutSinglePage: React.FC = () => {
   // Auto-select shipping method when pincode is available
   useEffect(() => {
     if (shippingInfo.pinCode && shippingInfo.pinCode.length === 6 && !selectedShipping) {
-      const isFreeShipping = getTotalAmount() >= 999;
+      const isFreeShipping = true; // Free shipping for all orders
       setSelectedShipping({
         courier_company_id: "standard",
         courier_name: "Standard Delivery", 
@@ -359,7 +359,7 @@ const CheckoutSinglePage: React.FC = () => {
 
   const getFinalAmount = useCallback(() => {
     const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-    const shipping = subtotal >= 999 ? 0 : 79;
+    const shipping = 0;
     let discountedSubtotal = subtotal;
     
     // 1️⃣ Apply AOV discount to subtotal
@@ -913,8 +913,8 @@ const CheckoutSinglePage: React.FC = () => {
               {/* Free Shipping Progress */}
               {(() => {
                 const cartTotal = getTotalAmount();
-                const isFreeShipping = cartTotal >= 999;
-                const remainingForFree = 999 - cartTotal;
+                const isFreeShipping = true; // Free shipping for all orders
+                const remainingForFree =  0;
 
                 return (
                   <div className="mb-4 lg:mb-6">
@@ -957,7 +957,7 @@ const CheckoutSinglePage: React.FC = () => {
                 
                 <div className="flex justify-between text-sm">
                   <span>Shipping</span>
-                  <span>{getTotalAmount() >= 999 ? '₹0' : '₹79'}</span>
+                  <span>₹0</span>
                 </div>
                 
                 {appliedDiscount.quantity && (

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Eye, Trash2, Star, X, ChevronLeft, Plus, Minus, Zap, Tag } from 'lucide-react';
 import { API } from '../backend';
 import { useCart } from '../context/CartContext';
-import { useAOV } from '../context/AOVContext';
+// import { useAOV } from '../context/AOVContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { generateLightColorWithOpacity } from '../utils/colorUtils';
@@ -80,7 +80,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const { addToCart, cart } = useCart();
-  const { quantityTiers } = useAOV();
+  // const { quantityTiers } = useAOV();
 
   const authData = isAutheticated();
   const user = authData && authData.user;
@@ -575,7 +575,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             </div>
 
             {/* Compact Quantity Discount Badge */}
-            {quantityTiers.length > 0 && (
+            {/* {quantityTiers.length > 0 && (
               <div className="mt-2 p-1.5 bg-blue-500/10 rounded border border-blue-500/20 hidden sm:block">
                 <div className="flex items-center gap-1 flex-wrap">
                   <Tag className="w-3 h-3 text-blue-400 flex-shrink-0" />
@@ -595,7 +595,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                   )}
                 </div>
               </div>
-            )}
+            )} */}
           </div>
         </div>
 

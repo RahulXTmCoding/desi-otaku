@@ -42,7 +42,7 @@ class DiscountCalculator {
     }
 
     // Shipping cost
-    const shippingCost = order.shipping?.shippingCost || 0;
+    const shippingCost = 0;
 
     // Quantity discount (AOV)
     const quantityDiscount = order.quantityDiscount?.amount || 0;
@@ -172,12 +172,6 @@ class DiscountCalculator {
     <tr>
       <td style="padding: 12px; text-align: right; color: #D1D5DB;">Shipping:</td>
       <td style="padding: 12px; text-align: right;">${currency}${discounts.shippingCost.toLocaleString('en-IN')}</td>
-    </tr>`;
-    } else {
-      html += `
-    <tr>
-      <td style="padding: 12px; text-align: right; color: #10B981;">Free Shipping:</td>
-      <td style="padding: 12px; text-align: right; color: #10B981;">${currency}0</td>
     </tr>`;
     }
     

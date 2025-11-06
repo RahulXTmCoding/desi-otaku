@@ -197,7 +197,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   };
 
   const cartTotal = getTotal();
-  const shipping = cartTotal > 0 && cartTotal < 999 ? 79 : 0;
+  const shipping = 0; // Free shipping for all orders
   const finalTotal = cartTotal + shipping;
 
   // AOV Calculation Logic
@@ -338,7 +338,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
                                 className="aspect-square relative cursor-zoom-in transition-transform duration-500" 
                                 style={{ backgroundColor: "rgba(209, 250, 229, 0.2)" }}
                               >
-                    <img src="https://lh3.googleusercontent.com/pw/AP1GczOSyLqdj_put2CROuP9CeZCTnGeh3vF5PwCdJHUNcLRLbRw9xAta1t0GF25m90sMfkRr44HabSwnAoNfnKUvwXU8Uu6G58RWltpuQy8xa2M_Lb2jKfqjlvegft3msjxBjyTtVnT00_ev4aO6OJxjIkP=w735-h945-s-no-gm?authuser=0" alt="Image 1" class="w-full h-full object-contain transition-transform duration-300 scale-100"></img>
+                    <img src="https://lh3.googleusercontent.com/pw/AP1GczOSyLqdj_put2CROuP9CeZCTnGeh3vF5PwCdJHUNcLRLbRw9xAta1t0GF25m90sMfkRr44HabSwnAoNfnKUvwXU8Uu6G58RWltpuQy8xa2M_Lb2jKfqjlvegft3msjxBjyTtVnT00_ev4aO6OJxjIkP=w735-h945-s-no-gm?authuser=0" alt="Image 1"></img>
                   </div>
                   </div>
                   <a href="/shop" className="flex items-center gap-2 text-yellow-400 hover:text-yellow-300 font-large transition-colors group ml-6 mt-2 full-unstyled-link">Shop All <ChevronDown className="w-3 h-3 rotate-[-90deg]" />

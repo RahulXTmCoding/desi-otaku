@@ -666,12 +666,7 @@ exports.createOrder = async (req, res) => {
     }
     
     // Add shipping cost based on order value
-    let shippingCost = 0;
-    if (recalculatedTotal < 999) {
-      shippingCost = 79; // Fixed shipping charge for orders under ₹999
-    } else {
-      shippingCost = 0; // Free shipping for orders ₹999 and above
-    }
+    let shippingCost = 0; // Free shipping for all orders
     
     recalculatedTotal += shippingCost;
     
