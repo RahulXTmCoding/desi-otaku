@@ -36,6 +36,7 @@ interface Product {
     XL: number;
     XXL: number;
   };
+  customTags?: string[];
   sizeAvailability?: {
     S: boolean;
     M: boolean;
@@ -490,6 +491,20 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
               </div>
             )}
             
+            {/* Custom Tags Display - On top of the image */}
+            {product.customTags && product.customTags.length > 0 && (
+              <div className="absolute top-2 left-2 flex flex-wrap gap-1 z-10">
+                {product.customTags.map((tag, index) => (
+                  <span 
+                    key={index} 
+                    className="bg-yellow-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-semibold"
+                  >
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+
             {/* Category Badge */}
             {/* {product.category?.name && (
               <div className="absolute top-2 left-2 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-xs font-semibold">

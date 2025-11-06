@@ -61,6 +61,7 @@ const UpdateProduct = () => {
     metaDescription: "", // New SEO field
     slug: "", // New SEO field
     tags: "",
+    customTags: "",
     productType: "",
     categories: [] as any[],
     productTypes: [] as any[],
@@ -99,6 +100,7 @@ const UpdateProduct = () => {
     metaDescription,
     slug,
     tags,
+    customTags,
     productType,
     categories,
     productTypes,
@@ -174,6 +176,7 @@ const UpdateProduct = () => {
           category: data.category._id,
           subcategory: data.subcategory?._id || data.subcategory || "",
           tags: data.tags ? data.tags.join(", ") : "",
+          customTags: data.customTags ? data.customTags.join(", ") : "",
           productType: productTypeId,
           formData: new FormData(),
         }));
@@ -446,6 +449,7 @@ const UpdateProduct = () => {
         slug,
         category,
         tags,
+        customTags,
         productType,
         sizeStock
       };
@@ -1023,6 +1027,24 @@ const UpdateProduct = () => {
               />
             </div>
             <p className="text-xs text-gray-500 mt-1">Tags help customers find this product when searching</p>
+          </div>
+
+          {/* Custom Tags */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Custom Tags (comma separated)
+            </label>
+            <div className="relative">
+              <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                value={values.customTags}
+                onChange={handleChange("customTags")}
+                className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
+                placeholder="new arrival, best seller, limited edition"
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Custom tags are displayed on the product card</p>
           </div>
 
           {/* Featured Product Toggle */}

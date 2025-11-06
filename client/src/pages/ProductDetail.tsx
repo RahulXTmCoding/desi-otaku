@@ -73,6 +73,7 @@ interface Product {
     XL: number;
     XXL: number;
   };
+  customTags?: string[];
 }
 
 const ProductDetail: React.FC = () => {

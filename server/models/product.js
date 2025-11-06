@@ -172,6 +172,12 @@ const productSchema = new Schema(
       lowercase: true
     }],
     
+    // Custom tags for display
+    customTags: [{
+      type: String,
+      trim: true
+    }],
+    
     // Featured product flag for admin control
     isFeatured: {
       type: Boolean,

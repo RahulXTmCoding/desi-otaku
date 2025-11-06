@@ -14,6 +14,7 @@ interface Product {
     XL: number;
     XXL: number;
   };
+  customTags?: string[];
 }
 
 interface ProductImageGalleryProps {
@@ -146,8 +147,21 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
               )}
 
               {/* Enhanced Badges with Animation */}
-              <div className="absolute top-4 left-4 space-y-2">
-                <div className="flex flex-col gap-2">
+              <div className="absolute top-4 right-4 space-y-2"> {/* Changed left-4 to right-4 */}
+                <div className="flex flex-col gap-2 items-end"> {/* Added items-end for right alignment */}
+                  {/* Custom Tags Display */}
+                  {product.customTags && product.customTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 justify-end"> {/* Added justify-end for right alignment */}
+                      {product.customTags.map((tag, index) => (
+                        <span 
+                          key={index} 
+                          className="bg-yellow-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-semibold"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30 backdrop-blur-sm">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="text-sm text-green-400 font-medium">
@@ -224,8 +238,21 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
             )}
 
             {/* Enhanced Badges with Animation */}
-            <div className="absolute top-2 left-1 space-y-2">
-              <div className="flex flex-col gap-2">
+            <div className="absolute top-2 right-1 space-y-2"> {/* Changed left-1 to right-1 */}
+              <div className="flex flex-col gap-2 items-end"> {/* Added items-end for right alignment */}
+                {/* Custom Tags Display */}
+                {product.customTags && product.customTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 justify-end"> {/* Added justify-end for right alignment */}
+                    {product.customTags.map((tag, index) => (
+                      <span 
+                        key={index} 
+                        className="bg-yellow-400 text-gray-900 text-xs px-2 py-0.5 rounded-full font-semibold"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30 backdrop-blur-sm">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                   <span className="text-xs text-green-400 font-medium">

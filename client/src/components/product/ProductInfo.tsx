@@ -29,6 +29,7 @@ interface Product {
     XL?: { stock: number };
     XXL?: { stock: number };
   };
+  customTags?: string[];
 }
 
 interface ProductInfoProps {

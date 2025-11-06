@@ -38,6 +38,7 @@ exports.createProductJson = async (req, res) => {
       subcategory,
       productType,
       tags,
+      customTags,
       sizeStock,
       imageUrls,
       imageFiles,
@@ -62,6 +63,7 @@ exports.createProductJson = async (req, res) => {
       subcategory: subcategory && subcategory.trim() !== '' ? subcategory : null,
       productType,
       tags: tags ? tags.split(',').map(t => t.trim()) : [],
+      customTags: customTags ? customTags.split(',').map(t => t.trim()) : [],
       seoTitle, metaDescription, slug
     });
 
@@ -191,6 +193,7 @@ exports.updateProductJson = async (req, res) => {
       subcategory,
       productType,
       tags,
+      customTags,
       sizeStock,
       keepExistingImages,
       imageUrls,
@@ -211,6 +214,10 @@ exports.updateProductJson = async (req, res) => {
     product.subcategory = subcategory !== undefined ? (subcategory && subcategory.trim() !== '' ? subcategory : null) : product.subcategory;
     product.productType = productType || product.productType;
     product.tags = tags ? tags.split(',').map(t => t.trim()) : product.tags;
+    // Handle customTags: if provided and empty, set to empty array; otherwise, process or retain existing.
+    if (customTags !== undefined) {
+      product.customTags = customTags.length > 0 ? customTags.split(',').map(t => t.trim()) : [];
+    }
     product.seoTitle = seoTitle || product.seoTitle;
     product.metaDescription = metaDescription || product.metaDescription;
     product.slug = slug || product.slug;
