@@ -196,9 +196,9 @@ const ProductDetail: React.FC = () => {
       
       case 'hoodie':
         return {
-          material: "350 GSM Cotton",
+          material: "350 GSM Regular/450 GSM Oversized Cotton",
           features: [
-            "350 GSM premium cotton blend",
+            "350 GSM Regular/450 GSM Oversized premium cotton blend",
             "Heavyweight fabric for warmth",
             "Soft fleece inner lining",
             "Adjustable drawstring hood",
