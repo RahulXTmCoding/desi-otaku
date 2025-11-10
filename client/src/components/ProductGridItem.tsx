@@ -365,6 +365,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
+                loading='lazy'
               />
             )}
             
