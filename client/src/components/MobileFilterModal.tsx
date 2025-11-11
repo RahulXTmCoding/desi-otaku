@@ -98,9 +98,9 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
       />
       
       {/* Modal */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl max-h-[85vh] overflow-hidden animate-slide-up">
+      <div className="absolute bottom-0 left-0 right-0 bg-gray-900 rounded-t-3xl h-full overflow-hidden flex flex-col animate-slide-up">
         {/* Header */}
-        <div className="sticky top-0 bg-gray-900 border-b border-gray-700 p-4">
+        <div className="bg-gray-900 border-b border-gray-700 p-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Filter className="w-5 h-5" />
@@ -145,7 +145,7 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto max-h-[calc(85vh-140px)] p-4">
+        <div className="overflow-y-auto flex-1 p-4">
           {activeTab === 'filters' ? (
             <div className="space-y-6">
               {/* Search */}
@@ -163,63 +163,28 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
                 </div>
               </div>
 
-              {/* Price Range */}
+            
+              {/* Product Types */}
               <div>
-                <h3 className="font-semibold mb-4 text-yellow-400">Price Range</h3>
-                <div className="bg-gray-800 p-4 rounded-xl">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-600">
-                      <span className="text-xs text-gray-400">MIN</span>
-                      <p className="font-semibold text-white">₹{priceRange[0]}</p>
-                    </div>
-                    <div className="flex-1 mx-4 h-px bg-gray-600"></div>
-                    <div className="bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-600">
-                      <span className="text-xs text-gray-400">MAX</span>
-                      <p className="font-semibold text-white">₹{priceRange[1]}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="relative py-1">
-                    <div className="absolute h-1.5 w-full bg-gray-600 rounded-full"></div>
-                    <div 
-                      className="absolute h-1.5 bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full"
-                      style={{
-                        left: `${(priceRange[0] / 5000) * 100}%`,
-                        width: `${((priceRange[1] - priceRange[0]) / 5000) * 100}%`
-                      }}
-                    />
-                    
-                    <input
-                      type="range"
-                      min="0"
-                      max="5000"
-                      step="50"
-                      value={priceRange[0]}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        const newMin = Math.min(value, priceRange[1] - 100);
-                        setPriceRange([newMin, priceRange[1]]);
-                      }}
-                      className="absolute w-full -top-1 h-5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_rgba(251,191,36,0.3)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto"
-                    />
-                    
-                    <input
-                      type="range"
-                      min="0"
-                      max="5000"
-                      step="50"
-                      value={priceRange[1]}
-                      onChange={(e) => {
-                        const value = parseInt(e.target.value);
-                        const newMax = Math.max(value, priceRange[0] + 100);
-                        setPriceRange([priceRange[0], newMax]);
-                      }}
-                      className="absolute w-full -top-1 h-5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_rgba(251,191,36,0.3)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto"
-                    />
-                  </div>
+                <h3 className="font-semibold mb-3 text-yellow-400">Product Type</h3>
+                <div className="grid grid-cols-3 gap-2">
+                  {productTypesOptions.map(type => (
+                    <button
+                      key={type.id}
+                      onClick={() => setSelectedProductType(type.id)}
+                      className={`p-3 rounded-lg transition-colors flex flex-col items-center gap-1 text-xs ${
+                        selectedProductType === type.id
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                      }`}
+                    >
+                      <span className="text-lg">{type.icon}</span>
+                      <span className="font-medium">{type.name}</span>
+                    </button>
+                  ))}
                 </div>
               </div>
-
+              
               {/* Categories */}
               <div>
                 <h3 className="font-semibold mb-3 text-yellow-400">Categories</h3>
@@ -278,24 +243,61 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
                 </div>
               )}
 
-              {/* Product Types */}
+
+                {/* Price Range */}
               <div>
-                <h3 className="font-semibold mb-3 text-yellow-400">Product Type</h3>
-                <div className="grid grid-cols-3 gap-2">
-                  {productTypesOptions.map(type => (
-                    <button
-                      key={type.id}
-                      onClick={() => setSelectedProductType(type.id)}
-                      className={`p-3 rounded-lg transition-colors flex flex-col items-center gap-1 text-xs ${
-                        selectedProductType === type.id
-                          ? 'bg-yellow-400 text-gray-900'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      <span className="text-lg">{type.icon}</span>
-                      <span className="font-medium">{type.name}</span>
-                    </button>
-                  ))}
+                <h3 className="font-semibold mb-4 text-yellow-400">Price Range</h3>
+                <div className="bg-gray-800 p-4 rounded-xl">
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-600">
+                      <span className="text-xs text-gray-400">MIN</span>
+                      <p className="font-semibold text-white">₹{priceRange[0]}</p>
+                    </div>
+                    <div className="flex-1 mx-4 h-px bg-gray-600"></div>
+                    <div className="bg-gray-700 px-3 py-1.5 rounded-lg border border-gray-600">
+                      <span className="text-xs text-gray-400">MAX</span>
+                      <p className="font-semibold text-white">₹{priceRange[1]}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="relative py-1">
+                    <div className="absolute h-1.5 w-full bg-gray-600 rounded-full"></div>
+                    <div 
+                      className="absolute h-1.5 bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full"
+                      style={{
+                        left: `${(priceRange[0] / 5000) * 100}%`,
+                        width: `${((priceRange[1] - priceRange[0]) / 5000) * 100}%`
+                      }}
+                    />
+                    
+                    <input
+                      type="range"
+                      min="0"
+                      max="5000"
+                      step="50"
+                      value={priceRange[0]}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        const newMin = Math.min(value, priceRange[1] - 100);
+                        setPriceRange([newMin, priceRange[1]]);
+                      }}
+                      className="absolute w-full -top-1 h-5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_rgba(251,191,36,0.3)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto"
+                    />
+                    
+                    <input
+                      type="range"
+                      min="0"
+                      max="5000"
+                      step="50"
+                      value={priceRange[1]}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        const newMax = Math.max(value, priceRange[0] + 100);
+                        setPriceRange([priceRange[0], newMax]);
+                      }}
+                      className="absolute w-full -top-1 h-5 bg-transparent appearance-none pointer-events-none [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:shadow-[0_0_0_4px_rgba(251,191,36,0.3)] [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:pointer-events-auto"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -379,7 +381,7 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="sticky bottom-0 bg-gray-900 border-t border-gray-700 p-4">
+        <div className="bg-gray-900 border-t border-gray-700 p-4">
           <div className="flex gap-3">
             <button
               onClick={clearFilters}

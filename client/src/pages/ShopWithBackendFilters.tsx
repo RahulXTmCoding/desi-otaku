@@ -562,6 +562,80 @@ const ShopWithBackendFilters: React.FC = () => {
                 </div>
               </div>
 
+              {/* Product Types */}
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3">Product Type</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {productTypesOptions.map(type => (
+                    <button
+                      key={type.id}
+                      onClick={() => handleFilterChange('productType', type.id)}
+                      className={`px-3 py-2 rounded-lg transition-colors flex flex-col items-center gap-1 text-sm ${
+                        selectedProductType === type.id
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'bg-gray-700 hover:bg-gray-600'
+                      }`}
+                    >
+                      <span className="text-lg">{type.icon}</span>
+                      <span className="text-xs">{type.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Categories */}
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3">Categories</h3>
+                <div className="space-y-2">
+                  {categoryOptions.map(category => (
+                    <button
+                      key={category.id}
+                      onClick={() => handleFilterChange('category', category.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        selectedCategory === category.id
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'hover:bg-gray-700'
+                      }`}
+                    >
+                      <span>{category.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Subcategories - show only when a category is selected */}
+              {selectedCategory !== 'all' && subcategories.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="font-semibold mb-3">Subcategories</h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => setSelectedSubcategory('all')}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        selectedSubcategory === 'all'
+                          ? 'bg-yellow-400 text-gray-900'
+                          : 'hover:bg-gray-700'
+                      }`}
+                    >
+                      <span>All Subcategories</span>
+                    </button>
+                    {subcategories.map(subcategory => (
+                      <button
+                        key={subcategory._id}
+                        onClick={() => setSelectedSubcategory(subcategory._id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                          selectedSubcategory === subcategory._id
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'hover:bg-gray-700'
+                        }`}
+                      >
+                        <span>{subcategory.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              
               {/* Price Range Slider */}
               <div className="mb-8 bg-gray-700/50 p-4 rounded-xl">
                 <h3 className="font-semibold mb-4 text-yellow-400">Price Range</h3>
@@ -675,81 +749,11 @@ const ShopWithBackendFilters: React.FC = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Categories */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3">Categories</h3>
-                <div className="space-y-2">
-                  {categoryOptions.map(category => (
-                    <button
-                      key={category.id}
-                      onClick={() => handleFilterChange('category', category.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        selectedCategory === category.id
-                          ? 'bg-yellow-400 text-gray-900'
-                          : 'hover:bg-gray-700'
-                      }`}
-                    >
-                      <span>{category.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Subcategories - show only when a category is selected */}
-              {selectedCategory !== 'all' && subcategories.length > 0 && (
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3">Subcategories</h3>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setSelectedSubcategory('all')}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        selectedSubcategory === 'all'
-                          ? 'bg-yellow-400 text-gray-900'
-                          : 'hover:bg-gray-700'
-                      }`}
-                    >
-                      <span>All Subcategories</span>
-                    </button>
-                    {subcategories.map(subcategory => (
-                      <button
-                        key={subcategory._id}
-                        onClick={() => setSelectedSubcategory(subcategory._id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                          selectedSubcategory === subcategory._id
-                            ? 'bg-yellow-400 text-gray-900'
-                            : 'hover:bg-gray-700'
-                        }`}
-                      >
-                        <span>{subcategory.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Product Types */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3">Product Type</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {productTypesOptions.map(type => (
-                    <button
-                      key={type.id}
-                      onClick={() => handleFilterChange('productType', type.id)}
-                      className={`px-3 py-2 rounded-lg transition-colors flex flex-col items-center gap-1 text-sm ${
-                        selectedProductType === type.id
-                          ? 'bg-yellow-400 text-gray-900'
-                          : 'bg-gray-700 hover:bg-gray-600'
-                      }`}
-                    >
-                      <span className="text-lg">{type.icon}</span>
-                      <span className="text-xs">{type.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
+            
           </div>
+
+          
 
           {/* Main Content - Uses page scroll */}
           <div className="flex-1">

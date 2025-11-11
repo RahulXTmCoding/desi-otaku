@@ -1,0 +1,13 @@
+{
+  "name": "mongo-migration-script",
+  "version": "1.0.0",
+  "description": "A script to migrate data from one MongoDB to another.",
+  "main": "migrate.js",
+  "scripts": {
+    "start": "node migrate.js"
+  },
+  "dependencies": {
+    "mongodb": "^4.1.0",
+    "dotenv": "^10.0.0"
+  }
+}
