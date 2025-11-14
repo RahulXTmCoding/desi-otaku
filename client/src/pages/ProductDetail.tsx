@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Loader, Heart } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useProduct } from '../hooks/useProducts';
-import { API } from '../backend';
+const API = import.meta.env.VITE_API_URL;
 import { useDevMode } from '../context/DevModeContext';
 import { useAnalytics } from '../context/AnalyticsContext';
 import { mockProducts, getMockProductImage } from '../data/mockData';
@@ -405,7 +405,7 @@ const ProductDetail: React.FC = () => {
     if (product.images && product.images.length > 0) {
       product.images.forEach((img: any, index: number) => {
         images.push({
-          url: img.url || `${API}/product/image/${product._id}/${index}`,
+          url: img.url, // Directly use the URL from product data
           caption: img.caption,
           isPrimary: img.isPrimary || false,
           order: img.order || index
@@ -418,8 +418,9 @@ const ProductDetail: React.FC = () => {
         images[0].isPrimary = true;
       }
     } else {
+      // Fallback to placeholder if no images are available
       images.push({
-        url: `${API}/product/image/${product._id}`,
+        url: '/api/placeholder/600/600',
         caption: 'Main Image',
         isPrimary: true,
         order: 0
@@ -434,8 +435,12 @@ const ProductDetail: React.FC = () => {
       return getMockProductImage(productData._id);
     }
     
-    if (productData._id) {
-      return `${API}/product/image/${productData._id}`;
+    // Use the primary image URL if available, otherwise the first image, or a placeholder
+    if (productData.images && productData.images.length > 0) {
+      const primaryImage = productData.images.find(img => img.isPrimary) || productData.images[0];
+      if (primaryImage && primaryImage.url) {
+        return primaryImage.url;
+      }
     }
     return '/api/placeholder/600/600';
   };
@@ -454,9 +459,11 @@ const ProductDetail: React.FC = () => {
         size: selectedSize,
         color: selectedColor?.name || 'Black',
         quantity: quantity,
-        isCustom: false
+        isCustom: false,
+        images: product.images // Include the full images array
       };
       
+      // photoUrl is deprecated, but keep for backward compatibility if needed
       if ((product as any).photoUrl) {
         cartItem.photoUrl = (product as any).photoUrl;
       }
@@ -489,7 +496,8 @@ const ProductDetail: React.FC = () => {
       color: selectedColor?.name || 'Black',
       quantity: quantity,
       isCustom: false,
-      photoUrl: (product as any).photoUrl || getProductImage(product)
+      images: product.images, // Include the full images array
+      photoUrl: (product as any).photoUrl || getProductImage(product) // Keep photoUrl for backward compatibility
     };
     
     navigate('/checkout', {

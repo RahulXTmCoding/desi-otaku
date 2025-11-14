@@ -70,10 +70,6 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                   src={image.url}
                   alt={image.caption || `${product.name} ${index + 1}`}
                   className="w-full h-full object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/api/placeholder/150/150';
-                    (e.target as HTMLImageElement).onerror = null;
-                  }}
                 />
               </button>
             ))
@@ -89,10 +85,6 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 src={getProductImage(product)}
                 alt={product.name}
                 className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/api/placeholder/150/150';
-                  (e.target as HTMLImageElement).onerror = null;
-                }}
               />
             </button>
           )}
@@ -114,10 +106,6 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 className={`w-full h-full object-contain transition-transform duration-300 ${
                   imageZoomActive ? 'scale-150' : 'scale-100'
                 }`}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = getProductImage(product);
-                  (e.target as HTMLImageElement).onerror = null;
-                }}
               />
               
               {/* Navigation Arrows (if multiple images) */}
@@ -205,10 +193,6 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 className={`w-full h-full object-contain transition-transform duration-300 ${
                   imageZoomActive ? 'scale-150' : 'scale-100'
               }`}
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = getProductImage(product);
-                (e.target as HTMLImageElement).onerror = null;
-              }}
             />
             
             {/* Navigation Arrows (if multiple images) */}
@@ -294,10 +278,6 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                   src={image.url}
                   alt={image.caption || `${product.name} ${index + 1}`}
                   className="w-full h-full object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/api/placeholder/150/150';
-                    (e.target as HTMLImageElement).onerror = null;
-                  }}
                 />
               </button>
             ))
@@ -313,10 +293,6 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 src={getProductImage(product)}
                 alt={product.name}
                 className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = '/api/placeholder/150/150';
-                  (e.target as HTMLImageElement).onerror = null;
-                }}
               />
             </button>
           )}

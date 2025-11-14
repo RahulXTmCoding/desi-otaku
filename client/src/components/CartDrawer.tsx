@@ -5,7 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
 import { useAOV } from '../context/AOVContext';
 import { isAutheticated } from '../auth/helper';
-import { API } from '../backend';
+const API = import.meta.env.VITE_API_URL;
 import { getMockProductImage } from '../data/mockData';
 import CartTShirtPreview from './CartTShirtPreview';
 import { getColorName } from '../utils/colorUtils';
@@ -47,8 +47,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         }
         // If it has binary data, use the product image endpoint with index
         if (item._id && !item._id.startsWith('temp_')) {
-          const imageIndex = item.images.indexOf(primaryImage);
-          return `${API}/product/image/${item._id}/${imageIndex}`;
+          return primaryImage.url;
         }
       }
     }
@@ -60,21 +59,13 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
         const primaryImage = item.product.images.find((img: any) => img.isPrimary) || item.product.images[0];
         if (primaryImage && primaryImage.url) {
           return primaryImage.url;
-        } else if (item.product._id) {
-          const imageIndex = item.product.images.indexOf(primaryImage);
-          return `${API}/product/image/${item.product._id}/${imageIndex}`;
         }
       }
       // If product has photoUrl (legacy)
       else if (item.product.photoUrl) {
         return item.product.photoUrl;
       }
-      // Try without index for older products
-      else if (item.product._id) {
-        // First try the old photo endpoint for legacy products
-        return `${API}/product/image/${item.product._id}`;
-      }
-      }
+    }
     
     // Check if product has photoUrl (legacy URL-based images)
     if (item.photoUrl) {
@@ -92,26 +83,6 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
       if (item.image.startsWith('/api')) {
         return item.image;
       }
-      return `${API}/product/image/${item.image}`;
-    }
-    
-    // If we have a product ID in the product field, use it
-    if (item.product) {
-      // If product is an object with photoUrl
-      if (typeof item.product === 'object' && item.product.photoUrl) {
-        return item.product.photoUrl;
-      }
-      // If product is an object with _id
-      if (typeof item.product === 'object' && item.product._id) {
-        return `${API}/product/image/${item.product._id}`;
-      }
-      // If product is a string ID
-      return `${API}/product/image/${item.product}`;
-    }
-    
-    // Fallback to _id if not custom
-    if (item._id && !item._id.startsWith('temp_') && !item._id.startsWith('custom')) {
-      return `${API}/product/image/${item._id}`;
     }
     
     // Return a data URL placeholder instead of a relative path

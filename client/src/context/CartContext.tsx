@@ -21,13 +21,13 @@ import {
 import { 
   validateCartItemQuantity
 } from '../utils/inventoryUtils';
-import { API } from '../backend';
+const API = import.meta.env.VITE_API_URL;
 
 interface CartContextType {
   cart: CartItem[];
   loading: boolean;
   error: string | null;
-  addToCart: (item: Omit<CartItem, '_id' | 'quantity'> & { quantity?: number; category?: string }) => Promise<void>;
+  addToCart: (item: Omit<CartItem, '_id' | 'quantity'> & { quantity?: number; category?: string; productData?: any }) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeFromCart: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -133,6 +133,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
             if (!validation.isValid) {
               throw new Error(validation.message || 'Insufficient stock available');
             }
+
+            // Store productData for later use in addToCart
+            item.productData = productData; // Temporarily attach full product data
           }
         } catch (inventoryError: any) {
           // If inventory check fails, throw the error
@@ -142,22 +145,28 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       
       const authData = isAutheticated();
       
+      // Prepare cart item with full image data
+      const itemToAdd: CartItem = {
+        product: item.product,
+        photoUrl: item.photoUrl,
+        images: item.productData?.images || item.images, // Prioritize full product images, fallback to existing
+        size: item.size,
+        color: item.color,
+        quantity: requestedQuantity,
+        isCustom: item.isCustom,
+        customization: item.customization,
+        price: item.price,
+        name: item.name,
+        // Ensure _id is present for local cart if not custom
+        _id: item.isCustom ? `temp_${Date.now()}_${Math.random()}` : item.product as string
+      };
+
       if (authData && authData.user && authData.token) {
         // User is logged in, add to backend
         const response = await addItemToCart(
           authData.user._id,
           authData.token,
-          {
-            productId: item.product,
-            photoUrl: item.photoUrl,
-            size: item.size,
-            color: item.color,
-            quantity: requestedQuantity,
-            isCustom: item.isCustom,
-            customization: item.customization,
-            price: item.price,
-            name: item.name
-          }
+          itemToAdd
         );
         
         if (response.success && response.cart) {
@@ -175,10 +184,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         }
       } else {
         // User is not logged in, add to local storage
-        const updatedCart = addToLocalCart({
-          ...item,
-          quantity: requestedQuantity
-        } as CartItem);
+        const updatedCart = addToLocalCart(itemToAdd);
         setCart(updatedCart);
         
         // Track add to cart event
@@ -213,9 +219,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       if (!cartItem.isCustom && cartItem.size && cartItem.product) {
         // Fetch fresh product data to validate inventory
         try {
-          const productId = cartItem.product && typeof cartItem.product === 'object' 
-            ? cartItem.product._id 
-            : (cartItem.product || null);
+          let productId: string | null = null;
+          if (typeof cartItem.product === 'string') {
+            productId = cartItem.product;
+          } else if (cartItem.product && typeof cartItem.product === 'object' && '_id' in cartItem.product) {
+            productId = (cartItem.product as { _id: string })._id;
+          }
+          
           if (!productId) {
             throw new Error('Product ID not found in cart item');
           }

@@ -69,8 +69,6 @@ const productSchema = new Schema(
     // Multiple product images - supports both file uploads and URLs
     images: [{
       // Can be either file upload or URL
-      data: Buffer,
-      contentType: String,
       url: String,
       caption: String,
       isPrimary: {

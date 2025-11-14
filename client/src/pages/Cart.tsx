@@ -5,7 +5,7 @@ import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
 import { useAnalytics } from '../context/AnalyticsContext';
 import { getMockProductImage } from '../data/mockData';
-import { API } from '../backend';
+const API = import.meta.env.VITE_API_URL;
 import CartTShirtPreview from '../components/CartTShirtPreview';
 import QuantityDiscountBanner from '../components/QuantityDiscountBanner';
 // import FreeShippingProgress from '../components/FreeShippingProgress';
@@ -43,10 +43,7 @@ const Cart: React.FC = () => {
         return primaryImage.url;
       }
       // If no URL, try the indexed endpoint
-      const primaryIndex = item.images.findIndex((img: any) => img.isPrimary);
-      const index = primaryIndex >= 0 ? primaryIndex : 0;
-      const productId = item.product?._id || item.product || item._id;
-      return `${API}/product/image/${productId}/${index}`;
+      return primaryImage.url;
     }
     
     // Check if product object has images array
@@ -55,10 +52,6 @@ const Cart: React.FC = () => {
       if (primaryImage && primaryImage.url) {
         return primaryImage.url;
       }
-      // If no URL, use indexed endpoint
-      const primaryIndex = item.product.images.findIndex((img: any) => img.isPrimary);
-      const index = primaryIndex >= 0 ? primaryIndex : 0;
-      return `${API}/product/image/${item.product._id}/${index}`;
     }
     
     // Check if product has photoUrl (URL-based images - legacy)
@@ -77,12 +70,6 @@ const Cart: React.FC = () => {
       if (item.image.startsWith('/api')) {
         return item.image;
       }
-    }
-    
-    // If we have a product ID, try the new endpoint with index 0
-    const productId = item.product?._id || item.product || item._id;
-    if (productId && !productId.startsWith('temp_') && !productId.startsWith('custom')) {
-      return `${API}/product/image/${productId}/0`;
     }
     
     return '/api/placeholder/80/80';

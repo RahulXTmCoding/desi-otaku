@@ -116,19 +116,19 @@ const Customize: React.FC = () => {
   const tshirtColors = [
     { name: 'White', value: '#FFFFFF' },
     { name: 'Black', value: '#000000' },
-    { name: 'Navy', value: '#1E3A8A' },
-    { name: 'Red', value: '#DC2626' },
-    { name: 'Gray', value: '#6B7280' },
-    { name: 'Green', value: '#059669' },
-    { name: 'Yellow', value: '#F59E0B' },
+    // { name: 'Navy', value: '#1E3A8A' },
+    // { name: 'Red', value: '#DC2626' },
+    // { name: 'Gray', value: '#6B7280' },
+    // { name: 'Green', value: '#059669' },
+    // { name: 'Yellow', value: '#F59E0B' },
     { name: 'Purple', value: '#7C3AED' }
   ];
 
   const sizes = ['S', 'M', 'L', 'XL', 'XXL'];
   const types = [
     { id: 'normal', name: 'Regular Fit', available: true },
-    { id: 'oversize', name: 'Oversize', available: false },
-    { id: 'slim', name: 'Slim Fit', available: false }
+    { id: 'oversize', name: 'Oversize', available: false }
+    // { id: 'slim', name: 'Slim Fit', available: false }
   ];
 
   // Position options for front and back
@@ -275,10 +275,12 @@ const Customize: React.FC = () => {
   };
 
   const getImageUrl = (design: Design) => {
+    // console.log('Getting image URL for design:', design);
     if (design.imageUrl && (design.imageUrl.startsWith('http') || design.imageUrl.startsWith('data:'))) {
+      // console.log('Using direct imageUrl:', design.imageUrl);
       return design.imageUrl;
     }
-    return `${API}/design/image/${design._id}`;
+    return ``;
   };
 
   return (

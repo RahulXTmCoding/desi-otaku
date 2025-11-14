@@ -126,24 +126,13 @@ exports.createProductJson = async (req, res) => {
             });
           } catch (error) {
             console.error(`  ❌ R2 upload failed for ${fileData.name}:`, error.message);
-            // Fallback to MongoDB GridFS storage
-            product.images.push({
-              data: buffer,
-              contentType: fileData.type,
-              storageType: 'gridfs',
-              isPrimary: false,
-              order: product.images.length
-            });
+            // Do not fall back to GridFS. Throw an error to halt the process.
+            throw new Error(`Failed to upload image ${fileData.name} to cloud storage.`);
           }
         } else {
-          // Use existing MongoDB GridFS storage
-          product.images.push({
-            data: buffer,
-            contentType: fileData.type,
-            storageType: 'gridfs',
-            isPrimary: false, // Will be set based on primaryImageIndex
-            order: product.images.length
-          });
+          // If R2 is not enabled, we should not be attempting to upload files.
+          // This logic path will be removed to prevent saving binary data.
+          console.warn("  [WARN] R2 storage is not enabled. Skipping file upload.");
         }
       }
     }
@@ -297,24 +286,13 @@ exports.updateProductJson = async (req, res) => {
             });
           } catch (error) {
             console.error(`  ❌ R2 upload failed for ${fileData.name}:`, error.message);
-            // Fallback to MongoDB GridFS storage
-            newImagesArray.push({
-              data: buffer,
-              contentType: fileData.type,
-              storageType: 'gridfs',
-              isPrimary: false,
-              order: newImagesArray.length
-            });
+            // Do not fall back to GridFS. Throw an error to halt the process.
+            throw new Error(`Failed to upload image ${fileData.name} to cloud storage.`);
           }
         } else {
-          // Use existing MongoDB GridFS storage
-          newImagesArray.push({
-            data: buffer,
-            contentType: fileData.type,
-            storageType: 'gridfs',
-            isPrimary: false,
-            order: newImagesArray.length
-          });
+          // If R2 is not enabled, we should not be attempting to upload files.
+          // This logic path will be removed to prevent saving binary data.
+          console.warn("  [WARN] R2 storage is not enabled. Skipping file upload.");
         }
       }
     }

@@ -63,7 +63,8 @@ exports.getSimilarProducts = async (req, res) => {
       sold: 1,
       tags: 1,
       sizeStock: 1,
-      createdAt: 1
+      createdAt: 1,
+      images: 1
     };
 
     // Stage 1: Same category products (highest priority)
@@ -73,8 +74,8 @@ exports.getSimilarProducts = async (req, res) => {
         category: currentProduct.category
       })
       .select(projection)
-      .populate('category', 'name')
-      .populate('productType', 'name')
+      // .populate('category', 'name')
+      // .populate('productType', 'name')
       .sort({
         // Prioritize same product type
         productType: currentProduct.productType ? -1 : 1,
@@ -122,8 +123,8 @@ exports.getSimilarProducts = async (req, res) => {
         category: { $ne: currentProduct.category }
       })
       .select(projection)
-      .populate('category', 'name')
-      .populate('productType', 'name')
+      // .populate('category', 'name')
+      // .populate('productType', 'name')
       .sort({ sold: -1, createdAt: -1 })
       .limit(limit - similarProducts.length)
       .lean();
@@ -150,8 +151,8 @@ exports.getSimilarProducts = async (req, res) => {
         _id: { $nin: usedIds }
       })
       .select(projection)
-      .populate('category', 'name')
-      .populate('productType', 'name')
+      // .populate('category', 'name')
+      // .populate('productType', 'name')
       .sort({ sold: -1, createdAt: -1 })
       .limit(limit - similarProducts.length)
       .lean();

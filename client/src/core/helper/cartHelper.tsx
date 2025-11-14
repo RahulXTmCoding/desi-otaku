@@ -1,10 +1,19 @@
-import { API } from "../../backend";
+const API = import.meta.env.VITE_API_URL;
 
 // Cart item type definition
+export interface ProductImage {
+  _id?: string;
+  url: string;
+  isPrimary?: boolean;
+  order?: number;
+  caption?: string;
+}
+
 export interface CartItem {
   _id?: string;
   product?: string;
-  photoUrl?: string; // URL-based product images
+  photoUrl?: string; // URL-based product images (legacy)
+  images?: ProductImage[]; // New multi-image structure
   isCustom: boolean;
   customization?: {
     frontDesign?: {

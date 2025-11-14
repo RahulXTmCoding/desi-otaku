@@ -1,7 +1,6 @@
 const Product = require("../models/product");
 const formidable = require("formidable");
 const _ = require("lodash");
-const fs = require("fs");
 const { sortBy } = require("lodash");
 const emailService = require("../services/emailService");
 const redisService = require("../services/redisService");
@@ -91,28 +90,8 @@ exports.createProduct = (req, res) => {
       }
     }
 
-    // Handle multiple file uploads
-    // Check for both 'images' and 'images[]' field names
-    const imageField = files['images[]'] || files.images;
-    if (imageField) {
-      console.log("Files received:", imageField);
-      const imageFiles = Array.isArray(imageField) ? imageField : [imageField];
-      console.log("Processing", imageFiles.length, "image files");
-      
-      imageFiles.forEach((file, index) => {
-        if (file && file.size && file.size <= 3000000) {
-          console.log(`  Processing file ${index}: ${file.originalFilename || 'unnamed'}`);
-          product.images.push({
-            data: fs.readFileSync(file.filepath),
-            contentType: file.mimetype,
-            isPrimary: false, // Will be set later based on primaryImageIndex
-            order: product.images.length
-          });
-        } else if (file && file.size > 3000000) {
-          console.log(`  File ${index} too large: ${file.size} bytes`);
-        }
-      });
-    }
+    // File upload logic is deprecated and has been removed.
+    // Images are now handled exclusively via imageUrls.
 
     // Now handle primary image index across all images
     if (fields.primaryImageIndex !== undefined) {
@@ -162,7 +141,7 @@ exports.createProduct = (req, res) => {
 
 exports.getProduct = async (req, res) => {
   try {
-    const productId = req.product._id.toString();
+    const productId = req.params.productId; // Get productId directly from params
     const cacheKey = `product:${productId}`;
     
     // Initialize Redis connection if not already connected
@@ -182,10 +161,21 @@ exports.getProduct = async (req, res) => {
     
     console.log(`💾 REDIS CACHE MISS for product: ${productId} - fetching from DB`);
     
-    // Cache miss - prepare product data
-    const product = req.product.toObject();
-    
-    // ✅ FIX: Create clean version for API response WITHOUT modifying original data
+    // Cache miss - fetch from database
+    const product = await Product.findById(productId)
+      .populate("category")
+      // .populate("subcategory")
+      // .populate("productType")
+      .lean(); // Use lean for better performance
+      
+    if (!product) {
+      return res.status(404).json({
+        err: "Product not found",
+      });
+    }
+
+    // Create a clean version for the API response.
+    // Binary data fields are no longer in the schema.
     const responseProduct = {
       ...product,
       images: product.images ? product.images.map(img => ({
@@ -193,12 +183,7 @@ exports.getProduct = async (req, res) => {
         url: img.url,
         isPrimary: img.isPrimary,
         order: img.order,
-        caption: img.caption,
-        // ✅ CRITICAL: Keep binary data for image serving endpoint
-        hasData: !!(img.data && img.contentType),
-        // Don't include actual binary data in JSON response (too large)
-        data: undefined,
-        contentType: img.contentType // Keep contentType for reference
+        caption: img.caption
       })) : []
     };
     
@@ -226,86 +211,42 @@ exports.getProduct = async (req, res) => {
   } catch (error) {
     console.error('Error in getProduct with Redis caching:', error);
     
-    // Fallback to original behavior if Redis fails
-    const product = req.product.toObject();
-    
-    // ✅ FIX: Don't remove binary data in fallback either
-    const responseProduct = {
-      ...product,
-      images: product.images ? product.images.map(img => ({
-        _id: img._id,
-        url: img.url,
-        isPrimary: img.isPrimary,
-        order: img.order,
-        caption: img.caption,
-        hasData: !!(img.data && img.contentType),
-        data: undefined,
-        contentType: img.contentType
-      })) : []
-    };
-    
-    return res.json(responseProduct);
-  }
-};
+    // Fallback to original behavior if Redis fails or other error
+    // In this case, we re-fetch from DB as a last resort, but without caching
+    try {
+      const productId = req.params.productId;
+      const product = await Product.findById(productId)
+        .populate("category")
+        .populate("subcategory")
+        .populate("productType")
+        .lean();
 
-// Get product image by index or primary image (R2 + GridFS hybrid support)
-exports.getProductImage = (req, res, next) => {
-  const { imageIndex } = req.params;
-  const product = req.product;
-  
-  // Check if product exists
-  if (!product) {
-    console.log('❌ IMAGE ENDPOINT: Product not found');
-    return res.status(404).json({ error: "Product not found" });
+      if (!product) {
+        return res.status(404).json({
+          err: "Product not found",
+        });
+      }
+
+      const responseProduct = {
+        ...product,
+        images: product.images ? product.images.map(img => ({
+          _id: img._id,
+          url: img.url,
+          isPrimary: img.isPrimary,
+          order: img.order,
+          caption: img.caption
+        })) : []
+      };
+      return res.json(responseProduct);
+
+    } catch (fallbackError) {
+      console.error('Fallback error in getProduct:', fallbackError);
+      return res.status(500).json({
+        error: "Failed to retrieve product",
+        details: fallbackError.message
+      });
+    }
   }
-  
-  // Check if product has images
-  if (!product.images || product.images.length === 0) {
-    console.log('❌ IMAGE ENDPOINT: No images available for this product');
-    return res.status(404).json({ error: "No images available for this product" });
-  }
-  
-  let image;
-  
-  if (imageIndex !== undefined) {
-    // Get specific image by index
-    image = product.images[parseInt(imageIndex)];
-  } else {
-    // Get primary image
-    image = product.images.find(img => img.isPrimary) || product.images[0];
-  }
-  
-  if (!image) {
-    console.log('❌ IMAGE ENDPOINT: No image found at specified index/primary');
-    return res.status(404).json({ error: "No image available for this product" });
-  }
-  
-  // ✅ NEW: Handle R2 images with fast CDN redirect
-  if (image.storageType === 'r2' && image.url) {
-    console.log('🚀 R2 CDN REDIRECT:', image.url);
-    // Set cache headers for better performance
-    res.set('Cache-Control', 'public, max-age=31536000'); // 1 year cache
-    return res.redirect(301, image.url); // Permanent redirect to R2 CDN
-  }
-  
-  // ✅ EXISTING: Handle GridFS binary data
-  if (image.data && image.contentType) {
-    console.log('📁 GridFS binary data serve');
-    res.set("Content-Type", image.contentType);
-    res.set('Cache-Control', 'public, max-age=86400'); // 1 day cache
-    return res.send(image.data);
-  }
-  
-  // ✅ FALLBACK: Handle legacy URL images (Cloudinary, etc.)
-  if (image.url) {
-    console.log('🔗 Legacy URL redirect:', image.url);
-    res.set('Cache-Control', 'public, max-age=3600'); // 1 hour cache
-    return res.redirect(image.url);
-  }
-  
-  // No image data available
-  console.log('❌ IMAGE ENDPOINT: No image data or URL available');
-  res.status(404).json({ error: "Image data not available" });
 };
 
 //delete controller - soft delete
@@ -441,16 +382,7 @@ exports.updateProduct = (req, res) => {
       }
     }
 
-    // Handle file upload
-    if (files.photo) {
-      if (files.photo.size > 3000000) {
-        return res.status(400).json({
-          message: "file size is too large",
-        });
-      }
-      product.photo.data = fs.readFileSync(files.photo.filepath);
-      product.photo.contentType = files.photo.mimetype;
-    }
+    // Deprecated: Direct file upload logic removed.
 
     // Keep track of original images before modification
     const originalImages = [...product.images];
@@ -518,22 +450,7 @@ exports.updateProduct = (req, res) => {
       }
     }
 
-    // Handle multiple file uploads
-    // Check for both 'images' and 'images[]' field names
-    const imageField = files['images[]'] || files.images;
-    if (imageField) {
-      const imageFiles = Array.isArray(imageField) ? imageField : [imageField];
-      imageFiles.forEach((file, index) => {
-        if (file.size <= 3000000) {
-          newImagesArray.push({
-            data: fs.readFileSync(file.filepath),
-            contentType: file.mimetype,
-            isPrimary: false,
-            order: newImagesArray.length
-          });
-        }
-      });
-    }
+    // Deprecated: Direct file upload logic removed.
 
     // Update the product images array
     product.images = newImagesArray;

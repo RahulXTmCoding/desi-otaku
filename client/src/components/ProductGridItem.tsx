@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingCart, Eye, Trash2, Star, X, ChevronLeft, Plus, Minus, Zap, Tag } from 'lucide-react';
-import { API } from '../backend';
+const API = import.meta.env.VITE_API_URL;
 import { useCart } from '../context/CartContext';
 // import { useAOV } from '../context/AOVContext';
 import { toggleWishlist } from '../core/helper/wishlistHelper';
@@ -44,6 +44,13 @@ interface Product {
     XL: boolean;
     XXL: boolean;
   };
+  images?: Array<{
+    _id?: string;
+    url: string;
+    isPrimary?: boolean;
+    order?: number;
+    caption?: string;
+  }>;
 }
 
 interface ProductGridItemProps {
@@ -129,53 +136,35 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
     if (imageError) {
       return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"%3E%3Crect width="400" height="400" fill="%23374151"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="%236B7280"%3ENo Image%3C/text%3E%3C/svg%3E';
     }
-    
+  
+    if (product.images && product.images.length > 0) {
+      const primaryImage = product.images.find((img: any) => img.isPrimary) || product.images[0];
+      if (primaryImage && primaryImage.url) {
+        return primaryImage.url;
+      }
+    }
+  
+    // Fallback for older data structures if needed
     if (product.photoUrl) {
-      if (product.photoUrl.startsWith('http')) {
-        return product.photoUrl;
-      }
-      if (product.photoUrl.startsWith('/api/')) {
-        return `${API}${product.photoUrl.substring(4)}`;
-      }
       return product.photoUrl;
     }
-    
-    if ((product as any).images && (product as any).images.length > 0) {
-      
-      const primaryImage = (product as any).images.find((img: any) => img.isPrimary);
-       
-      if (!primaryImage) {
-      }
-      
-      const imageToUse = primaryImage || (product as any).images[0];
-        
-      if (imageToUse.url) {
-        return imageToUse.url;
-      } else {
-        const imageIndex = (product as any).images.indexOf(imageToUse);
-        const apiUrl = `${API}/product/image/${product._id}/${imageIndex}`;
-        return apiUrl;
-      }
-    }
-    
-    return `${API}/product/image/${product._id}`;
+  
+    // Final fallback to a placeholder
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"%3E%3Crect width="400" height="400" fill="%23374151"/%3E%3C/svg%3E';
   };
 
   const getSecondImageUrl = () => {
-    if ((product as any).images && (product as any).images.length > 1) {
-      const secondImage = (product as any).images.find((img: any) => !img.isPrimary) || (product as any).images[1];
-      if (secondImage.url) {
+    if (product.images && product.images.length > 1) {
+      const secondImage = product.images.find((img: any) => !img.isPrimary) || product.images[1];
+      if (secondImage && secondImage.url) {
         return secondImage.url;
-      } else {
-        const imageIndex = (product as any).images.indexOf(secondImage);
-        return `${API}/product/image/${product._id}/${imageIndex}`;
       }
     }
     return null;
   };
 
   const hasSecondImage = () => {
-    return (product as any).images && (product as any).images.length > 1;
+    return product.images && product.images.length > 1;
   };
 
   const handleImageError = () => {
@@ -214,7 +203,8 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
         size: selectedSize,
         color: 'Black',
         quantity: quantity,
-        isCustom: false
+        isCustom: false,
+        images: product.images // Include the full images array
       });
       
       if (isFlipped) {
@@ -246,7 +236,8 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
       color: 'Black',
       quantity: quantity,
       isCustom: false,
-      photoUrl: product.photoUrl || getImageUrl()
+      images: product.images, // Include the full images array
+      photoUrl: product.photoUrl || getImageUrl() // Keep photoUrl for backward compatibility
     };
     
     navigate('/checkout', {
@@ -354,6 +345,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
                 hasSecondImage() ? 'group-hover:opacity-0' : 'group-hover:scale-110'
               }`}
               onError={handleImageError}
+              loading="lazy"
             />
             
             {/* Second Image (if available) */}
