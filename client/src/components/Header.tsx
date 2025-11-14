@@ -408,7 +408,7 @@ const Header: React.FC = () => {
         </div>
 
         {/* Desktop Right Side Icons */}
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-1">
           {/* Theme Switcher */}
           <ThemeSwitcher />
           
@@ -451,9 +451,9 @@ const Header: React.FC = () => {
             </>
           )}
           {!auth ? (
-            <Link to="/signin" className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-all">
-              <User className="w-4 h-4" />
-              <span className="text-sm font-medium">Sign In</span>
+            <Link to="/signin" className="relative p-2 rounded-lg transition-all">
+              <User className="w-5 h-5" />
+              {/* <span className="text-sm font-medium">Sign In</span> */}
             </Link>
           ) : (
             <div className="relative group">
