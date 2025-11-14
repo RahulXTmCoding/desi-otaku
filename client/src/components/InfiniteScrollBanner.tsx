@@ -48,7 +48,7 @@ const InfiniteScrollBanner: React.FC = () => {
             <span className="text-yellow-400 flex-shrink-0">
               {item.icon}
             </span>
-            <span className="text-gray-100">
+            <span className="text-gray-100 text-xs font-medium text-gray-300 hover:text-white">
               {item.text}
             </span>
           </div>

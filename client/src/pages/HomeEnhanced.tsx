@@ -642,11 +642,6 @@ const HomeEnhanced: React.FC = () => {
                   <div className="bg-gradient-to-bl from-indigo-600 via-purple-600 to-cyan-400 rounded-2xl p-1 sm:p-2 lg:p-6 transform rotate-3 hover:rotate-0 transition-transform shadow-2xl hover:shadow-3xl border-2 border-gradient-to-r from-indigo-400 to-cyan-400">
                     <img src="https://lh3.googleusercontent.com/pw/AP1GczMyT2YItSqWJRGBK70US_zpD7B3jqIOOnU_Dqm3emDy4IHZHDiMiO23LHMfnSiHuSqGzvMMgCkMp6LQBLWDYgZxnc8odcKyZFxpn_Nd0K6NINYiv540DkXkvqsZkvOinAuQPrV4UYUllzbUdjiBAjNe=w687-h945-s-no-gm?authuser=0" alt="Anime Tee 2" className="rounded-lg border-2 border-white/20" />
                   </div>
-                  <div className="text-center">
-                    <h3 className="text-3xl font-bold bg-gradient-to-r from-orange-500 to-yellow-400 bg-clip-text text-transparent">ATTARS</h3>
-                    <h3 className="text-3xl font-bold">CLOTHING</h3>
-                    <h3 className="text-3xl font-bold bg-gradient-to-r from-green-500 to-blue-500 bg-clip-text text-transparent">STORE</h3>
-                  </div>
                 </div>
                 <div className="space-y-4">
                   <div className="bg-gradient-to-tl from-emerald-500 via-lime-400 to-orange-400 rounded-2xl p-1 sm:p-2 lg:p-6 transform rotate-6 hover:rotate-0 transition-transform shadow-2xl hover:shadow-3xl border-2 border-gradient-to-r from-emerald-400 to-orange-400">

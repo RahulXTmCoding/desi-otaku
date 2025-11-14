@@ -182,7 +182,7 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
   // Helper functions for dynamic content
   const getCategoryIcon = (categoryName: string) => {
     if (!categoryName || typeof categoryName !== 'string') {
-      return '📂';
+      return '';
     }
     
     const iconMap: Record<string, string> = {
@@ -200,7 +200,7 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
       'accessories': '🎒',
       'collectibles': '🎮'
     };
-    return iconMap[categoryName.toLowerCase()] || '📂';
+    return iconMap[categoryName.toLowerCase()] || '';
   };
 
   const getCategoryGradient = (index: number) => {
@@ -274,7 +274,7 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
         }}
         onMouseLeave={() => setIsProductsDropdownOpen(false)}
       >
-        <button className="flex items-center gap-1 relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+        <button className="flex items-center gap-1 relative transition-all group text-sm font-medium text-gray-300 hover:text-white" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
           <span className="relative z-10">
             <span className="hidden xl:inline">SHOP BY PRODUCTS</span>
             <span className="xl:hidden">PRODUCTS</span>
@@ -302,9 +302,9 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
             ) : (
               <div>
                 {/* Header */}
-                <div className="mb-6">
+                {/* <div className="mb-6">
                   <p className="text-sm text-gray-500 dark:text-gray-400">Browse our collection</p>
-                </div>
+                </div> */}
 
                 {/* Product Grid */}
                 <div className="grid grid-cols-1 gap-2 max-h-72 overflow-y-auto">
@@ -314,9 +314,9 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
                       onClick={() => handleNavigation(`/shop?type=${product._id}`)}
                       className="group flex items-center gap-3 px-4 py-3 bg-gray-50 dark:bg-gray-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200 dark:hover:border-blue-800"
                     >
-                      <span className="text-lg group-hover:scale-110 transition-transform">
+                      {/* <span className="text-lg group-hover:scale-110 transition-transform">
                         {getProductTypeIcon(product.displayName || product.name)}
-                      </span>
+                      </span> */}
                       <div className="flex-1 min-w-0">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                           {product.displayName || product.name}
@@ -362,7 +362,7 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
         }}
         onMouseLeave={() => setIsCategoriesDropdownOpen(false)}
       >
-        <button className="flex items-center gap-1 relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+        <button className="flex items-center gap-1 relative transition-all group text-sm font-medium text-gray-300 hover:text-white" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
           <span className="relative z-10">
             <span className="hidden xl:inline">SHOP BY CATEGORY</span>
             <span className="xl:hidden">CATEGORY</span>
@@ -403,9 +403,9 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
                           : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                       } border border-transparent hover:border-gray-200 dark:hover:border-gray-700`}
                     >
-                      <span className="text-xl group-hover:scale-110 transition-transform">
+                      {/* <span className="text-xl group-hover:scale-110 transition-transform">
                         {getCategoryIcon(mainCategory.name)}
-                      </span>
+                      </span> */}
                       <div className="flex-1 min-w-0">
                         <span className={`text-sm font-medium block truncate transition-colors ${
                           hoveredCategory?._id === mainCategory._id 

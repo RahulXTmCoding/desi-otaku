@@ -10,7 +10,7 @@ interface PromotionalBannerProps {
 const PromotionalBanner: React.FC<PromotionalBannerProps> = ({ message, code, onClose }) => {
   return (
     <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-2 px-4 text-center relative">
-      <p className="text-sm font-medium">
+      <p className="text-xs font-medium">
         {message}{' '}
         {code && (
           <span className="font-bold bg-white/20 px-2 py-1 rounded ml-2">

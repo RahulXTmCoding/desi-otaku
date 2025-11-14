@@ -137,11 +137,11 @@ const Header: React.FC = () => {
       const colors = [
         { name: 'White', value: '#FFFFFF' },
         { name: 'Black', value: '#000000' },
-        { name: 'Navy', value: '#1E3A8A' },
-        { name: 'Red', value: '#DC2626' },
-        { name: 'Gray', value: '#6B7280' },
-        { name: 'Green', value: '#059669' },
-        { name: 'Yellow', value: '#F59E0B' },
+        // { name: 'Navy', value: '#1E3A8A' },
+        // { name: 'Red', value: '#DC2626' },
+        // { name: 'Gray', value: '#6B7280' },
+        // { name: 'Green', value: '#059669' },
+        // { name: 'Yellow', value: '#F59E0B' },
         { name: 'Purple', value: '#7C3AED' }
       ];
       const randomColor = colors[Math.floor(Math.random() * colors.length)];
@@ -241,11 +241,11 @@ const Header: React.FC = () => {
   const tshirtColors = [
     { name: 'White', value: '#FFFFFF' },
     { name: 'Black', value: '#000000' },
-    { name: 'Navy', value: '#1E3A8A' },
-    { name: 'Red', value: '#DC2626' },
-    { name: 'Gray', value: '#6B7280' },
-    { name: 'Green', value: '#059669' },
-    { name: 'Yellow', value: '#F59E0B' },
+    // { name: 'Navy', value: '#1E3A8A' },
+    // { name: 'Red', value: '#DC2626' },
+    // { name: 'Gray', value: '#6B7280' },
+    // { name: 'Green', value: '#059669' },
+    // { name: 'Yellow', value: '#F59E0B' },
     { name: 'Purple', value: '#7C3AED' }
   ];
 
@@ -339,35 +339,35 @@ const Header: React.FC = () => {
         </Link>
 
         {/* Desktop Navigation - Center */}
-        <div className="flex items-center space-x-2 lg:space-x-4 xl:space-x-6 2xl:space-x-8">
+        <div className="flex items-center space-x-2 lg:space-x-3 xl:space-x-4 2xl:space-x-5">
           {auth && auth.user && auth.user.role === 1 ? (
             // Admin Navigation
             <>
-              <Link to="/admin/dashboard" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+              <Link to="/admin/dashboard" className="relative transition-all group text-sm font-medium text-gray-300 hover:text-white">
                 <span className="relative z-10">Dashboard</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/designs" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+              <Link to="/admin/designs" className="relative transition-all group text-sm font-medium text-gray-300 hover:text-white">
                 <span className="relative z-10">Designs</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/products" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+              <Link to="/admin/products" className="relative transition-all group text-sm font-medium text-gray-300 hover:text-white">
                 <span className="relative z-10">Products</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/product-types" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+              <Link to="/admin/product-types" className="relative transition-all group text-sm font-medium text-gray-300 hover:text-white">
                 <span className="relative z-10">Types</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/categories" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+              <Link to="/admin/categories" className="relative transition-all group text-sm font-medium text-gray-300 hover:text-white">
                 <span className="relative z-10">Categories</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/orders" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+              <Link to="/admin/orders" className="relative transition-all group text-sm font-medium text-gray-300 hover:text-white">
                 <span className="relative z-10">Orders</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
-              <Link to="/admin/analytics" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+              <Link to="/admin/analytics" className="relative transition-all group text-sm font-medium text-gray-300 hover:text-white">
                 <span className="relative z-10">Analytics</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
@@ -375,7 +375,7 @@ const Header: React.FC = () => {
           ) : (
             // Customer Navigation
             <>
-              <Link to="/" className="relative transition-all group" style={{ color: 'var(--color-text)', opacity: 0.9 }}>
+              <Link to="/" className="relative transition-all group text-sm font-medium text-gray-300 hover:text-white">
                 <span className="relative z-10">Home</span>
                 <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-yellow-400 group-hover:w-full transition-all duration-300"></span>
               </Link>
@@ -383,8 +383,8 @@ const Header: React.FC = () => {
               {/* Shopping Dropdown */}
               <ShoppingDropdown />
               
-              <Link to="/customize" className="relative group">
-                <div style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }} className="relative px-3 lg:px-4 py-1.5 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
+              <Link to="/customize" className="relative group text-sm font-medium text-gray-300 hover:text-white">
+                <div className="relative px-3 lg:px-4 py-1.5 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }}>
                   <Palette className="inline-block w-4 h-4 mr-1" />
                   <span className="hidden lg:inline">Custom Design</span>
                   <span className="lg:hidden">Custom</span>
@@ -393,12 +393,12 @@ const Header: React.FC = () => {
               </Link>
               <button 
                 onClick={handleRandomSurprise}
-                className="relative group"
+                className="relative group text-sm font-medium text-gray-300 hover:text-white"
                 title="Surprise Me!"
               >
-                <div className="relative px-3 lg:px-4 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
-                  <Sparkles className="inline-block w-4 h-4 mr-1 group-hover:animate-spin" />
-                  <span className="hidden lg:inline">Surprise Me!</span>
+                <div className="relative px-3 lg:px-4 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg" >
+                  <Sparkles className="inline-block w-4 h-4 mr-1 group-hover:animate-spin" style={{ color: 'var(--color-primaryText)' }} />
+                  <span className="hidden lg:inline" style={{ color: 'var(--color-primaryText)' }}>Surprise Me!</span>
                   <span className="lg:hidden">Surprise</span>
                   <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
                 </div>
