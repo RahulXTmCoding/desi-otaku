@@ -230,7 +230,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
         {!isMobile ? (
           // Desktop Banner - Only rendered on desktop
           <div className="relative overflow-hidden">
-            <div className="relative w-full" style={{ aspectRatio: '1434/530' }}>
+            <div className="relative w-full" style={{ aspectRatio: '1434/440' }}>
               {/* Low-quality placeholder */}
               <img 
                 src="/lq-banner.png"

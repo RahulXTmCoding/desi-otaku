@@ -253,7 +253,7 @@ const Header: React.FC = () => {
 
   const handleSignout = async () => {
     // Clear cart context on logout
-    await syncCart();
+    await syncCart();  
     signout(() => {
       navigate("/");
     });

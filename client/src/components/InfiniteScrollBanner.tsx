@@ -43,7 +43,7 @@ const InfiniteScrollBanner: React.FC = () => {
         {duplicatedItems.map((item, index) => (
           <div
             key={index}
-            className="flex items-center gap-2 px-8 py-3 whitespace-nowrap text-sm font-medium"
+            className="flex items-center gap-2 px-8 py-2 whitespace-nowrap text-sm font-medium"
           >
             <span className="text-yellow-400 flex-shrink-0">
               {item.icon}

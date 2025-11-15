@@ -9,6 +9,7 @@ import CategoryCard from '../components/home/CategoryCard';
 import FeatureSection from '../components/home/FeatureSection';
 import ReviewCarousel from '../components/home/ReviewCarousel';
 import ProgressiveBanner from '../components/ProgressiveBanner';
+import DiscountSection from '../components/home/DiscountSection';
 import FashionScrollBanner from '../components/FashionScrollBanner';
 import { useCart } from '../context/CartContext';
 import { useThemeClasses } from '../hooks/useThemeClasses';
@@ -453,13 +454,13 @@ const HomeEnhanced: React.FC = () => {
         includeFAQData={true}
       />
       {/* Promotional Banner */}
-      {showBanner && (
+      {/* {showBanner && (
         <PromotionalBanner
           message="Buy 3 Get 10% Off Code"
           code="Auto applied at checkout"
           onClose={() => setShowBanner(false)}
         />
-      )}
+      )} */}
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
         {/* Promotional Coupon Banner */}
@@ -469,17 +470,24 @@ const HomeEnhanced: React.FC = () => {
 
         {/* Progressive Banner Section - Optimized Loading */}
         <ProgressiveBanner
-          highQualityDesktop="https://lh3.googleusercontent.com/pw/AP1GczNPTMSDCpARPubgXCEhx-IZQGpGLJQ4o8jv2dM9HuCzNFtaZbP7H1UGgaz5LoxSRn2euxQCdKATan51ibW0XWxvwWVEJ6chhnuly8fZcqs_KfpIJP14mjB7_nILS9tnlxfAELqPLCNPoVrZqrwQ_RoK=w1669-h589-s-no-gm?authuser=0"
-          highQualityMobile="https://lh3.googleusercontent.com/pw/AP1GczO6TCmmL7sfm_1cQiDTWlJ5EL5iBLx6thuA2QjUmt_2oEyjlbddZ0Rxj4PEhe0nciqWwhpP8Z4khQnBcC8ipMhXVoSo6BGQ_XPuPZueN39JAPgtOAZUU51k0nPw7I2QgsiG36lWph8K7l9S-iSrbK4p=w1223-h945-s-no-gm?authuser=0"
+          highQualityDesktop="https://lh3.googleusercontent.com/pw/AP1GczODWXGmmNSNUkDrtNY4T4QRHP_HHRvSAFVjCov-AQsEpMSN_4U2lL-Z39I3ckuI3-RfYvImVavn7YTHENLjzGYXSFTJ_bZiqucYDgcIoNlS2M7mnbIunmnN9CO6jfagzNLVdnciZe6C9FI01V45h71p=w1600"
+          highQualityMobile="https://lh3.googleusercontent.com/pw/AP1GczO6TCmmL7sfm_1cQiDTWlJ5EL5iBLx6thuA2QjUmt_2oEyjlbddZ0Rxj4PEhe0nciqWwhpP2Z4khQnBcC8ipMhXVoSo6BGQ_XPuPZueN39JAPgtOAZUU51k0nPw7I2QgsiG36lWph8K7l9S-iSrbK4p=w1223-h945-s-no-gm?authuser=0"
           finalFallbackDesktop="/lq-banner.png"
           finalFallbackMobile="/lq-mobile-banner.png"
           alt="Attars Clothing - Premium Fashion & Custom Designs"
           onClick={() => navigate('/shop')}
         />
 
+        {/* Discount Section */}
+        <DiscountSection
+          image="/offers.png"
+          link="/shop"
+          alt="Crazy Offers Discount"
+        />
+
       
         {/* Most In Demand Categories */}
-        <section className="py-8 sm:py-12 lg:py-16">
+        <section className="pt-5 sm:pt-6 lg:pt-8 pb-8 sm:pb-12 lg:pb-16">
           <div className="w-[96%] mx-auto">
               <div className="text-center md:mb-8 mb-6 sm:mb-12 lg:mb-16">
               <h2 className="md:text-3xl text-2xl sm:text-2xl lg:text-4xl font-bold md:mb-6 mb-2 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 bg-clip-text text-transparent">
