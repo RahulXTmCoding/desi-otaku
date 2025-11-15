@@ -8,7 +8,7 @@ import ProductGrid from '../components/home/ProductGrid';
 import CategoryCard from '../components/home/CategoryCard';
 import FeatureSection from '../components/home/FeatureSection';
 import ReviewCarousel from '../components/home/ReviewCarousel';
-import ProgressiveBanner from '../components/ProgressiveBanner';
+import MultiImageBanner from '../components/home/MultiImageBanner'; // New import
 import DiscountSection from '../components/home/DiscountSection';
 import FashionScrollBanner from '../components/FashionScrollBanner';
 import { useCart } from '../context/CartContext';
@@ -453,32 +453,35 @@ const HomeEnhanced: React.FC = () => {
         includeOrganizationData={true}
         includeFAQData={true}
       />
-      {/* Promotional Banner */}
-      {/* {showBanner && (
-        <PromotionalBanner
-          message="Buy 3 Get 10% Off Code"
-          code="Auto applied at checkout"
-          onClose={() => setShowBanner(false)}
-        />
-      )} */}
-
       <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
-        {/* Promotional Coupon Banner */}
-                {/* <div className="w-[96%] mx-auto mt-4">
-          <PromotionalCouponBanner />
-        </div> */}
-
-        {/* Progressive Banner Section - Optimized Loading */}
-        <ProgressiveBanner
-          highQualityDesktop="https://lh3.googleusercontent.com/pw/AP1GczODWXGmmNSNUkDrtNY4T4QRHP_HHRvSAFVjCov-AQsEpMSN_4U2lL-Z39I3ckuI3-RfYvImVavn7YTHENLjzGYXSFTJ_bZiqucYDgcIoNlS2M7mnbIunmnN9CO6jfagzNLVdnciZe6C9FI01V45h71p=w1600"
-          highQualityMobile="https://lh3.googleusercontent.com/pw/AP1GczO6TCmmL7sfm_1cQiDTWlJ5EL5iBLx6thuA2QjUmt_2oEyjlbddZ0Rxj4PEhe0nciqWwhpP2Z4khQnBcC8ipMhXVoSo6BGQ_XPuPZueN39JAPgtOAZUU51k0nPw7I2QgsiG36lWph8K7l9S-iSrbK4p=w1223-h945-s-no-gm?authuser=0"
-          finalFallbackDesktop="/lq-banner.png"
-          finalFallbackMobile="/lq-mobile-banner.png"
-          alt="Attars Clothing - Premium Fashion & Custom Designs"
-          onClick={() => navigate('/shop')}
+        {/* Multi-Image Banner System */}
+        <MultiImageBanner
+          banners={[
+            {
+              // highQualityDesktop: "https://lh3.googleusercontent.com/pw/AP1GczODWXGmmNSNUkDrtNY4T4QRHP_HHRvSAFVjCov-AQsEpMSN_4U2lL-Z39I3ckuI3-RfYvImVavn7YTHENLjzGYXSFTJ_bZiqucYDgcIoNlS2M7mnbIunmnN9CO6jfagzNLVdnciZe6C9FI01V45h71p=w1600",
+              // highQualityMobile: "https://lh3.googleusercontent.com/pw/AP1GczO6TCmmL7sfm_1cQiDTWlJ5EL5iBLx6thuA2QjUmt_2oEyjlbddZ0Rxj4PEhe0nciqWwhpP2Z4khQnBcC8ipMhXVoSo6BGQ_XPuPZueN39JAPgtOAZUU51k0nPw7I2QgsiG36lWph8K7l9S-iSrbK4p=w1223-h945-s-no-gm?authuser=0",
+              highQualityDesktop: "https://lh3.googleusercontent.com/pw/AP1GczPNq4dscBu-2IG36A3ys3R5S_GXImkwOvVMADIMOi93uLBou4ohpCVqCvrWvzqF9rGf0Q4od-yLvc6qcRpZE_2cn48uA33p5mTZ2Hd6GdpLNMsuzf03ZpDLVP9UTHvhIvdXzGH0USC2E7WP0zdgOPy3=w1600",
+              highQualityMobile: "https://lh3.googleusercontent.com/pw/AP1GczPWK_Dm44uDnLAZ5tUbe4frR_8pf74kO4Ho89VwI9l_-uOTpr4KDamUEme61Pc74ExzrLCrqlViztWzaCwas5s4WM5bFIZ6yOjBlalDAY_JH8GrkRiJnI-d-4MKU0Kop7YhsIvxbcLj3K3QQr67OxxV=w1000-h800-s-no-gm?authuser=0",
+              finalFallbackDesktop: "/lq-banner-2.png",
+              finalFallbackMobile: "/lq-mobile-banner-2.png",
+              alt: "Attars Clothing - Premium Fashion & Custom Designs",
+              targetUrl: "/shop?type=6866c0feb7d12a687483eff7",
+              hasFlyingBird: false,
+            },
+            {
+              highQualityDesktop: "https://lh3.googleusercontent.com/pw/AP1GczO6TCmmL7sfm_1cQiDTWlJ5EL5iBLx6thuA2QjUmt_2oEyjlbddZ0Rxj4PEhe0nciqWwhpP2Z4khQnBcC8ipMhXVoSo6BGQ_XPuPZueN39JAPgtOAZUU51k0nPw7I2QgsiG36lWph8K7l9S-iSrbK4p=w1223-h945-s-no-gm?authuser=0",
+              highQualityMobile: "https://lh3.googleusercontent.com/pw/AP1GczO6TCmmL7sfm_1cQiDTWlJ5EL5iBLx6thuA2QjUmt_2oEyjlbddZ0Rxj4PEhe0nciqWwhpP2Z4khQnBcC8ipMhXVoSo6BGQ_XPuPZueN39JAPgtOAZUU51k0nPw7I2QgsiG36lWph8K7l9S-iSrbK4p=w1223-h945-s-no-gm?authuser=0",
+              finalFallbackDesktop: "/lq-banner.png",
+              finalFallbackMobile: "/lq-mobile-banner.png",
+              alt: "Hoodies | Banner",
+              targetUrl: "/shop?category=68644353659ea7d89d2a0427&type=6866c0feb7d12a687483eff9",
+              hasFlyingBird: true, // This banner will have the flying bird
+            }
+          ]}
+          interval={7000} // Change banner every 7 seconds
         />
 
-        {/* Discount Section */}
+        {/* Discount Section (can be removed or kept based on design) */}
         <DiscountSection
           image="/offers.png"
           link="/shop"

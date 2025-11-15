@@ -10,6 +10,7 @@ interface ProgressiveBannerProps {
   alt: string;
   onClick?: () => void;
   className?: string;
+  showFlyingBirds?: boolean; // New prop for conditional flying birds
 }
 
 const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
@@ -19,7 +20,8 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
   finalFallbackMobile,
   alt,
   onClick,
-  className = ""
+  className = "",
+  showFlyingBirds = false, // Default to false
 }) => {
   const navigate = useNavigate();
   const [isHighQualityLoaded, setIsHighQualityLoaded] = useState(false);
@@ -57,7 +59,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
     const isMobile = window.innerWidth < 768; // md breakpoint
     
     // Common completion handler
-    const handleImageLoaded = (delay) => { 
+    const handleImageLoaded = (delay: number) => { 
       return (() => {
         setIsHighQualityLoaded(true);
         // Small delay to ensure high-quality image is rendered before starting fade-out
@@ -258,7 +260,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
               />
               
               {/* Flying Birds Animation Overlay */}
-              <FlyingBirds />
+              {showFlyingBirds && <FlyingBirds />}
             </div>
           </div>
         ) : (
@@ -292,7 +294,7 @@ const ProgressiveBanner: React.FC<ProgressiveBannerProps> = ({
               />
               
               {/* Flying Birds Animation Overlay */}
-              <FlyingBirds />
+              {showFlyingBirds && <FlyingBirds />}
             </div>
           </div>
         )}
