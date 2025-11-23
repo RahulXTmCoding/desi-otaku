@@ -19,7 +19,7 @@ env:
   AZURE_WEBAPP_NAME: attars-backend # Replace with your App Service name
   AZURE_RESOURCE_GROUP: Attars # Replace with your Resource Group name
   KEY_VAULT_NAME: attars-backend-kv # Replace with your Key Vault name
-  NODE_VERSION: '18.x'
+  NODE_VERSION: '24.x'
   WORKING_DIRECTORY: './server'
 
 jobs:
