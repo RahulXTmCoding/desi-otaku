@@ -60,34 +60,69 @@ jobs:
           # Loop through all secrets and set them in Key Vault
           # This approach is more maintainable than individual commands
 
-          set_secret "FACEBOOK-APP-ID" "${{ secrets.FACEBOOK_APP_ID }}"
-          set_secret "FACEBOOK-APP-SECRET" "${{ secrets.FACEBOOK_APP_SECRET }}"
           set_secret "DATABASE" "${{ secrets.DATABASE }}"
           set_secret "PORT" "${{ secrets.PORT }}"
           set_secret "SECRET" "${{ secrets.SECRET }}"
           set_secret "CLIENT-URL" "${{ secrets.CLIENT_URL }}" # Dashes are allowed in KV names
+          set_secret "RAZORPAY-KEY-ID" "${{ secrets.RAZORPAY_KEY_ID }}"
+          set_secret "RAZORPAY-KEY-SECRET" "${{ secrets.RAZORPAY_KEY_SECRET }}"
+          set_secret "BREVO-API-KEY" "${{ secrets.BREVO_API_KEY }}"
+          set_secret "BREVO-SENDER-EMAIL" "${{ secrets.BREVO_SENDER_EMAIL }}"
+          set_secret "MSG91-AUTH-KEY" "${{ secrets.MSG91_AUTH_KEY }}"
+          set_secret "REDIS-URL" "${{ secrets.REDIS_URL }}"
+          
+          # Payment integration parameters
           set_secret "BRAINTREE-MERCHANT-ID" "${{ secrets.BRAINTREE_MERCHANT_ID }}"
           set_secret "BRAINTREE-PUBLIC-KEY" "${{ secrets.BRAINTREE_PUBLIC_KEY }}"
           set_secret "BRAINTREE-PRIVATE-KEY" "${{ secrets.BRAINTREE_PRIVATE_KEY }}"
-          set_secret "RAZORPAY-KEY-ID" "${{ secrets.RAZORPAY_KEY_ID }}"
-          set_secret "RAZORPAY-KEY-SECRET" "${{ secrets.RAZORPAY_KEY_SECRET }}"
           set_secret "RAZORPAY-WEBHOOK-SECRET" "${{ secrets.RAZORPAY_WEBHOOK_SECRET }}"
+          
+          # Shipping parameters
           set_secret "SHIPROCKET-EMAIL" "${{ secrets.SHIPROCKET_EMAIL }}"
           set_secret "SHIPROCKET-PASSWORD" "${{ secrets.SHIPROCKET_PASSWORD }}"
-          set_secret "BREVO-API-KEY" "${{ secrets.BREVO_API_KEY }}"
-          set_secret "BREVO-SENDER-EMAIL" "${{ secrets.BREVO_SENDER_EMAIL }}"
+          set_secret "SHIPROCKET-TEST-MODE" "${{ secrets.SHIPROCKET_TEST_MODE }}"
+          set_secret "PICKUP-PINCODE" "${{ secrets.PICKUP_PINCODE }}"
+          set_secret "PICKUP-NAME" "${{ secrets.PICKUP_NAME }}"
+          set_secret "PICKUP-PHONE" "${{ secrets.PICKUP_PHONE }}"
+          
+          # Email service parameters
+          set_secret "EMAIL-SERVICE" "${{ secrets.EMAIL_SERVICE }}"
+          set_secret "BREVO-SENDER-NAME" "${{ secrets.BREVO_SENDER_NAME }}"
+          
+          # OAuth parameters
           set_secret "GOOGLE-CLIENT-ID" "${{ secrets.GOOGLE_CLIENT_ID }}"
           set_secret "GOOGLE-CLIENT-SECRET" "${{ secrets.GOOGLE_CLIENT_SECRET }}"
-          set_secret "REDIS-URL" "${{ secrets.REDIS_URL }}"
-          set_secret "MSG91-AUTH-KEY" "${{ secrets.MSG91_AUTH_KEY }}"
+          set_secret "FACEBOOK-APP-ID" "${{ secrets.FACEBOOK_APP_ID }}"
+          set_secret "FACEBOOK-APP-SECRET" "${{ secrets.FACEBOOK_APP_SECRET }}"
+          
+          # SMS parameters
+          set_secret "MSG91-SENDER-ID" "${{ secrets.MSG91_SENDER_ID }}"
+          set_secret "MSG91-TEMPLATE-ID" "${{ secrets.MSG91_TEMPLATE_ID }}"
+          set_secret "MSG91-ROUTE" "${{ secrets.MSG91_ROUTE }}"
+          
+          # Node.js environment and URLs
           set_secret "NODE-ENV" "${{ secrets.NODE_ENV }}"
+          set_secret "PRODUCTION-BACKEND-URL" "${{ secrets.PRODUCTION_BACKEND_URL }}"
+          set_secret "PRODUCTION-CLIENT-URL" "${{ secrets.PRODUCTION_CLIENT_URL }}"
+          
+          # Telegram parameters
+          set_secret "TELEGRAM-NOTIFICATIONS-ENABLED" "${{ secrets.TELEGRAM_NOTIFICATIONS_ENABLED }}"
           set_secret "TELEGRAM-BOT-TOKEN" "${{ secrets.TELEGRAM_BOT_TOKEN }}"
           set_secret "TELEGRAM-ADMIN-CHAT-ID" "${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}"
+          
+          # COD bypass
+          set_secret "COD-BYPASS-OTP" "${{ secrets.COD_BYPASS_OTP }}"
+          
+          # Cloudflare R2 parameters
+          set_secret "USE-R2" "${{ secrets.USE_R2 }}"
           set_secret "R2-ACCOUNT-ID" "${{ secrets.R2_ACCOUNT_ID }}"
           set_secret "R2-ACCESS-KEY-ID" "${{ secrets.R2_ACCESS_KEY_ID }}"
           set_secret "R2-SECRET-ACCESS-KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
           set_secret "R2-BUCKET-NAME" "${{ secrets.R2_BUCKET_NAME }}"
           set_secret "R2-PUBLIC-URL" "${{ secrets.R2_PUBLIC_URL }}"
+          
+          # Facebook Catalog parameters
+          set_secret "FACEBOOK-CATALOG-ID" "${{ secrets.FACEBOOK_CATALOG_ID }}"
           set_secret "FACEBOOK-ACCESS-TOKEN" "${{ secrets.FACEBOOK_ACCESS_TOKEN }}"
           set_secret "WEBSITES-PORT" "${{ secrets.WEBSITES_PORT }}"
 
