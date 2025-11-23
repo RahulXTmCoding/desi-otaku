@@ -13,7 +13,6 @@ let testResults = {
 };
 
 
-
 function logTest(testName, status, message, isWarning = false) {
   const statusIcon = status ? '✅' : (isWarning ? '⚠️' : '❌');
   console.log(`${statusIcon} ${testName}: ${message}`);
