@@ -203,3 +203,19 @@ Create a new file at `.github/workflows/deploy-azure-backend.yml` with the conte
 - [ ] `deploy-azure-backend.yml` workflow file is created in the repository.
 
 Once all these steps are completed, a push to the `main` branch will trigger the automated, zero-downtime deployment to Azure.
+
+---
+
+## Troubleshooting Common Deployment Errors
+
+### Error: `Failed to resolve 'your-key-vault-name.vault.azure.net' ([Errno -2] Name or service not known)`
+This error indicates that the GitHub Actions runner could not resolve the DNS name of your Azure Key Vault.
+
+**Possible Causes & Solutions:**
+1.  **Incorrect Key Vault Name**: The most common cause.
+    *   **Verify**: Go to the Azure Portal, search for "Key Vaults," and confirm the exact name of your Key Vault.
+    *   **Correct**: Ensure the `KEY_VAULT_NAME` environment variable in your `.github/workflows/deploy-azure-backend.yml` file **exactly** matches the name from the Azure Portal, including case.
+2.  **Key Vault Not Created**: The Key Vault might not have been created in Azure yet, or it was deleted.
+    *   **Verify**: Confirm the Key Vault exists in your Azure subscription.
+3.  **DNS Propagation Delay**: Less common for existing resources, but if the Key Vault was just created, there might be a slight delay.
+    *   **Wait**: Give it a few minutes and try running the workflow again.
