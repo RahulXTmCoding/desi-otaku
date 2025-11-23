@@ -86,6 +86,7 @@ jobs:
           set_secret "R2-BUCKET-NAME" "${{ secrets.R2_BUCKET_NAME }}"
           set_secret "R2-PUBLIC-URL" "${{ secrets.R2_PUBLIC_URL }}"
           set_secret "FACEBOOK-ACCESS-TOKEN" "${{ secrets.FACEBOOK_ACCESS_TOKEN }}"
+          set_secret "WEBSITES_PORT" "${{ secrets.WEBSITES_PORT }}"
 
           echo "✅ All secrets updated successfully in Azure Key Vault."
 

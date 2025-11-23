@@ -103,10 +103,11 @@ To allow GitHub Actions to securely access Azure without long-lived secrets, we 
     ```bash
     az ad sp create --id <appId>
     ```
-4.  Grant the service principal the **Contributor** role over your resource group. Replace `<subscription-id>`, `<resource-group-name>`, and `<appId>`.
+4.  Grant the service principal the **Key Vault Administrator** role directly on the Key Vault. This role provides comprehensive permissions to manage secrets, keys, and certificates within the Key Vault. Replace `<key-vault-name>`, `<resource-group-name>`, `<subscription-id>`, and `<appId>`.
     ```bash
-    az role assignment create --role "Contributor" --subscription <subscription-id> --assignee <appId> --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>
+    az role assignment create --role "Key Vault Administrator" --subscription <subscription-id> --assignee <appId> --scope /subscriptions/<subscription-id>/resourceGroups/<resource-group-name>/providers/Microsoft.KeyVault/vaults/<key-vault-name>
     ```
+    **Note**: While "Contributor" on the resource group *can* sometimes be sufficient, explicitly granting "Key Vault Administrator" on the Key Vault itself is a more robust solution for CI/CD pipelines that need to manage secrets, and directly addresses the "Forbidden" error you encountered.
 
 #### 2.1.2. Create a Federated Credential in Azure
 This step establishes the trust relationship between your Microsoft Entra ID application and your GitHub repository.
@@ -174,6 +175,10 @@ This is the modern, secure way to manage application secrets in Azure. It allows
 
 **Important**: If you omit the `@Microsoft.KeyVault(...)` syntax and paste the secret directly into the "Value" field, it will be stored as a plain-text environment variable. This is less secure and negates the primary benefits of using Key Vault, such as centralized management and dynamic secret rotation. The special reference syntax is what enables the secure fetching of secrets at runtime.
 
+5.  **Configure Application Port**: Add an additional application setting to explicitly tell App Service which port your Node.js application is listening on.
+    -   **Name**: `WEBSITES_PORT`
+    -   **Value**: `8000` (This matches the `PORT` environment variable used by your Node.js backend).
+
 ### 3.2. Add a Health Check Endpoint
 The application already has a `/health` endpoint. We need to configure App Service to use it.
 1.  In your App Service, go to **Monitoring -> Health check**.
@@ -219,3 +224,12 @@ This error indicates that the GitHub Actions runner could not resolve the DNS na
     *   **Verify**: Confirm the Key Vault exists in your Azure subscription.
 3.  **DNS Propagation Delay**: Less common for existing resources, but if the Key Vault was just created, there might be a slight delay.
     *   **Wait**: Give it a few minutes and try running the workflow again.
+
+### Error: `(Forbidden) Caller is not authorized to perform action on resource. Action: 'Microsoft.KeyVault/vaults/secrets/setSecret/action'`
+This error means the Service Principal used by GitHub Actions does not have the necessary permissions to write (set) secrets in your Azure Key Vault.
+
+**Possible Causes & Solutions:**
+1.  **Incorrect Role Assignment**: The Service Principal might not have the correct role assigned, or the role assignment is not scoped correctly.
+    *   **Verify**: Go to the Azure Portal, navigate to your **Key Vault**, then go to **Access control (IAM)**. Check the role assignments for the Service Principal (the Azure AD Application you created, e.g., `GitHubActions-TshirtShop`).
+    *   **Correct**: Ensure the Service Principal has the **Key Vault Administrator** role assigned directly to the Key Vault resource. If you previously assigned "Contributor" to the resource group, you might need to add this more specific role.
+    *   **Propagation Delay**: Role assignments can take a few minutes to propagate across Azure. If you just made the change, wait 5-10 minutes and try running the workflow again.
