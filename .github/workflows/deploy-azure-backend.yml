@@ -59,6 +59,9 @@ jobs:
 
           # Loop through all secrets and set them in Key Vault
           # This approach is more maintainable than individual commands
+
+          set_secret "FACEBOOK-APP-ID" "${{ secrets.FACEBOOK_APP_ID }}"
+          set_secret "FACEBOOK-APP-SECRET" "${{ secrets.FACEBOOK_APP_SECRET }}"
           set_secret "DATABASE" "${{ secrets.DATABASE }}"
           set_secret "PORT" "${{ secrets.PORT }}"
           set_secret "SECRET" "${{ secrets.SECRET }}"

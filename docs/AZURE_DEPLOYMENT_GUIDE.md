@@ -152,7 +152,7 @@ This step establishes the trust relationship between your Microsoft Entra ID app
 
 ## Step 3: Configure the Application for Azure
 
-### 3.1. Set App Service Configuration
+### 3.1. Configure App Service Application Settings to Reference Key Vault Secrets
 
 **Use Case:** This step securely connects your application to the secrets stored in Azure Key Vault without exposing them in your code or configuration files.
 
@@ -164,12 +164,12 @@ By using Key Vault references (`@Microsoft.KeyVault(...)`), you are telling Azur
 This is the modern, secure way to manage application secrets in Azure. It allows for centralized management and rotation of secrets in the Key Vault, and your application will automatically pick up the new values on its next restart, without requiring a redeployment.
 
 **Instructions:**
-1.  Navigate to your App Service.
-2.  Go to **Settings -> Configuration**.
-3.  For each secret in your Key Vault, add a new **Application setting**.
-    -   **Name**: The name of the environment variable (e.g., `DATABASE`).
+1.  Navigate to your **App Service** (e.g., `custom-tshirt-shop-backend`) in the Azure Portal.
+2.  In the left menu, go to **Settings -> Configuration**.
+3.  For each secret you want your application to use from Key Vault, add a new **Application setting**.
+    -   **Name**: The name of the environment variable your application expects (e.g., `DATABASE`).
     -   **Value**: A special reference to the Key Vault secret in the format: `@Microsoft.KeyVault(SecretUri=your-secret-uri)`.
-    -   You can get the `your-secret-uri` from the Key Vault by clicking on the secret and then on the current version.
+    -   You can get the `your-secret-uri` from the Key Vault by navigating to your **Key Vault** (`tshirt-shop-kv-prod`), clicking on the specific secret (e.g., `DATABASE`), and then clicking on the current version to copy its "Secret Identifier."
     -   **Example**: `@Microsoft.KeyVault(SecretUri=https://tshirt-shop-kv-prod.vault.azure.net/secrets/DATABASE/f8e...e9)`
 4.  Add these references for all your secrets. This securely links your app's environment variables to Key Vault.
 
@@ -181,7 +181,7 @@ This is the modern, secure way to manage application secrets in Azure. It allows
 
 ### 3.2. Add a Health Check Endpoint
 The application already has a `/health` endpoint. We need to configure App Service to use it.
-1.  In your App Service, go to **Monitoring -> Health check**.
+1.  In your **App Service**, go to **Monitoring -> Health check**.
 2.  Enable Health check.
 3.  Set the **Path** to `/api/health` (assuming your routes are prefixed with `/api`).
 4.  Save the configuration. App Service will now ping this endpoint to ensure your application is running correctly, which is crucial for the zero-downtime slot swap.
@@ -233,3 +233,46 @@ This error means the Service Principal used by GitHub Actions does not have the 
     *   **Verify**: Go to the Azure Portal, navigate to your **Key Vault**, then go to **Access control (IAM)**. Check the role assignments for the Service Principal (the Azure AD Application you created, e.g., `GitHubActions-TshirtShop`).
     *   **Correct**: Ensure the Service Principal has the **Key Vault Administrator** role assigned directly to the Key Vault resource. If you previously assigned "Contributor" to the resource group, you might need to add this more specific role.
     *   **Propagation Delay**: Role assignments can take a few minutes to propagate across Azure. If you just made the change, wait 5-10 minutes and try running the workflow again.
+
+### Error: `:( Application Error` (or application fails to start)
+This generic error indicates that your Node.js application failed to start or crashed shortly after deployment. This is often due to issues with environment variables, dependencies, or the application's startup command.
+
+**Possible Causes & Solutions:**
+1.  **Check Application Logs**: This is the most crucial step.
+    *   **Enable Logging**: In the Azure Portal, navigate to your App Service. Go to **Monitoring -> App Service logs**. Enable "Application Logging (Filesystem)" and "Web server logging" (if not already enabled). Set the Retention Period to a few days.
+    *   **Access Logs**: Go to **Monitoring -> Log stream** to see real-time logs, or use **Development Tools -> Advanced Tools (Kudu) -> Debug console -> CMD** and navigate to `LogFiles/Application` to download log files.
+    *   **Interpret Logs**: Look for error messages related to:
+        *   **Missing Environment Variables**: Your application might be trying to access an environment variable that isn't set or isn't correctly referenced from Key Vault.
+        *   **Dependency Issues**: `npm install --production` might have failed, or there's a missing native dependency.
+        *   **Startup Script Errors**: The `start` script in your `server/package.json` might have an issue.
+6.  **Set Custom Startup Command**: Azure App Service sometimes has issues with `npm start` directly. To bypass this, set a custom startup command.
+    *   In the Azure Portal, navigate to your App Service.
+    *   Go to **Configuration -> General settings**.
+    *   In the **Startup Command** field, enter: `node app.js`
+    *   Save the change. This explicitly tells Azure how to start your application, bypassing any potential issues with `npm`'s internal paths.
+2.  **Verify Key Vault References**:
+    *   **Double-check**: Ensure all Key Vault references in your App Service **Configuration -> Application settings** are correctly formatted (`@Microsoft.KeyVault(SecretUri=your-secret-uri)`) and point to existing secrets.
+    *   **Managed Identity**: Confirm the App Service's Managed Identity is enabled and has `Get` and `List` permissions on the Key Vault (as per Step 1.4).
+3.  **`WEBSITES_PORT` Setting**:
+    *   **Confirm**: Ensure you have the `WEBSITES_PORT` application setting configured to `8000` (as per Step 3.1, point 5).
+4.  **Node.js Version**:
+    *   **Verify**: Confirm that the Node.js version specified in your App Service runtime stack (e.g., Node 24 LTS) matches the `NODE_VERSION` in your GitHub Actions workflow (`24.x`).
+5.  **Diagnose and Solve Problems**:
+    *   In your App Service, go to **Diagnose and solve problems**. This tool can often automatically detect common issues and provide specific recommendations.
+
+### Error: `TypeError: OAuth2Strategy requires a clientID option` (or similar for `clientSecret`, `FACEBOOK_APP_ID`, etc.)
+This error indicates that an OAuth strategy (like Google or Facebook) in your `passport.js` configuration is not receiving its required `clientID` (or `clientSecret`, `FACEBOOK_APP_ID`, etc.) environment variable at runtime.
+
+**Possible Causes & Solutions:**
+1.  **Secret Not in Key Vault**: The corresponding secret might not have been successfully pushed to Azure Key Vault by the GitHub Actions workflow.
+    *   **Verify**: Go to the Azure Portal, navigate to your **Key Vault** (`attars-backend-kv`), and check under **Secrets** to ensure that `GOOGLE-CLIENT-ID` (and `GOOGLE-CLIENT-SECRET`, `FACEBOOK-APP-ID`, `FACEBOOK-APP-SECRET` if applicable) exist and have values.
+    *   **Action**: If missing, ensure these secrets are correctly added to your GitHub repository secrets and re-run the GitHub Actions workflow to push them to Key Vault.
+2.  **App Service Configuration Reference Incorrect**: The App Service application setting might not be correctly referencing the Key Vault secret.
+    *   **Verify**: In the Azure Portal, navigate to your **App Service** (`attars-backend`). Go to **Configuration -> Application settings**.
+    *   **Check Entries**: Ensure you have application settings named `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `FACEBOOK_APP_ID`, and `FACEBOOK_APP_SECRET` (using underscores, as your Node.js app expects).
+    *   **Check Values**: The value for each of these settings must be a Key Vault reference in the format: `@Microsoft.KeyVault(SecretUri=your-secret-uri)`. Double-check that the `your-secret-uri` part is correct and points to the right secret version in your Key Vault.
+    *   **Example**: For `GOOGLE_CLIENT_ID`, the value should look like `@Microsoft.KeyVault(SecretUri=https://attars-backend-kv.vault.azure.net/secrets/GOOGLE-CLIENT-ID/f8e...e9)`.
+3.  **Managed Identity Permissions**: The App Service's Managed Identity might not have `Get` and `List` permissions on the Key Vault.
+    *   **Verify**: Re-verify **Step 1.4** in this guide to ensure the App Service's Managed Identity is enabled and has the "Key Vault Secrets User" role (or equivalent `Get`/`List` permissions) on the Key Vault.
+4.  **Secret Name Mismatch (Key Vault vs. App Service)**: While Key Vault allows dashes in secret names (e.g., `GOOGLE-CLIENT-ID`), your Node.js application expects environment variables with underscores (e.g., `process.env.GOOGLE_CLIENT_ID`). The App Service application setting name should match what your app expects (`GOOGLE_CLIENT_ID`), and its value will be the Key Vault reference pointing to the secret (e.g., `GOOGLE-CLIENT-ID`).
+    *   **Action**: Ensure the application setting names in App Service use underscores (`GOOGLE_CLIENT_ID`), even if the corresponding secret in Key Vault uses dashes (`GOOGLE-CLIENT-ID`).
