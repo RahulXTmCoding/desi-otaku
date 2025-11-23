@@ -1,0 +1,154 @@
+name: Deploy Backend to Azure App Service
+
+on:
+  push:
+    branches: [main, production]
+    paths: ['server/**']
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  AZURE_WEBAPP_NAME: attars-backend # Replace with your App Service name
+  AZURE_RESOURCE_GROUP: attars-prod-rg # Replace with your Resource Group name
+  KEY_VAULT_NAME: attars-kv-prod # Replace with your Key Vault name
+  NODE_VERSION: '18.x'
+  WORKING_DIRECTORY: './server'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Update Azure Key Vault Secrets
+        run: |
+          echo "🔐 Updating Azure Key Vault with application secrets..."
+          
+          # A function to set a secret in Key Vault
+          set_secret() {
+            local secret_name=$1
+            local secret_value=$2
+            if [ -n "$secret_value" ]; then
+              echo "Setting secret: $secret_name"
+              az keyvault secret set --vault-name "${{ env.KEY_VAULT_NAME }}" --name "$secret_name" --value "$secret_value" > /dev/null
+            else
+              echo "Skipping empty secret: $secret_name"
+            fi
+          }
+
+          # Loop through all secrets and set them in Key Vault
+          # This approach is more maintainable than individual commands
+          set_secret "DATABASE" "${{ secrets.DATABASE }}"
+          set_secret "PORT" "${{ secrets.PORT }}"
+          set_secret "SECRET" "${{ secrets.SECRET }}"
+          set_secret "CLIENT-URL" "${{ secrets.CLIENT_URL }}" # Dashes are allowed in KV names
+          set_secret "BRAINTREE-MERCHANT-ID" "${{ secrets.BRAINTREE_MERCHANT_ID }}"
+          set_secret "BRAINTREE-PUBLIC-KEY" "${{ secrets.BRAINTREE_PUBLIC_KEY }}"
+          set_secret "BRAINTREE-PRIVATE-KEY" "${{ secrets.BRAINTREE_PRIVATE_KEY }}"
+          set_secret "RAZORPAY-KEY-ID" "${{ secrets.RAZORPAY_KEY_ID }}"
+          set_secret "RAZORPAY-KEY-SECRET" "${{ secrets.RAZORPAY_KEY_SECRET }}"
+          set_secret "RAZORPAY-WEBHOOK-SECRET" "${{ secrets.RAZORPAY_WEBHOOK_SECRET }}"
+          set_secret "SHIPROCKET-EMAIL" "${{ secrets.SHIPROCKET_EMAIL }}"
+          set_secret "SHIPROCKET-PASSWORD" "${{ secrets.SHIPROCKET_PASSWORD }}"
+          set_secret "BREVO-API-KEY" "${{ secrets.BREVO_API_KEY }}"
+          set_secret "BREVO-SENDER-EMAIL" "${{ secrets.BREVO_SENDER_EMAIL }}"
+          set_secret "GOOGLE-CLIENT-ID" "${{ secrets.GOOGLE_CLIENT_ID }}"
+          set_secret "GOOGLE-CLIENT-SECRET" "${{ secrets.GOOGLE_CLIENT_SECRET }}"
+          set_secret "REDIS-URL" "${{ secrets.REDIS_URL }}"
+          set_secret "MSG91-AUTH-KEY" "${{ secrets.MSG91_AUTH_KEY }}"
+          set_secret "NODE-ENV" "${{ secrets.NODE_ENV }}"
+          set_secret "TELEGRAM-BOT-TOKEN" "${{ secrets.TELEGRAM_BOT_TOKEN }}"
+          set_secret "TELEGRAM-ADMIN-CHAT-ID" "${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}"
+          set_secret "R2-ACCOUNT-ID" "${{ secrets.R2_ACCOUNT_ID }}"
+          set_secret "R2-ACCESS-KEY-ID" "${{ secrets.R2_ACCESS_KEY_ID }}"
+          set_secret "R2-SECRET-ACCESS-KEY" "${{ secrets.R2_SECRET_ACCESS_KEY }}"
+          set_secret "R2-BUCKET-NAME" "${{ secrets.R2_BUCKET_NAME }}"
+          set_secret "R2-PUBLIC-URL" "${{ secrets.R2_PUBLIC_URL }}"
+          set_secret "FACEBOOK-ACCESS-TOKEN" "${{ secrets.FACEBOOK_ACCESS_TOKEN }}"
+
+          echo "✅ All secrets updated successfully in Azure Key Vault."
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install Dependencies
+        run: |
+          cd ${{ env.WORKING_DIRECTORY }}
+          npm install --production
+
+      - name: Check for Staging Slot and Set Deployment Target
+        id: set-target
+        run: |
+          slot_exists=$(az webapp deployment slot list --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --query "[?name=='staging']" -o tsv)
+          if [[ -n "$slot_exists" ]]; then
+            echo "✅ Staging slot found. Using zero-downtime deployment strategy."
+            echo "target_slot=staging" >> $GITHUB_OUTPUT
+            echo "swap_enabled=true" >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ Staging slot not found. Deploying directly to production (brief downtime will occur)."
+            echo "target_slot=production" >> $GITHUB_OUTPUT
+            echo "swap_enabled=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Azure App Service
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          slot-name: ${{ steps.set-target.outputs.target_slot }}
+          package: ${{ env.WORKING_DIRECTORY }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }} # Optional: for another auth method
+
+      - name: Warm-up and Swap Slots (if applicable)
+        if: steps.set-target.outputs.swap_enabled == 'true'
+        run: |
+          STAGING_URL="https://${{ env.AZURE_WEBAPP_NAME }}-staging.azurewebsites.net"
+          echo "Warming up staging slot at $STAGING_URL/api/health"
+          
+          # Warm-up by hitting the health check endpoint
+          curl --fail --retry 5 --retry-delay 30 "$STAGING_URL/api/health"
+          
+          echo "Swapping staging slot to production..."
+          az webapp deployment slot swap --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --name ${{ env.AZURE_WEBAPP_NAME }} --slot staging --target-slot production
+          
+      - name: Validate Production Deployment
+        run: |
+          PRODUCTION_URL="https://$(az webapp show --name ${{ env.AZURE_WEBAPP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "defaultHostName" --output tsv)"
+          echo "Validating production deployment at $PRODUCTION_URL"
+          
+          # Wait for the swap to complete and DNS to propagate
+          sleep 60 
+          
+          # Final health check on the production URL
+          curl --fail --retry 3 --retry-delay 20 "$PRODUCTION_URL/api/health"
+          
+          echo "✅ Production deployment successful and healthy."
+
+      - name: Logout from Azure
+        if: always()
+        run: |
+          az logout
+          az cache purge
+          az account clear
