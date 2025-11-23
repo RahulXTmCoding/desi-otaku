@@ -119,9 +119,10 @@ This step establishes the trust relationship between your Microsoft Entra ID app
 5.  In the "Federated credential scenario" dropdown, select **GitHub Actions deploying Azure resources**.
 6.  Fill in the details:
     -   **Organization**: Your GitHub organization or username.
-    -   **Repository**: Your repository name (e.g., `custom-tshirt-shop`).
+    -   **Repository**: Your repository name (e.g., `desi-otaku`).
+    -   **IMPORTANT**: The Organization and Repository names are **case-sensitive** and must exactly match the casing in your GitHub URL (e.g., `github.com/RahulXTmCoding/desi-otaku`). The error `AADSTS7002138` that you encountered is almost always caused by a case mismatch in one of these fields. Please double-check them carefully.
     -   **Entity type**: `Environment`.
-    -   **GitHub environment name**: `production`. This should match the environment name in your GitHub Actions workflow.
+    -   **GitHub environment name**: `production`. This should match the environment name in your GitHub Actions workflow. **IMPORTANT**: This field is also **case-sensitive**. If your workflow uses `production` (lowercase), you must enter `production` here, not `Production`.
     -   **Name**: Give it a descriptive name, e.g., `github-production-deploy`.
 7.  Click **Add**.
 

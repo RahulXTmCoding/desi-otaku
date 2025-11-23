@@ -15,6 +15,7 @@ mongoose.connect(process.env.DATABASE, {
   console.log("DB CONNECTION ERROR:", err);
 });
 
+
 async function testFilters() {
   try {
     // Get a sample category and product type
