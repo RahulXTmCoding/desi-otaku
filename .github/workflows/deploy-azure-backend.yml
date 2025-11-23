@@ -61,7 +61,6 @@ jobs:
           # This approach is more maintainable than individual commands
 
           set_secret "DATABASE" "${{ secrets.DATABASE }}"
-          set_secret "PORT" "${{ secrets.PORT }}"
           set_secret "SECRET" "${{ secrets.SECRET }}"
           set_secret "CLIENT-URL" "${{ secrets.CLIENT_URL }}" # Dashes are allowed in KV names
           set_secret "RAZORPAY-KEY-ID" "${{ secrets.RAZORPAY_KEY_ID }}"
@@ -124,9 +123,89 @@ jobs:
           # Facebook Catalog parameters
           set_secret "FACEBOOK-CATALOG-ID" "${{ secrets.FACEBOOK_CATALOG_ID }}"
           set_secret "FACEBOOK-ACCESS-TOKEN" "${{ secrets.FACEBOOK_ACCESS_TOKEN }}"
-          set_secret "WEBSITES-PORT" "${{ secrets.WEBSITES_PORT }}"
 
           echo "✅ All secrets updated successfully in Azure Key Vault."
+
+      - name: Configure App Service Settings with Key Vault References
+        run: |
+          echo "⚙️ Configuring App Service settings to reference Key Vault secrets..."
+          
+          # Define the mapping from Key Vault secret names (dashes) to App Service setting names (underscores)
+          declare -A secret_map
+          secret_map["DATABASE"]="DATABASE"
+          secret_map["SECRET"]="SECRET"
+          secret_map["CLIENT-URL"]="CLIENT_URL"
+          secret_map["RAZORPAY-KEY-ID"]="RAZORPAY_KEY_ID"
+          secret_map["RAZORPAY-KEY-SECRET"]="RAZORPAY_KEY_SECRET"
+          secret_map["BREVO-API-KEY"]="BREVO_API_KEY"
+          secret_map["BREVO-SENDER-EMAIL"]="BREVO_SENDER_EMAIL"
+          secret_map["MSG91-AUTH-KEY"]="MSG91_AUTH_KEY"
+          secret_map["REDIS-URL"]="REDIS_URL"
+          secret_map["BRAINTREE-MERCHANT-ID"]="BRAINTREE_MERCHANT_ID"
+          secret_map["BRAINTREE-PUBLIC-KEY"]="BRAINTREE_PUBLIC_KEY"
+          secret_map["BRAINTREE-PRIVATE-KEY"]="BRAINTREE_PRIVATE_KEY"
+          secret_map["RAZORPAY-WEBHOOK-SECRET"]="RAZORPAY_WEBHOOK_SECRET"
+          secret_map["SHIPROCKET-EMAIL"]="SHIPROCKET_EMAIL"
+          secret_map["SHIPROCKET-PASSWORD"]="SHIPROCKET_PASSWORD"
+          secret_map["SHIPROCKET-TEST-MODE"]="SHIPROCKET_TEST_MODE"
+          secret_map["PICKUP-PINCODE"]="PICKUP_PINCODE"
+          secret_map["PICKUP-NAME"]="PICKUP_NAME"
+          secret_map["PICKUP-PHONE"]="PICKUP_PHONE"
+          secret_map["EMAIL-SERVICE"]="EMAIL_SERVICE"
+          secret_map["BREVO-SENDER-NAME"]="BREVO_SENDER_NAME"
+          secret_map["GOOGLE-CLIENT-ID"]="GOOGLE_CLIENT_ID"
+          secret_map["GOOGLE-CLIENT-SECRET"]="GOOGLE_CLIENT_SECRET"
+          secret_map["FACEBOOK-APP-ID"]="FACEBOOK_APP_ID"
+          secret_map["FACEBOOK-APP-SECRET"]="FACEBOOK_APP_SECRET"
+          secret_map["MSG91-SENDER-ID"]="MSG91_SENDER_ID"
+          secret_map["MSG91-TEMPLATE-ID"]="MSG91_TEMPLATE_ID"
+          secret_map["MSG91-ROUTE"]="MSG91_ROUTE"
+          secret_map["NODE-ENV"]="NODE_ENV"
+          secret_map["PRODUCTION-BACKEND-URL"]="PRODUCTION_BACKEND_URL"
+          secret_map["PRODUCTION-CLIENT-URL"]="PRODUCTION_CLIENT_URL"
+          secret_map["TELEGRAM-NOTIFICATIONS-ENABLED"]="TELEGRAM_NOTIFICATIONS_ENABLED"
+          secret_map["TELEGRAM-BOT-TOKEN"]="TELEGRAM_BOT_TOKEN"
+          secret_map["TELEGRAM-ADMIN-CHAT-ID"]="TELEGRAM_ADMIN_CHAT_ID"
+          secret_map["COD-BYPASS-OTP"]="COD_BYPASS_OTP"
+          secret_map["USE-R2"]="USE_R2"
+          secret_map["R2-ACCOUNT-ID"]="R2_ACCOUNT_ID"
+          secret_map["R2-ACCESS-KEY-ID"]="R2_ACCESS_KEY_ID"
+          secret_map["R2-SECRET-ACCESS-KEY"]="R2_SECRET_ACCESS_KEY"
+          secret_map["R2-BUCKET-NAME"]="R2_BUCKET_NAME"
+          secret_map["R2-PUBLIC-URL"]="R2_PUBLIC_URL"
+          secret_map["FACEBOOK-CATALOG-ID"]="FACEBOOK_CATALOG_ID"
+          secret_map["FACEBOOK-ACCESS-TOKEN"]="FACEBOOK_ACCESS_TOKEN"
+          
+          # Add WEBSITES_PORT as a direct App Setting, not from Key Vault
+          echo "Setting WEBSITES_PORT to 8000..."
+          az webapp config appsettings set \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --name ${{ env.AZURE_WEBAPP_NAME }} \
+            --settings WEBSITES_PORT=8000 > /dev/null
+          
+          # Loop through the map and set App Service settings with Key Vault references
+          for kv_secret_name in "${!secret_map[@]}"; do
+            app_setting_name="${secret_map[$kv_secret_name]}"
+            
+            # Get the secret URI from Key Vault
+            secret_uri=$(az keyvault secret show \
+              --vault-name "${{ env.KEY_VAULT_NAME }}" \
+              --name "$kv_secret_name" \
+              --query "id" \
+              --output tsv)
+            
+            if [ -n "$secret_uri" ]; then
+              echo "Setting App Service setting: $app_setting_name with Key Vault reference for $kv_secret_name"
+              az webapp config appsettings set \
+                --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+                --name ${{ env.AZURE_WEBAPP_NAME }} \
+                --settings "$app_setting_name=@Microsoft.KeyVault(SecretUri=$secret_uri)" > /dev/null
+            else
+              echo "⚠️ Warning: Key Vault secret '$kv_secret_name' not found. Skipping App Service setting for '$app_setting_name'."
+            fi
+          done
+          
+          echo "✅ App Service settings configured with Key Vault references."
 
       - name: Set up Node.js
         uses: actions/setup-node@v3
