@@ -3,10 +3,16 @@ import { X, Ruler } from 'lucide-react';
 
 interface SizeChartProps {
   productType?: 'tshirt' | 'hoodie' | 'tank' | 'oversized' | 'printed-tee';
+  customTags?: string[];
 }
 
-const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt' }) => {
+const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt', customTags = [] }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  // Check if hoodie is oversized based on customTags
+  const isOversizedHoodie = productType === 'hoodie' && customTags.some(tag => 
+    tag.toLowerCase().includes('oversized') || tag.toLowerCase().includes('over sized')
+  );
 
   const sizeData = {
     tshirt: {
@@ -59,7 +65,7 @@ const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt' }) => {
       note: 'All sizes are approximate and may vary upto +/-0.5.',
     },
     hoodie: {
-      title: 'Hoodie Size Chart',
+      title: 'Hoodie Size Chart (Regular Fit)',
       headers: ['Size', 'Chest (inches)', 'Length (inches)', 'Sleeve (inches)'],
       sizes: [
         { size: 'S', chest: '19(38)', length: '27', sleeve: '24.5' },
@@ -74,6 +80,23 @@ const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt' }) => {
         { part: 'Sleeve', instruction: 'Measure from shoulder to cuff' },
       ],
       note: 'All sizes are approximate and may vary upto +/-0.5.',
+    },
+    'oversized-hoodie': {
+      title: 'Hoodie Size Chart (Oversized Fit)',
+      headers: ['Size', 'Chest (inches)', 'Length (inches)', 'Sleeve (inches)'],
+      sizes: [
+        { size: 'S', chest: '42', length: '25', sleeve: '25.5' },
+        { size: 'M', chest: '44', length: '26', sleeve: '26.5' },
+        { size: 'L', chest: '46', length: '27', sleeve: '27.5' },
+        { size: 'XL', chest: '48', length: '28', sleeve: '28.5' },
+        { size: 'XXL', chest: '50', length: '29', sleeve: '29.5' },
+      ],
+      measurementGuide: [
+        { part: 'Chest', instruction: 'Measure around the fullest part of your chest (oversized fit - extra roomy)' },
+        { part: 'Length', instruction: 'Measure from highest point of shoulder to bottom hem' },
+        { part: 'Sleeve', instruction: 'Measure from shoulder to cuff (drop shoulder design)' },
+      ],
+      note: 'Oversized fit provides extra comfort and a relaxed streetwear look. All sizes are approximate and may vary upto +/-0.5.',
     },
     tank: {
       title: 'Tank Top Size Chart',
@@ -92,7 +115,10 @@ const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt' }) => {
     },
   };
 
-  const currentData = sizeData[productType];
+  // Determine which size chart to show
+  const chartType = isOversizedHoodie ? 'oversized-hoodie' : productType;
+  const currentData = sizeData[chartType as keyof typeof sizeData] || sizeData.tshirt;
+
 
   return (
     <>

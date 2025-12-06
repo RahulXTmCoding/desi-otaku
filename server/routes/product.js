@@ -61,7 +61,7 @@ router.get("/product/:productId", getProduct); // This route is optimized to pri
 
 router.delete(
   "/product/:productId/:userId",
-  getProductById, // Add getProductById here
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -70,7 +70,7 @@ router.delete(
 
 router.delete(
   "/product/permanent/:productId/:userId",
-  getProductById, // Add getProductById here
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -79,7 +79,7 @@ router.delete(
 
 router.put(
   "/product/restore/:productId/:userId",
-  getProductById, // Add getProductById here
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -89,7 +89,7 @@ router.put(
 //update route
 router.put(
   "/product/:productId/:userId",
-  getProductById, // Add getProductById here
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -141,7 +141,7 @@ router.get(
 router.get("/product/:productId/images", getProductImages); // This route is for listing all image URLs for a product
 router.post(
   "/product/:productId/images/:userId",
-  getProductById,
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -149,7 +149,7 @@ router.post(
 );
 router.put(
   "/product/:productId/images/:imageId/:userId",
-  getProductById,
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -157,7 +157,7 @@ router.put(
 );
 router.delete(
   "/product/:productId/images/:imageId/:userId",
-  getProductById,
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -168,7 +168,7 @@ router.delete(
 router.get("/product/:productId/variants", getProductVariants);
 router.post(
   "/product/:productId/variants/:userId",
-  getProductById, // Add getProductById here
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -186,10 +186,10 @@ router.post(
 
 router.put(
   "/product/update-json/:productId/:userId",
-  getProductById, // Add getProductById here
   isSignedIn,
   isAuthenticated,
   isAdmin,
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   updateProductJson
 );
 
@@ -198,7 +198,7 @@ router.put(
 // Admin route to toggle featured status
 router.put(
   "/product/:productId/toggle-featured/:userId",
-  getProductById, // Add getProductById here
+  (req, res, next) => getProductById(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,

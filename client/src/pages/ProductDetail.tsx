@@ -138,13 +138,22 @@ const ProductDetail: React.FC = () => {
   // Dynamic product type detection and descriptions
   const getProductType = (product: Product): 'printed-tee' | 'oversized' | 'hoodie' | 'tshirt' => {
     const category = product?.productType?.name?.toLowerCase() || '';
+    const productName = product?.name?.toLowerCase() || '';
     
+    // Check productType name first
     if (category.includes('hoodie')) {
       return 'hoodie';
     } else if (category.includes('oversized')) {
       return 'oversized';
     } else if (category.includes('tshirt') || category.includes('t-shirt')) {
       return 'printed-tee';
+    }
+    
+    // Fallback: check product name if productType doesn't give us info
+    if (productName.includes('hoodie')) {
+      return 'hoodie';
+    } else if (productName.includes('oversized')) {
+      return 'oversized';
     }
     
     return 'tshirt';

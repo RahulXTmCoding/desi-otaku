@@ -7,6 +7,7 @@ interface Product {
   name: string;
   price: number;
   stock: number;
+  customTags?: string[];
   sizeStock?: {
     S: number;
     M: number;
@@ -46,7 +47,7 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">Size</label>
-          <SizeChart productType={productType} />
+          <SizeChart productType={productType} customTags={product.customTags} />
         </div>
         <div className="grid grid-cols-5 gap-2">
           {defaultSizes.map((size) => {
