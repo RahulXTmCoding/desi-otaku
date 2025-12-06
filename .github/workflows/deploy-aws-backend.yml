@@ -2,7 +2,7 @@ name: Deploy Fashion Backend to AWS (SSH-Free)
 
 on:
   push:
-    branches: [production]
+    branches: [main, production]
     paths: ['server/**']
   workflow_dispatch:
     inputs:
