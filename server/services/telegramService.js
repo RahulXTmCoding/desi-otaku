@@ -815,6 +815,75 @@ ${criticalCount > 0 ? '🚨 Update out-of-stock products immediately' : ''}
       return { success: false, error: error.message };
     }
   }
+
+  // Send return/exchange request notification
+  async sendReturnExchangeRequest(requestData) {
+    if (!this.isEnabled) {
+      console.log('Telegram notifications disabled - skipping return/exchange notification');
+      return { success: false, reason: 'disabled', error: 'Telegram notifications are not enabled' };
+    }
+
+    try {
+      const {
+        orderId,
+        name,
+        email,
+        phone,
+        requestType,
+        reason,
+        issueDescription,
+        productDetails,
+        timestamp,
+        isGuest
+      } = requestData;
+
+      const requestTypeEmoji = requestType === 'return' ? '🔄' : '🔁';
+      const requestTypeText = requestType === 'return' ? 'RETURN' : 'EXCHANGE';
+      const userTypeEmoji = isGuest ? '👤' : '👨‍💼';
+      const userType = isGuest ? 'Guest' : 'Registered User';
+
+      const messageText = `
+${requestTypeEmoji} <b>${requestTypeText} REQUEST</b>
+
+📦 <b>Order ID:</b> ${orderId}
+⏰ <b>Request Time:</b> ${new Date(timestamp).toLocaleString('en-IN')}
+
+${userTypeEmoji} <b>Customer Info:</b>
+👤 Name: ${name}
+📧 Email: ${email}
+📱 Phone: ${phone}
+🔐 Type: ${userType}
+
+📝 <b>Request Details:</b>
+🎯 Type: <b>${requestTypeText}</b>
+⚠️ Reason: ${reason}
+
+💬 <b>Issue Description:</b>
+${issueDescription}
+
+📦 <b>Product(s):</b>
+${productDetails}
+
+━━━━━━━━━━━━━━━━━━━━━
+⏱️ <b>Action Required:</b> Please contact customer within 24 hours
+
+📧 Email customer at: ${email}
+📱 Call/WhatsApp: ${phone}
+      `.trim();
+
+      await this.bot.sendMessage(this.adminChatId, messageText, {
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      });
+
+      console.log(`✅ Telegram ${requestType} request notification sent for order #${orderId}`);
+      return { success: true };
+
+    } catch (error) {
+      console.error('❌ Failed to send Telegram return/exchange notification:', error);
+      return { success: false, error: error?.message || error?.toString() || 'Unknown error occurred' };
+    }
+  }
 }
 
 // Export singleton instance

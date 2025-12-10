@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { RotateCcw, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import ReturnExchangeForm from '../components/ReturnExchangeForm';
 
 const ReturnPolicy: React.FC = () => {
   return (
@@ -139,50 +140,6 @@ const ReturnPolicy: React.FC = () => {
             </div>
           </div>
 
-          {/* Return Process */}
-          <div className="bg-gray-800 rounded-2xl p-8">
-            <div className="flex items-center mb-6">
-              <RotateCcw className="w-6 h-6 text-yellow-400 mr-3" />
-              <h2 className="text-2xl font-bold">How to Return</h2>
-            </div>
-            <div className="space-y-6">
-              <div className="flex items-start">
-                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">1</div>
-                <div>
-                  <h3 className="font-semibold text-yellow-400 mb-2">Email Us</h3>
-                  <p className="text-gray-300">Send us an email at <strong className="text-yellow-400">hello@attars.club</strong> with your order details, reason for return, and photos of the product to initiate your return request.</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">2</div>
-                <div>
-                  <h3 className="font-semibold text-yellow-400 mb-2">Wait for Confirmation</h3>
-                  <p className="text-gray-300">Our team will review your request and send you return instructions within 24 hours.</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">3</div>
-                <div>
-                  <h3 className="font-semibold text-yellow-400 mb-2">Package Your Item</h3>
-                  <p className="text-gray-300">Pack the item securely in its original packaging with all tags and accessories.</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">4</div>
-                <div>
-                  <h3 className="font-semibold text-yellow-400 mb-2">Schedule Pickup</h3>
-                  <p className="text-gray-300">We'll arrange a free pickup from your address within 2-3 business days after confirmation.</p>
-                </div>
-              </div>
-              <div className="flex items-start">
-                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">5</div>
-                <div>
-                  <h3 className="font-semibold text-yellow-400 mb-2">Quality Check & Refund</h3>
-                  <p className="text-gray-300">Once we receive and verify the item, your refund will be processed within 5-7 business days.</p>
-                </div>
-              </div>
-            </div>
-          </div>
 
           {/* Exchange Policy */}
           <div className="bg-gray-800 rounded-2xl p-8">
@@ -306,33 +263,52 @@ const ReturnPolicy: React.FC = () => {
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="bg-gradient-to-r from-yellow-400/10 to-orange-500/10 border border-yellow-400/20 rounded-2xl p-8">
-            <h2 className="text-2xl font-bold mb-6 text-white">Need to Return an Item?</h2>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="text-center">
-                <h3 className="font-semibold mb-3 text-white">Email for Return</h3>
-                <p className="text-white mb-4 text-sm">
-                  Send us an email with your order details to start the return process.
-                </p>
-                <a 
-                  href="mailto:hello@attars.club?subject=Return Request&body=Please include your order number, reason for return, and product photos."
-                  className="inline-flex items-center gap-2 bg-yellow-400 text-gray-900 px-4 py-2 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
-                >
-                  Email Us
-                </a>
+          {/* Return/Exchange Request Form - HIGHLIGHTED SECTION */}
+          <div id="return-form" className="bg-gradient-to-r from-yellow-400/20 to-orange-500/20 border-2 border-yellow-400 rounded-2xl p-6 md:p-8 scroll-mt-20">
+            <ReturnExchangeForm />
+          </div>
+
+          {/* Return Process */}
+          <div className="bg-gray-800 rounded-2xl p-8">
+            <div className="flex items-center mb-6">
+              <RotateCcw className="w-6 h-6 text-yellow-400 mr-3" />
+              <h2 className="text-2xl font-bold">How to Return/Exchange (Alternative)</h2>
+            </div>
+            <div className="space-y-6">
+              <div className="flex items-start">
+                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">1</div>
+                <div>
+                  <h3 className="font-semibold text-yellow-400 mb-2">Email Us</h3>
+                  <p className="text-gray-300">Send us an email at <strong className="text-yellow-400">hello@attars.club</strong> with your order details, reason for return, and photos of the product to initiate your return request.</p>
+                </div>
               </div>
-              <div className="text-center">
-                <h3 className="font-semibold mb-3 text-white">Contact Support</h3>
-                <p className="text-white mb-4 text-sm">
-                  Get help with your return or exchange questions.
-                </p>
-                <Link 
-                  to="/contact" 
-                  className="inline-flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-600 transition-colors"
-                >
-                  Contact Us
-                </Link>
+              <div className="flex items-start">
+                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">2</div>
+                <div>
+                  <h3 className="font-semibold text-yellow-400 mb-2">Wait for Confirmation</h3>
+                  <p className="text-gray-300">Our team will review your request and send you return instructions within 24 hours.</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">3</div>
+                <div>
+                  <h3 className="font-semibold text-yellow-400 mb-2">Package Your Item</h3>
+                  <p className="text-gray-300">Pack the item securely in its original packaging with all tags and accessories.</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">4</div>
+                <div>
+                  <h3 className="font-semibold text-yellow-400 mb-2">Schedule Pickup</h3>
+                  <p className="text-gray-300">We'll arrange a free pickup from your address within 2-3 business days after confirmation.</p>
+                </div>
+              </div>
+              <div className="flex items-start">
+                <div className="bg-yellow-400 text-gray-900 rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">5</div>
+                <div>
+                  <h3 className="font-semibold text-yellow-400 mb-2">Quality Check & Refund</h3>
+                  <p className="text-gray-300">Once we receive and verify the item, your refund will be processed within 5-7 business days.</p>
+                </div>
               </div>
             </div>
           </div>

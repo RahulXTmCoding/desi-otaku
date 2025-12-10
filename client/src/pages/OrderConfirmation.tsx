@@ -232,11 +232,26 @@ const OrderConfirmation: React.FC = () => {
         </div>
 
         {/* Customer Support */}
-        <div className="text-center mt-12 text-gray-400">
-          <p className="mb-2">Need help with your order?</p>
-          <Link to="/contact" className="text-yellow-400 hover:text-yellow-300 font-medium">
-            Contact Customer Support
-          </Link>
+        <div className="text-center mt-12">
+          <p className="text-gray-400 mb-4">Need help with your order?</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link 
+              to="/contact" 
+              className="text-yellow-400 hover:text-yellow-300 font-medium hover:underline"
+            >
+              Contact Customer Support
+            </Link>
+            <span className="hidden sm:inline text-gray-600">•</span>
+            <Link 
+              to="/return-policy" 
+              className="text-yellow-400 hover:text-yellow-300 font-medium hover:underline"
+            >
+              Return & Exchange Policy
+            </Link>
+          </div>
+          <p className="text-sm text-gray-500 mt-4">
+            Found an issue? You can submit a return/exchange request from our Return Policy page.
+          </p>
         </div>
       </div>
     </div>

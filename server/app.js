@@ -36,6 +36,7 @@ const productAdminRoutes = require("./routes/productAdmin");
 const sitemapRoutes = require("./routes/sitemap");
 const telegramRoutes = require("./routes/telegram");
 const marketingRoutes = require("./routes/marketing");
+const returnExchangeRoutes = require("./routes/returnExchange");
 const { initializeSettings } = require("./controllers/settings");
 const AOVService = require("./services/aovService");
 const redisService = require("./services/redisService");
@@ -142,6 +143,7 @@ app.use("/api", productAdminRoutes);
 app.use("/api/sitemap", sitemapRoutes);
 app.use("/api/telegram", telegramRoutes);
 app.use("/api/marketing", marketingRoutes);
+app.use("/api/return-exchange", returnExchangeRoutes);
 
 // Serve static files (for invoice PDFs)
 app.use('/invoices', express.static(require('path').join(__dirname, 'public/invoices')));

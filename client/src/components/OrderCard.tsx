@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { API } from "../backend";
-import { Package } from "lucide-react";
+import { Package, RotateCcw } from "lucide-react";
 import CartTShirtPreview from "./CartTShirtPreview";
 
 const OrderCard = ({ order }) => {
@@ -138,6 +138,18 @@ const OrderCard = ({ order }) => {
           Placed on {new Date(order.createdAt).toLocaleDateString()}
         </div>
       </Link>
+      
+      {/* Return/Exchange Request Button */}
+      <div className="mt-3 pt-3 border-t border-gray-700">
+        <Link 
+          to="/return-policy"
+          className="text-xs text-yellow-400 hover:text-yellow-300 flex items-center gap-1 transition-colors"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <RotateCcw className="w-3 h-3" />
+          Need to return or exchange? Click here
+        </Link>
+      </div>
     </div>
   );
 };
