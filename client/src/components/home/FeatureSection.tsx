@@ -12,7 +12,7 @@ const FeatureSection: React.FC = () => {
     {
       icon: <Package className="w-8 h-8 text-yellow-400" />,
       title: "FREE SHIPPING & RETURN",
-      description: "We provide free shipping all over India and hassle-free 10 days return."
+      description: "We provide free shipping all over India and hassle-free 5 days return."
     },
     {
       icon: <Shield className="w-8 h-8 text-green-400" />,

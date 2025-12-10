@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ChevronLeft, Package, MapPin, Truck, Percent, ShoppingBag } from 'lucide-react';
 import { CreditCard, Smartphone, AlertCircle, Shield, Loader, Phone, CheckCircle } from 'lucide-react';
 
@@ -1028,7 +1028,7 @@ const CheckoutSinglePage: React.FC = () => {
                 )}
               </button>
               <p className="text-xs text-gray-500 text-center mt-3">
-                By placing this order, you agree to our Terms & Conditions
+                By placing this order, you agree to our <Link to="/terms" className="text-yellow-400 hover:underline">Terms & Conditions</Link> and <Link to="/return-policy" className="text-yellow-400 hover:underline">Return & Exchange Policy</Link>
               </p>
             </div>
           </div>

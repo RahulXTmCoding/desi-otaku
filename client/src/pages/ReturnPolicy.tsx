@@ -36,7 +36,7 @@ const ReturnPolicy: React.FC = () => {
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <div className="bg-yellow-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg shadow-md">
-                  7
+                  5
                 </div>
                 <h3 className="font-semibold text-yellow-400 mb-2">Days to Report</h3>
                 <p className="text-gray-100 text-sm">Report issues within 5 days</p>
