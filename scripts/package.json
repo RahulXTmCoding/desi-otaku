@@ -4,7 +4,8 @@
   "description": "A script to migrate data from one MongoDB to another.",
   "main": "migrate.js",
   "scripts": {
-    "start": "node migrate.js"
+    "migrate": "node migrate.js",
+    "sync": "node syncMongoDB.js"
   },
   "dependencies": {
     "mongodb": "^4.1.0",

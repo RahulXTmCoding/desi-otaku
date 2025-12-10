@@ -31,29 +31,29 @@ const ReturnPolicy: React.FC = () => {
           <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 border border-green-400/30 rounded-2xl p-8 shadow-lg">
             <div className="flex items-center mb-6">
               <CheckCircle className="w-6 h-6 text-green-400 mr-3" />
-              <h2 className="text-2xl font-bold text-white">Easy Returns</h2>
+              <h2 className="text-2xl font-bold text-white">Returns & Exchanges for Defects Only</h2>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <div className="bg-yellow-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg shadow-md">
                   7
                 </div>
-                <h3 className="font-semibold text-yellow-400 mb-2">Days Return</h3>
-                <p className="text-gray-100 text-sm">Return within 7 days of delivery</p>
+                <h3 className="font-semibold text-yellow-400 mb-2">Days to Report</h3>
+                <p className="text-gray-100 text-sm">Report issues within 5 days</p>
               </div>
               <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <div className="bg-blue-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg shadow-md">
                   ₹0
                 </div>
-                <h3 className="font-semibold text-blue-400 mb-2">Free Returns</h3>
-                <p className="text-gray-100 text-sm">No return shipping charges</p>
+                <h3 className="font-semibold text-blue-400 mb-2">Free for Defects</h3>
+                <p className="text-gray-100 text-sm">No charges for our mistakes</p>
               </div>
               <div className="text-center bg-gray-800/50 rounded-xl p-4 border border-gray-700/50">
                 <div className="bg-green-400 text-gray-900 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3 font-bold text-lg shadow-md">
                   ✓
                 </div>
-                <h3 className="font-semibold text-green-400 mb-2">Easy Process</h3>
-                <p className="text-gray-100 text-sm">Simple online return process</p>
+                <h3 className="font-semibold text-green-400 mb-2">Quality Assured</h3>
+                <p className="text-gray-100 text-sm">We stand behind our products</p>
               </div>
             </div>
           </div>
@@ -64,21 +64,22 @@ const ReturnPolicy: React.FC = () => {
               <CheckCircle className="w-6 h-6 text-yellow-400 mr-3" />
               <h2 className="text-2xl font-bold">Return Eligibility</h2>
             </div>
+            <div className="bg-yellow-400/10 border border-yellow-400/30 rounded-xl p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-yellow-400">Returns Only for Defects</h3>
+              <p className="text-gray-300">
+                Returns are accepted <strong>only</strong> when we send a faulty product, wrong size, faulty print, or damaged product. We do not accept returns for change of mind, color preference, ordering the wrong size.
+              </p>
+              <p className="text-gray-300 mt-3 text-sm">
+                Please carefully check the size chart and product details before placing your order, as we cannot accept returns for sizing mistakes or design interpretation differences.
+              </p>
+            </div>
             <div className="grid md:grid-cols-2 gap-8">
               <div>
                 <h3 className="text-lg font-semibold mb-4 text-green-400">Returnable Items</h3>
                 <ul className="space-y-2 text-gray-300">
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                    <span>Unused products with original tags</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                    <span>Products in original packaging</span>
-                  </li>
-                  <li className="flex items-center">
-                    <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                    <span>Defective or damaged items</span>
+                    <span>Faulty/defective products</span>
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
@@ -86,13 +87,37 @@ const ReturnPolicy: React.FC = () => {
                   </li>
                   <li className="flex items-center">
                     <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                    <span>Different product delivered</span>
+                    <span>Faulty prints or damaged prints</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+                    <span>Damaged product during shipping</span>
+                  </li>
+                  <li className="flex items-center">
+                    <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
+                    <span>Wrong product delivered</span>
                   </li>
                 </ul>
               </div>
               <div>
                 <h3 className="text-lg font-semibold mb-4 text-red-400">Non-Returnable Items</h3>
                 <ul className="space-y-2 text-gray-300">
+                  <li className="flex items-center">
+                    <XCircle className="w-4 h-4 text-red-400 mr-2" />
+                    <span>Change of mind or color preference</span>
+                  </li>
+                  <li className="flex items-center">
+                    <XCircle className="w-4 h-4 text-red-400 mr-2" />
+                    <span>Wrong size ordered by customer</span>
+                  </li>
+                  <li className="flex items-center">
+                    <XCircle className="w-4 h-4 text-red-400 mr-2" />
+                    <span>Misunderstanding product type (embroidered vs printed)</span>
+                  </li>
+                  <li className="flex items-center">
+                    <XCircle className="w-4 h-4 text-red-400 mr-2" />
+                    <span>Don't like the design after receiving</span>
+                  </li>
                   <li className="flex items-center">
                     <XCircle className="w-4 h-4 text-red-400 mr-2" />
                     <span>Used or washed products</span>
@@ -107,11 +132,7 @@ const ReturnPolicy: React.FC = () => {
                   </li>
                   <li className="flex items-center">
                     <XCircle className="w-4 h-4 text-red-400 mr-2" />
-                    <span>Products with stains or odors</span>
-                  </li>
-                  <li className="flex items-center">
-                    <XCircle className="w-4 h-4 text-red-400 mr-2" />
-                    <span>Returns after 7 days</span>
+                    <span>Returns after 5 days</span>
                   </li>
                 </ul>
               </div>
@@ -169,25 +190,40 @@ const ReturnPolicy: React.FC = () => {
               <RotateCcw className="w-6 h-6 text-yellow-400 mr-3" />
               <h2 className="text-2xl font-bold">Exchange Policy</h2>
             </div>
+            <div className="bg-blue-400/10 border border-blue-400/30 rounded-xl p-6 mb-6">
+              <h3 className="text-lg font-semibold mb-3 text-blue-400">Exchange Conditions</h3>
+              <p className="text-gray-300">
+                Exchanges are available for faulty products, wrong size, faulty prints, or damaged products. Additionally, size exchanges are allowed for extra delivery charges if you ordered the wrong size.
+              </p>
+            </div>
             <div className="grid md:grid-cols-2 gap-8">
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-yellow-400">Size Exchange</h3>
+                <h3 className="text-lg font-semibold mb-4 text-yellow-400">Free Exchange</h3>
                 <ul className="space-y-2 text-gray-300">
-                  <li>• Free size exchange within 7 days</li>
+                  <li>• Faulty or defective products</li>
+                  <li>• Wrong size delivered by us</li>
+                  <li>• Faulty prints or damaged prints</li>
+                  <li>• Damaged during shipping</li>
+                  <li>• Within 5 days of delivery</li>
                   <li>• Subject to stock availability</li>
-                  <li>• Same product, different size only</li>
-                  <li>• Original condition required</li>
                 </ul>
               </div>
               <div>
-                <h3 className="text-lg font-semibold mb-4 text-yellow-400">Product Exchange</h3>
+                <h3 className="text-lg font-semibold mb-4 text-yellow-400">Size Exchange (Paid)</h3>
                 <ul className="space-y-2 text-gray-300">
-                  <li>• Exchange for same or higher value product</li>
-                  <li>• Pay difference if applicable</li>
-                  <li>• Within 7 days of delivery</li>
+                  <li>• Size change due to customer ordering wrong size</li>
+                  <li>• Extra delivery charges apply (₹80-120)</li>
+                  <li>• Within 5 days of delivery</li>
+                  <li>• Product must be unused with tags</li>
                   <li>• One-time exchange per order</li>
+                  <li>• Subject to stock availability</li>
                 </ul>
               </div>
+            </div>
+            <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/20 rounded-lg">
+              <p className="text-sm text-orange-400">
+                <strong>Note:</strong> For size exchanges where you ordered the wrong size, delivery charges (₹80-120 depending on location) must be paid before we ship the replacement. No exchange will be processed for change of mind, color preference, or misunderstanding of product details (like print type vs embroidery).
+              </p>
             </div>
           </div>
 

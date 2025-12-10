@@ -119,7 +119,7 @@ const TermsOfService: React.FC = () => {
             <div className="space-y-4 text-gray-300">
               <h3 className="text-lg font-semibold text-yellow-400">Returns:</h3>
               <p>
-                Customers can return their products within <strong>7 days</strong> of delivery through our website. To initiate the return process, 
+                Customers can return their products within <strong>5 days</strong> of delivery through our website. To initiate the return process, 
                 customers must contact our customer support team and provide the order number, reason for return, and photo proof of the product 
                 in its original condition.
               </p>

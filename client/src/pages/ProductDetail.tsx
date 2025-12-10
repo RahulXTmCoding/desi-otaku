@@ -191,7 +191,7 @@ const ProductDetail: React.FC = () => {
             "Bio-washed for premium feel",
             "Relaxed oversized fit",
             "Super soft and comfortable",
-            "High-quality print/embroidery",
+            "High-quality digital print",
             "Reinforced shoulder seams"
           ],
           careInstructions: [
@@ -209,6 +209,7 @@ const ProductDetail: React.FC = () => {
           features: [
             "350 GSM Regular/450 GSM Oversized premium cotton blend",
             "Heavyweight fabric for warmth",
+            "High-quality digital print",
             "Soft fleece inner lining",
             "Adjustable drawstring hood",
             "Kangaroo pocket design",

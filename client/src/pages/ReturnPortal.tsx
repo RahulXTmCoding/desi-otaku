@@ -56,7 +56,7 @@ const ReturnPortal: React.FC = () => {
               <div className="bg-green-500/20 rounded-full w-12 h-12 flex items-center justify-center mx-auto mb-3">
                 <Clock className="w-6 h-6 text-green-400" />
               </div>
-              <h3 className="font-semibold text-green-400 mb-2">7 Days</h3>
+              <h3 className="font-semibold text-green-400 mb-2">5 Days</h3>
               <p className="text-gray-300 text-sm">Return window from delivery</p>
             </div>
             <div className="bg-gray-800 rounded-xl p-6 text-center">
@@ -243,7 +243,7 @@ const ReturnPortal: React.FC = () => {
               <div>
                 <h3 className="font-semibold mb-3">Before You Return</h3>
                 <ul className="space-y-2 text-gray-300 text-sm">
-                  <li>• Check if item is within 7-day return window</li>
+                  <li>• Check if item is within 5-day return window</li>
                   <li>• Ensure original tags are attached</li>
                   <li>• Item should be unwashed and unused</li>
                   <li>• Keep original packaging if possible</li>

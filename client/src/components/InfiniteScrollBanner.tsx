@@ -30,7 +30,7 @@ const InfiniteScrollBanner: React.FC = () => {
     },
     {
       icon: <RotateCcw className="w-4 h-4" />,
-      text: "RETURNS ACCEPTED TILL 7 DAYS"
+      text: "RETURNS ACCEPTED TILL 5 DAYS"
     }
   ];
 
