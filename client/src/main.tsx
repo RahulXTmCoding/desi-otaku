@@ -12,7 +12,6 @@ import { initializeAuth } from './utils/clearAuth'
 import SEOProvider from './components/SEOProvider'
 import './index.css'
 
-// Clear any bad auth data on startup
 initializeAuth();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
