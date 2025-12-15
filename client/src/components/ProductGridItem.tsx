@@ -133,11 +133,19 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
 
   // Generate image URL with fallback
   // Convert image URL to specific size (vsmall, thumb, medium, original)
+  // Only converts R2 URLs - leaves external URLs unchanged
   const convertImageUrl = (url: string, size: 'vsmall' | 'thumb' | 'medium' | 'original' = 'medium') => {
-    if (size === 'original') {
+    if (size === 'original' || !url) {
       return url;
     }
-    // Insert size suffix: xyz.jpg → xyz-thumb.jpg
+    
+    // Only convert R2 URLs (images.attars.club)
+    if (!url.startsWith('https://images.attars.club/')) {
+      // External URL - return as-is
+      return url;
+    }
+    
+    // R2 URL - insert size suffix: xyz.jpg → xyz-thumb.jpg
     return url.replace(/(\.[^.]+)$/, `-${size}$1`);
   };
 
