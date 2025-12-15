@@ -104,11 +104,123 @@ const isR2Enabled = () => {
   );
 };
 
+/**
+ * Upload multiple image versions to R2
+ * Uploads: xyz-thumb.png, xyz-medium.png, xyz.png
+ * Returns: Only the original URL (xyz.png)
+ * Frontend converts URL dynamically to get other versions
+ * 
+ * @param {Buffer} originalBuffer - Original image buffer
+ * @param {string} baseKey - Base storage key (e.g., products/123/image.jpg)
+ * @param {string} contentType - MIME type
+ * @returns {Promise<string>} - Original image URL (frontend will convert to -thumb/-medium)
+ */
+const uploadImageVersions = async (originalBuffer, baseKey, contentType = 'image/jpeg') => {
+  const sharp = require('sharp');
+  
+  const versions = {
+    vsmall: { width: 300, height: 300, quality: 75, suffix: '-vsmall' },
+    thumb: { width: 400, height: 400, quality: 80, suffix: '-thumb' },
+    medium: { width: 800, height: 800, quality: 85, suffix: '-medium' },
+    original: { width: null, height: null, quality: null, suffix: '' } // No suffix, no processing
+  };
+
+  let originalUrl = '';
+  
+  // Detect if image is PNG (for transparency support)
+  const isPng = contentType === 'image/png' || baseKey.toLowerCase().endsWith('.png');
+
+  for (const [versionName, config] of Object.entries(versions)) {
+    try {
+      let bufferToUpload;
+      
+      if (versionName === 'original') {
+        // Upload original as-is without any processing
+        bufferToUpload = originalBuffer;
+        console.log(`  📦 Using original file without processing`);
+      } else {
+        // Generate resized version (preserves aspect ratio and format)
+        let sharpInstance = sharp(originalBuffer)
+          .resize(config.width, config.height, {
+            fit: 'inside', // Preserve aspect ratio, no cropping
+            withoutEnlargement: true
+          });
+        
+        // Preserve format: PNG for transparent images, JPEG for others
+        if (isPng) {
+          sharpInstance = sharpInstance.png({
+            quality: config.quality,
+            compressionLevel: 9,
+            progressive: true
+          });
+        } else {
+          sharpInstance = sharpInstance.jpeg({
+            quality: config.quality,
+            progressive: true,
+            mozjpeg: true
+          });
+        }
+        
+        bufferToUpload = await sharpInstance.toBuffer();
+      }
+
+      // Create versioned key
+      // vsmall: products/123/image-vsmall.jpg
+      // thumb: products/123/image-thumb.jpg
+      // medium: products/123/image-medium.jpg
+      // original: products/123/image.jpg (no suffix)
+      const versionKey = config.suffix 
+        ? baseKey.replace(/(\.[^.]+)$/, `${config.suffix}$1`)
+        : baseKey;
+      
+      // Upload to R2
+      const url = await uploadToR2(bufferToUpload, versionKey, contentType);
+      
+      if (versionName === 'original') {
+        originalUrl = url; // Store original URL to return
+      }
+      
+      console.log(`  ✅ Uploaded ${versionName}: ${url}`);
+    } catch (error) {
+      console.error(`  ❌ Failed to upload ${versionName}:`, error.message);
+      throw error;
+    }
+  }
+
+  // Return only the original URL
+  // Frontend will convert: xyz.png → xyz-thumb.png when needed
+  return originalUrl;
+};
+
+/**
+ * Delete all versions of an image from R2
+ * @param {string} baseKey - Base storage key (without version suffix)
+ * @returns {Promise<Object>} - Deletion results
+ */
+const deleteImageVersions = async (baseKey) => {
+  const suffixes = ['-thumb', '-medium', '-original'];
+  const results = {};
+
+  for (const suffix of suffixes) {
+    const versionKey = baseKey.replace(/(\.[^.]+)$/, `${suffix}$1`);
+    try {
+      results[suffix] = await deleteFromR2(versionKey);
+    } catch (error) {
+      console.error(`Failed to delete ${suffix} version:`, error.message);
+      results[suffix] = false;
+    }
+  }
+
+  return results;
+};
+
 module.exports = {
   uploadToR2,
   deleteFromR2,
   generateImageKey,
   extractKeyFromUrl,
   isR2Enabled,
-  r2Client
+  r2Client,
+  uploadImageVersions,
+  deleteImageVersions
 };

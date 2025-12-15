@@ -132,7 +132,16 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
   }, [selectedSize, quantity, cart]);
 
   // Generate image URL with fallback
-  const getImageUrl = () => {
+  // Convert image URL to specific size (vsmall, thumb, medium, original)
+  const convertImageUrl = (url: string, size: 'vsmall' | 'thumb' | 'medium' | 'original' = 'medium') => {
+    if (size === 'original') {
+      return url;
+    }
+    // Insert size suffix: xyz.jpg → xyz-thumb.jpg
+    return url.replace(/(\.[^.]+)$/, `-${size}$1`);
+  };
+
+  const getImageUrl = (size: 'vsmall' | 'thumb' | 'medium' | 'original' = 'medium') => {
     if (imageError) {
       return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"%3E%3Crect width="400" height="400" fill="%23374151"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="24" fill="%236B7280"%3ENo Image%3C/text%3E%3C/svg%3E';
     }
@@ -140,24 +149,24 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
     if (product.images && product.images.length > 0) {
       const primaryImage = product.images.find((img: any) => img.isPrimary) || product.images[0];
       if (primaryImage && primaryImage.url) {
-        return primaryImage.url;
+        return convertImageUrl(primaryImage.url, size);
       }
     }
   
     // Fallback for older data structures if needed
     if (product.photoUrl) {
-      return product.photoUrl;
+      return convertImageUrl(product.photoUrl, size);
     }
   
     // Final fallback to a placeholder
     return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400"%3E%3Crect width="400" height="400" fill="%23374151"/%3E%3C/svg%3E';
   };
 
-  const getSecondImageUrl = () => {
+  const getSecondImageUrl = (size: 'vsmall' | 'thumb' | 'medium' | 'original' = 'medium') => {
     if (product.images && product.images.length > 1) {
       const secondImage = product.images.find((img: any) => !img.isPrimary) || product.images[1];
       if (secondImage && secondImage.url) {
-        return secondImage.url;
+        return convertImageUrl(secondImage.url, size);
       }
     }
     return null;

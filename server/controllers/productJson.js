@@ -1,6 +1,6 @@
 const Product = require("../models/product");
 const _ = require("lodash");
-const { uploadToR2, generateImageKey, isR2Enabled } = require("../utils/r2Storage");
+const { uploadToR2, generateImageKey, isR2Enabled, uploadImageVersions } = require("../utils/r2Storage");
 const { upsertProductsToFacebookCatalog } = require("../services/facebookCatalogService");
 
 // Helper function to format product data for Facebook Catalog API
@@ -110,15 +110,19 @@ exports.createProductJson = async (req, res) => {
         
         if (isR2Enabled()) {
           try {
-            // Upload to R2
+            // Upload 3 versions: image-thumb.jpg, image-medium.jpg, image.jpg
+            // Returns only the original URL (image.jpg)
+            // Frontend will convert to -thumb/-medium dynamically
             const extension = fileData.name.split('.').pop() || 'jpg';
             const imageKey = generateImageKey(product._id.toString(), index, extension);
-            const r2Url = await uploadToR2(buffer, imageKey, fileData.type);
             
-            console.log(`  ✅ R2 upload successful: ${r2Url}`);
+            console.log(`  Generating 3 versions for: ${fileData.name}`);
+            const originalUrl = await uploadImageVersions(buffer, imageKey, fileData.type);
+            
+            console.log(`  ✅ All 3 versions uploaded, storing original URL`);
             
             product.images.push({
-              url: r2Url,
+              url: originalUrl, // Only store original URL (xyz.jpg)
               storageType: 'r2',
               isPrimary: false, // Will be set based on primaryImageIndex
               order: product.images.length,
@@ -270,15 +274,19 @@ exports.updateProductJson = async (req, res) => {
         
         if (isR2Enabled()) {
           try {
-            // Upload to R2
+            // Upload 3 versions: image-thumb.jpg, image-medium.jpg, image.jpg
+            // Returns only the original URL (image.jpg)
+            // Frontend will convert to -thumb/-medium dynamically
             const extension = fileData.name.split('.').pop() || 'jpg';
             const imageKey = generateImageKey(product._id.toString(), newImagesArray.length, extension);
-            const r2Url = await uploadToR2(buffer, imageKey, fileData.type);
             
-            console.log(`  ✅ R2 upload successful: ${r2Url}`);
+            console.log(`  Generating 3 versions for: ${fileData.name}`);
+            const originalUrl = await uploadImageVersions(buffer, imageKey, fileData.type);
+            
+            console.log(`  ✅ All 3 versions uploaded, storing original URL`);
             
             newImagesArray.push({
-              url: r2Url,
+              url: originalUrl, // Only store original URL (xyz.jpg)
               storageType: 'r2',
               isPrimary: false,
               order: newImagesArray.length,
