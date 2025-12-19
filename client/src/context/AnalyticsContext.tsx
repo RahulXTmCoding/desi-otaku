@@ -101,6 +101,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
   // Expose config to window immediately for debugging
   (window as any).analyticsConfig = config;
   
+  // Add version check to verify deployment
+  (window as any).analyticsVersion = 'v2.1-debug-logs';
+  console.log("Checking logs")
+  
   // Log analytics config on load
   console.log('📊 Analytics Config:', {
     enabled: config.enabled,
