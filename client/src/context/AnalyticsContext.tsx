@@ -94,7 +94,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     // Enable analytics by default if env var is not set (for production deployments)
     enabled: import.meta.env.VITE_ANALYTICS_ENABLED !== 'false',
     // Enable debug by default (disable by setting VITE_ANALYTICS_DEBUG=false)
-    debug: import.meta.env.VITE_ANALYTICS_DEBUG !== 'false',
+    debug: import.meta.env.VITE_ANALYTICS_DEBUG === 'true',
     testMode: import.meta.env.DEV
   };
 
@@ -135,14 +135,18 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         });
       }
 
-      // Only initialize Meta Pixel if not already loaded via HTML
-      if (!metaPixelLoaded && config.metaPixelId && config.metaPixelId !== 'your_meta_pixel_id_here') {
+      // Initialize Meta Pixel wrapper (works whether loaded via HTML or React)
+      if (config.metaPixelId && config.metaPixelId !== 'your_meta_pixel_id_here') {
+        if (metaPixelLoaded && config.debug) {
+          console.log('Analytics: Meta Pixel already loaded via HTML, creating wrapper instance');
+        }
         initializeMetaPixel(config.metaPixelId, config.debug);
         if (config.debug) {
-          console.log('Analytics: Meta Pixel initialized via React');
+          console.log('Analytics: Meta Pixel wrapper initialized', { 
+            loadedViaHTML: metaPixelLoaded,
+            instance: getMetaPixel()
+          });
         }
-      } else if (metaPixelLoaded && config.debug) {
-        console.log('Analytics: Meta Pixel already loaded via HTML');
       }
 
       // Only initialize Google Analytics if not already loaded via HTML
@@ -274,6 +278,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
 
   // Track add to cart
   const trackAddToCart = (product: any, quantity: number = 1) => {
+    if (config.debug) {
+      console.log('🛒 AnalyticsContext: trackAddToCart called', { product, quantity, configEnabled: config.enabled });
+    }
+    
     if (!config.enabled || !product) return;
 
     try {
@@ -293,6 +301,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       const attributionManager = getAttributionManager();
       const attribution = attributionManager?.getCurrentAttribution();
       
+      if (config.debug) {
+        console.log('📤 Attribution retrieved:', attribution);
+      }
+      
       const attributionContext = attribution ? {
         external_id: '',  // Set from user context if available
         utm_campaign: attribution.utm_campaign,
@@ -303,6 +315,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         ad_platform: attribution.ad_platform
       } : undefined;
 
+      if (config.debug) {
+        console.log('📤 Sending AddToCart to Meta Pixel with attribution:', attributionContext);
+      }
+
       // Meta Pixel add to cart
       if (metaPixel?.isLoaded()) {
         metaPixel.trackAddToCart({
@@ -312,6 +328,12 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
           value: cartItem.value,
           currency: cartItem.currency
         }, attributionContext);
+        if (config.debug) {
+        console.log('📤 Added to cart sent to pixel');
+      }
+      }
+      else{
+        console.log('📤 meta pixel not loaded');
       }
 
       // GA4 add to cart
@@ -354,6 +376,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
 
   // Track remove from cart
   const trackRemoveFromCart = (product: any, quantity: number = 1) => {
+    if (config.debug) {
+      console.log('🗑️ AnalyticsContext: trackRemoveFromCart called', { product, quantity, configEnabled: config.enabled });
+    }
+    
     if (!config.enabled || !product) return;
 
     try {
@@ -368,6 +394,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         value: (product.price || 0) * quantity,
         currency: 'INR'
       };
+
+      if (config.debug) {
+        console.log('📤 Sending RemoveFromCart to Meta Pixel', cartItem);
+      }
 
       // Meta Pixel remove from cart
       if (metaPixel?.isLoaded()) {
@@ -452,6 +482,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
 
   // Track begin checkout
   const trackBeginCheckout = (cartItems: any[], coupon?: string) => {
+    if (config.debug) {
+      console.log('🏪 AnalyticsContext: trackBeginCheckout called', { cartItemsCount: cartItems.length, coupon, configEnabled: config.enabled });
+    }
+    
     if (!config.enabled || !cartItems.length) return;
 
     try {
@@ -531,6 +565,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
+        console.log('✅ Begin checkout tracking complete', { totalValue, itemCount: cartItems.length });
       }
     } catch (error) {
       console.error('Analytics: Begin checkout tracking failed:', error);
@@ -539,6 +574,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
 
   // Track add shipping info
   const trackAddShippingInfo = (cartItems: any[], shippingTier: string) => {
+    if (config.debug) {
+      console.log('🚚 AnalyticsContext: trackAddShippingInfo called', { cartItemsCount: cartItems.length, shippingTier, configEnabled: config.enabled });
+    }
+    
     if (!config.enabled || !cartItems.length) return;
 
     try {
@@ -573,6 +612,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
+        console.log('✅ Shipping info tracking complete', { totalValue, shippingTier });
       }
     } catch (error) {
       console.error('Analytics: Add shipping info tracking failed:', error);
@@ -581,6 +621,10 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
 
   // Track add payment info
   const trackAddPaymentInfo = (cartItems: any[], paymentType: string) => {
+    if (config.debug) {
+      console.log('💳 AnalyticsContext: trackAddPaymentInfo called', { cartItemsCount: cartItems.length, paymentType, configEnabled: config.enabled });
+    }
+    
     if (!config.enabled || !cartItems.length) return;
 
     try {
@@ -615,6 +659,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
       }
 
       if (config.debug) {
+        console.log('✅ Payment info tracking complete', { totalValue, paymentType });
       }
     } catch (error) {
       console.error('Analytics: Add payment info tracking failed:', error);

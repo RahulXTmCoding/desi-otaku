@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ShoppingCart, Plus, Minus, Trash2, ChevronRight, Loader2, Cloud, CloudOff, Gift, Package, TrendingUp, ExternalLink, ChevronDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
 import { useAOV } from '../context/AOVContext';
+import { useAnalytics } from '../context/AnalyticsContext';
 import { isAutheticated } from '../auth/helper';
 const API = import.meta.env.VITE_API_URL;
 import { getMockProductImage } from '../data/mockData';
@@ -20,11 +21,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
   const { isTestMode } = useDevMode();
   const { cart, loading, error, updateQuantity, removeFromCart, clearCart, getTotal, getItemCount } = useCart();
   const { quantityTiers } = useAOV();
+  const { trackRemoveFromCart, trackViewCart } = useAnalytics();
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
   
   const authData = isAutheticated();
   const isLoggedIn = !!(authData && authData.user);
+
+  // Track cart view when drawer opens with items
+  useEffect(() => {
+    if (isOpen && cart.length > 0 && !loading) {
+      trackViewCart(cart);
+    }
+  }, [isOpen, cart, loading, trackViewCart]);
 
   const getProductImage = (item: any) => {
     if (isTestMode) {
@@ -106,8 +115,17 @@ const CartDrawer: React.FC<CartDrawerProps> = ({ isOpen, onClose }) => {
 
   const handleRemoveItem = async (itemId: string) => {
     setIsRemoving(itemId);
+    
+    // Find the item being removed for analytics
+    const itemToRemove = cart.find(item => item._id === itemId);
+    
     try {
       await removeFromCart(itemId);
+      
+      // Track remove from cart for analytics
+      if (itemToRemove) {
+        trackRemoveFromCart(itemToRemove, itemToRemove.quantity);
+      }
     } catch (error) {
       console.error('Failed to remove item:', error);
     } finally {

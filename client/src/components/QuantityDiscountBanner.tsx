@@ -12,6 +12,13 @@ const QuantityDiscountBanner: React.FC<QuantityDiscountBannerProps> = ({
 }) => {
   const { getItemCount, getTotal } = useCart();
   const { quantityTiers } = useAOV();
+  
+  // Safe check for quantityTiers
+  if (!quantityTiers) {
+    console.warn('QuantityDiscountBanner: quantityTiers is undefined');
+    return null;
+  }
+  
   const itemCount = getItemCount();
   const currentTotal = getTotal();
   
@@ -20,7 +27,7 @@ const QuantityDiscountBanner: React.FC<QuantityDiscountBannerProps> = ({
   
   // Calculate discount info based on total quantity (cart + current product)
   const getDiscountInfo = () => {
-    if (!quantityTiers.length) {
+    if (!quantityTiers || !quantityTiers.length) {
       return { 
         discount: 0, 
         percentage: 0, 

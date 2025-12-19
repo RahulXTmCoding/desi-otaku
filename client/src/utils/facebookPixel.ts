@@ -39,7 +39,8 @@ class MetaPixel {
     ) {
       if (this.isDebugEnabled()) {
         console.log(
-          "Meta Pixel: Skipping init - already initialized or invalid pixel ID"
+          "Meta Pixel: Skipping init - already initialized or invalid pixel ID",
+          { isInitialized: this.isInitialized, pixelId: this.pixelId }
         );
       }
       return;
@@ -50,11 +51,11 @@ class MetaPixel {
       if (window.fbq) {
         // Pixel script is already loaded, just mark as initialized
         this.isInitialized = true;
-        if (this.isDebugEnabled()) {
-          console.log(
-            "Meta Pixel: Already loaded via HTML, skipping script injection"
-          );
-        }
+        console.log("✅ Meta Pixel: Already loaded via HTML, wrapper ready", {
+          pixelId: this.pixelId,
+          fbqExists: true,
+          isInitialized: this.isInitialized,
+        });
         return;
       }
 
@@ -91,9 +92,11 @@ class MetaPixel {
 
       this.isInitialized = true;
 
-      if (this.isDebugEnabled()) {
-        console.log("Meta Pixel: Initialized successfully");
-      }
+      console.log("✅ Meta Pixel: Initialized successfully", {
+        pixelId: this.pixelId,
+        isInitialized: this.isInitialized,
+        fbqExists: !!window.fbq,
+      });
     } catch (error) {
       console.error("Meta Pixel: Initialization failed:", error);
     }
@@ -107,6 +110,7 @@ class MetaPixel {
       window.fbq("track", "PageView");
 
       if (this.debug) {
+        console.log("Meta Pixel: PageView tracked");
       }
     } catch (error) {
       console.error("Meta Pixel: PageView tracking failed:", error);
@@ -115,12 +119,20 @@ class MetaPixel {
 
   // Track product view
   trackViewContent(data: MetaPixelEvents["ViewContent"]): void {
+    if (this.isDebugEnabled()) {
+      console.log("👁️ Meta Pixel: trackViewContent called", data);
+    }
+
     if (!this.isReady()) return;
 
     try {
       window.fbq("track", "ViewContent", data);
 
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
+        console.log("✅ Meta Pixel: ViewContent sent successfully", {
+          content_id: data.content_ids?.[0],
+          value: data.value,
+        });
       }
     } catch (error) {
       console.error("Meta Pixel: ViewContent tracking failed:", error);
@@ -132,11 +144,22 @@ class MetaPixel {
     data: MetaPixelEvents["AddToCart"],
     attributionData?: any
   ): void {
+    if (this.isDebugEnabled()) {
+      console.log("🛒 Meta Pixel: trackAddToCart called", {
+        data,
+        attributionData,
+      });
+    }
+
     if (!this.isReady()) return;
 
     try {
       // Generate unique event ID for deduplication
       const eventID = generateEventID();
+
+      if (this.isDebugEnabled()) {
+        console.log("🔑 Generated eventID:", eventID);
+      }
 
       // Enhance with attribution context
       const enhancedData = {
@@ -159,9 +182,12 @@ class MetaPixel {
       window.fbq("track", "AddToCart", enhancedData);
 
       if (this.isDebugEnabled()) {
-        console.log("Meta Pixel: AddToCart tracked with attribution", {
+        console.log("✅ Meta Pixel: AddToCart sent to Facebook", {
           eventID,
+          content_ids: data.content_ids,
           value: data.value,
+          currency: data.currency,
+          enhancedData,
           attribution: attributionData,
         });
       }
@@ -172,12 +198,35 @@ class MetaPixel {
 
   // Track remove from cart
   trackRemoveFromCart(data: MetaPixelEvents["RemoveFromCart"]): void {
+    if (this.isDebugEnabled()) {
+      console.log("🗑️ Meta Pixel: trackRemoveFromCart called", data);
+    }
+
     if (!this.isReady()) return;
 
     try {
-      window.fbq("track", "RemoveFromCart", data);
+      // Generate unique event ID for deduplication
+      const eventID = generateEventID();
 
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
+        console.log("🔑 Generated eventID:", eventID);
+      }
+
+      const enhancedData = {
+        ...data,
+        eventID: eventID,
+      };
+
+      window.fbq("track", "RemoveFromCart", enhancedData);
+
+      if (this.isDebugEnabled()) {
+        console.log("✅ Meta Pixel: RemoveFromCart sent to Facebook", {
+          eventID,
+          content_ids: data.content_ids,
+          value: data.value,
+          currency: data.currency,
+          enhancedData,
+        });
       }
     } catch (error) {
       console.error("Meta Pixel: RemoveFromCart tracking failed:", error);
@@ -189,11 +238,22 @@ class MetaPixel {
     data: MetaPixelEvents["InitiateCheckout"],
     attributionData?: any
   ): void {
+    if (this.isDebugEnabled()) {
+      console.log("💳 Meta Pixel: trackInitiateCheckout called", {
+        data,
+        attributionData,
+      });
+    }
+
     if (!this.isReady()) return;
 
     try {
       // Generate unique event ID for deduplication
       const eventID = generateEventID();
+
+      if (this.isDebugEnabled()) {
+        console.log("🔑 Generated eventID:", eventID);
+      }
 
       // Enhance with attribution context
       const enhancedData = {
@@ -216,9 +276,13 @@ class MetaPixel {
       window.fbq("track", "InitiateCheckout", enhancedData);
 
       if (this.isDebugEnabled()) {
-        console.log("Meta Pixel: InitiateCheckout tracked with attribution", {
+        console.log("✅ Meta Pixel: InitiateCheckout sent to Facebook", {
           eventID,
+          content_ids: data.content_ids,
           value: data.value,
+          currency: data.currency,
+          num_items: data.num_items,
+          enhancedData,
           attribution: attributionData,
         });
       }
@@ -232,11 +296,22 @@ class MetaPixel {
     data: MetaPixelEvents["Purchase"],
     attributionData?: any
   ): void {
+    if (this.isDebugEnabled()) {
+      console.log("💰 Meta Pixel: trackPurchase called", {
+        data,
+        attributionData,
+      });
+    }
+
     if (!this.isReady()) return;
 
     try {
       // Generate unique event ID for server-side deduplication
       const eventID = generateEventID();
+
+      if (this.isDebugEnabled()) {
+        console.log("🔑 Generated eventID:", eventID);
+      }
 
       // Enhance purchase data with attribution context
       const enhancedData = {
@@ -263,10 +338,14 @@ class MetaPixel {
       window.fbq("track", "Purchase", enhancedData);
 
       if (this.isDebugEnabled()) {
-        console.log("Meta Pixel: Purchase tracked with attribution", {
+        console.log("✅ Meta Pixel: Purchase sent to Facebook", {
           eventID,
-          value: data.value,
           transaction_id: data.transaction_id,
+          value: data.value,
+          currency: data.currency,
+          content_ids: data.content_ids,
+          num_items: data.contents?.length,
+          enhancedData,
           attribution: attributionData,
         });
       }
@@ -285,6 +364,7 @@ class MetaPixel {
       window.fbq("track", "CompleteRegistration", data);
 
       if (this.debug) {
+        console.log("Meta Pixel: CompleteRegistration tracked", data);
       }
     } catch (error) {
       console.error("Meta Pixel: CompleteRegistration tracking failed:", error);
@@ -299,6 +379,7 @@ class MetaPixel {
       window.fbq("track", "Search", data);
 
       if (this.debug) {
+        console.log("Meta Pixel: Search tracked", data);
       }
     } catch (error) {
       console.error("Meta Pixel: Search tracking failed:", error);
@@ -313,6 +394,7 @@ class MetaPixel {
       window.fbq("track", "Contact", data);
 
       if (this.debug) {
+        console.log("Meta Pixel: Contact tracked", data);
       }
     } catch (error) {
       console.error("Meta Pixel: Contact tracking failed:", error);
@@ -327,6 +409,7 @@ class MetaPixel {
       window.fbq("trackCustom", "CustomizeProduct", data);
 
       if (this.debug) {
+        console.log("Meta Pixel: CustomizeProduct tracked", data);
       }
     } catch (error) {
       console.error("Meta Pixel: CustomizeProduct tracking failed:", error);
@@ -340,6 +423,7 @@ class MetaPixel {
       window.fbq("trackCustom", "StartDesignTool", data);
 
       if (this.debug) {
+        console.log("Meta Pixel: StartDesignTool tracked", data);
       }
     } catch (error) {
       console.error("Meta Pixel: StartDesignTool tracking failed:", error);
@@ -353,6 +437,7 @@ class MetaPixel {
       window.fbq("trackCustom", "SaveDesign", data);
 
       if (this.debug) {
+        console.log("Meta Pixel: SaveDesign tracked", data);
       }
     } catch (error) {
       console.error("Meta Pixel: SaveDesign tracking failed:", error);
@@ -485,24 +570,41 @@ class MetaPixel {
   private isReady(): boolean {
     if (!this.isInitialized) {
       if (this.isDebugEnabled()) {
-        console.warn("Meta Pixel: Not initialized");
+        console.warn("⚠️ Meta Pixel: Not initialized", {
+          isInitialized: this.isInitialized,
+          pixelId: this.pixelId,
+        });
       }
       return false;
     }
 
     if (!window.fbq) {
       if (this.isDebugEnabled()) {
-        console.warn("Meta Pixel: fbq function not available");
+        console.warn("⚠️ Meta Pixel: fbq function not available", {
+          windowFbq: typeof window.fbq,
+          isInitialized: this.isInitialized,
+        });
       }
       return false;
     }
 
+    if (this.isDebugEnabled()) {
+      console.log("✅ Meta Pixel: Ready to track");
+    }
     return true;
   }
 
   // Utility method to check if pixel is loaded
   isLoaded(): boolean {
-    return this.isInitialized && !!window.fbq;
+    const loaded = this.isInitialized && !!window.fbq;
+    if (this.isDebugEnabled() && !loaded) {
+      console.log("⚠️ Meta Pixel NOT loaded", {
+        isInitialized: this.isInitialized,
+        fbqExists: !!window.fbq,
+        pixelId: this.pixelId,
+      });
+    }
+    return loaded;
   }
 
   // Get pixel ID
