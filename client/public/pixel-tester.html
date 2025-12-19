@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meta Pixel Event Tester</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1877f2;
+      margin-bottom: 10px;
+    }
+    .status {
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+    .status.warning {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    button {
+      background: #1877f2;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      margin: 5px;
+    }
+    button:hover {
+      background: #166fe5;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .event-log {
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 5px;
+      padding: 15px;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+    }
+    .event-item {
+      padding: 8px;
+      margin: 5px 0;
+      background: white;
+      border-left: 3px solid #1877f2;
+      border-radius: 3px;
+    }
+    .event-time {
+      color: #666;
+      font-size: 12px;
+    }
+    .event-name {
+      font-weight: bold;
+      color: #1877f2;
+    }
+    .pixel-info {
+      background: #e7f3ff;
+      padding: 15px;
+      border-radius: 5px;
+      margin: 20px 0;
+    }
+    .pixel-info code {
+      background: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+    .checklist {
+      list-style: none;
+      padding: 0;
+    }
+    .checklist li {
+      padding: 8px;
+      margin: 5px 0;
+      background: #f8f9fa;
+      border-radius: 3px;
+    }
+    .checklist li:before {
+      content: "☐ ";
+      font-size: 20px;
+      margin-right: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Meta Pixel Event Tester</h1>
+    <p>Test your Meta Pixel events and verify they're being sent correctly.</p>
+
+    <div id="pixelStatus" class="status warning">
+      ⏳ Checking pixel status...
+    </div>
+
+    <div class="pixel-info">
+      <strong>Your Pixel ID:</strong> <code id="pixelId">Loading...</code><br>
+      <strong>Pixel Version:</strong> <code id="pixelVersion">Loading...</code><br>
+      <strong>Pixel Loaded:</strong> <code id="pixelLoaded">Loading...</code>
+    </div>
+
+    <h2>Test Standard Events</h2>
+    <button onclick="testPageView()">Test PageView</button>
+    <button onclick="testViewContent()">Test ViewContent</button>
+    <button onclick="testAddToCart()">Test AddToCart</button>
+    <button onclick="testInitiateCheckout()">Test InitiateCheckout</button>
+    <button onclick="testPurchase()">Test Purchase ⭐</button>
+
+    <h2>Test Other Events</h2>
+    <button onclick="testSearch()">Test Search</button>
+    <button onclick="testAddToWishlist()">Test AddToWishlist</button>
+    <button onclick="testLead()">Test Lead</button>
+    <button onclick="testCompleteRegistration()">Test CompleteRegistration</button>
+
+    <h2>Event Log</h2>
+    <button onclick="clearLog()" style="background: #dc3545;">Clear Log</button>
+    <div id="eventLog" class="event-log">
+      <p style="color: #999;">Events will appear here...</p>
+    </div>
+
+    <h2>Verification Checklist</h2>
+    <ul class="checklist">
+      <li>Check Test Events tab in Meta Events Manager (should show events within 30 seconds)</li>
+      <li>Install Meta Pixel Helper Chrome extension and verify events</li>
+      <li>Check browser Network tab for requests to facebook.com/tr</li>
+      <li>Disable ad blockers and browser tracking protection</li>
+      <li>Wait 20 minutes to 24 hours for events to appear in main dashboard</li>
+      <li>Verify Domain is verified in Business Settings</li>
+      <li>Check Aggregated Event Measurement (AEM) is configured</li>
+      <li>Ensure Pixel status is "Active" in Events Manager</li>
+    </ul>
+
+    <h2>🔍 Quick Diagnostics</h2>
+    <button onclick="runDiagnostics()">Run Full Diagnostics</button>
+  </div>
+
+  <script>
+    // Event log array
+    let events = [];
+
+    // Check pixel status on load
+    window.addEventListener('load', checkPixelStatus);
+
+    function checkPixelStatus() {
+      const statusDiv = document.getElementById('pixelStatus');
+      const pixelIdEl = document.getElementById('pixelId');
+      const pixelVersionEl = document.getElementById('pixelVersion');
+      const pixelLoadedEl = document.getElementById('pixelLoaded');
+
+      if (typeof fbq === 'undefined') {
+        statusDiv.className = 'status error';
+        statusDiv.innerHTML = '❌ <strong>ERROR:</strong> Meta Pixel is not loaded! Check console for errors.';
+        pixelIdEl.textContent = 'N/A';
+        pixelVersionEl.textContent = 'N/A';
+        pixelLoadedEl.textContent = 'false';
+        return;
+      }
+
+      // Try to extract pixel ID from page scripts
+      const scripts = Array.from(document.scripts);
+      const initScript = scripts.find(s => s.innerHTML.includes("fbq('init'"));
+      let pixelId = 'Unknown';
+      if (initScript) {
+        const match = initScript.innerHTML.match(/fbq\('init',\s*['"](\d+)['"]/);
+        if (match) pixelId = match[1];
+      }
+
+      statusDiv.className = 'status success';
+      statusDiv.innerHTML = '✅ <strong>SUCCESS:</strong> Meta Pixel is loaded and ready!';
+      pixelIdEl.textContent = pixelId;
+      pixelVersionEl.textContent = fbq.version || '2.0';
+      pixelLoadedEl.textContent = fbq.loaded ? 'true' : 'false';
+
+      // Intercept fbq calls for logging
+      interceptFbq();
+    }
+
+    function interceptFbq() {
+      const originalFbq = window.fbq;
+      window.fbq = function() {
+        const args = Array.from(arguments);
+        logEvent(args);
+        return originalFbq.apply(this, arguments);
+      };
+      Object.keys(originalFbq).forEach(key => {
+        window.fbq[key] = originalFbq[key];
+      });
+    }
+
+    function logEvent(args) {
+      const timestamp = new Date().toLocaleTimeString();
+      const eventType = args[0];
+      const eventName = args[1];
+      const eventData = args[2] || {};
+
+      const event = {
+        timestamp,
+        type: eventType,
+        name: eventName,
+        data: eventData
+      };
+
+      events.push(event);
+
+      const logDiv = document.getElementById('eventLog');
+      const eventItem = document.createElement('div');
+      eventItem.className = 'event-item';
+      eventItem.innerHTML = `
+        <div class="event-time">${timestamp}</div>
+        <div class="event-name">${eventType}: ${eventName}</div>
+        <div style="font-size: 12px; color: #666;">${JSON.stringify(eventData, null, 2)}</div>
+      `;
+      logDiv.insertBefore(eventItem, logDiv.firstChild);
+
+      console.log('📤 Pixel Event:', event);
+    }
+
+    function testPageView() {
+      fbq('track', 'PageView');
+      alert('✅ PageView event sent! Check the event log and Meta Pixel Helper.');
+    }
+
+    function testViewContent() {
+      fbq('track', 'ViewContent', {
+        content_ids: ['test_product_123'],
+        content_type: 'product',
+        content_name: 'Test T-Shirt',
+        value: 499,
+        currency: 'INR'
+      });
+      alert('✅ ViewContent event sent! Check the event log and Meta Pixel Helper.');
+    }
+
+    function testAddToCart() {
+      fbq('track', 'AddToCart', {
+        content_ids: ['test_product_456'],
+        content_type: 'product',
+        content_name: 'Test Custom T-Shirt',
+        value: 599,
+        currency: 'INR',
+        quantity: 1
+      });
+      alert('✅ AddToCart event sent! Check Test Events tab in Events Manager.');
+    }
+
+    function testInitiateCheckout() {
+      fbq('track', 'InitiateCheckout', {
+        content_ids: ['test_product_789'],
+        content_type: 'product',
+        value: 1299,
+        currency: 'INR',
+        num_items: 2
+      });
+      alert('✅ InitiateCheckout event sent! This should appear in Test Events.');
+    }
+
+    function testPurchase() {
+      const orderId = 'test_order_' + Date.now();
+      fbq('track', 'Purchase', {
+        content_ids: ['test_product_111', 'test_product_222'],
+        content_type: 'product',
+        value: 1499,
+        currency: 'INR',
+        transaction_id: orderId,
+        num_items: 2
+      });
+      alert(`✅ Purchase event sent!\n\nOrder ID: ${orderId}\n\nCheck:\n1. Test Events (should appear in 30 seconds)\n2. Main dashboard (wait 20 mins - 24 hours)`);
+    }
+
+    function testSearch() {
+      fbq('track', 'Search', {
+        search_string: 'anime t-shirts',
+        content_category: 'apparel'
+      });
+      alert('✅ Search event sent!');
+    }
+
+    function testAddToWishlist() {
+      fbq('track', 'AddToWishlist', {
+        content_ids: ['test_product_333'],
+        content_type: 'product',
+        value: 799,
+        currency: 'INR'
+      });
+      alert('✅ AddToWishlist event sent!');
+    }
+
+    function testLead() {
+      fbq('track', 'Lead', {
+        content_name: 'Newsletter Signup',
+        value: 0,
+        currency: 'INR'
+      });
+      alert('✅ Lead event sent!');
+    }
+
+    function testCompleteRegistration() {
+      fbq('track', 'CompleteRegistration', {
+        content_name: 'Test Registration',
+        status: 'completed'
+      });
+      alert('✅ CompleteRegistration event sent!');
+    }
+
+    function clearLog() {
+      document.getElementById('eventLog').innerHTML = '<p style="color: #999;">Events will appear here...</p>';
+      events = [];
+    }
+
+    function runDiagnostics() {
+      console.log('=== META PIXEL DIAGNOSTICS ===\n');
+      
+      console.log('Pixel Status:', typeof fbq !== 'undefined' ? '✅ Loaded' : '❌ Not Loaded');
+      
+      if (typeof fbq !== 'undefined') {
+        console.log('Pixel Version:', fbq.version);
+        console.log('Pixel Loaded:', fbq.loaded);
+        console.log('Queue Length:', fbq.queue?.length || 0);
+      }
+
+      console.log('\nEvents Logged:', events.length);
+      console.table(events);
+
+      console.log('\nNetwork Check:');
+      console.log('Check Network tab for requests to: www.facebook.com/tr');
+      console.log('Status should be: 200 OK');
+
+      console.log('\nBrowser Extensions:');
+      console.log('- Install Meta Pixel Helper: https://chrome.google.com/webstore/detail/meta-pixel-helper');
+      console.log('- Disable ad blockers for testing');
+
+      console.log('\n=== END DIAGNOSTICS ===');
+      
+      alert('Diagnostics complete! Check browser console for details.');
+    }
+  </script>
+</body>
+</html>

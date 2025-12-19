@@ -97,6 +97,21 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     testMode: import.meta.env.DEV
   };
 
+  // Log analytics config on load
+  console.log('📊 Analytics Config:', {
+    enabled: config.enabled,
+    debug: config.debug,
+    metaPixelId: config.metaPixelId,
+    ga4MeasurementId: config.ga4MeasurementId,
+    envVar: import.meta.env.VITE_ANALYTICS_ENABLED
+  });
+
+  // Expose config to window for debugging (only in dev/debug mode)
+  if (config.debug) {
+    (window as any).analyticsConfig = config;
+    console.log('💡 Tip: Run window.analyticsConfig in console to check config anytime');
+  }
+
   // Initialize analytics on mount
   useEffect(() => {
     if (!config.enabled) {
