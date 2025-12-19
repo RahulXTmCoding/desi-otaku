@@ -94,7 +94,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     // Enable analytics by default if env var is not set (for production deployments)
     enabled: import.meta.env.VITE_ANALYTICS_ENABLED !== 'false',
     // Enable debug by default (disable by setting VITE_ANALYTICS_DEBUG=false)
-    debug: import.meta.env.VITE_ANALYTICS_DEBUG === 'true',
+    debug: import.meta.env.VITE_ANALYTICS_DEBUG !== 'false',
     testMode: import.meta.env.DEV
   };
 
