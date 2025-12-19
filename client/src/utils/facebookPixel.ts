@@ -23,12 +23,23 @@ class MetaPixel {
   init(): void {
     if (this.isInitialized || !this.pixelId || this.pixelId === 'your_meta_pixel_id_here') {
       if (this.debug) {
+        console.log('Meta Pixel: Skipping init - already initialized or invalid pixel ID');
       }
       return;
     }
 
     try {
-      // Facebook Pixel Code
+      // Check if fbq is already loaded via HTML script (e.g., in index.html)
+      if (window.fbq) {
+        // Pixel script is already loaded, just mark as initialized
+        this.isInitialized = true;
+        if (this.debug) {
+          console.log('Meta Pixel: Already loaded via HTML, skipping script injection');
+        }
+        return;
+      }
+
+      // Facebook Pixel Code - only load if not already present
       (function(f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any) {
         if (f.fbq) return;
         n = f.fbq = function() {
@@ -55,6 +66,7 @@ class MetaPixel {
       this.isInitialized = true;
 
       if (this.debug) {
+        console.log('Meta Pixel: Initialized successfully');
       }
     } catch (error) {
       console.error('Meta Pixel: Initialization failed:', error);

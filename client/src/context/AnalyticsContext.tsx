@@ -91,7 +91,8 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     googleAdsConversionId: import.meta.env.VITE_GOOGLE_ADS_CONVERSION_ID,
     googleAdsPurchaseLabel: import.meta.env.VITE_GOOGLE_ADS_PURCHASE_LABEL,
     googleAdsSignupLabel: import.meta.env.VITE_GOOGLE_ADS_SIGNUP_LABEL,
-    enabled: import.meta.env.VITE_ANALYTICS_ENABLED === 'true',
+    // Enable analytics by default if env var is not set (for production deployments)
+    enabled: import.meta.env.VITE_ANALYTICS_ENABLED !== 'false',
     debug: import.meta.env.VITE_ANALYTICS_DEBUG === 'true' || import.meta.env.DEV,
     testMode: import.meta.env.DEV
   };
@@ -580,11 +581,26 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
 
   // Track purchase
   const trackPurchase = (order: any) => {
-    if (!config.enabled || !order) return;
+    console.log('🛒 trackPurchase called with order:', order);
+    
+    if (!config.enabled) {
+      console.warn('⚠️ Analytics disabled - Purchase not tracked');
+      return;
+    }
+    
+    if (!order) {
+      console.warn('⚠️ No order data - Purchase not tracked');
+      return;
+    }
 
     try {
       const metaPixel = getMetaPixel();
       const ga4 = getGA4();
+
+      console.log('📊 Pixel/GA4 Status:', {
+        metaPixelLoaded: metaPixel?.isLoaded(),
+        ga4Loaded: ga4?.isLoaded()
+      });
 
       const products = (order.products || []).map((product: any) => ({
         content_id: product._id || product.id || '',
@@ -613,9 +629,14 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         reward_points_used: order.rewardPointsRedeemed || 0
       };
 
+      console.log('💰 Purchase Data:', purchaseData);
+
       // Meta Pixel purchase
       if (metaPixel?.isLoaded()) {
+        console.log('📤 Sending Purchase to Meta Pixel');
         metaPixel.trackPurchase(purchaseData);
+      } else {
+        console.warn('⚠️ Meta Pixel not loaded - Purchase not sent to Meta');
       }
 
       // GA4 purchase
@@ -631,6 +652,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
           affiliation: 'Attars Fashion'
         }));
 
+        console.log('📤 Sending Purchase to GA4');
         ga4.trackPurchase({
           transaction_id: purchaseData.transaction_id,
           value: purchaseData.value,
@@ -641,10 +663,13 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
           coupon: purchaseData.coupon,
           affiliation: 'Attars Fashion'
         });
+      } else {
+        console.warn('⚠️ GA4 not loaded - Purchase not sent to GA4');
       }
 
       // Google Ads purchase conversion
       if (ga4?.isLoaded() && config.googleAdsConversionId && config.googleAdsPurchaseLabel) {
+        console.log('📤 Sending Purchase to Google Ads');
         const conversionData = generateGoogleAdsConversionData(
           config.googleAdsConversionId,
           config.googleAdsPurchaseLabel,
@@ -655,10 +680,13 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         ga4.trackGoogleAdsConversion('purchase', conversionData);
       }
 
+      console.log('✅ Purchase tracking complete');
+
       if (config.debug) {
+        console.log('🐛 Debug mode - Purchase data:', purchaseData);
       }
     } catch (error) {
-      console.error('Analytics: Purchase tracking failed:', error);
+      console.error('❌ Analytics: Purchase tracking failed:', error);
     }
   };
 
