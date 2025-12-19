@@ -288,6 +288,20 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         currency: 'INR'
       };
 
+      // Get attribution data for tracking
+      const attributionManager = getAttributionManager();
+      const attribution = attributionManager?.getCurrentAttribution();
+      
+      const attributionContext = attribution ? {
+        external_id: '',  // Set from user context if available
+        utm_campaign: attribution.utm_campaign,
+        utm_source: attribution.utm_source,
+        utm_medium: attribution.utm_medium,
+        fbclid: attribution.fbclid,
+        traffic_type: attribution.traffic_type,
+        ad_platform: attribution.ad_platform
+      } : undefined;
+
       // Meta Pixel add to cart
       if (metaPixel?.isLoaded()) {
         metaPixel.trackAddToCart({
@@ -296,7 +310,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
           content_type: 'product',
           value: cartItem.value,
           currency: cartItem.currency
-        });
+        }, attributionContext);
       }
 
       // GA4 add to cart
@@ -455,6 +469,20 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
         currency: 'INR'
       }));
 
+      // Get attribution data for tracking
+      const attributionManager = getAttributionManager();
+      const attribution = attributionManager?.getCurrentAttribution();
+      
+      const attributionContext = attribution ? {
+        external_id: '',  // Set from user context if available
+        utm_campaign: attribution.utm_campaign,
+        utm_source: attribution.utm_source,
+        utm_medium: attribution.utm_medium,
+        fbclid: attribution.fbclid,
+        traffic_type: attribution.traffic_type,
+        ad_platform: attribution.ad_platform
+      } : undefined;
+
       // Meta Pixel initiate checkout
       if (metaPixel?.isLoaded()) {
         metaPixel.trackInitiateCheckout({
@@ -464,7 +492,7 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
           value: totalValue,
           currency: 'INR',
           num_items: cartItems.length
-        });
+        }, attributionContext);
       }
 
       // GA4 begin checkout
@@ -644,10 +672,25 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
 
       console.log('💰 Purchase Data:', purchaseData);
 
+      // Get attribution data for conversion tracking
+      const attributionManager = getAttributionManager();
+      const attribution = attributionManager?.getCurrentAttribution();
+      
+      // Prepare attribution context for Meta Pixel
+      const attributionContext = attribution ? {
+        external_id: order.user?._id || order.user?.id || order.email || '',
+        utm_campaign: attribution.utm_campaign,
+        utm_source: attribution.utm_source,
+        utm_medium: attribution.utm_medium,
+        fbclid: attribution.fbclid,
+        traffic_type: attribution.traffic_type,
+        ad_platform: attribution.ad_platform
+      } : undefined;
+
       // Meta Pixel purchase
       if (metaPixel?.isLoaded()) {
-        console.log('📤 Sending Purchase to Meta Pixel');
-        metaPixel.trackPurchase(purchaseData);
+        console.log('📤 Sending Purchase to Meta Pixel with attribution:', attributionContext);
+        metaPixel.trackPurchase(purchaseData, attributionContext);
       } else {
         console.warn('⚠️ Meta Pixel not loaded - Purchase not sent to Meta');
       }

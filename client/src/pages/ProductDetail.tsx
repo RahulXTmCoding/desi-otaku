@@ -497,6 +497,10 @@ const ProductDetail: React.FC = () => {
       return;
     }
     
+    // Track as AddToCart since user is committing to purchase
+    // This ensures Meta Pixel sees the full conversion funnel even for Buy Now
+    trackAddToCart(product, quantity);
+    
     const buyNowItem = {
       _id: `buy-now-${Date.now()}`,
       product: product._id,
