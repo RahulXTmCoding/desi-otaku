@@ -93,7 +93,8 @@ export const AnalyticsProvider: React.FC<AnalyticsProviderProps> = ({ children }
     googleAdsSignupLabel: import.meta.env.VITE_GOOGLE_ADS_SIGNUP_LABEL,
     // Enable analytics by default if env var is not set (for production deployments)
     enabled: import.meta.env.VITE_ANALYTICS_ENABLED !== 'false',
-    debug: import.meta.env.VITE_ANALYTICS_DEBUG !== 'false' || import.meta.env.DEV,
+    // Enable debug by default (disable by setting VITE_ANALYTICS_DEBUG=false)
+    debug: import.meta.env.VITE_ANALYTICS_DEBUG !== 'false',
     testMode: import.meta.env.DEV
   };
 

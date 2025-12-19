@@ -37,7 +37,7 @@ class MetaPixel {
       !this.pixelId ||
       this.pixelId === "your_meta_pixel_id_here"
     ) {
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
         console.log(
           "Meta Pixel: Skipping init - already initialized or invalid pixel ID"
         );
@@ -50,7 +50,7 @@ class MetaPixel {
       if (window.fbq) {
         // Pixel script is already loaded, just mark as initialized
         this.isInitialized = true;
-        if (this.debug) {
+        if (this.isDebugEnabled()) {
           console.log(
             "Meta Pixel: Already loaded via HTML, skipping script injection"
           );
@@ -91,7 +91,7 @@ class MetaPixel {
 
       this.isInitialized = true;
 
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
         console.log("Meta Pixel: Initialized successfully");
       }
     } catch (error) {
@@ -158,7 +158,7 @@ class MetaPixel {
 
       window.fbq("track", "AddToCart", enhancedData);
 
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
         console.log("Meta Pixel: AddToCart tracked with attribution", {
           eventID,
           value: data.value,
@@ -215,7 +215,7 @@ class MetaPixel {
 
       window.fbq("track", "InitiateCheckout", enhancedData);
 
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
         console.log("Meta Pixel: InitiateCheckout tracked with attribution", {
           eventID,
           value: data.value,
@@ -262,7 +262,7 @@ class MetaPixel {
       // Send Purchase event with enhanced data
       window.fbq("track", "Purchase", enhancedData);
 
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
         console.log("Meta Pixel: Purchase tracked with attribution", {
           eventID,
           value: data.value,
@@ -476,17 +476,22 @@ class MetaPixel {
     }
   }
 
+  // Check debug setting dynamically from global config
+  private isDebugEnabled(): boolean {
+    return this.debug || (window as any).analyticsConfig?.debug || false;
+  }
+
   // Check if pixel is ready
   private isReady(): boolean {
     if (!this.isInitialized) {
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
         console.warn("Meta Pixel: Not initialized");
       }
       return false;
     }
 
     if (!window.fbq) {
-      if (this.debug) {
+      if (this.isDebugEnabled()) {
         console.warn("Meta Pixel: fbq function not available");
       }
       return false;
@@ -600,5 +605,10 @@ export const initializeMetaPixel = (
 export const getMetaPixel = (): MetaPixel | null => {
   return metaPixelInstance;
 };
+
+// Expose to window for debugging
+if (typeof window !== "undefined") {
+  (window as any).getMetaPixel = getMetaPixel;
+}
 
 export default MetaPixel;
