@@ -128,30 +128,41 @@ class MetaPixel {
   }
 
   // Track add to cart
-  trackAddToCart(data: MetaPixelEvents["AddToCart"], attributionData?: any): void {
+  trackAddToCart(
+    data: MetaPixelEvents["AddToCart"],
+    attributionData?: any
+  ): void {
     if (!this.isReady()) return;
 
     try {
       // Generate unique event ID for deduplication
       const eventID = generateEventID();
-      
+
       // Enhance with attribution context
       const enhancedData = {
         ...data,
         eventID: eventID,
-        ...(attributionData?.external_id && { external_id: attributionData.external_id }),
-        ...(attributionData?.utm_campaign && { utm_campaign: attributionData.utm_campaign }),
-        ...(attributionData?.utm_source && { utm_source: attributionData.utm_source }),
-        ...(attributionData?.utm_medium && { utm_medium: attributionData.utm_medium })
+        ...(attributionData?.external_id && {
+          external_id: attributionData.external_id,
+        }),
+        ...(attributionData?.utm_campaign && {
+          utm_campaign: attributionData.utm_campaign,
+        }),
+        ...(attributionData?.utm_source && {
+          utm_source: attributionData.utm_source,
+        }),
+        ...(attributionData?.utm_medium && {
+          utm_medium: attributionData.utm_medium,
+        }),
       };
-      
+
       window.fbq("track", "AddToCart", enhancedData);
 
       if (this.debug) {
-        console.log('Meta Pixel: AddToCart tracked with attribution', { 
-          eventID, 
+        console.log("Meta Pixel: AddToCart tracked with attribution", {
+          eventID,
           value: data.value,
-          attribution: attributionData 
+          attribution: attributionData,
         });
       }
     } catch (error) {
@@ -174,30 +185,41 @@ class MetaPixel {
   }
 
   // Track checkout initiation
-  trackInitiateCheckout(data: MetaPixelEvents["InitiateCheckout"], attributionData?: any): void {
+  trackInitiateCheckout(
+    data: MetaPixelEvents["InitiateCheckout"],
+    attributionData?: any
+  ): void {
     if (!this.isReady()) return;
 
     try {
       // Generate unique event ID for deduplication
       const eventID = generateEventID();
-      
+
       // Enhance with attribution context
       const enhancedData = {
         ...data,
         eventID: eventID,
-        ...(attributionData?.external_id && { external_id: attributionData.external_id }),
-        ...(attributionData?.utm_campaign && { utm_campaign: attributionData.utm_campaign }),
-        ...(attributionData?.utm_source && { utm_source: attributionData.utm_source }),
-        ...(attributionData?.utm_medium && { utm_medium: attributionData.utm_medium })
+        ...(attributionData?.external_id && {
+          external_id: attributionData.external_id,
+        }),
+        ...(attributionData?.utm_campaign && {
+          utm_campaign: attributionData.utm_campaign,
+        }),
+        ...(attributionData?.utm_source && {
+          utm_source: attributionData.utm_source,
+        }),
+        ...(attributionData?.utm_medium && {
+          utm_medium: attributionData.utm_medium,
+        }),
       };
-      
+
       window.fbq("track", "InitiateCheckout", enhancedData);
 
       if (this.debug) {
-        console.log('Meta Pixel: InitiateCheckout tracked with attribution', { 
-          eventID, 
+        console.log("Meta Pixel: InitiateCheckout tracked with attribution", {
+          eventID,
           value: data.value,
-          attribution: attributionData 
+          attribution: attributionData,
         });
       }
     } catch (error) {
@@ -206,35 +228,46 @@ class MetaPixel {
   }
 
   // Track purchase
-  trackPurchase(data: MetaPixelEvents["Purchase"], attributionData?: any): void {
+  trackPurchase(
+    data: MetaPixelEvents["Purchase"],
+    attributionData?: any
+  ): void {
     if (!this.isReady()) return;
 
     try {
       // Generate unique event ID for server-side deduplication
       const eventID = generateEventID();
-      
+
       // Enhance purchase data with attribution context
       const enhancedData = {
         ...data,
         // Add event metadata
         eventID: eventID,
         // Add attribution data if available
-        ...(attributionData?.external_id && { external_id: attributionData.external_id }),
+        ...(attributionData?.external_id && {
+          external_id: attributionData.external_id,
+        }),
         // Include campaign data for reporting
-        ...(attributionData?.utm_campaign && { utm_campaign: attributionData.utm_campaign }),
-        ...(attributionData?.utm_source && { utm_source: attributionData.utm_source }),
-        ...(attributionData?.utm_medium && { utm_medium: attributionData.utm_medium })
+        ...(attributionData?.utm_campaign && {
+          utm_campaign: attributionData.utm_campaign,
+        }),
+        ...(attributionData?.utm_source && {
+          utm_source: attributionData.utm_source,
+        }),
+        ...(attributionData?.utm_medium && {
+          utm_medium: attributionData.utm_medium,
+        }),
       };
-      
+
       // Send Purchase event with enhanced data
       window.fbq("track", "Purchase", enhancedData);
 
       if (this.debug) {
-        console.log('Meta Pixel: Purchase tracked with attribution', {
+        console.log("Meta Pixel: Purchase tracked with attribution", {
           eventID,
           value: data.value,
           transaction_id: data.transaction_id,
-          attribution: attributionData
+          attribution: attributionData,
         });
       }
     } catch (error) {
