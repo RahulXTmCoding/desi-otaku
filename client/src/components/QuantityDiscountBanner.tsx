@@ -86,51 +86,9 @@ const QuantityDiscountBanner: React.FC<QuantityDiscountBannerProps> = ({
   if (itemCount === 0) return null;
   
   return (
-    <div className="rounded-lg overflow-hidden mb-4 border" style={{ borderColor: 'var(--color-border)' }}>
-      {percentage > 0 ? (
-        // User has active discount
-        <div 
-          className="p-4"
-          style={{ 
-            background: 'linear-gradient(135deg, #10b981, #059669)',
-            color: 'white'
-          }}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 rounded-full p-2">
-                <Gift className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="font-bold text-lg">🎉 {percentage}% OFF Applied!</p>
-                <p className="text-green-100 text-sm">
-                  You're saving ₹{discount.toLocaleString('en-IN')} on this order
-                </p>
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-green-100">Cart Value</p>
-              <p className="font-bold text-xl">₹{currentTotal.toLocaleString('en-IN')}</p>
-            </div>
-          </div>
-          
-          {/* Show next tier if available */}
-          {nextTier && (
-            <div className="mt-3 bg-white/10 rounded-lg p-3">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-sm">
-                  Add {nextTier.quantity - itemCount} more items for <strong>{nextTier.discount}% OFF</strong>
-                </span>
-              </div>
-              <p className="text-xs text-green-100 mt-1">
-                Potential additional savings: ₹{Math.round((currentTotal * (nextTier.discount - percentage)) / 100).toLocaleString('en-IN')}
-              </p>
-            </div>
-          )}
-        </div>
-      ) : nextTier ? (
-        // User can get discount by adding more items
+    <div className="rounded-lg overflow-hidden shadow-lg">
+      {nextTier && (
+        // User can get discount by adding more items - PROMINENT PURPLE BANNER
         <div 
           className="p-4"
           style={{ 
@@ -138,71 +96,82 @@ const QuantityDiscountBanner: React.FC<QuantityDiscountBannerProps> = ({
             color: 'white'
           }}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 rounded-full p-2">
-                <Package className="w-6 h-6" />
+          {/* Header with Icon and Main Message */}
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2">
+              <div className="bg-white/20 rounded-lg p-1.5">
+                <Package className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-bold text-lg">
-                  Add {nextTier.quantity - itemCount} more for {nextTier.discount}% OFF!
+                <p className="font-bold text-base leading-tight">
+                  Add {itemsNeededForNext} more for {nextTier.discount}% OFF!
                 </p>
               </div>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-purple-100">Current Cart</p>
-              <p className="font-bold text-xl">₹{currentTotal.toLocaleString('en-IN')}</p>
             </div>
           </div>
           
           {/* Progress bar towards next tier */}
-          <div className="mt-3">
-            <div className="flex justify-between text-sm text-purple-100 mb-1">
-              <span>{itemCount} items</span>
-              <span>{nextTier.quantity} items for {nextTier.discount}% off</span>
+          <div className="mb-3">
+            <div className="flex justify-between text-xs text-purple-100 mb-1.5">
+              <span className="font-medium">{itemCount} items</span>
+              <span className="font-medium">{nextTier.quantity} items for {nextTier.discount}% off</span>
             </div>
-            <div className="w-full bg-white/20 rounded-full h-2">
+            <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
               <div 
-                className="bg-white h-2 rounded-full transition-all duration-500" 
+                className="bg-white h-full rounded-full transition-all duration-500 shadow-lg" 
                 style={{ width: `${Math.min(100, (itemCount / nextTier.quantity) * 100)}%` }}
               />
             </div>
           </div>
           
           {/* CTA Section */}
-          <div className="mt-3 flex items-center justify-between bg-white/10 rounded-lg p-2">
-            <span className="text-sm font-medium">Keep shopping to unlock savings!</span>
-            <div className="flex items-center gap-1 text-yellow-300">
-              <Plus className="w-4 h-4" />
-              <span className="text-sm font-bold">{nextTier.quantity - itemCount} more</span>
-            </div>
-          </div>
+
         </div>
-      ) : (
-        // Fallback - show current cart value
+      )}
+      
+      {percentage > 0 && (
+        // User has active discount - GREEN SUCCESS BANNER
         <div 
           className="p-4"
           style={{ 
-            background: 'linear-gradient(135deg, #6b7280, #4b5563)',
+            background: 'linear-gradient(135deg, #10b981, #059669)',
             color: 'white'
           }}
         >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-white/20 rounded-full p-2">
-                <Package className="w-6 h-6" />
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <div className="bg-white/20 rounded-lg p-1.5">
+                <Gift className="w-5 h-5" />
               </div>
               <div>
-                <p className="font-bold text-lg">Your Cart</p>
-                <p className="text-gray-200 text-sm">
-                  {itemCount} {itemCount === 1 ? 'item' : 'items'} in cart
+                <p className="font-bold text-base">🎉 {percentage}% OFF Applied!</p>
+                <p className="text-green-100 text-xs">
+                  Saving ₹{discount.toLocaleString('en-IN')} on this order
                 </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="font-bold text-xl">₹{currentTotal.toLocaleString('en-IN')}</p>
+            <div className="text-right shrink-0">
+              <p className="text-xs text-green-100">Cart Value</p>
+              <p className="font-bold text-lg">₹{currentTotal.toLocaleString('en-IN')}</p>
             </div>
           </div>
+          
+          {/* Show next tier if available */}
+          {nextTier && (
+            <div className="bg-white/10 rounded-lg px-3 py-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="text-xs font-medium">
+                    Add {itemsNeededForNext} more for {nextTier.discount}% OFF
+                  </span>
+                </div>
+                <span className="text-xs text-green-100 font-bold">
+                  +₹{Math.round((currentTotal * (nextTier.discount - percentage)) / 100).toLocaleString('en-IN')} savings
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
