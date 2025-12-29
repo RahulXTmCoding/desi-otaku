@@ -83,6 +83,23 @@ const ProductDetail: React.FC = () => {
   const { addToCart, getItemCount } = useCart();
   const { trackProductView, trackAddToWishlist, trackAddToCart } = useAnalytics();
   
+  // Preload cart and checkout pages for better UX
+  useEffect(() => {
+    // Preload only once when component mounts
+    const preloadRoutes = () => {
+      // Dynamically import cart and checkout pages to cache them
+      import('./Cart').catch(() => {});
+      import('./CheckoutSinglePage').catch(() => {});
+    };
+    
+    // Use requestIdleCallback for better performance, fallback to setTimeout
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(preloadRoutes);
+    } else {
+      setTimeout(preloadRoutes, 500);
+    }
+  }, []); // Empty dependency array - run only once on mount
+  
   // React Query for product data
   const { 
     data: productData, 
