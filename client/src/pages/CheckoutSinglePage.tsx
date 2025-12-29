@@ -805,7 +805,7 @@ const CheckoutSinglePage: React.FC = () => {
             <div className="bg-gray-800 rounded-2xl p-4 md:p-6">
               <div className="flex items-center gap-2 mb-3 md:mb-4">
                 <CreditCard className="w-4 h-4 md:w-5 md:h-5 text-yellow-400" />
-                <h2 className="text-lg md:text-xl font-bold">Payment Information</h2>
+                <h2 className="text-lg md:text-xl font-bold">Select Payment Method</h2>
               </div>
               
               <PaymentSection
@@ -832,7 +832,7 @@ const CheckoutSinglePage: React.FC = () => {
             <div className="bg-gray-800 rounded-2xl p-4 lg:p-6">
               <div className="flex items-center gap-2 mb-3 lg:mb-4">
                 <ShoppingBag className="w-4 h-4 lg:w-5 lg:h-5 text-yellow-400" />
-                <h2 className="text-lg lg:text-xl font-bold">Complete Order Summary</h2>
+                <h2 className="text-lg lg:text-xl font-bold">Order Summary</h2>
                 <span className="ml-auto text-sm text-gray-400">{cart.length} items</span>
               </div>
               

@@ -39,50 +39,57 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
   setCodVerification,
   customerPhone
 }) => {
+  // Calculate savings for online payment
+  const onlineSavings = useMemo(() => {
+    // If online payment is currently selected, totalAmount already has 5% discount applied
+    // So we need to reverse calculate the original amount
+    if (paymentMethod === 'razorpay' || paymentMethod === 'card') {
+      const originalAmount = totalAmount / 0.95;
+      return Math.round(originalAmount - totalAmount);
+    }
+    // If COD or other payment method, totalAmount is before online discount
+    return Math.round(totalAmount * 0.05);
+  }, [totalAmount, paymentMethod]);
+
   const paymentMethods = useMemo(() => {
     const methods = [
       {
         id: 'razorpay',
-        name: 'Pay Online',
-        description: 'Cards, UPI, Wallets, NetBanking - All in one',
-        icon: <span className="text-sm">₹</span>,
+        name: 'Razorpay',
+        description: 'Cards, UPI, NetBanking',
+        icon: <CreditCard className="w-5 h-5" />,
         recommended: true,
-        discount: '5% discount',
-        disabled: false, // ✅ ENABLED - was previously disabled
-        comingSoon: false
+        discount: '5%',
+        savings: onlineSavings,
+        disabled: false,
+        comingSoon: false,
+        badge: '★ RECOMMENDED'
       }
-      // ,
-      // {
-      //   id: 'card',
-      //   name: 'International Cards',
-      //   description: 'Visa, Mastercard, Amex (via Braintree)',
-      //   icon: <CreditCard className="w-5 h-5" />,
-      //   recommended: false
-      // }
     ];
 
     if (showCOD) {
       methods.push({
         id: 'cod',
-        name: 'Cash on Delivery (COD)',
+        name: 'Cash on Delivery',
         description: 'Pay when your order is delivered',
         icon: <Smartphone className="w-5 h-5" />,
         recommended: false,
-        discount: undefined, // Make discount optional for COD
-        disabled: false, // ✅ COD is available
-        comingSoon: false
+        discount: undefined,
+        savings: undefined,
+        disabled: false,
+        comingSoon: false,
+        badge: undefined
       });
     }
 
     return methods;
-  }, [showCOD]);
+  }, [showCOD, onlineSavings]);
 
   return (
     <>
       
       {/* Payment Method Selection */}
       <div className="mb-4 lg:mb-6">
-        <h3 className="text-xs lg:text-sm font-medium text-gray-300 mb-2 lg:mb-3">Select Payment Method</h3>
         <div className="grid gap-2 lg:gap-3">
           {paymentMethods.map((method) => (
             <PaymentMethodOption
@@ -122,10 +129,12 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
 // Separate component for payment method options
 const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
   return (
-    <label className={`flex items-center p-3 lg:p-4 rounded-lg transition-all ${
+    <label className={`flex items-center p-3 lg:p-4 rounded-lg border transition-all cursor-pointer ${
       method.disabled 
-        ? 'bg-gray-800 cursor-not-allowed opacity-70' 
-        : `cursor-pointer ${isSelected ? 'bg-yellow-400/20 border border-yellow-400' : 'bg-gray-700 hover:bg-gray-600'}`
+        ? 'bg-gray-800 border-gray-700 opacity-70 cursor-not-allowed' 
+        : isSelected 
+        ? 'bg-yellow-400/20 border-yellow-400' 
+        : 'bg-gray-700 hover:bg-gray-600 border-gray-700'
     }`}>
       <input
         type="radio"
@@ -150,21 +159,14 @@ const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
         </div>
       </div>
       <div className="ml-auto flex items-center gap-1 lg:gap-2">
-        {method.comingSoon && (
-          <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-1 rounded">
-            <span className="hidden sm:inline">Coming </span>Soon
-          </span>
-        )}
-        {method.discount && !method.disabled && (
-          <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded">
-            <span className="hidden sm:inline">{method.discount}</span>
-            <span className="sm:hidden">5%</span>
-          </span>
-        )}
-        {method.recommended && !method.disabled && (
+        {method.badge && !method.disabled && (
           <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
-            <span className="hidden sm:inline">Recommended</span>
-            <span className="sm:hidden">★</span>
+            <span className="sm:inline">★</span>
+          </span>
+        )}
+        {method.discount && method.savings && !method.disabled && (
+          <span className="text-sm lg:text-base bg-green-600 text-white px-2.5 py-1 rounded font-bold">
+            {method.discount} Off • ₹{method.savings}
           </span>
         )}
       </div>
@@ -178,28 +180,14 @@ const PaymentForm = memo(({ paymentMethod, isTestMode, razorpayReady, paymentDat
     return (
       <div>
         {isTestMode ? (
-          <div className="bg-gray-700 rounded-lg p-6">
-            <p className="text-sm text-gray-300 mb-4">Test Mode: Razorpay payment will be simulated</p>
-            <div className="space-y-2">
-              <p className="text-sm">✅ All payment methods available</p>
-              <p className="text-sm">✅ UPI, Cards, Wallets, NetBanking</p>
-              <p className="text-sm">✅ No real payment will be processed</p>
-            </div>
+          <div className="bg-gray-700 rounded-lg p-4">
+            <p className="text-sm text-gray-300 mb-2 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-blue-400" />
+              Test Mode: Razorpay payment will be simulated
+            </p>
+            <p className="text-xs text-gray-400">✓ UPI, Cards, Wallets, NetBanking - No real payment</p>
           </div>
-        ) : (
-          <div className="bg-gray-700 rounded-lg p-6">
-            <div className="text-center">
-              <p className="text-sm text-gray-300 mb-2">Click "Place Order" to open Razorpay</p>
-              <p className="text-xs text-gray-400">You'll be redirected to secure Razorpay checkout</p>
-              <div className="mt-4 flex justify-center gap-3 text-xs flex-wrap">
-                <span className="flex items-center gap-1">✅ UPI</span>
-                <span className="flex items-center gap-1">✅ Cards</span>
-                <span className="flex items-center gap-1">✅ NetBanking</span>
-                <span className="flex items-center gap-1">✅ Wallets</span>
-              </div>
-            </div>
-          </div>
-        )}
+        ) : (<> </>)}
       </div>
     );
   }
@@ -545,6 +533,8 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
       otp: value.replace(/\D/g, '').slice(0, 6)
     });
   };
+
+  return <></>
 
   // Show different UI based on bypass status
   if (bypassStatus.bypassEnabled && bypassStatus.checked) {

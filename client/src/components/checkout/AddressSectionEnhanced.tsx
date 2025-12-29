@@ -12,6 +12,7 @@ import {
   validateCity, 
   validateState, 
   validatePinCode,
+  formatPinCode,
   cleanPhoneNumber 
 } from '../../utils/validation';
 
@@ -65,20 +66,29 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
 
   // Auto-fill city and state based on pincode
   const handlePincodeChange = async (value: string) => {
-    onInputChange('pinCode', value);
+    // Format pincode - only allow numbers, max 6 digits
+    const formatted = formatPinCode(value);
+    onInputChange('pinCode', formatted);
     
-    if (value.length === 6) {
+    // Auto-validate on change if field is touched
+    if (touched.pinCode && formatted) {
+      const error = validateField('pinCode', formatted);
+      setErrors(prev => ({ ...prev, pinCode: error }));
+    }
+    
+    // Auto-fill location when pincode is complete and valid
+    if (formatted.length === 6 && formatted[0] !== '0') {
       setPincodeLoading(true);
       
       // Try to get location from local data first
-      const localData = getLocationFromPincode(value);
+      const localData = getLocationFromPincode(formatted);
       if (localData) {
         onInputChange('city', localData.city);
         onInputChange('state', localData.state);
         setPincodeLoading(false);
       } else {
         // Try to guess state from pincode pattern
-        const guessedState = guessStateFromPincode(value);
+        const guessedState = guessStateFromPincode(formatted);
         if (guessedState) {
           onInputChange('state', guessedState);
         }
@@ -404,29 +414,34 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
             {/* PIN Code with Auto-fill */}
             <div>
               <label className="block text-xs lg:text-sm font-medium text-gray-300 mb-1 lg:mb-2">
-                PIN Code <span className="text-xs text-gray-400">(Auto-fills city & state)</span>
+                PIN Code
               </label>
               <div className="relative">
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={shippingInfo.pinCode}
-                  onChange={(e) => {
-                    handlePincodeChange(e.target.value);
-                    handleInputChange('pinCode', e.target.value);
-                  }}
+                  onChange={(e) => handlePincodeChange(e.target.value)}
                   onBlur={() => handleInputBlur('pinCode')}
                   className={`w-full px-3 py-2 lg:px-4 lg:py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all text-sm lg:text-base ${
                     errors.pinCode && touched.pinCode
                       ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : shippingInfo.pinCode.length === 6 && !errors.pinCode && touched.pinCode
+                      ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
                       : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
                   }`}
-                  placeholder="Enter PIN code"
+                  placeholder="e.g. 110001"
                   maxLength={6}
                   required
                 />
                 {pincodeLoading && (
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     <Loader className="w-3 h-3 lg:w-4 lg:h-4 animate-spin text-yellow-400" />
+                  </div>
+                )}
+                {!pincodeLoading && shippingInfo.pinCode.length === 6 && !errors.pinCode && touched.pinCode && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <CheckCircle className="w-4 h-4 text-green-500" />
                   </div>
                 )}
               </div>
