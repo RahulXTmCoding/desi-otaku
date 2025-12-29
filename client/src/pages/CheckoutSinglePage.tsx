@@ -1023,7 +1023,7 @@ const CheckoutSinglePage: React.FC = () => {
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5" />
-                    Complete Order • ₹{getFinalAmount()}
+                    Place Order • ₹{getFinalAmount()}
                   </>
                 )}
               </button>
