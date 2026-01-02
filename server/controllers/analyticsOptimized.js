@@ -105,8 +105,7 @@ async function getMetricsForPeriod(startDate, endDate) {
     {
       $match: {
         createdAt: { $gte: startDate, $lte: endDate },
-        paymentStatus: 'Paid',
-        status: { $ne: 'Cancelled' } // Explicitly exclude cancelled orders
+        status: 'Delivered'
       }
     },
     {
@@ -167,8 +166,7 @@ async function getRevenueChartData(period, startDate, endDate) {
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
-            paymentStatus: 'Paid',
-            status: { $ne: 'Cancelled' }
+            status: 'Delivered'
           }
         },
         {
@@ -195,8 +193,7 @@ async function getRevenueChartData(period, startDate, endDate) {
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
-            paymentStatus: 'Paid',
-            status: { $ne: 'Cancelled' }
+            status: 'Delivered'
           }
         },
         {
@@ -227,7 +224,7 @@ async function getRevenueChartData(period, startDate, endDate) {
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
-            paymentStatus: 'Paid'
+            status: 'Delivered'
           }
         },
         {
@@ -259,7 +256,7 @@ async function getRevenueChartData(period, startDate, endDate) {
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
-            paymentStatus: 'Paid'
+            status: 'Delivered'
           }
         },
         {
@@ -287,7 +284,7 @@ async function getRevenueChartData(period, startDate, endDate) {
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
-            paymentStatus: 'Paid'
+            status: 'Delivered'
           }
         },
         {
@@ -322,7 +319,7 @@ async function getRevenueChartData(period, startDate, endDate) {
           {
             $match: {
               createdAt: { $gte: startDate, $lte: endDate },
-              paymentStatus: 'Paid'
+              status: 'Delivered'
             }
           },
           {
@@ -352,7 +349,7 @@ async function getRevenueChartData(period, startDate, endDate) {
           {
             $match: {
               createdAt: { $gte: startDate, $lte: endDate },
-              paymentStatus: 'Paid'
+              status: 'Delivered'
             }
           },
           {
@@ -396,7 +393,7 @@ async function getRevenueChartData(period, startDate, endDate) {
         {
           $match: {
             createdAt: { $gte: startDate, $lte: endDate },
-            paymentStatus: 'Paid'
+            status: 'Delivered'
           }
         },
         {
@@ -446,7 +443,7 @@ async function getTopProductsAggregation(startDate, endDate) {
     {
       $match: {
         createdAt: { $gte: startDate, $lte: endDate },
-        paymentStatus: 'Paid'
+        status: 'Delivered'
       }
     },
     { $unwind: '$products' },
@@ -527,7 +524,7 @@ async function getCategoryBreakdownAggregation(startDate, endDate) {
     {
       $match: {
         createdAt: { $gte: startDate, $lte: endDate },
-        paymentStatus: 'Paid'
+        status: 'Delivered'
       }
     },
     { $unwind: '$products' },
@@ -618,7 +615,7 @@ async function getProductTypeBreakdownAggregation(startDate, endDate) {
     {
       $match: {
         createdAt: { $gte: startDate, $lte: endDate },
-        paymentStatus: 'Paid'
+        status: 'Delivered'
       }
     },
     { $unwind: '$products' },

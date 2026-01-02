@@ -15,7 +15,7 @@ exports.getAnalyticsDashboard = async (req, res) => {
     // Current period data
     const currentPeriodOrders = await Order.find({
       createdAt: { $gte: startDate, $lte: endDate },
-      paymentStatus: 'Paid'
+      status: 'Delivered'
     }).populate({
       path: 'products.product',
       populate: [
@@ -27,7 +27,7 @@ exports.getAnalyticsDashboard = async (req, res) => {
     // Previous period data for growth calculations
     const previousPeriodOrders = await Order.find({
       createdAt: { $gte: previousStartDate, $lte: previousEndDate },
-      paymentStatus: 'Paid'
+      status: 'Delivered'
     });
     
     // Calculate metrics

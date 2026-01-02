@@ -154,7 +154,7 @@ const OrderSchema = new Schema(
     status: {
       type: String,
       default: "Received",
-      enum: ["Cancelled", "Delivered", "Shipped", "Processing", "Received"], //this helps to restrict the options
+      enum: ["Cancelled", "Delivered", "Shipped", "Processing", "Received", "Customer Refused", "Customer Unavailable"], //this helps to restrict the options
     },
     // Add payment status for analytics
     paymentStatus: {

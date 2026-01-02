@@ -25,11 +25,17 @@ const Analytics: React.FC = () => {
 
   // State management
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('month');
+  const [dateRange, setDateRange] = useState(() => {
+    return localStorage.getItem('analytics-dateRange') || 'month';
+  });
   
   // Custom date range state
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    return localStorage.getItem('analytics-customStartDate') || '';
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => {
+    return localStorage.getItem('analytics-customEndDate') || '';
+  });
   const [salesOverview, setSalesOverview] = useState<SalesOverview>({
     totalRevenue: 0,
     totalOrders: 0,
@@ -47,6 +53,19 @@ const Analytics: React.FC = () => {
   const [topProducts, setTopProducts] = useState<ProductPerformance[]>([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState<any[]>([]);
   const [productTypeBreakdown, setProductTypeBreakdown] = useState<any[]>([]);
+
+  // Save filter selections to localStorage
+  useEffect(() => {
+    localStorage.setItem('analytics-dateRange', dateRange);
+  }, [dateRange]);
+
+  useEffect(() => {
+    localStorage.setItem('analytics-customStartDate', customStartDate);
+  }, [customStartDate]);
+
+  useEffect(() => {
+    localStorage.setItem('analytics-customEndDate', customEndDate);
+  }, [customEndDate]);
 
   useEffect(() => {
     loadAnalyticsData();

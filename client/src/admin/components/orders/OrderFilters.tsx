@@ -34,7 +34,7 @@ const OrderFilters: React.FC<OrderFiltersProps> = ({
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <input
             type="text"
-            placeholder="Search by order ID, customer, transaction ID, tracking..."
+            placeholder="Search by order ID, customer name, phone, email, transaction ID..."
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"

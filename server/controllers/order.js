@@ -1070,12 +1070,25 @@ exports.getAllOrders = async (req, res) => {
       query.paymentMethod = paymentMethod;
     }
     
-    // Search filter (order ID or user email)
+    // Search filter - Enhanced to include customer name, phone, email, order ID, transaction ID
+    // Note: We can only search on fields that exist in the Order document itself
+    // User fields will be populated after the query, so we search in guestInfo and shipping
     if (search) {
+      const searchRegex = new RegExp(search, 'i');
       query.$or = [
-        { _id: { $regex: search, $options: 'i' } },
-        { 'user.email': { $regex: search, $options: 'i' } }
+        { transaction_id: searchRegex },
+        { 'guestInfo.name': searchRegex },
+        { 'guestInfo.email': searchRegex },
+        { 'guestInfo.phone': searchRegex },
+        { 'shipping.name': searchRegex },
+        { 'shipping.phone': searchRegex },
+        { address: searchRegex }
       ];
+      
+      // Try to match ObjectId if search string is valid ObjectId format
+      if (search.match(/^[0-9a-fA-F]{24}$/)) {
+        query.$or.push({ _id: search });
+      }
     }
     
     // Pagination
@@ -1085,7 +1098,7 @@ exports.getAllOrders = async (req, res) => {
     const [orders, totalCount] = await Promise.all([
       Order.find(query)
         .populate('user', 'name email phone') // Include user phone
-        .populate('products.product', 'name price') // Only essential product fields
+        .populate('products.product', 'name price images photoUrl') // Include images for product display
         .select('_id user guestInfo products transaction_id amount address shipping status createdAt updatedAt paymentStatus paymentMethod') // Include shipping and guestInfo for COD orders
         .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
         .skip(skip)

@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { RefreshCw, Download, Loader, Package, Search } from 'lucide-react';
 import { isAutheticated } from '../auth/helper';
-import { useDevMode } from '../context/DevModeContext';
 import { toast, Toaster } from 'react-hot-toast';
 import { CSVLink } from 'react-csv';
 import { format } from 'date-fns';
@@ -22,7 +21,6 @@ const OrderManagement: React.FC = () => {
   const authData = isAutheticated();
   const user = authData && authData.user;
   const token = authData && authData.token;
-  const { isTestMode } = useDevMode();
   const [searchParams, setSearchParams] = useSearchParams();
   
   // State management - Backend filtering approach
@@ -41,11 +39,14 @@ const OrderManagement: React.FC = () => {
   
   // Enhanced filters with date range selector
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState(searchParams.get('search') || '');
   const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || 'all');
   const [dateRange, setDateRange] = useState('today'); // Default to today
-  const [dateFilter, setDateFilter] = useState('today'); // For OrderFilters component
   const [paymentFilter, setPaymentFilter] = useState(searchParams.get('payment') || 'all');
   const [sortBy, setSortBy] = useState(searchParams.get('sort') || 'date-desc');
+  
+  // Debounce timer ref
+  const debounceTimerRef = useRef<number | null>(null);
   
   // Custom date range state
   const [customStartDate, setCustomStartDate] = useState('');
@@ -66,11 +67,28 @@ const OrderManagement: React.FC = () => {
     total: 0
   });
 
+  // Debounce search query
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      window.clearTimeout(debounceTimerRef.current);
+    }
+    
+    debounceTimerRef.current = window.setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms delay
+    
+    return () => {
+      if (debounceTimerRef.current) {
+        window.clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
+  
   // Update URL params whenever filters change
   useEffect(() => {
     const params = new URLSearchParams();
     
-    if (searchQuery) params.set('search', searchQuery);
+    if (debouncedSearchQuery) params.set('search', debouncedSearchQuery);
     if (statusFilter !== 'all') params.set('status', statusFilter);
     if (dateRange !== 'today') params.set('dateRange', dateRange);
     if (paymentFilter !== 'all') params.set('payment', paymentFilter);
@@ -78,18 +96,18 @@ const OrderManagement: React.FC = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     
     setSearchParams(params);
-  }, [searchQuery, statusFilter, dateRange, paymentFilter, sortBy, currentPage, setSearchParams]);
+  }, [debouncedSearchQuery, statusFilter, dateRange, paymentFilter, sortBy, currentPage, setSearchParams]);
 
   useEffect(() => {
     loadOrders();
-  }, [isTestMode, dateRange, statusFilter, searchQuery, currentPage, paymentFilter, sortBy]);
+  }, [dateRange, statusFilter, debouncedSearchQuery, currentPage, paymentFilter, sortBy]);
 
   // Reset to page 1 when filters change
   useEffect(() => {
     if (currentPage !== 1) {
       setCurrentPage(1);
     }
-  }, [statusFilter, searchQuery, dateRange, paymentFilter, sortBy]);
+  }, [statusFilter, debouncedSearchQuery, dateRange, paymentFilter, sortBy]);
 
   const getDateRangeParams = () => {
     const today = new Date();
@@ -165,155 +183,93 @@ const OrderManagement: React.FC = () => {
     }
 
     try {
-      if (isTestMode) {
-        // Enhanced mock data with complete filtering
-        const mockOrders = generateMockOrders();
-        const { startDate, endDate } = getDateRangeParams();
+      if (!user || !token) {
+        setError('Authentication required');
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      // Build query parameters for backend filtering
+      const { startDate, endDate } = getDateRangeParams();
         
-        // Apply all filters to mock data
-        let filteredMockOrders = mockOrders.filter(order => {
-          const orderDate = new Date(order.createdAt);
-          
-          // Date range filter
-          const dateMatch = orderDate >= new Date(startDate) && orderDate <= new Date(endDate);
-          
-          // Status filter
-          const statusMatch = statusFilter === 'all' || order.status?.toLowerCase() === statusFilter.toLowerCase();
-          
-          // Search filter
-          const searchMatch = !searchQuery || 
-            order._id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.user?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            order.transaction_id?.toLowerCase().includes(searchQuery.toLowerCase());
-          
-          // Payment filter - Enhanced for COD and online filtering
-          let paymentMatch = paymentFilter === 'all';
-          
-          if (!paymentMatch) {
-            const orderPaymentMethod = order.paymentMethod?.toLowerCase() || '';
-            
-            if (paymentFilter === 'cod') {
-              paymentMatch = orderPaymentMethod === 'cod';
-            } else if (paymentFilter === 'online') {
-              // Online payments include all non-COD methods
-              paymentMatch = orderPaymentMethod !== 'cod' && orderPaymentMethod !== '';
-            } else {
-              // Exact match for specific payment methods
-              paymentMatch = orderPaymentMethod === paymentFilter.toLowerCase();
-            }
-          }
-          
-          return dateMatch && statusMatch && searchMatch && paymentMatch;
-        });
+        // Convert frontend sortBy to backend format
+        let backendSortBy = 'createdAt';
+        let backendSortOrder = 'desc';
         
-        // Apply sorting to mock data
-        filteredMockOrders.sort((a, b) => {
-          switch (sortBy) {
-            case 'date-desc':
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-            case 'date-asc':
-              return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-            case 'amount-desc':
-              return b.amount - a.amount;
-            case 'amount-asc':
-              return a.amount - b.amount;
-            case 'status':
-              return (a.status || '').localeCompare(b.status || '');
-            default:
-              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-          }
-        });
+        switch (sortBy) {
+          case 'date-desc':
+            backendSortBy = 'createdAt';
+            backendSortOrder = 'desc';
+            break;
+          case 'date-asc':
+            backendSortBy = 'createdAt';
+            backendSortOrder = 'asc';
+            break;
+          case 'amount-desc':
+            backendSortBy = 'amount';
+            backendSortOrder = 'desc';
+            break;
+          case 'amount-asc':
+            backendSortBy = 'amount';
+            backendSortOrder = 'asc';
+            break;
+          case 'status':
+            backendSortBy = 'status';
+            backendSortOrder = 'asc';
+            break;
+          default:
+            backendSortBy = 'createdAt';
+            backendSortOrder = 'desc';
+        }
         
-        setOrders(filteredMockOrders);
-        setTotalOrdersFromBackend(filteredMockOrders.length);
-        setTotalPagesFromBackend(1);
-        setHasMore(false);
-        calculateStats(filteredMockOrders);
+      const params = new URLSearchParams({
+        page: (resetPage ? 1 : currentPage).toString(),
+        limit: ordersPerPage.toString(),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(debouncedSearchQuery && { search: debouncedSearchQuery }),
+        ...(paymentFilter !== 'all' && { paymentMethod: paymentFilter }),
+        startDate,
+        endDate,
+        sortBy: backendSortBy,
+        sortOrder: backendSortOrder
+      });
+
+      const response = await fetch(`${API}/order/all/${user._id}?${params}`, {
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: Failed to fetch orders`);
+      }
+
+      const data = await response.json();
+      
+      if (data.error) {
+        setError(data.error);
+        setOrders([]);
       } else {
-        if (user && token) {
-          // Build query parameters for backend filtering
-          const { startDate, endDate } = getDateRangeParams();
-          
-          // Convert frontend sortBy to backend format
-          let backendSortBy = 'createdAt';
-          let backendSortOrder = 'desc';
-          
-          switch (sortBy) {
-            case 'date-desc':
-              backendSortBy = 'createdAt';
-              backendSortOrder = 'desc';
-              break;
-            case 'date-asc':
-              backendSortBy = 'createdAt';
-              backendSortOrder = 'asc';
-              break;
-            case 'amount-desc':
-              backendSortBy = 'amount';
-              backendSortOrder = 'desc';
-              break;
-            case 'amount-asc':
-              backendSortBy = 'amount';
-              backendSortOrder = 'asc';
-              break;
-            case 'status':
-              backendSortBy = 'status';
-              backendSortOrder = 'asc';
-              break;
-            default:
-              backendSortBy = 'createdAt';
-              backendSortOrder = 'desc';
-          }
-          
-          const params = new URLSearchParams({
-            page: (resetPage ? 1 : currentPage).toString(),
-            limit: ordersPerPage.toString(),
-            ...(statusFilter !== 'all' && { status: statusFilter }),
-            ...(searchQuery && { search: searchQuery }),
-            ...(paymentFilter !== 'all' && { paymentMethod: paymentFilter }),
-            startDate,
-            endDate,
-            sortBy: backendSortBy,
-            sortOrder: backendSortOrder
+        setOrders(data.orders || []);
+        setCurrentPage(data.pagination?.currentPage || 1);
+        setTotalPagesFromBackend(data.pagination?.totalPages || 1);
+        setTotalOrdersFromBackend(data.pagination?.totalOrders || 0);
+        setHasMore(data.pagination?.hasMore || false);
+        
+        // Update stats if provided
+        if (data.stats) {
+          setOrderStats({
+            pending: data.stats.pending || 0,
+            processing: data.stats.processing || 0,
+            shipped: data.stats.shipped || 0,
+            delivered: data.stats.delivered || 0,
+            cancelled: data.stats.cancelled || 0,
+            total: data.pagination?.totalOrders || data.orders.length
           });
-
-          const response = await fetch(`${API}/order/all/${user._id}?${params}`, {
-            headers: {
-              'Accept': 'application/json',
-              'Authorization': `Bearer ${token}`
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: Failed to fetch orders`);
-          }
-
-          const data = await response.json();
-          
-          if (data.error) {
-            setError(data.error);
-            setOrders([]);
-          } else {
-            setOrders(data.orders || []);
-            setCurrentPage(data.pagination?.currentPage || 1);
-            setTotalPagesFromBackend(data.pagination?.totalPages || 1);
-            setTotalOrdersFromBackend(data.pagination?.totalOrders || 0);
-            setHasMore(data.pagination?.hasMore || false);
-            
-            // Update stats if provided
-            if (data.stats) {
-              setOrderStats({
-                pending: data.stats.pending || 0,
-                processing: data.stats.processing || 0,
-                shipped: data.stats.shipped || 0,
-                delivered: data.stats.delivered || 0,
-                cancelled: data.stats.cancelled || 0,
-                total: data.pagination?.totalOrders || data.orders.length
-              });
-            } else {
-              calculateStats(data.orders || []);
-            }
-          }
+        } else {
+          calculateStats(data.orders || []);
         }
       }
     } catch (err) {
@@ -368,43 +324,24 @@ const OrderManagement: React.FC = () => {
     setUpdatingStatus(orderId);
     
     try {
-      if (isTestMode) {
-        // Update local state for test mode
-        setOrders(orders.map(order => 
-          order._id === orderId 
-            ? { 
-                ...order, 
-                status: newStatus,
-                timeline: [
-                  ...(order.timeline || []),
-                  {
-                    status: newStatus,
-                    timestamp: new Date().toISOString(),
-                    user: user?.name || 'Admin'
-                  }
-                ]
-              } 
-            : order
-        ));
+      if (user && token) {
+        const response = await fetch(`${API}/status/${orderId}/${user._id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ status: newStatus })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to update status');
+        }
+        
+        await loadOrders();
         toast.success('Order status updated successfully');
       } else {
-        if (user && token) {
-          const response = await fetch(`${API}/status/${orderId}/${user._id}`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`
-            },
-            body: JSON.stringify({ status: newStatus })
-          });
-          
-          if (!response.ok) {
-            throw new Error('Failed to update status');
-          }
-          
-          await loadOrders();
-          toast.success('Order status updated successfully');
-        }
+        toast.error('Authentication required');
       }
     } catch (err) {
       console.error('Error updating status:', err);
@@ -462,61 +399,6 @@ const OrderManagement: React.FC = () => {
     );
   };
 
-  // Generate mock orders for test mode
-  function generateMockOrders(): Order[] {
-    const statuses = ['Received', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
-    const paymentMethods = ['cod', 'razorpay', 'Credit Card', 'Debit Card', 'PayPal'];
-    
-    return Array.from({ length: 25 }, (_, i) => ({
-      _id: `ORD${Date.now()}${i}`,
-      user: {
-        _id: `USER${i}`,
-        name: `Customer ${i + 1}`,
-        email: `customer${i + 1}@example.com`,
-        phone: `+91 ${9000000000 + i}`
-      },
-      products: [
-        {
-          product: `PROD${i}`,
-          name: `Anime T-Shirt ${i + 1}`,
-          price: 799 + (i * 50),
-          count: Math.floor(Math.random() * 3) + 1,
-          size: ['S', 'M', 'L', 'XL'][Math.floor(Math.random() * 4)],
-          color: ['Black', 'White', 'Navy', 'Red'][Math.floor(Math.random() * 4)]
-        }
-      ],
-      transaction_id: `TXN${Date.now()}${i}`,
-      amount: 799 + (i * 50),
-      status: statuses[Math.floor(Math.random() * statuses.length)],
-      paymentMethod: paymentMethods[Math.floor(Math.random() * paymentMethods.length)],
-      shippingAddress: {
-        fullName: `Customer ${i + 1}`,
-        addressLine1: `${i + 1} Main Street`,
-        addressLine2: `Apartment ${i + 1}`,
-        city: 'Mumbai',
-        state: 'Maharashtra',
-        pincode: `400${String(i).padStart(3, '0')}`,
-        phone: `+91 ${9000000000 + i}`
-      },
-      shipping: {
-        method: 'Standard',
-        trackingNumber: `TRACK${Date.now()}${i}`,
-        courier: 'Blue Dart',
-        estimatedDelivery: new Date(Date.now() + (7 * 24 * 60 * 60 * 1000)).toISOString(),
-        cost: 99
-      },
-      timeline: [
-        {
-          status: 'Received',
-          timestamp: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
-          user: 'System'
-        }
-      ],
-      createdAt: new Date(Date.now() - (i * 24 * 60 * 60 * 1000)).toISOString(),
-      updatedAt: new Date().toISOString()
-    }));
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
@@ -536,11 +418,6 @@ const OrderManagement: React.FC = () => {
             <div>
               <h1 className="text-3xl font-bold mb-2">Order Management</h1>
               <p className="text-gray-400">Manage and track all customer orders</p>
-              {isTestMode && (
-                <p className="text-yellow-400 text-sm mt-2">
-                  🧪 Test Mode: Using sample orders
-                </p>
-              )}
             </div>
             <div className="flex gap-2">
               <DateRangeSelector
@@ -568,34 +445,7 @@ const OrderManagement: React.FC = () => {
           </div>
         </div>
 
-        {/* Debug Info */}
-        {isTestMode && (
-          <div className="bg-blue-900/20 border border-blue-500 rounded-lg p-4 mb-6">
-            <h3 className="text-blue-400 font-semibold mb-2">🔍 Debug Info</h3>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <p><strong>Date Range:</strong> {dateRange}</p>
-                <p><strong>Status Filter:</strong> {statusFilter}</p>
-                <p><strong>Search Query:</strong> {searchQuery || 'None'}</p>
-                <p><strong>Payment Filter:</strong> {paymentFilter}</p>
-                <p><strong>Sort By:</strong> {sortBy}</p>
-              </div>
-              <div>
-                <p><strong>Custom Start:</strong> {customStartDate || 'Not set'}</p>
-                <p><strong>Custom End:</strong> {customEndDate || 'Not set'}</p>
-                <p><strong>Current Page:</strong> {currentPage}</p>
-                <p><strong>Orders Shown:</strong> {orders.length}</p>
-                <p><strong>Total Orders:</strong> {totalOrdersFromBackend}</p>
-              </div>
-              <div>
-                <p><strong>API Date Params:</strong></p>
-                <pre className="text-xs bg-gray-800 p-2 rounded mt-1">
-                  {JSON.stringify(getDateRangeParams(), null, 2)}
-                </pre>
-              </div>
-            </div>
-          </div>
-        )}
+
 
         {/* Order Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -652,6 +502,8 @@ const OrderManagement: React.FC = () => {
               <option value="shipped">Shipped</option>
               <option value="delivered">Delivered</option>
               <option value="cancelled">Cancelled</option>
+              <option value="customer refused">Customer Refused</option>
+              <option value="customer unavailable">Customer Unavailable</option>
             </select>
 
             {/* Sort */}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, Loader, Mail, Phone, MapPin, Package, PhoneCall, ExternalLink, Truck } from 'lucide-react';
+import { ChevronDown, Loader, Mail, Phone, MapPin, Package, PhoneCall, ExternalLink, Truck, Copy, Check } from 'lucide-react';
 import { format } from 'date-fns';
 import { Link } from 'react-router-dom';
 import { Order } from './types';
@@ -32,12 +32,24 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
   onAddNote,
   onViewDetails
 }) => {
-  const orderStatuses = ['Received', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
+  const orderStatuses = ['Received', 'Processing', 'Shipped', 'Delivered', 'Cancelled', 'Customer Refused', 'Customer Unavailable'];
   const [showTrackingModal, setShowTrackingModal] = useState(false);
   const [currentOrder, setCurrentOrder] = useState(order);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
 
   // Check if this is a COD order
   const isCODOrder = order.paymentMethod?.toLowerCase() === 'cod';
+
+  // Copy to clipboard function
+  const handleCopy = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   const handleTrackingUpdate = (updatedOrder: Order) => {
     setCurrentOrder(updatedOrder);
@@ -88,6 +100,10 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                   <span className="text-red-400 ml-2">• Cash on Delivery</span>
                 )}
               </p>
+              {/* Customer Name */}
+              <p className="text-lg text-gray-300 mt-1 font-medium">
+                👤 {order.shipping?.name || order.user?.name || order.guestInfo?.name || 'N/A'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-4">
@@ -137,62 +153,6 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
               )}
             </div>
             <div className="grid md:grid-cols-3 gap-4">
-              {/* Customer Phone */}
-              <div className={`rounded-lg p-3 border ${
-                isCODOrder 
-                  ? 'bg-red-900/50 border-red-500/50' 
-                  : 'bg-gray-700/70 border-gray-500/50'
-              }`}>
-                <p className={`text-xs mb-1 ${
-                  isCODOrder ? 'text-red-300' : 'text-gray-300'
-                }`}>Customer Mobile</p>
-                {(() => {
-                  // Check all possible phone number sources using actual order model fields
-                  const customerPhone = order.shipping?.phone || order.user?.phone || 
-                                      order.guestInfo?.phone;
-                  
-                  return customerPhone ? (
-                    <div className="flex items-center gap-2">
-                      <PhoneCall className={`w-5 h-5 ${
-                        isCODOrder ? 'text-green-400' : 'text-blue-400'
-                      }`} />
-                      <a 
-                        href={`tel:${customerPhone}`}
-                        className={`text-lg font-bold transition-colors ${
-                          isCODOrder 
-                            ? 'text-green-300 hover:text-green-200' 
-                            : 'text-blue-300 hover:text-blue-200'
-                        }`}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        {customerPhone}
-                      </a>
-                    </div>
-                  ) : (
-                    <p className={`text-sm ${
-                      isCODOrder ? 'text-red-400' : 'text-gray-400'
-                    }`}>⚠️ No phone number available</p>
-                  );
-                })()}
-              </div>
-              
-              {/* Customer Name & Amount */}
-              <div className={`rounded-lg p-3 border ${
-                isCODOrder 
-                  ? 'bg-red-900/50 border-red-500/50' 
-                  : 'bg-gray-700/70 border-gray-500/50'
-              }`}>
-                <p className={`text-xs mb-1 ${
-                  isCODOrder ? 'text-red-300' : 'text-gray-300'
-                }`}>Customer Details</p>
-                <p className="text-lg font-semibold text-white">{order.user?.name || order.guestInfo?.name || order.shipping?.name || 'Guest'}</p>
-                {isCODOrder ? (
-                  <p className="text-red-300 text-sm">Amount to Collect: <span className="font-bold text-yellow-300">₹{order.amount}</span></p>
-                ) : (
-                  <p className="text-blue-300 text-sm">Order Value: <span className="font-bold text-yellow-300">₹{order.amount}</span></p>
-                )}
-              </div>
-
               {/* Delivery Address */}
               <div className={`rounded-lg p-3 border ${
                 isCODOrder 
@@ -205,37 +165,153 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                 {order.shipping || order.address ? (
                   <div className="text-sm text-white">
                     {order.shipping?.name && (
-                      <p className="font-semibold">{order.shipping.name}</p>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="font-semibold">{order.shipping.name}</p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(order.shipping.name, 'name');
+                          }}
+                          className="p-1 hover:bg-gray-600 rounded transition-colors"
+                          title="Copy name"
+                        >
+                          {copiedField === 'name' ? (
+                            <Check className="w-3 h-3 text-white-400" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-white-400" />
+                          )}
+                        </button>
+                      </div>
                     )}
+                    <div className="flex items-center justify-between gap-2 text-sm mb-1">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-gray-500" />
+                        <span>{order.user?.email || order.guestInfo?.email}</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopy(order.user?.email || order.guestInfo?.email || '', 'email');
+                        }}
+                        className="p-1 hover:bg-gray-600 rounded transition-colors"
+                        title="Copy email"
+                      >
+                        {copiedField === 'email' ? (
+                          <Check className="w-3 h-3 text-white-400" />
+                        ) : (
+                          <Copy className="w-3 h-3 text-white-400" />
+                        )}
+                      </button>
+                    </div>
                     {order.shipping?.city && order.shipping?.state ? (
                       <>
-                        <p className={`text-xs mt-1 ${
-                          isCODOrder ? 'text-red-200' : 'text-gray-200'
-                        }`}>
-                          {order.shipping.city}, {order.shipping.state}
-                        </p>
-                        {order.shipping.pincode && (
-                          <p className={`text-xs font-mono ${
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-xs mt-1 ${
                             isCODOrder ? 'text-red-200' : 'text-gray-200'
                           }`}>
-                            PIN: {order.shipping.pincode}
+                            {order.shipping.city}, {order.shipping.state}
                           </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopy(`${order.shipping.city}, ${order.shipping.state}`, 'city-state');
+                            }}
+                            className="p-1 hover:bg-gray-600 rounded transition-colors"
+                            title="Copy city and state"
+                          >
+                            {copiedField === 'city-state' ? (
+                              <Check className="w-3 h-3 text-white-400" />
+                            ) : (
+                              <Copy className="w-3 h-3 text-white-400" />
+                            )}
+                          </button>
+                        </div>
+                        {order.shipping.pincode && (
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-m font-mono ${
+                              isCODOrder ? 'text-red-200' : 'text-gray-200'
+                            }`}>
+                              PIN: {order.shipping.pincode}
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(order.shipping.pincode, 'pincode');
+                              }}
+                              className="p-1 hover:bg-gray-600 rounded transition-colors"
+                              title="Copy pincode"
+                            >
+                              {copiedField === 'pincode' ? (
+                                <Check className="w-3 h-3 text-white-400" />
+                              ) : (
+                                <Copy className="w-3 h-3 text-white-400" />
+                              )}
+                            </button>
+                          </div>
                         )}
                         {order.shipping.phone && (
-                          <p className={`text-xs mt-1 ${
-                            isCODOrder ? 'text-green-300' : 'text-blue-300'
-                          }`}>
-                            📱 {order.shipping.phone}
-                          </p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className={`text-xs mt-1 ${
+                              isCODOrder ? 'text-green-300' : 'text-blue-300'
+                            }`}>
+                              📱 {order.shipping.phone}
+                            </p>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopy(order.shipping.phone, 'phone');
+                              }}
+                              className="p-1 hover:bg-gray-600 rounded transition-colors"
+                              title="Copy phone"
+                            >
+                              {copiedField === 'phone' ? (
+                                <Check className="w-3 h-3 text-white-400" />
+                              ) : (
+                                <Copy className="w-3 h-3 text-white-400" />
+                              )}
+                            </button>
+                          </div>
                         )}
-                        <p className={`text-xs mt-1 ${
-                        isCODOrder ? 'text-red-200' : 'text-gray-200'
-                      }`}>{order.address}</p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-xs mt-1 ${
+                            isCODOrder ? 'text-red-200' : 'text-gray-200'
+                          }`}>{order.address}</p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCopy(order.address, 'address');
+                            }}
+                            className="p-1 hover:bg-gray-600 rounded transition-colors"
+                            title="Copy address"
+                          >
+                            {copiedField === 'address' ? (
+                              <Check className="w-3 h-3 text-white-400" />
+                            ) : (
+                              <Copy className="w-3 h-3 text-white-400" />
+                            )}
+                          </button>
+                        </div>
                       </>
                     ) : order.address ? (
-                      <p className={`text-xs mt-1 ${
-                        isCODOrder ? 'text-red-200' : 'text-gray-200'
-                      }`}>{order.address}</p>
+                      <div className="flex items-center justify-between gap-2">
+                        <p className={`text-sm mt-1 ${
+                          isCODOrder ? 'text-red-200' : 'text-gray-200'
+                        }`}>{order.address}</p>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(order.address, 'address-alt');
+                          }}
+                          className="p-1 hover:bg-gray-600 rounded transition-colors"
+                          title="Copy address"
+                        >
+                          {copiedField === 'address-alt' ? (
+                            <Check className="w-3 h-3 text-white-400" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-white-400" />
+                          )}
+                        </button>
+                      </div>
                     ) : (
                       <p className={`text-xs ${
                         isCODOrder ? 'text-red-400' : 'text-gray-400'
@@ -248,62 +324,16 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                   }`}>⚠️ No delivery address</p>
                 )}
               </div>
-            </div>
-            
-            {/* Quick Action */}
-            <div className={`mt-3 flex items-center gap-2 text-xs ${
-              isCODOrder ? 'text-red-300' : 'text-gray-300'
-            }`}>
-              <Package className="w-4 h-4" />
-              <span>{
+
+               <div className={`rounded-lg p-3 border ${
                 isCODOrder 
-                  ? 'Call customer to confirm order and delivery address before processing'
-                  : 'Verify shipping address and prepare for shipment'
-              }</span>
-            </div>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Customer Info */}
-            <div>
-              <h4 className="font-semibold mb-3 text-gray-300">Customer Information</h4>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-gray-500">Name:</span>
-                  <span>{order.user?.name || order.guestInfo?.name || 'Guest'}</span>
-                  {isCODOrder && (
-                    <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded">
-                      COD Customer
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4 text-gray-500" />
-                  <span>{order.user?.email || order.guestInfo?.email}</span>
-                </div>
-                {(order.user?.phone || order.guestInfo?.phone || order.shipping?.phone) && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Phone className="w-4 h-4 text-gray-500" />
-                    <span>{order.user?.phone || order.guestInfo?.phone || order.shipping?.phone}</span>
-                  </div>
-                )}
-                {order.shipping && (
-                  <div className="flex items-start gap-2 text-sm mt-3">
-                    <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
-                    <span className="text-gray-300">
-                      {order.shipping?.state}, {order.shipping.city}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Order Status & Actions */}
-            <div>
-              <h4 className="font-semibold mb-3 text-gray-300">Order Status</h4>
+                  ? 'bg-red-900/50 border-red-500/50' 
+                  : 'bg-gray-700/70 border-gray-500/50'
+              }`}>
+                <h4 className="font-semibold mb-3 text-white-300">Order Status</h4>
                 <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm text-gray-400">
+                  <span className="text-sm text-white-400">
                     Transaction: {order.transaction_id ? order.transaction_id.slice(0, 12) + '...' : 'N/A'}
                   </span>
                   {isCODOrder && (
@@ -328,7 +358,7 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                 
                 {/* Status Update Dropdown */}
                 <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-400">Update Status:</label>
+                  <label className="text-sm text-white-400">Update Status:</label>
                   <select
                     value={order.status || 'Processing'}
                     onChange={(e) => onStatusUpdate(order._id, e.target.value)}
@@ -346,12 +376,19 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                   )}
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Order Items */}
-          <div className="mt-6">
-            <h4 className="font-semibold mb-3 text-gray-300">Order Items</h4>
+
+
+             
+              </div>
+
+
+               <div className={`rounded-lg p-3 border ${
+                isCODOrder 
+                  ? 'bg-red-900/50 border-red-500/50' 
+                  : 'bg-gray-700/70 border-gray-500/50'
+              }`}>
+                <h4 className="font-semibold mb-3 text-white-300">Order Items</h4>
             <div className="bg-gray-900 rounded-lg p-4 space-y-3">
               {order.products.map((item, index) => (
                 <div key={index} className="flex items-center gap-4 pb-3 border-b border-gray-800 last:border-0">
@@ -362,10 +399,20 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                         design={item.customDesign || item.name}
                         color={item.color || 'White'}
                         colorValue={item.colorValue || '#FFFFFF'}
-                        image={item.designImage || item.image || (item.designId ? `${API}/design/photo/${item.designId}` : undefined)}
+                        image={!item.customization ? (item.designImage || item.image || (item.designId ? `${API}/design/photo/${item.designId}` : undefined)) : undefined}
+                        customization={item.customization ? {
+                          frontDesign: item.customization.frontDesign ? {
+                            designImage: item.customization.frontDesign.designImage,
+                            position: item.customization.frontDesign.position
+                          } : undefined,
+                          backDesign: item.customization.backDesign ? {
+                            designImage: item.customization.backDesign.designImage,
+                            position: item.customization.backDesign.position
+                          } : undefined
+                        } : undefined}
                       />
                     ) : (
-                      <div className="w-full h-full bg-gray-700 rounded flex items-center justify-center">
+                      <div className="w-full h-full bg-gray-700 rounded flex items-center justify-center overflow-hidden">
                         <img
                           src={getProductImageUrl(item)}
                           alt={item.name}
@@ -382,27 +429,43 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                   {/* Product Details */}
                   <div className="flex-1">
                     {/* Product Name with Link */}
-                    {(() => {
-                      // Extract product ID - handle both string IDs and populated objects
-                      const productId = typeof item.product === 'string' 
-                        ? item.product 
-                        : item.product?._id || item.product?.id;
-                      
-                      return (productId && !item.isCustom) ? (
-                        <Link 
-                          to={`/product/${productId}`}
-                          className="font-medium text-sm text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1 group"
-                          onClick={(e) => e.stopPropagation()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {item.name}
-                          <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                        </Link>
-                      ) : (
-                        <p className="font-medium text-sm">{item.name}</p>
-                      );
-                    })()}
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        // Extract product ID - handle both string IDs and populated objects
+                        const productId = typeof item.product === 'string' 
+                          ? item.product 
+                          : item.product?._id || item.product?.id;
+                        
+                        return (productId && !item.isCustom) ? (
+                          <Link 
+                            to={`/product/${productId}`}
+                            className="font-medium text-sm text-yellow-400 hover:text-yellow-300 transition-colors flex items-center gap-1 group"
+                            onClick={(e) => e.stopPropagation()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            {item.name}
+                            <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </Link>
+                        ) : (
+                          <p className="font-medium text-sm">{item.name}</p>
+                        );
+                      })()}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopy(item.name, `product-name-${index}`);
+                        }}
+                        className="p-1 hover:bg-gray-600 rounded transition-colors flex-shrink-0"
+                        title="Copy product name"
+                      >
+                        {copiedField === `product-name-${index}` ? (
+                          <Check className="w-3 h-3 text-green-400" />
+                        ) : (
+                          <Copy className="w-3 h-3 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
                     
                     <p className="text-xs text-gray-400">
                       {item.size && `Size: ${item.size} • `}
@@ -500,6 +563,28 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                 <p className="text-xl font-bold text-yellow-400">₹{order.amount}</p>
               </div>
             </div>
+
+                
+                </div>
+            </div>
+            
+            {/* Quick Action */}
+            <div className={`mt-3 flex items-center gap-2 text-xs ${
+              isCODOrder ? 'text-red-300' : 'text-gray-300'
+            }`}>
+              <Package className="w-4 h-4" />
+              <span>{
+                isCODOrder 
+                  ? 'Call customer to confirm order and delivery address before processing'
+                  : 'Verify shipping address and prepare for shipment'
+              }</span>
+            </div>
+            
+          </div>
+
+          {/* Order Items */}
+          <div className="mt-6">
+            
           </div>
 
           {/* Actions */}

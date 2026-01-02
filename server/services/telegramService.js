@@ -73,8 +73,8 @@ class TelegramService {
         disable_web_page_preview: false
       });
 
-      // Send product images and custom design files
-      await this.sendOrderVisuals(order);
+      // // Send product images and custom design files
+      // await this.sendOrderVisuals(order);
 
       console.log(`✅ Telegram order notification sent for #${order._id}`);
       return { success: true };
@@ -156,13 +156,7 @@ ${shippingInfo}
 
 💳 <b>Payment:</b> ${isCODOrder ? 'Cash on Delivery 💰' : (order.paymentStatus || 'Pending')}
 ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.shippingCost}` : '📦 <b>Shipping:</b> FREE'}
-
-🔗 <b>Quick Actions:</b>
-• <a href="${adminOrderUrl}">Admin Panel</a>
-• <a href="${trackingUrl}">Order Tracking</a>
-
-⏰ <b>TIME TO PREPARE!</b> 🎌
-    `.trim();
+`.trim();
   }
   
   // Generate detailed shipping information
@@ -481,13 +475,13 @@ ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.ship
       }
 
       // Send admin link for detailed view
-      const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-      const adminUrl = `${clientUrl}/admin/orders`;
+      // const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+      // const adminUrl = `${clientUrl}/admin/orders`;
       
-      await this.bot.sendMessage(this.adminChatId, 
-        `🔗 <b>Complete Design Details:</b>\n<a href="${adminUrl}">View Full Order in Admin Panel</a>\n\n📋 Order ID: <code>#${orderId}</code>`,
-        { parse_mode: 'HTML' }
-      );
+      // await this.bot.sendMessage(this.adminChatId, 
+      //   `🔗 <b>Complete Design Details:</b>\n<a href="${adminUrl}">View Full Order in Admin Panel</a>\n\n📋 Order ID: <code>#${orderId}</code>`,
+      //   { parse_mode: 'HTML' }
+      // );
 
     } catch (error) {
       console.error('Failed to send custom design visuals:', error);
