@@ -28,6 +28,7 @@ interface ProductType {
   icon: string;
   order: number;
   isActive: boolean;
+  genders: string[];
   metaTitle?: string;
   metaDescription?: string;
   metaKeywords?: string[];
@@ -46,6 +47,7 @@ const ManageProductTypes: React.FC = () => {
     description: '',
     icon: '📦',
     isActive: true,
+    genders: ['men', 'women', 'unisex'] as string[],
     metaTitle: '',
     metaDescription: '',
     metaKeywords: ''
@@ -122,6 +124,7 @@ const ManageProductTypes: React.FC = () => {
       description: type.description || '',
       icon: type.icon,
       isActive: type.isActive,
+      genders: type.genders?.length ? type.genders : ['men', 'women', 'unisex'],
       metaTitle: type.metaTitle || '',
       metaDescription: type.metaDescription || '',
       metaKeywords: type.metaKeywords?.join(', ') || ''
@@ -192,6 +195,7 @@ const ManageProductTypes: React.FC = () => {
       description: '',
       icon: '📦',
       isActive: true,
+      genders: ['men', 'women', 'unisex'],
       metaTitle: '',
       metaDescription: '',
       metaKeywords: ''
@@ -277,6 +281,36 @@ const ManageProductTypes: React.FC = () => {
                     <option value="false">Inactive</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Gender Selection */}
+              <div>
+                <label className="block text-sm font-medium mb-2">Available For Genders*</label>
+                <div className="flex gap-4">
+                  {[
+                    { id: 'men', label: 'Men', icon: '👔' },
+                    { id: 'women', label: 'Women', icon: '👗' },
+                    { id: 'unisex', label: 'Unisex', icon: '👕' }
+                  ].map((gender) => (
+                    <label key={gender.id} className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={formData.genders.includes(gender.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFormData({ ...formData, genders: [...formData.genders, gender.id] });
+                          } else {
+                            setFormData({ ...formData, genders: formData.genders.filter(g => g !== gender.id) });
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-yellow-400 focus:ring-yellow-400"
+                      />
+                      <span className="text-lg">{gender.icon}</span>
+                      <span>{gender.label}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Select which genders this product type is available for</p>
               </div>
 
               <div>

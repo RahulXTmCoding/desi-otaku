@@ -47,6 +47,7 @@ const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'));
 // Lazy load admin pages - these are heavy and rarely accessed by regular users
 const AdminDashBoard = lazy(() => import('./AdminDashBoard'));
 const AddCategory = lazy(() => import('../admin/AddCategory'));
+const UpdateCategory = lazy(() => import('../admin/UpdateCategory'));
 const ManageCategories = lazy(() => import('../admin/ManageCategories'));
 const AddProduct = lazy(() => import('../admin/AddProduct'));
 const ManageProducts = lazy(() => import('../admin/ManageProducts'));
@@ -63,6 +64,7 @@ const UpdateCoupon = lazy(() => import('../admin/UpdateCoupon'));
 const ProductVariantsPage = lazy(() => import('../admin/ProductVariantsPage'));
 const OrderManagement = lazy(() => import('../admin/OrderManagement'));
 const ManageProductTypes = lazy(() => import('../admin/ManageProductTypes'));
+const ManageSizeCharts = lazy(() => import('../admin/ManageSizeCharts'));
 const EmailMarketing = lazy(() => import('../admin/EmailMarketing'));
 
 // Loading component
@@ -146,6 +148,11 @@ export default function App() {
                 <AddCategory />
               </AdminRoute>
             } />
+            <Route path="/admin/category/update/:categoryId" element={
+              <AdminRoute>
+                <UpdateCategory />
+              </AdminRoute>
+            } />
             <Route path="/admin/categories" element={
               <AdminRoute>
                 <ManageCategories />
@@ -174,6 +181,11 @@ export default function App() {
             <Route path="/admin/product-types" element={
               <AdminRoute>
                 <ManageProductTypes />
+              </AdminRoute>
+            } />
+            <Route path="/admin/size-charts" element={
+              <AdminRoute>
+                <ManageSizeCharts />
               </AdminRoute>
             } />
             <Route path="/admin/create/design" element={

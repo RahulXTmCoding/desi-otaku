@@ -1,20 +1,62 @@
 import React, { useState } from 'react';
 import { X, Ruler } from 'lucide-react';
 
+// Types for dynamic size chart data from API
+interface SizeChartHeader {
+  key: string;
+  label: string;
+}
+
+interface SizeChartMeasurement {
+  size: string;
+  chest?: string;
+  length?: string;
+  shoulder?: string;
+  sleeve?: string;
+  bust?: string;
+  waist?: string;
+  hip?: string;
+  [key: string]: string | undefined;
+}
+
+interface MeasurementGuide {
+  part: string;
+  instruction: string;
+}
+
+interface DynamicSizeChartData {
+  _id?: string;
+  name?: string;
+  displayTitle: string;
+  description?: string;
+  gender?: 'men' | 'women' | 'unisex';
+  headers: SizeChartHeader[];
+  measurements: SizeChartMeasurement[];
+  measurementGuide?: MeasurementGuide[];
+  note?: string;
+}
+
 interface SizeChartProps {
   productType?: 'tshirt' | 'hoodie' | 'tank' | 'oversized' | 'printed-tee';
   customTags?: string[];
+  // New prop for dynamic size chart data from API
+  sizeChartData?: DynamicSizeChartData | null;
 }
 
-const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt', customTags = [] }) => {
+const SizeChart: React.FC<SizeChartProps> = ({ 
+  productType = 'tshirt', 
+  customTags = [],
+  sizeChartData = null 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Check if hoodie is oversized based on customTags
+  // Check if hoodie is oversized based on customTags (for fallback logic)
   const isOversizedHoodie = productType === 'hoodie' && customTags.some(tag => 
     tag.toLowerCase().includes('oversized') || tag.toLowerCase().includes('over sized')
   );
 
-  const sizeData = {
+  // Fallback hardcoded size data (existing logic)
+  const fallbackSizeData = {
     tshirt: {
       title: 'T-Shirt Size Chart',
       headers: ['Size', 'Chest (inches)', 'Length (inches)', 'Shoulder (inches)'],
@@ -115,9 +157,37 @@ const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt', customTag
     },
   };
 
+  // Convert dynamic API data to display format
+  const convertDynamicData = (data: DynamicSizeChartData) => {
+    const headers = data.headers || [];
+    const measurements = data.measurements || [];
+    return {
+      title: data.displayTitle || data.name || 'Size Chart',
+      headers: headers.map(h => h.label),
+      headerKeys: headers.map(h => h.key),
+      sizes: measurements,
+      measurementGuide: data.measurementGuide || [],
+      note: data.note,
+    };
+  };
+
   // Determine which size chart to show
-  const chartType = isOversizedHoodie ? 'oversized-hoodie' : productType;
-  const currentData = sizeData[chartType as keyof typeof sizeData] || sizeData.tshirt;
+  // Priority: sizeChartData (from API) > fallback based on productType
+  let currentData: any;
+  let headerKeys: string[] = [];
+  
+  if (sizeChartData) {
+    // Use dynamic data from API
+    const converted = convertDynamicData(sizeChartData);
+    currentData = converted;
+    headerKeys = converted.headerKeys;
+  } else {
+    // Fall back to hardcoded data
+    const chartType = isOversizedHoodie ? 'oversized-hoodie' : productType;
+    currentData = fallbackSizeData[chartType as keyof typeof fallbackSizeData] || fallbackSizeData.tshirt;
+    // For fallback, we don't have headerKeys, so we'll use the old rendering logic
+    headerKeys = [];
+  }
 
 
   return (
@@ -160,7 +230,7 @@ const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt', customTag
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-700">
-                      {currentData.headers.map((header, index) => (
+                      {currentData.headers.map((header: string, index: number) => (
                         <th
                           key={index}
                           className={`py-3 px-4 text-left font-semibold ${
@@ -173,23 +243,38 @@ const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt', customTag
                     </tr>
                   </thead>
                   <tbody>
-                    {currentData.sizes.map((row, rowIndex) => (
+                    {currentData.sizes.map((row: any, rowIndex: number) => (
                       <tr
                         key={row.size}
                         className={`border-b border-gray-700/50 ${
                           rowIndex % 2 === 0 ? 'bg-gray-700/30' : ''
                         }`}
                       >
-                        <td className="py-3 px-4 font-semibold text-yellow-400">
-                          {row.size}
-                        </td>
-                        <td className="py-3 px-4 text-gray-300">{row.chest}</td>
-                        <td className="py-3 px-4 text-gray-300">{row.length}</td>
-                        {row.shoulder && (
-                          <td className="py-3 px-4 text-gray-300">{row.shoulder}</td>
-                        )}
-                        {row.sleeve && (
-                          <td className="py-3 px-4 text-gray-300">{row.sleeve}</td>
+                        {headerKeys.length > 0 ? (
+                          // Dynamic data: render using headerKeys
+                          headerKeys.map((key: string, colIndex: number) => (
+                            <td 
+                              key={key} 
+                              className={`py-3 px-4 ${colIndex === 0 ? 'font-semibold text-yellow-400' : 'text-gray-300'}`}
+                            >
+                              {row[key] || '-'}
+                            </td>
+                          ))
+                        ) : (
+                          // Fallback data: render using old logic
+                          <>
+                            <td className="py-3 px-4 font-semibold text-yellow-400">
+                              {row.size}
+                            </td>
+                            <td className="py-3 px-4 text-gray-300">{row.chest}</td>
+                            <td className="py-3 px-4 text-gray-300">{row.length}</td>
+                            {row.shoulder && (
+                              <td className="py-3 px-4 text-gray-300">{row.shoulder}</td>
+                            )}
+                            {row.sleeve && (
+                              <td className="py-3 px-4 text-gray-300">{row.sleeve}</td>
+                            )}
+                          </>
                         )}
                       </tr>
                     ))}
@@ -198,21 +283,23 @@ const SizeChart: React.FC<SizeChartProps> = ({ productType = 'tshirt', customTag
               </div>
 
               {/* How to Measure */}
-              <div className="bg-gray-700/50 rounded-xl p-6">
-                <h3 className="text-lg font-semibold mb-4 text-yellow-400">
-                  How to Measure
-                </h3>
-                <div className="space-y-3">
-                  {currentData.measurementGuide.map((guide, index) => (
-                    <div key={index} className="flex gap-3">
-                      <span className="font-semibold text-gray-300 min-w-[80px]">
-                        {guide.part}:
-                      </span>
-                      <span className="text-gray-400">{guide.instruction}</span>
-                    </div>
-                  ))}
+              {currentData.measurementGuide && currentData.measurementGuide.length > 0 && (
+                <div className="bg-gray-700/50 rounded-xl p-6">
+                  <h3 className="text-lg font-semibold mb-4 text-yellow-400">
+                    How to Measure
+                  </h3>
+                  <div className="space-y-3">
+                    {currentData.measurementGuide.map((guide: MeasurementGuide, index: number) => (
+                      <div key={index} className="flex gap-3">
+                        <span className="font-semibold text-gray-300 min-w-[80px]">
+                          {guide.part}:
+                        </span>
+                        <span className="text-gray-400">{guide.instruction}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Fabric Note for BIOWASH */}
               {'note' in currentData && currentData.note && (

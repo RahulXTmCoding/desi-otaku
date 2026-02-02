@@ -17,6 +17,7 @@ import { API } from '../backend';
 import RealTShirtPreview from './RealTShirtPreview';
 import { toast } from 'react-hot-toast';
 import '../styles/adaptive-logo.css';
+import { brandConfig } from '../config/brandConfig';
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -333,7 +334,7 @@ const Header: React.FC = () => {
           <div className="relative">
             {/* <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div> */}
             <div className="relative w-36  flex items-center justify-center ">
-              <img src="/brand.png" alt="Attars Club Logo" className="w-36 object-contain logo-adaptive" />
+              <img src={brandConfig.logoPath} alt={brandConfig.logoAlt} className="w-36 object-contain logo-adaptive" />
             </div>
           </div>
         </Link>
@@ -383,26 +384,52 @@ const Header: React.FC = () => {
               {/* Shopping Dropdown */}
               <ShoppingDropdown />
               
-              <Link to="/customize" className="relative group text-sm font-medium text-gray-300 hover:text-white">
-                <div className="relative px-3 lg:px-4 py-1.5 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-primaryText)' }}>
-                  <Palette className="inline-block w-4 h-4 mr-1" />
-                  <span className="hidden lg:inline">Custom Design</span>
-                  <span className="lg:hidden">Custom</span>
-                  <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
+              {/* Shop by Gender Dropdown */}
+              <div className="relative group">
+                <button className="flex items-center gap-1 text-sm font-medium text-gray-300 hover:text-white transition-all">
+                  <span>Shop by Gender</span>
+                  <ChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform duration-200" />
+                </button>
+                <div className="absolute top-full left-0 mt-2 w-40 bg-gray-800 rounded-lg shadow-xl border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <Link to="/shop?gender=unisex" className="flex items-center gap-2 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-yellow-400 transition-colors rounded-t-lg">
+                    <span>👕</span> Unisex
+                  </Link>
+                  <Link to="/shop?gender=men" className="flex items-center gap-2 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-yellow-400 transition-colors">
+                    <span>👔</span> Men
+                  </Link>
+                  <Link to="/shop?gender=women" className="flex items-center gap-2 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-yellow-400 transition-colors rounded-b-lg">
+                    <span>👗</span> Women
+                  </Link>
                 </div>
-              </Link>
-              <button 
-                onClick={handleRandomSurprise}
-                className="relative group text-sm font-medium text-gray-300 hover:text-white"
-                title="Surprise Me!"
-              >
-                <div className="relative px-3 lg:px-4 py-1.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg" >
-                  <Sparkles className="inline-block w-4 h-4 mr-1 group-hover:animate-spin" style={{ color: 'var(--color-primaryText)' }} />
-                  <span className="hidden lg:inline" style={{ color: 'var(--color-primaryText)' }}>Surprise Me!</span>
-                  <span className="lg:hidden">Surprise</span>
-                  <div className="absolute inset-0 bg-white rounded-full opacity-0 group-hover:opacity-20 transition-opacity"></div>
+              </div>
+              
+              {/* Special Dropdown - Custom Design + Surprise Me */}
+              <div className="relative group">
+                <button className="flex items-center gap-1 px-3 lg:px-4 py-1.5 bg-gradient-to-r from-yellow-400 to-purple-500 text-gray-900 rounded-full font-semibold transform group-hover:scale-105 transition-all shadow-lg">
+                  <Sparkles className="w-4 h-4" />
+                  <span className="hidden lg:inline">Special</span>
+                  <ChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform duration-200" />
+                </button>
+                <div className="absolute top-full right-0 mt-2 w-48 bg-gray-800 rounded-lg shadow-xl border border-gray-700 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <Link to="/customize" className="flex items-center gap-3 px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-yellow-400 transition-colors rounded-t-lg">
+                    <Palette className="w-5 h-5 text-yellow-400" />
+                    <div>
+                      <div className="font-medium">Custom Design</div>
+                      <div className="text-xs text-gray-500">Create your own</div>
+                    </div>
+                  </Link>
+                  <button 
+                    onClick={handleRandomSurprise}
+                    className="flex items-center gap-3 w-full px-4 py-3 text-gray-300 hover:bg-gray-700 hover:text-purple-400 transition-colors rounded-b-lg"
+                  >
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                    <div className="text-left">
+                      <div className="font-medium">Surprise Me!</div>
+                      <div className="text-xs text-gray-500">Random design</div>
+                    </div>
+                  </button>
                 </div>
-              </button>
+              </div>
             </>
           )}
         </div>
@@ -527,7 +554,7 @@ const Header: React.FC = () => {
             <div className="relative">
               {/* <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity animate-pulse"></div> */}
               <div className="relative w-28 flex items-center justify-center transform group-hover:scale-110 transition-transform rounded-xl overflow-hidden">
-                <img src="/brand.png" alt="Attars Club Logo" className="w-28 h-10 object-contain logo-adaptive" />
+                <img src={brandConfig.logoPath} alt={brandConfig.logoAlt} className="w-28 h-10 object-contain logo-adaptive" />
               </div>
             </div>
           </Link>
@@ -704,7 +731,7 @@ const Header: React.FC = () => {
           <div className="flex items-center justify-between p-4 border-b border-gray-800">
             <div className="flex items-center space-x-2">
               <div className="w-28 flex items-center justify-center rounded-lg overflow-hidden">
-                <img src="/brand.png" alt="Attars Club Logo" className="w-28 object-contain logo-adaptive" />
+                <img src={brandConfig.logoPath} alt={brandConfig.logoAlt} className="w-28 object-contain logo-adaptive" />
               </div>
             </div>
             <button
@@ -780,6 +807,51 @@ const Header: React.FC = () => {
                 >
                   Home
                 </Link>
+                
+                {/* Shop by Gender Section */}
+                <div className="border-t border-gray-800">
+                  <button
+                    onClick={() => toggleMobileSection('gender')}
+                    className="w-full flex items-center justify-between px-6 py-4 text-white hover:bg-gray-800 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-lg">👕</span>
+                      <span className="font-semibold">Shop by Gender</span>
+                    </div>
+                    <ChevronDown 
+                      className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
+                        expandedMobileSection === 'gender' ? 'rotate-180' : ''
+                      }`} 
+                    />
+                  </button>
+                  <div className={`overflow-hidden transition-all duration-300 ${
+                    expandedMobileSection === 'gender' ? 'max-h-48' : 'max-h-0'
+                  }`}>
+                    <div className="px-3 pb-4 space-y-2">
+                      <div
+                        onClick={() => handleMobileNavigation('/shop?gender=unisex')}
+                        className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group"
+                      >
+                        <span className="text-lg">👕</span>
+                        <span className="text-sm font-medium text-white group-hover:text-yellow-400">Unisex</span>
+                      </div>
+                      <div
+                        onClick={() => handleMobileNavigation('/shop?gender=men')}
+                        className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group"
+                      >
+                        <span className="text-lg">👔</span>
+                        <span className="text-sm font-medium text-white group-hover:text-yellow-400">Men</span>
+                      </div>
+                      <div
+                        onClick={() => handleMobileNavigation('/shop?gender=women')}
+                        className="flex items-center gap-3 p-3 bg-gray-800 rounded-lg hover:bg-gray-700 transition-colors cursor-pointer group"
+                      >
+                        <span className="text-lg">👗</span>
+                        <span className="text-sm font-medium text-white group-hover:text-yellow-400">Women</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Dynamic Mobile Menu Content */}
                 {mobileDataLoading ? (
@@ -968,23 +1040,37 @@ const Header: React.FC = () => {
                   </>
                 )}
                 
-                <Link
-                  to="/customize"
-                  onClick={closeMobileMenu}
-                  className="block px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
-                >
-                  🎨 Custom Design
-                </Link>
-                
-                <button
-                  onClick={() => {
-                    handleRandomSurprise();
-                    closeMobileMenu();
-                  }}
-                  className="block w-full text-left px-6 py-3 text-purple-400 hover:bg-gray-800 hover:text-purple-300 transition-colors font-semibold"
-                >
-                  ✨ Surprise Me!
-                </button>
+                {/* Special Section */}
+                <div className="border-t border-gray-800 pt-2">
+                  <div className="px-6 py-2">
+                    <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Special</span>
+                  </div>
+                  <Link
+                    to="/customize"
+                    onClick={closeMobileMenu}
+                    className="flex items-center gap-3 px-6 py-3 text-white hover:bg-gray-800 hover:text-yellow-400 transition-colors"
+                  >
+                    <Palette className="w-5 h-5 text-yellow-400" />
+                    <div>
+                      <div className="font-medium">Custom Design</div>
+                      <div className="text-xs text-gray-500">Create your own design</div>
+                    </div>
+                  </Link>
+                  
+                  <button
+                    onClick={() => {
+                      handleRandomSurprise();
+                      closeMobileMenu();
+                    }}
+                    className="flex items-center gap-3 w-full px-6 py-3 text-white hover:bg-gray-800 hover:text-purple-400 transition-colors"
+                  >
+                    <Sparkles className="w-5 h-5 text-purple-400" />
+                    <div className="text-left">
+                      <div className="font-medium">Surprise Me!</div>
+                      <div className="text-xs text-gray-500">Get a random design</div>
+                    </div>
+                  </button>
+                </div>
               </>
             )}
 

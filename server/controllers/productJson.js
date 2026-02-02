@@ -43,7 +43,11 @@ exports.createProductJson = async (req, res) => {
       imageUrls,
       imageFiles,
       primaryImageIndex,
-      seoTitle, metaDescription, slug
+      seoTitle, metaDescription, slug,
+      gender,
+      imageDisplayMode,
+      sizeChart,
+      isFreeSize
     } = req.body;
 
     // Validate required fields
@@ -64,12 +68,17 @@ exports.createProductJson = async (req, res) => {
       productType,
       tags: tags ? tags.split(',').map(t => t.trim()) : [],
       customTags: customTags ? customTags.split(',').map(t => t.trim()) : [],
-      seoTitle, metaDescription, slug
+      seoTitle, metaDescription, slug,
+      gender: gender || 'unisex',
+      imageDisplayMode: imageDisplayMode || 'contain',
+      sizeChart: sizeChart || null,
+      isFreeSize: isFreeSize || false
     });
 
-    // Handle size stock
+    // Handle size stock - support all extended sizes
+    const ALL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '2XL', '3XL', '4XL', '5XL', 'Free'];
     if (sizeStock) {
-      ['S', 'M', 'L', 'XL', 'XXL'].forEach(size => {
+      ALL_SIZES.forEach(size => {
         if (sizeStock[size] !== undefined) {
           product.sizeStock[size] = parseInt(sizeStock[size]) || 0;
         }
@@ -192,7 +201,11 @@ exports.updateProductJson = async (req, res) => {
       imageUrls,
       imageFiles,
       primaryImageIndex,
-      seoTitle, metaDescription, slug
+      seoTitle, metaDescription, slug,
+      gender,
+      imageDisplayMode,
+      sizeChart,
+      isFreeSize
     } = req.body;
 
     let product = req.product;
@@ -215,9 +228,24 @@ exports.updateProductJson = async (req, res) => {
     product.metaDescription = metaDescription || product.metaDescription;
     product.slug = slug || product.slug;
 
-    // Update size stock
+    // Update gender, imageDisplayMode, sizeChart, and isFreeSize
+    if (gender !== undefined) {
+      product.gender = gender;
+    }
+    if (imageDisplayMode !== undefined) {
+      product.imageDisplayMode = imageDisplayMode;
+    }
+    if (sizeChart !== undefined) {
+      product.sizeChart = sizeChart || null;
+    }
+    if (isFreeSize !== undefined) {
+      product.isFreeSize = isFreeSize;
+    }
+
+    // Update size stock - support all extended sizes
+    const ALL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '2XL', '3XL', '4XL', '5XL', 'Free'];
     if (sizeStock) {
-      ['S', 'M', 'L', 'XL', 'XXL'].forEach(size => {
+      ALL_SIZES.forEach(size => {
         if (sizeStock[size] !== undefined) {
           product.sizeStock[size] = parseInt(sizeStock[size]) || 0;
         }

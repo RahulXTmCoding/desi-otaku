@@ -66,6 +66,27 @@ const productSchema = new Schema(
       required: true
     },
     
+    // Custom size chart override (optional - falls back to productType.defaultSizeChart)
+    sizeChart: {
+      type: ObjectId,
+      ref: "SizeChartTemplate",
+      default: null
+    },
+    
+    // Gender categorization for filtering
+    gender: {
+      type: String,
+      enum: ['men', 'women', 'unisex'],
+      default: 'unisex'
+    },
+    
+    // Image display mode for product cards and detail page
+    imageDisplayMode: {
+      type: String,
+      enum: ['contain', 'cover'],
+      default: 'contain'
+    },
+    
     // Multiple product images - supports both file uploads and URLs
     images: [{
       // Can be either file upload or URL
@@ -81,8 +102,18 @@ const productSchema = new Schema(
       }
     }],
     
-    // Simple size-based inventory
+    // Whether this is a free-size product (size doesn't matter)
+    isFreeSize: {
+      type: Boolean,
+      default: false
+    },
+    
+    // Simple size-based inventory (extended sizes)
     sizeStock: {
+      XS: {
+        type: Number,
+        default: 0
+      },
       S: {
         type: Number,
         default: 0
@@ -102,14 +133,37 @@ const productSchema = new Schema(
       XXL: {
         type: Number,
         default: 0
+      },
+      XXXL: {
+        type: Number,
+        default: 0
+      },
+      '2XL': {
+        type: Number,
+        default: 0
+      },
+      '3XL': {
+        type: Number,
+        default: 0
+      },
+      '4XL': {
+        type: Number,
+        default: 0
+      },
+      '5XL': {
+        type: Number,
+        default: 0
+      },
+      Free: {
+        type: Number,
+        default: 0
       }
     },
     
     // Available sizes (which sizes are offered for this product)
     availableSizes: {
       type: [String],
-      default: ['S', 'M', 'L', 'XL', 'XXL'],
-      enum: ['S', 'M', 'L', 'XL', 'XXL']
+      default: ['S', 'M', 'L', 'XL', 'XXL']
     },
     
     // Total stock (calculated from sizeStock)
@@ -234,6 +288,7 @@ productSchema.index({ isDeleted: 1, isActive: 1, subcategory: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, price: 1 });
 productSchema.index({ isDeleted: 1, isActive: 1, averageRating: -1 });
 productSchema.index({ isDeleted: 1, isActive: 1, isFeatured: -1, featuredAt: -1 }); // Featured products index
+productSchema.index({ isDeleted: 1, isActive: 1, gender: 1, sold: -1 }); // Gender filter index
 productSchema.index({ name: "text", description: "text", tags: "text" });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ sold: -1 });

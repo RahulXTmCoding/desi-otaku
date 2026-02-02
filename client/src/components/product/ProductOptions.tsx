@@ -2,6 +2,15 @@ import React from 'react';
 import { Plus, Minus, Clock } from 'lucide-react';
 import SizeChart from '../SizeChart';
 
+interface SizeChartData {
+  _id?: string;
+  displayTitle: string;
+  headers: { key: string; label: string }[];
+  measurements: any[];
+  measurementGuide?: { part: string; instruction: string }[];
+  note?: string;
+}
+
 interface Product {
   _id: string;
   name: string;
@@ -9,12 +18,9 @@ interface Product {
   stock: number;
   customTags?: string[];
   sizeStock?: {
-    S: number;
-    M: number;
-    L: number;
-    XL: number;
-    XXL: number;
+    [key: string]: number;
   };
+  isFreeSize?: boolean;
 }
 
 interface ProductOptionsProps {
@@ -24,6 +30,8 @@ interface ProductOptionsProps {
   quantity: number;
   setQuantity: (quantity: number) => void;
   productType?: 'tshirt' | 'hoodie' | 'tank' | 'oversized' | 'printed-tee';
+  sizeChartData?: SizeChartData | null;
+  isFreeSize?: boolean;
 }
 
 const ProductOptions: React.FC<ProductOptionsProps> = ({
@@ -33,12 +41,30 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
   quantity,
   setQuantity,
   productType = 'tshirt',
+  sizeChartData = null,
+  isFreeSize = false,
 }) => {
   const defaultSizes = ['S', 'M', 'L', 'XL', 'XXL'];
+  
+  // Get available sizes from size chart if available, otherwise use defaults
+  const getDisplaySizes = (): string[] => {
+    // Handle free size products
+    if (isFreeSize || product.isFreeSize) {
+      return ['Free'];
+    }
+    if (sizeChartData?.measurements && sizeChartData.measurements.length > 0) {
+      // Extract sizes from size chart measurements
+      return sizeChartData.measurements.map((m: any) => m.size).filter(Boolean);
+    }
+    // Fallback to default sizes
+    return defaultSizes;
+  };
+  
+  const displaySizes = getDisplaySizes();
 
   // Calculate stock info for selected size
   const selectedSizeStock = selectedSize && product.sizeStock 
-    ? product.sizeStock[selectedSize as keyof typeof product.sizeStock] 
+    ? product.sizeStock[selectedSize] || 0
     : product.stock;
 
   return (
@@ -47,11 +73,18 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">Size</label>
-          <SizeChart productType={productType} customTags={product.customTags} />
+          {/* Hide size chart for free size products */}
+          {!isFreeSize && !product.isFreeSize && (
+            <SizeChart 
+              productType={productType} 
+              customTags={product.customTags} 
+              sizeChartData={sizeChartData}
+            />
+          )}
         </div>
-        <div className="grid grid-cols-5 gap-2">
-          {defaultSizes.map((size) => {
-            const sizeStockCount = product.sizeStock?.[size as keyof typeof product.sizeStock] || 0;
+        <div className={`grid gap-2 ${displaySizes.length === 1 ? 'grid-cols-1 max-w-[150px]' : 'grid-cols-5'}`}>
+          {displaySizes.map((size) => {
+            const sizeStockCount = product.sizeStock?.[size] || 0;
             const isAvailable = sizeStockCount > 0;
             const isLowStock = sizeStockCount > 0 && sizeStockCount <= 5;
             

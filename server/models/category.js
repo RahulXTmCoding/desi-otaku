@@ -32,7 +32,12 @@ const categorySchema = new Schema(
     isActive: {
       type: Boolean,
       default: true
-    }
+    },
+    // Genders this category is available for
+    genders: [{
+      type: String,
+      enum: ['men', 'women', 'unisex']
+    }]
   },
   { timestamps: true }
 );

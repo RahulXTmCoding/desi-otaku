@@ -46,7 +46,7 @@ const AdminDashBoard = () => {
         { name: "Add New Product", path: "/admin/create/product", color: "text-green-400" },
         { name: "Manage Products", path: "/admin/products", color: "text-blue-400" },
         { name: "Product Types", path: "/admin/product-types", color: "text-purple-400" },
-        { name: "Product Variants", path: "/admin/products", color: "text-cyan-400" }
+        { name: "📏 Size Charts", path: "/admin/size-charts", color: "text-cyan-400" }
       ]
     },
     {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { brandConfig } from '../config/brandConfig';
 
 interface Product {
   _id: string;
@@ -29,18 +30,18 @@ const SchemaMarkup: React.FC<SchemaMarkupProps> = ({ product }) => {
     mpn: product._id,
     brand: {
       '@type': 'Brand',
-      name: 'Your Brand Name',
+      name: brandConfig.name,
     },
     offers: {
       '@type': 'Offer',
-      url: `https://yourwebsite.com/product/${product.slug || product._id}`,
+      url: `${brandConfig.baseUrl}/product/${product.slug || product._id}`,
       priceCurrency: 'INR',
       price: product.price,
       itemCondition: 'https://schema.org/NewCondition',
       availability: product.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
       seller: {
         '@type': 'Organization',
-        name: 'Your Brand Name',
+        name: brandConfig.name,
       },
     },
     aggregateRating: product.averageRating ? {

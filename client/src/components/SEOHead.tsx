@@ -2,6 +2,7 @@ import React from 'react';
 import { Helmet } from 'react-helmet-async';
 import { SEOPageData, DEFAULT_SEO, BASE_URL, ORGANIZATION_STRUCTURED_DATA, FAQ_STRUCTURED_DATA, getEnhancedProductStructuredData } from '../seo/SEOConfig';
 import { SEOUtils } from '../seo/SEOUtils';
+import { brandConfig } from '../config/brandConfig';
 
 interface SEOHeadProps {
   pageData?: SEOPageData;
@@ -115,10 +116,10 @@ const SEOHead: React.FC<SEOHeadProps> = ({
       <meta name="twitter:site" content={DEFAULT_SEO.twitterHandle} />
       
       {/* Additional Meta Tags */}
-      <meta name="author" content="Attars Clothing" />
+      <meta name="author" content={brandConfig.name} />
       <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
       <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-      <meta name="theme-color" content="#1F2937" />
+      <meta name="theme-color" content={brandConfig.theme.secondary} />
       
       {/* Language and Region */}
       <meta name="language" content="English" />

@@ -57,6 +57,7 @@ interface Product {
 interface Category {
   _id: string;
   name: string;
+  genders?: string[];
   createdAt?: string;
   updatedAt?: string;
 }
@@ -71,6 +72,7 @@ const ShopWithBackendFilters: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [selectedSubcategory, setSelectedSubcategory] = useState(searchParams.get('subcategory') || 'all');
   const [selectedProductType, setSelectedProductType] = useState(searchParams.get('type') || 'all');
+  const [selectedGender, setSelectedGender] = useState(searchParams.get('gender') || 'unisex');
   const [selectedPriceRange, setSelectedPriceRange] = useState(searchParams.get('price') || 'all');
   const [selectedSizes, setSelectedSizes] = useState<string[]>((searchParams.get('sizes')?.split(',').filter(Boolean)) || []);
   const [selectedAvailability, setSelectedAvailability] = useState(searchParams.get('availability') || 'all');
@@ -94,6 +96,7 @@ const ShopWithBackendFilters: React.FC = () => {
     const category = searchParams.get('category') || 'all';
     const subcategory = searchParams.get('subcategory') || 'all';
     const type = searchParams.get('type') || 'all';
+    const gender = searchParams.get('gender') || 'unisex';
     const price = searchParams.get('price') || 'all';
     const sizes = searchParams.get('sizes')?.split(',').filter(Boolean) || [];
     const availability = searchParams.get('availability') || 'all';
@@ -118,6 +121,7 @@ const ShopWithBackendFilters: React.FC = () => {
     }
     
     setSelectedSubcategory(subcategory);
+    setSelectedGender(gender);
     setSelectedPriceRange(price);
     setSelectedSizes(sizes);
     setSelectedAvailability(availability);
@@ -187,6 +191,7 @@ const ShopWithBackendFilters: React.FC = () => {
       category: selectedCategory === 'all' ? undefined : selectedCategory,
       subcategory: selectedSubcategory === 'all' ? undefined : selectedSubcategory,
       productType: selectedProductType === 'all' ? undefined : selectedProductType,
+      gender: selectedGender === 'all' ? undefined : selectedGender,
       minPrice: priceRange[0],
       maxPrice: priceRange[1],
       sizes: selectedSizes.length > 0 ? selectedSizes : undefined,
@@ -197,7 +202,7 @@ const ShopWithBackendFilters: React.FC = () => {
       page: currentPage,
       limit: productsPerPage
     };
-  }, [debouncedSearchQuery, selectedCategory, selectedSubcategory, selectedProductType, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage]);
+  }, [debouncedSearchQuery, selectedCategory, selectedSubcategory, selectedProductType, selectedGender, priceRange, selectedSizes, selectedAvailability, selectedTags, sortBy, currentPage]);
 
   // Use React Query for filtered products (only when not in test mode)
   const { 
@@ -304,6 +309,7 @@ const ShopWithBackendFilters: React.FC = () => {
     if (selectedCategory !== 'all') params.set('category', selectedCategory);
     if (selectedSubcategory !== 'all') params.set('subcategory', selectedSubcategory);
     if (selectedProductType !== 'all') params.set('type', selectedProductType);
+    if (selectedGender !== 'all') params.set('gender', selectedGender);
     if (selectedSizes.length > 0) params.set('sizes', selectedSizes.join(','));
     if (selectedAvailability !== 'all') params.set('availability', selectedAvailability);
     if (priceRange[0] !== 0 || priceRange[1] !== 5000) {
@@ -322,7 +328,7 @@ const ShopWithBackendFilters: React.FC = () => {
     if (currentParams !== newParams) {
       setSearchParams(params, { replace: true });
     }
-  }, [searchQuery, selectedCategory, selectedSubcategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, showFilters, searchParams, setSearchParams]);
+  }, [searchQuery, selectedCategory, selectedSubcategory, selectedProductType, selectedGender, selectedSizes, selectedAvailability, priceRange, selectedTags, sortBy, showFilters, searchParams, setSearchParams]);
 
   // Load categories and product types on mount
   useEffect(() => {
@@ -442,6 +448,7 @@ const ShopWithBackendFilters: React.FC = () => {
     setSearchQuery('');
     setSelectedCategory('all');
     setSelectedProductType('all');
+    setSelectedGender('unisex');
     setSelectedSizes([]);
     setSelectedAvailability('all');
     setPriceRange([0, 5000]);
@@ -477,22 +484,57 @@ const ShopWithBackendFilters: React.FC = () => {
     }
   };
 
+  // Filter product types by selected gender
+  const filteredProductTypes = productTypes?.filter(type => {
+    // If no genders defined, show for all (backward compatibility)
+    if (!type.genders || type.genders.length === 0) return true;
+    // Only show if type explicitly includes the selected gender
+    return type.genders.includes(selectedGender);
+  }) || [];
+
   const productTypesOptions = [
     { id: 'all', name: 'All Types', icon: '📦' },
-    ...productTypes?.map(type => ({
+    ...filteredProductTypes.map(type => ({
       id: type._id,
       name: type.displayName,
       icon: type.icon || '📦'
     }))
   ];
 
+  // Filter categories by selected gender
+  const filteredCategories = categories.filter(cat => {
+    // If no genders defined, show for all (backward compatibility)
+    if (!cat.genders || cat.genders.length === 0) return true;
+    // Only show if category explicitly includes the selected gender
+    return cat.genders.includes(selectedGender);
+  });
+
   const categoryOptions = [
     { id: 'all', name: 'All Products' },
-    ...categories.map(cat => ({
+    ...filteredCategories.map(cat => ({
       id: cat._id,
       name: cat.name
     }))
   ];
+
+  // Reset product type and category selection when they become invalid after gender change
+  useEffect(() => {
+    // Reset product type if currently selected one is not in filtered list
+    if (selectedProductType !== 'all' && filteredProductTypes.length > 0) {
+      const isValid = filteredProductTypes.some(type => type._id === selectedProductType);
+      if (!isValid) {
+        setSelectedProductType('all');
+      }
+    }
+    // Reset category if currently selected one is not in filtered list
+    if (selectedCategory !== 'all' && filteredCategories.length > 0) {
+      const isValid = filteredCategories.some(cat => cat._id === selectedCategory);
+      if (!isValid) {
+        setSelectedCategory('all');
+        setSelectedSubcategory('all');
+      }
+    }
+  }, [selectedGender, filteredProductTypes, filteredCategories]);
 
   const getProductImage = (product: Product) => {
     if (product._id) {
@@ -506,12 +548,13 @@ const ShopWithBackendFilters: React.FC = () => {
     let count = 0;
     if (selectedCategory !== 'all') count++;
     if (selectedProductType !== 'all') count++;
+    if (selectedGender !== 'all') count++;
     if (selectedSizes.length > 0) count++;
     if (selectedAvailability !== 'all') count++;
     if (priceRange[0] !== 0 || priceRange[1] !== 5000) count++;
     if (selectedTags.length > 0) count++;
     return count;
-  }, [selectedCategory, selectedProductType, selectedSizes, selectedAvailability, priceRange, selectedTags]);
+  }, [selectedCategory, selectedProductType, selectedGender, selectedSizes, selectedAvailability, priceRange, selectedTags]);
 
   const handleQuickView = (product: Product) => {
     setSelectedProduct(product);
@@ -562,45 +605,82 @@ const ShopWithBackendFilters: React.FC = () => {
                 </div>
               </div>
 
-              {/* Product Types */}
+              {/* Gender Filter */}
               <div className="mb-6">
-                <h3 className="font-semibold mb-3">Product Type</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {productTypesOptions.map(type => (
+                <h3 className="font-semibold mb-3">Gender</h3>
+                <div className="flex gap-2">
+                  {[
+                    { id: 'unisex', name: 'Unisex', icon: '👕' },
+                    { id: 'men', name: 'Men', icon: '👔' },
+                    { id: 'women', name: 'Women', icon: '👗' }
+                  ].map(option => (
                     <button
-                      key={type.id}
-                      onClick={() => handleFilterChange('productType', type.id)}
-                      className={`px-3 py-2 rounded-lg transition-colors flex flex-col items-center gap-1 text-sm ${
-                        selectedProductType === type.id
+                      key={option.id}
+                      onClick={() => {
+                        setSelectedGender(option.id);
+                        setCurrentPage(1);
+                        setHasMore(true);
+                      }}
+                      className={`flex-1 px-3 py-2 rounded-lg transition-colors flex flex-col items-center gap-1 text-sm ${
+                        selectedGender === option.id
                           ? 'bg-yellow-400 text-gray-900'
                           : 'bg-gray-700 hover:bg-gray-600'
                       }`}
                     >
-                      <span className="text-lg">{type.icon}</span>
-                      <span className="text-xs">{type.name}</span>
+                      <span className="text-lg">{option.icon}</span>
+                      <span className="text-xs">{option.name}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* Product Types */}
+              <div className="mb-6">
+                <h3 className="font-semibold mb-3">Product Type</h3>
+                {filteredProductTypes.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic px-3 py-2">No product types available for {selectedGender === 'women' ? 'Women' : selectedGender === 'men' ? 'Men' : 'Unisex'}</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {productTypesOptions.map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => handleFilterChange('productType', type.id)}
+                        className={`px-3 py-2 rounded-lg transition-colors flex flex-col items-center gap-1 text-sm ${
+                          selectedProductType === type.id
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                      >
+                        <span className="text-lg">{type.icon}</span>
+                        <span className="text-xs">{type.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Categories */}
               <div className="mb-6">
                 <h3 className="font-semibold mb-3">Categories</h3>
-                <div className="space-y-2">
-                  {categoryOptions.map(category => (
-                    <button
-                      key={category.id}
-                      onClick={() => handleFilterChange('category', category.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        selectedCategory === category.id
-                          ? 'bg-yellow-400 text-gray-900'
-                          : 'hover:bg-gray-700'
-                      }`}
-                    >
-                      <span>{category.name}</span>
-                    </button>
-                  ))}
-                </div>
+                {filteredCategories.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic px-3 py-2">No categories available for {selectedGender === 'women' ? 'Women' : selectedGender === 'men' ? 'Men' : 'Unisex'}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {categoryOptions.map(category => (
+                      <button
+                        key={category.id}
+                        onClick={() => handleFilterChange('category', category.id)}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                          selectedCategory === category.id
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'hover:bg-gray-700'
+                        }`}
+                      >
+                        <span>{category.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Subcategories - show only when a category is selected */}
@@ -1031,6 +1111,8 @@ const ShopWithBackendFilters: React.FC = () => {
         setSelectedSubcategory={setSelectedSubcategory}
         selectedProductType={selectedProductType}
         setSelectedProductType={setSelectedProductType}
+        selectedGender={selectedGender}
+        setSelectedGender={setSelectedGender}
         selectedSizes={selectedSizes}
         toggleSize={toggleSize}
         selectedAvailability={selectedAvailability}

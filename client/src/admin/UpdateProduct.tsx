@@ -16,12 +16,14 @@ import {
   Hash,
   Shirt,
   X,
-  Plus
+  Plus,
+  Ruler
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
 import { getProduct, getCategories, getCategoryTree, mockUpdateProduct } from "./helper/adminapicall";
 import { updateProductWithImages } from "./helper/productApiHelper";
 import { getAllProductTypes } from "./helper/productTypeApiCalls";
+import { getSizeChartsForDropdown, SizeChartDropdownItem, getSizeChartById, SizeChartTemplate } from "./helper/sizeChartApiCalls";
 import { useDevMode } from "../context/DevModeContext";
 import { mockProducts, mockCategories } from "../data/mockData";
 import { API } from "../backend";
@@ -36,12 +38,12 @@ interface ImageItem {
 }
 
 interface SizeStock {
-  S: string;
-  M: string;
-  L: string;
-  XL: string;
-  XXL: string;
+  [key: string]: string;
 }
+
+// All available sizes including extended sizes
+const ALL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '2XL', '3XL', '4XL', '5XL', 'Free'];
+const DEFAULT_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
 
 const UpdateProduct = () => {
   const { productId } = useParams();
@@ -91,6 +93,14 @@ const UpdateProduct = () => {
   const [imageUrl, setImageUrl] = useState("");
   const [isLoadingProduct, setIsLoadingProduct] = useState(true);
   const [isFeatured, setIsFeatured] = useState(false);
+  const [isFreeSize, setIsFreeSize] = useState(false);
+  
+  // Gender and Size Chart state
+  const [gender, setGender] = useState<'men' | 'women' | 'unisex'>('unisex');
+  const [imageDisplayMode, setImageDisplayMode] = useState<'contain' | 'cover'>('contain');
+  const [sizeChart, setSizeChart] = useState<string>('');
+  const [sizeChartOptions, setSizeChartOptions] = useState<SizeChartDropdownItem[]>([]);
+  const [selectedSizeChartData, setSelectedSizeChartData] = useState<SizeChartTemplate | null>(null);
 
   const {
     name,
@@ -183,12 +193,40 @@ const UpdateProduct = () => {
 
         // Set size stock
         if (data.sizeStock) {
-          setSizeStock(data.sizeStock);
+          // Convert to string values for form inputs
+          const stockObj: SizeStock = {};
+          Object.keys(data.sizeStock).forEach(size => {
+            stockObj[size] = String(data.sizeStock[size] || 0);
+          });
+          setSizeStock(stockObj);
         }
 
         // Set featured status
         setIsFeatured(data.isFeatured || false);
         setOriginalIsFeatured(data.isFeatured || false);
+        
+        // Set free size
+        setIsFreeSize(data.isFreeSize || false);
+        
+        // Set gender and size chart
+        setGender(data.gender || 'unisex');
+        setImageDisplayMode(data.imageDisplayMode || 'contain');
+        
+        // Set size chart - if populated object, use it directly
+        const sizeChartId = data.sizeChart?._id || data.sizeChart || '';
+        setSizeChart(sizeChartId);
+        
+        // If we have the full populated sizeChart object, use it
+        if (data.sizeChart && typeof data.sizeChart === 'object' && data.sizeChart._id) {
+          setSelectedSizeChartData(data.sizeChart);
+        } else if (sizeChartId) {
+          // Otherwise fetch it
+          getSizeChartById(sizeChartId)
+            .then(chartData => {
+              if (chartData && !chartData.error) setSelectedSizeChartData(chartData);
+            })
+            .catch(err => console.error('Error loading size chart:', err));
+        }
 
         // Load existing images using the same logic as ProductGridItem
         const loadedImages: ImageItem[] = [];
@@ -270,10 +308,11 @@ const UpdateProduct = () => {
       }));
     } else {
       try {
-        const [categoriesData, categoryTreeData, typesData] = await Promise.all([
+        const [categoriesData, categoryTreeData, typesData, sizeChartsData] = await Promise.all([
           getCategories(),
           getCategoryTree(),
-          getAllProductTypes(true)
+          getAllProductTypes(true),
+          getSizeChartsForDropdown()
         ]);
         
         if (categoriesData.error) {
@@ -288,6 +327,11 @@ const UpdateProduct = () => {
           // Set hierarchical category data
           if (categoryTreeData && !categoryTreeData.error) {
             setCategoryTree(categoryTreeData);
+          }
+          
+          // Set size chart options
+          if (Array.isArray(sizeChartsData)) {
+            setSizeChartOptions(sizeChartsData);
           }
         }
       } catch (err) {
@@ -304,7 +348,11 @@ const UpdateProduct = () => {
     // Find selected category in tree and get its subcategories
     const selectedCategory = categoryTree.find(cat => cat._id === selectedCategoryId);
     if (selectedCategory && selectedCategory.subcategories) {
-      setAvailableSubcategories(selectedCategory.subcategories);
+      // Filter subcategories by gender too
+      const filteredSubcategories = selectedCategory.subcategories.filter((sub: any) => 
+        !sub.genders || sub.genders.length === 0 || sub.genders.includes(gender)
+      );
+      setAvailableSubcategories(filteredSubcategories);
     } else {
       setAvailableSubcategories([]);
     }
@@ -314,6 +362,34 @@ const UpdateProduct = () => {
   const handleSubcategoryChange = (selectedSubcategoryId: string) => {
     setValues({ ...values, subcategory: selectedSubcategoryId });
   };
+
+  // Handle gender change - reset category and product type selections only if user explicitly changes gender
+  const handleGenderChange = (newGender: 'men' | 'women' | 'unisex') => {
+    if (newGender !== gender) {
+      setGender(newGender);
+      // Reset selections when gender changes
+      setSelectedMainCategory("");
+      setAvailableSubcategories([]);
+      setValues({ ...values, category: "", subcategory: "", productType: "" });
+      setSizeChart(''); // Reset size chart too
+    }
+  };
+
+  // Filter categories by gender
+  const filteredCategoryTree = categoryTree.filter((cat: any) => {
+    // If category has no genders field or empty genders array, show it for all
+    if (!cat.genders || cat.genders.length === 0) return true;
+    // Otherwise, check if category includes the selected gender
+    return cat.genders.includes(gender);
+  });
+
+  // Filter product types by gender
+  const filteredProductTypes = productTypes.filter((type: any) => {
+    // If product type has no genders field or empty genders array, show it for all
+    if (!type.genders || type.genders.length === 0) return true;
+    // Otherwise, check if product type includes the selected gender
+    return type.genders.includes(gender);
+  });
 
   useEffect(() => {
     if (productId) {
@@ -421,11 +497,56 @@ const UpdateProduct = () => {
     setImages(updatedImages);
   };
 
-  const handleSizeStockChange = (size: keyof SizeStock) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSizeStockChange = (size: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setSizeStock({
       ...sizeStock,
       [size]: e.target.value
     });
+  };
+
+  // Handle size chart selection change - fetch full size chart data
+  const handleSizeChartChange = async (chartId: string) => {
+    setSizeChart(chartId);
+    
+    if (!chartId) {
+      setSelectedSizeChartData(null);
+      // Reset to default sizes
+      if (!isFreeSize) {
+        setSizeStock({ S: "0", M: "0", L: "0", XL: "0", XXL: "0" });
+      }
+      return;
+    }
+    
+    try {
+      const chartData = await getSizeChartById(chartId);
+      if (chartData && !chartData.error) {
+        setSelectedSizeChartData(chartData);
+        
+        // Initialize sizeStock with sizes from the chart's measurements
+        if (chartData.measurements && chartData.measurements.length > 0) {
+          const newSizeStock: SizeStock = {};
+          chartData.measurements.forEach((m: any) => {
+            if (m.size) {
+              // Preserve existing stock values if they exist
+              newSizeStock[m.size] = sizeStock[m.size] || "0";
+            }
+          });
+          setSizeStock(newSizeStock);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching size chart:', error);
+    }
+  };
+
+  // Get sizes to display based on selected size chart or default
+  const getDisplaySizes = (): string[] => {
+    if (isFreeSize) return ['Free'];
+    if (selectedSizeChartData?.measurements && selectedSizeChartData.measurements.length > 0) {
+      return selectedSizeChartData.measurements.map((m: any) => m.size).filter(Boolean);
+    }
+    // Default sizes if no size chart selected
+    return DEFAULT_SIZES;
   };
 
   // Track original featured status to detect changes
@@ -451,7 +572,11 @@ const UpdateProduct = () => {
         tags,
         customTags,
         productType,
-        sizeStock
+        sizeStock,
+        gender, // Add gender field
+        imageDisplayMode, // Add image display mode
+        sizeChart: sizeChart || null, // null means use fallback
+        isFreeSize // Add free size flag
       };
       
       // Only include subcategory if it has a value
@@ -839,14 +964,42 @@ const UpdateProduct = () => {
             </p>
           </div>
 
+          {/* Gender Selection - FIRST to filter categories and product types */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              👤 Gender Category <span className="text-xs text-yellow-400">(Changing this will reset category & type selections)</span>
+            </label>
+            <div className="grid grid-cols-3 gap-3">
+              {(['men', 'women', 'unisex'] as const).map((g) => (
+                <button
+                  key={g}
+                  type="button"
+                  onClick={() => handleGenderChange(g)}
+                  className={`p-4 rounded-lg border-2 transition-all text-sm font-medium ${
+                    gender === g
+                      ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400'
+                      : 'bg-gray-700 border-gray-600 hover:border-gray-500 text-gray-300'
+                  }`}
+                >
+                  {g === 'men' && '👨 Men'}
+                  {g === 'women' && '👩 Women'}
+                  {g === 'unisex' && '🔄 Unisex'}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Categories and product types will be filtered based on your selection
+            </p>
+          </div>
+
           {/* Product Type */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-300 mb-3">
-              Product Type
+              Product Type {filteredProductTypes.length === 0 && <span className="text-orange-400 text-xs">(No types for {gender})</span>}
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {productTypes.length > 0 ? (
-                productTypes?.map((type) => (
+              {filteredProductTypes.length > 0 ? (
+                filteredProductTypes?.map((type) => (
                   <button
                     key={type._id}
                     type="button"
@@ -868,6 +1021,60 @@ const UpdateProduct = () => {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Image Display Mode Selection */}
+          <div className="mb-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-3">
+                Image Display Mode
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {(['contain', 'cover'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setImageDisplayMode(mode)}
+                    className={`p-3 rounded-lg border-2 transition-all text-sm font-medium ${
+                      imageDisplayMode === mode
+                        ? 'bg-yellow-400/20 border-yellow-400 text-yellow-400'
+                        : 'bg-gray-700 border-gray-600 hover:border-gray-500 text-gray-300'
+                    }`}
+                  >
+                    {mode === 'contain' && '📐 Contain (Full Image)'}
+                    {mode === 'cover' && '🖼️ Cover (Fill & Crop)'}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Contain shows the full image, Cover fills the container (may crop)
+              </p>
+            </div>
+          </div>
+
+          {/* Size Chart Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-3">
+              <Ruler className="inline w-4 h-4 mr-1" />
+              Size Chart (Optional)
+            </label>
+            <select
+              value={sizeChart}
+              onChange={(e) => handleSizeChartChange(e.target.value)}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white appearance-none cursor-pointer"
+            >
+              <option value="">Use Default (from Product Type)</option>
+              {sizeChartOptions
+                .filter(sc => sc.gender === gender || sc.gender === 'unisex')
+                .map((sc) => (
+                  <option key={sc._id} value={sc._id}>
+                    {sc.displayTitle} ({sc.gender})
+                  </option>
+                ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Leave empty to use the default size chart for the selected product type
+            </p>
           </div>
 
           {/* MRP and Selling Price Row */}
@@ -929,8 +1136,8 @@ const UpdateProduct = () => {
                   className="w-full pl-10 pr-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white appearance-none cursor-pointer"
                   required
                 >
-                  <option value="">Select Main Category</option>
-                  {categoryTree.map((mainCat: any) => (
+                  <option value="">Select Main Category {filteredCategoryTree.length === 0 ? `(No categories for ${gender})` : ''}</option>
+                  {filteredCategoryTree.map((mainCat: any) => (
                     <option key={mainCat._id} value={mainCat._id}>
                       {mainCat.name}
                     </option>
@@ -986,26 +1193,79 @@ const UpdateProduct = () => {
             </p>
           </div>
 
+          {/* Free Size Toggle */}
+          <div className="mb-6">
+            <div className="flex items-center justify-between p-4 bg-gray-700/50 rounded-lg">
+              <div>
+                <label className="block text-sm font-medium text-gray-300">Free Size Product</label>
+                <p className="text-xs text-gray-500 mt-1">Enable if this product doesn't require size selection (e.g., accessories, bags)</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsFreeSize(!isFreeSize);
+                  if (!isFreeSize) {
+                    // When enabling free size, reset sizeStock to just Free
+                    setSizeStock({ Free: sizeStock.Free || "0" });
+                  } else {
+                    // When disabling, restore default sizes
+                    setSizeStock({ S: "0", M: "0", L: "0", XL: "0", XXL: "0" });
+                  }
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  isFreeSize ? 'bg-yellow-500' : 'bg-gray-600'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isFreeSize ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+          </div>
+
           {/* Size-based Stock */}
           <div className="mb-6">
             <label className="block text-sm font-medium text-gray-300 mb-3">
-              Stock by Size
+              {isFreeSize ? 'Stock (Free Size)' : 'Stock by Size'}
             </label>
-            <div className="grid grid-cols-5 gap-3">
-              {(Object.keys(sizeStock) as Array<keyof SizeStock>).map((size) => (
-                <div key={size} className="text-center">
-                  <label className="block text-xs text-gray-400 mb-1">{size}</label>
-                  <input
-                    type="number"
-                    value={sizeStock[size]}
-                    onChange={handleSizeStockChange(size)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white text-center"
-                    placeholder="0"
-                    min="0"
-                  />
+            {isFreeSize ? (
+              // Free size - single stock input
+              <div className="max-w-[150px]">
+                <label className="block text-xs text-gray-400 mb-1">Free Size Stock</label>
+                <input
+                  type="number"
+                  value={sizeStock.Free || "0"}
+                  onChange={(e) => setSizeStock({ ...sizeStock, Free: e.target.value })}
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white text-center"
+                  placeholder="0"
+                  min="0"
+                />
+              </div>
+            ) : (
+              // Regular sizes - dynamic based on size chart
+              <>
+                {selectedSizeChartData && (
+                  <p className="text-xs text-yellow-400 mb-2">
+                    Showing sizes from: {selectedSizeChartData.displayTitle || selectedSizeChartData.name}
+                  </p>
+                )}
+                <div className={`grid gap-3 ${getDisplaySizes().length <= 5 ? 'grid-cols-5' : 'grid-cols-6'}`}>
+                  {getDisplaySizes().map((size) => (
+                    <div key={size} className="text-center">
+                      <label className="block text-xs text-gray-400 mb-1">{size}</label>
+                      <input
+                        type="number"
+                        value={sizeStock[size] || "0"}
+                        onChange={handleSizeStockChange(size)}
+                        className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white text-center"
+                        placeholder="0"
+                        min="0"
+                      />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </>
+            )}
             <p className="text-sm text-gray-400 mt-2">
               Total Stock: <span className="text-yellow-400 font-semibold">{getTotalStock()}</span> units
             </p>

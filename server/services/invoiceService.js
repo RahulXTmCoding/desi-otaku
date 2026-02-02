@@ -3,14 +3,15 @@ const fs = require('fs').promises;
 const path = require('path');
 const Invoice = require('../models/invoice');
 const DiscountCalculator = require('../utils/discountCalculator');
+const { brandConfig } = require('../config/brandConfig');
 
-// Company configuration from environment variables
+// Company configuration from environment variables (with brand config fallbacks)
 const COMPANY_CONFIG = {
-  name: process.env.COMPANY_NAME || 'Attars',
-  address: process.env.COMPANY_ADDRESS || 'Jhansi, UP, India',
-  gstNumber: process.env.COMPANY_GST || null,
-  email: process.env.COMPANY_EMAIL || 'hello@attars.club',
-  phone: process.env.COMPANY_PHONE || '+91-8853517446'
+  name: process.env.COMPANY_NAME || brandConfig.shortName,
+  address: process.env.COMPANY_ADDRESS || brandConfig.business.address || 'India',
+  gstNumber: process.env.COMPANY_GST || brandConfig.business.gstNumber || null,
+  email: process.env.COMPANY_EMAIL || brandConfig.email,
+  phone: process.env.COMPANY_PHONE || null
 };
 
 class InvoiceService {

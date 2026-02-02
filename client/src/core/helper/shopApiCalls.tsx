@@ -4,6 +4,7 @@ export const getFilteredProducts = async (filters: {
   category?: string;
   subcategory?: string;
   productType?: string;
+  gender?: string;
   minPrice?: number;
   maxPrice?: number;
   sizes?: string[];
@@ -23,6 +24,7 @@ export const getFilteredProducts = async (filters: {
     if (filters.category && filters.category !== 'all') queryParams.append('category', filters.category);
     if (filters.subcategory && filters.subcategory !== 'all') queryParams.append('subcategory', filters.subcategory);
     if (filters.productType && filters.productType !== 'all') queryParams.append('productType', filters.productType);
+    if (filters.gender && filters.gender !== 'all') queryParams.append('gender', filters.gender);
     if (filters.minPrice) queryParams.append('minPrice', filters.minPrice.toString());
     if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice.toString());
     if (filters.sizes && filters.sizes.length > 0) queryParams.append('sizes', filters.sizes.join(','));

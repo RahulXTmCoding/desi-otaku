@@ -42,7 +42,25 @@ interface Product {
   productType?: {
     _id: string;
     name: string;
+    defaultSizeChart?: {
+      _id: string;
+      displayTitle: string;
+      headers: { key: string; label: string }[];
+      measurements: any[];
+      measurementGuide?: { part: string; instruction: string }[];
+      note?: string;
+    };
   };
+  // Direct size chart override on product
+  sizeChart?: {
+    _id: string;
+    displayTitle: string;
+    headers: { key: string; label: string }[];
+    measurements: any[];
+    measurementGuide?: { part: string; instruction: string }[];
+    note?: string;
+  };
+  gender?: 'men' | 'women' | 'unisex';
   stock: number;
   sold: number;
   createdAt?: string;
@@ -67,13 +85,11 @@ interface Product {
     caption?: string;
   }>;
   sizeStock?: {
-    S: number;
-    M: number;
-    L: number;
-    XL: number;
-    XXL: number;
+    [key: string]: number;
   };
   customTags?: string[];
+  imageDisplayMode?: 'contain' | 'cover';
+  isFreeSize?: boolean;
 }
 
 const ProductDetail: React.FC = () => {
@@ -176,7 +192,28 @@ const ProductDetail: React.FC = () => {
     return 'tshirt';
   };
 
-  const getProductDescriptions = (productType: string) => {
+  const getProductDescriptions = (productType: string, gender?: string) => {
+    // Women's specific descriptions
+    if (gender === 'women') {
+          return {
+            material: "Elegant",
+            features: [
+              "Elegant and flattering fit",
+              "Designed to enhance your presence",
+              "Timeless style for any occasion",
+              "Crafted for the modern woman"
+            ],
+            careInstructions: [
+              "Machine wash cold with similar colors",
+              "Do not bleach",
+              "Tumble dry low",
+              "Iron on reverse side",
+              "Do not dry clean"
+            ]
+        };
+      }
+    
+    // Men's and unisex descriptions
     switch (productType) {
       case 'printed-tee':
         return {
@@ -263,13 +300,44 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  // Get dynamic descriptions based on product type
+  // Get dynamic descriptions based on product type and gender
   const productType = product ? getProductType(product) : 'tshirt';
-  const productDescriptions = getProductDescriptions(productType);
+  const productDescriptions = getProductDescriptions(productType, product?.gender);
   
   const defaultFeatures = productDescriptions.features;
   const defaultCareInstructions = productDescriptions.careInstructions;
   const defaultMaterial = productDescriptions.material;
+
+  // Get size chart data with fallback chain:
+  // 1. Product's sizeChart (direct override)
+  // 2. ProductType's defaultSizeChart
+  // 3. null (component will use hardcoded fallback)
+  const getSizeChartData = () => {
+    if (product?.sizeChart) {
+      return product.sizeChart;
+    }
+    if (product?.productType?.defaultSizeChart) {
+      return product.productType.defaultSizeChart;
+    }
+    return null;
+  };
+  
+  const sizeChartData = getSizeChartData();
+  
+  // Check if product is free size
+  const isFreeSize = product?.isFreeSize || false;
+  
+  // Get available sizes from size chart data
+  const getAvailableSizes = (): string[] => {
+    // Handle free size products
+    if (isFreeSize) {
+      return ['Free'];
+    }
+    if (sizeChartData?.measurements && sizeChartData.measurements.length > 0) {
+      return sizeChartData.measurements.map((m: any) => m.size).filter(Boolean);
+    }
+    return defaultSizes;
+  };
 
   useEffect(() => {
       const checkIsMobile = () => {
@@ -326,19 +394,28 @@ const ProductDetail: React.FC = () => {
     if (product && id) {
       setSelectedColor(defaultColors[0]);
       
+      // Handle free size products
+      if (product.isFreeSize) {
+        setSelectedSize('Free');
+        return;
+      }
+      
       if (product.sizeStock) {
         const categoryName = product.category?.name || '';
         
         // First, try to use saved size preference for this category
         const savedSize = getSavedSizePreference(categoryName);
         
-        // Check if saved size is available in stock
-        if (savedSize && product.sizeStock[savedSize as keyof typeof product.sizeStock] > 0) {
+        // Get available sizes from size chart or use defaults
+        const availableSizes = getAvailableSizes();
+        
+        // Check if saved size is available in stock AND in the size chart
+        if (savedSize && availableSizes.includes(savedSize) && product.sizeStock[savedSize] > 0) {
           setSelectedSize(savedSize);
         } else {
-          // Fallback to first available size
-          const firstAvailableSize = defaultSizes.find(size => 
-            product.sizeStock && product.sizeStock[size as keyof typeof product.sizeStock] > 0
+          // Fallback to first available size from size chart
+          const firstAvailableSize = availableSizes.find(size => 
+            product.sizeStock && product.sizeStock[size] > 0
           );
           if (firstAvailableSize) {
             setSelectedSize(firstAvailableSize);
@@ -640,6 +717,8 @@ const ProductDetail: React.FC = () => {
                 quantity={quantity}
                 setQuantity={setQuantity}
                 productType={productType}
+                sizeChartData={sizeChartData}
+                isFreeSize={isFreeSize}
               />
 
               <ProductActions

@@ -15,6 +15,7 @@ interface Product {
     XXL: number;
   };
   customTags?: string[];
+  imageDisplayMode?: 'contain' | 'cover';
 }
 
 interface ProductImageGalleryProps {
@@ -69,7 +70,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 <img 
                   src={image.url}
                   alt={image.caption || `${product.name} ${index + 1}`}
-                  className="w-full h-full object-contain"
+                  className="w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'}"
                 />
               </button>
             ))
@@ -84,7 +85,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
               <img 
                 src={getProductImage(product)}
                 alt={product.name}
-                className="w-full h-full object-contain"
+                className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'}`}
               />
             </button>
           )}
@@ -103,7 +104,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                   ? productImages[currentImageIndex].url 
                   : getProductImage(product)}
                 alt={productImages[currentImageIndex]?.caption || product.name}
-                className={`w-full h-full object-contain transition-transform duration-300 ${
+                className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'} transition-transform duration-300 ${
                   imageZoomActive ? 'scale-150' : 'scale-100'
                 }`}
               />
@@ -190,7 +191,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                   ? productImages[currentImageIndex].url 
                   : getProductImage(product)}
                 alt={productImages[currentImageIndex]?.caption || product.name}
-                className={`w-full h-full object-contain transition-transform duration-300 ${
+                className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'} transition-transform duration-300 ${
                   imageZoomActive ? 'scale-150' : 'scale-100'
               }`}
             />

@@ -37,6 +37,7 @@ const sitemapRoutes = require("./routes/sitemap");
 const telegramRoutes = require("./routes/telegram");
 const marketingRoutes = require("./routes/marketing");
 const returnExchangeRoutes = require("./routes/returnExchange");
+const sizeChartRoutes = require("./routes/sizeChart");
 const { initializeSettings } = require("./controllers/settings");
 const AOVService = require("./services/aovService");
 const redisService = require("./services/redisService");
@@ -70,8 +71,10 @@ mongoose
   });
 
 //Middlewares
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: '100mb' }));
+app.use(bodyParser.urlencoded({ limit: '100mb', extended: true, parameterLimit: 50000 }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ limit: '100mb', extended: true }));
 app.use(cookieParser());
 app.use(cors(corsOptions));
 
@@ -144,6 +147,7 @@ app.use("/api/sitemap", sitemapRoutes);
 app.use("/api/telegram", telegramRoutes);
 app.use("/api/marketing", marketingRoutes);
 app.use("/api/return-exchange", returnExchangeRoutes);
+app.use("/api", sizeChartRoutes);
 
 // Serve static files (for invoice PDFs)
 app.use('/invoices', express.static(require('path').join(__dirname, 'public/invoices')));

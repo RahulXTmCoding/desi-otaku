@@ -1,66 +1,74 @@
 import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ChevronLeft, FolderPlus, CheckCircle, AlertCircle, Folder } from 'lucide-react';
+import { useNavigate, useParams } from "react-router-dom";
+import { ChevronLeft, FolderPlus, CheckCircle, AlertCircle, Folder, Loader2 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
-import { createCategory, mockCreateCategory, getCategories } from "./helper/adminapicall";
+import { getCategory, updateCategory } from "./helper/adminapicall";
 import { getMainCategories } from "../core/helper/coreapicalls";
-import { useDevMode } from "../context/DevModeContext";
 
 interface Category {
   _id: string;
   name: string;
   parentCategory?: string | null;
   level?: number;
+  icon?: string;
+  genders?: string[];
+  isActive?: boolean;
 }
 
-const AddCategory = () => {
+const UpdateCategory = () => {
+  const { categoryId } = useParams<{ categoryId: string }>();
   const [name, setName] = useState("");
   const [parentCategory, setParentCategory] = useState<string>("");
   const [icon, setIcon] = useState("📁");
   const [genders, setGenders] = useState<string[]>(['men', 'women', 'unisex']);
+  const [isActive, setIsActive] = useState(true);
   const [mainCategories, setMainCategories] = useState<Category[]>([]);
   const [error, setError] = useState(false);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
   const navigate = useNavigate();
-  const { isTestMode } = useDevMode();
   const auth = isAutheticated();
 
-  // Common emoji icons for categories
   const categoryIcons = [
     "📁", "🎯", "🌟", "🔥", "⚡", "🎨", "🎮", "🎵", 
     "📸", "🎬", "🍕", "☕", "🏆", "💎", "🚀", "🌈"
   ];
 
   useEffect(() => {
-    loadMainCategories();
-  }, [isTestMode]);
+    loadData();
+  }, [categoryId]);
 
-  const loadMainCategories = async () => {
-    if (isTestMode) {
-      // Mock categories
-      setMainCategories([
-        { _id: "1", name: "Anime", level: 0 },
-        { _id: "2", name: "Brand", level: 0 },
-        { _id: "3", name: "Seasonal", level: 0 }
-      ]);
-    } else {
-      try {
-        const data = await getMainCategories();
-        if (data && !data.error) {
-          setMainCategories(data);
-        }
-      } catch (err) {
+  const loadData = async () => {
+    setPageLoading(true);
+    try {
+      // Load main categories for parent selection
+      const categoriesData = await getMainCategories();
+      if (categoriesData && !categoriesData.error) {
+        setMainCategories(categoriesData);
       }
+
+      // Load current category data
+      if (categoryId) {
+        const categoryData = await getCategory(categoryId);
+        if (categoryData && !categoryData.error) {
+          setName(categoryData.name || "");
+          setParentCategory(categoryData.parentCategory || "");
+          setIcon(categoryData.icon || "📁");
+          setGenders(categoryData.genders || ['men', 'women', 'unisex']);
+          setIsActive(categoryData.isActive !== false);
+        } else {
+          setError(true);
+        }
+      }
+    } catch (err) {
+      setError(true);
+    } finally {
+      setPageLoading(false);
     }
   };
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setError(false);
-    setName(event.target.value);
-  };
-
-  const onSubmit = (event: React.FormEvent) => {
+  const onSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(false);
     setSuccess(false);
@@ -77,88 +85,71 @@ const AddCategory = () => {
       parentCategory: parentCategory || null,
       icon,
       genders,
-      isActive: true
+      isActive
     };
 
-    if (isTestMode) {
-      // Use mock function
-      mockCreateCategory(categoryData).then((data: any) => {
+    if (auth && auth.user && auth.token && categoryId) {
+      try {
+        const data = await updateCategory(categoryId, auth.user._id, auth.token, categoryData);
         setLoading(false);
         if (data.error) {
           setError(true);
         } else {
-          setError(false);
           setSuccess(true);
-          setName("");
-          setIcon("📁");
-          // Reset success message after 3 seconds
-          setTimeout(() => setSuccess(false), 3000);
+          setTimeout(() => {
+            navigate('/admin/categories');
+          }, 1500);
         }
-      });
-    } else if (auth && auth.user && auth.token) {
-      // Use real backend
-      createCategory(auth.user._id, auth.token, categoryData).then((data: any) => {
+      } catch (err) {
         setLoading(false);
-        if (data.error) {
-          setError(true);
-        } else {
-          setError(false);
-          setSuccess(true);
-          setName("");
-          setIcon("📁");
-          // Reload categories if subcategory was created
-          if (parentCategory) {
-            loadMainCategories();
-          }
-          // Reset success message after 3 seconds
-          setTimeout(() => setSuccess(false), 3000);
-        }
-      });
+        setError(true);
+      }
     }
   };
+
+  if (pageLoading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-yellow-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 text-white py-8">
       <div className="max-w-4xl mx-auto px-4">
-        {/* Back Button */}
         <button
-          onClick={() => navigate('/admin/dashboard')}
+          onClick={() => navigate('/admin/categories')}
           className="flex items-center gap-2 text-gray-400 hover:text-yellow-400 mb-6 transition-colors"
         >
           <ChevronLeft className="w-5 h-5" />
-          Back to Dashboard
+          Back to Categories
         </button>
 
-        {/* Page Title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-400 rounded-full mb-4">
-            <FolderPlus className="w-8 h-8 text-gray-900" />
+            <Folder className="w-8 h-8 text-gray-900" />
           </div>
-          <h1 className="text-3xl font-bold mb-2">Create New Category</h1>
-          <p className="text-gray-400">Add a new category for organizing your products</p>
+          <h1 className="text-3xl font-bold mb-2">Update Category</h1>
+          <p className="text-gray-400">Edit category details</p>
         </div>
 
-        {/* Form Card */}
         <div className="bg-gray-800 rounded-2xl p-8 border border-gray-700">
-          {/* Success Message */}
           {success && (
             <div className="bg-green-500/10 border border-green-500/50 rounded-lg p-4 mb-6 flex items-center gap-3">
               <CheckCircle className="w-5 h-5 text-green-400" />
-              <p className="text-green-400">Category created successfully!</p>
+              <p className="text-green-400">Category updated successfully! Redirecting...</p>
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
             <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-4 mb-6 flex items-center gap-3">
               <AlertCircle className="w-5 h-5 text-red-400" />
-              <p className="text-red-400">Failed to create category. Please try again.</p>
+              <p className="text-red-400">Failed to update category. Please try again.</p>
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={onSubmit} className="space-y-6">
-            {/* Category Type Selection */}
             <div className="grid grid-cols-2 gap-4 mb-6">
               <button
                 type="button"
@@ -188,7 +179,6 @@ const AddCategory = () => {
               </button>
             </div>
 
-            {/* Parent Category Selection (for subcategories) */}
             {parentCategory && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -213,18 +203,13 @@ const AddCategory = () => {
               <input
                 type="text"
                 value={name}
-                onChange={handleChange}
+                onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-2 focus:ring-yellow-400/20 text-white placeholder-gray-400 transition-all"
-                placeholder={parentCategory ? "For example: One Piece, Nike, Winter" : "For example: Anime, Brand, Seasonal"}
-                autoFocus
+                placeholder="Category name"
                 required
               />
-              <p className="text-xs text-gray-400 mt-2">
-                Choose a descriptive name for your {parentCategory ? 'subcategory' : 'category'}
-              </p>
             </div>
 
-            {/* Icon Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Category Icon
@@ -247,7 +232,6 @@ const AddCategory = () => {
               </div>
             </div>
 
-            {/* Gender Selection */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Available For Genders
@@ -276,9 +260,18 @@ const AddCategory = () => {
                   </label>
                 ))}
               </div>
-              <p className="text-xs text-gray-400 mt-2">
-                Select which genders this category is available for
-              </p>
+            </div>
+
+            <div>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isActive}
+                  onChange={(e) => setIsActive(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-yellow-400 focus:ring-yellow-400"
+                />
+                <span className="text-gray-300">Active (visible to customers)</span>
+              </label>
             </div>
 
             <div className="flex gap-4">
@@ -290,18 +283,18 @@ const AddCategory = () => {
                 {loading ? (
                   <>
                     <div className="w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full animate-spin"></div>
-                    Creating...
+                    Updating...
                   </>
                 ) : (
                   <>
-                    <FolderPlus className="w-5 h-5" />
-                    Create Category
+                    <CheckCircle className="w-5 h-5" />
+                    Update Category
                   </>
                 )}
               </button>
               <button
                 type="button"
-                onClick={() => navigate('/admin/dashboard')}
+                onClick={() => navigate('/admin/categories')}
                 className="px-6 bg-gray-700 hover:bg-gray-600 text-white py-3 rounded-lg font-medium transition-colors"
               >
                 Cancel
@@ -309,37 +302,9 @@ const AddCategory = () => {
             </div>
           </form>
         </div>
-
-        {/* Help Section */}
-        <div className="mt-8 bg-gray-800 rounded-2xl p-6 border border-gray-700">
-          <h3 className="font-semibold mb-3">Tips for Categories</h3>
-          <ul className="space-y-2 text-sm text-gray-400">
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
-              <span>Use clear, descriptive names that customers will understand</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
-              <span>Categories help organize products and improve navigation</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full mt-1.5"></div>
-              <span>Consider your target audience when naming categories</span>
-            </li>
-          </ul>
-        </div>
-
-        {/* Mode Indicator */}
-        <div className="mt-6 text-center text-xs text-gray-500">
-          {isTestMode ? (
-            <p>Test Mode: Categories will be created locally</p>
-          ) : (
-            <p>Backend Mode: Categories will be saved to database</p>
-          )}
-        </div>
       </div>
     </div>
   );
 };
 
-export default AddCategory;
+export default UpdateCategory;

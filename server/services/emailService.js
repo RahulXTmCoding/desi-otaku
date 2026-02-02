@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const DiscountCalculator = require('../utils/discountCalculator');
+const { brandConfig } = require('../config/brandConfig');
 
 class EmailService {
   constructor() {
@@ -15,7 +16,7 @@ class EmailService {
       this.initializeNodemailer();
     }
 
-    this.from = process.env.EMAIL_FROM || 'Attars <noreply@attars.club>';
+    this.from = process.env.EMAIL_FROM || `${brandConfig.name} <noreply@${brandConfig.domain}>`;
   }
 
   initializeBrevo() {
@@ -45,8 +46,8 @@ class EmailService {
       // Store SDK reference for creating emails
       this.SibApiV3Sdk = SibApiV3Sdk;
       
-      this.senderEmail = process.env.BREVO_SENDER_EMAIL || 'noreply@attars.club';
-      this.senderName = process.env.BREVO_SENDER_NAME || 'Attars';
+      this.senderEmail = process.env.BREVO_SENDER_EMAIL || `noreply@${brandConfig.domain}`;
+      this.senderName = process.env.BREVO_SENDER_NAME || brandConfig.shortName;
       
       console.log('✅ Brevo API initialized successfully with key:', process.env.BREVO_API_KEY.substring(0, 8) + '...');
       

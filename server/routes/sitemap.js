@@ -3,9 +3,11 @@ const router = express.Router();
 const Product = require('../models/product');
 const Category = require('../models/category');
 const ProductType = require('../models/productType');
+const { brandConfig, getBrandUrl, getBackendUrl } = require('../config/brandConfig');
 
 // Sitemap generation utilities (adapted from frontend)
-const BASE_URL = 'https://attars.club';
+const BASE_URL = brandConfig.baseUrl;
+const BACKEND_URL = brandConfig.backendUrl;
 
 // XML entity escaping function
 const escapeXml = (unsafe) => {
@@ -46,7 +48,6 @@ const generateSitemapIndex = (sitemapFiles) => {
   const sitemapindexClose = '</sitemapindex>';
   
   // Sitemap index should point to backend domain where sitemaps are served
-  const BACKEND_URL = 'https://backend.attars.club';
   const sitemapElements = sitemapFiles.map(file => `
   <sitemap>
     <loc>${BACKEND_URL}/api/sitemap/${file}</loc>

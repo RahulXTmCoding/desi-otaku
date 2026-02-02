@@ -358,7 +358,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
             <img 
               src={getImageUrl()}
               alt={product.name}
-              className={`w-full h-full object-cover md:object-contain transition-all duration-500 ${
+              className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-cover md:object-contain'} transition-all duration-500 ${
                 hasSecondImage() ? 'group-hover:opacity-0' : 'group-hover:scale-110'
               }`}
               onError={handleImageError}
@@ -370,7 +370,7 @@ const ProductGridItem: React.FC<ProductGridItemProps> = ({
               <img
                 src={getSecondImageUrl()!}
                 alt={`${product.name} - Alternative view`}
-                className="absolute inset-0 w-full h-full object-contain opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
+                className={`absolute inset-0 w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'} opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500`}
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}

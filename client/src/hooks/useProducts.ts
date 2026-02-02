@@ -1,10 +1,13 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { getSimilarProducts, getFilteredProducts } from '../core/helper/shopApiCalls';
-import { getProducts, getProduct } from '../core/helper/coreapicalls';
-import { getDesigns, getAllDesignTags } from '../admin/helper/designapicall';
-import { getCategories } from '../admin/helper/adminapicall';
-import { API } from '../backend';
-import { queryPersistence } from '../utils/queryPersistence';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getSimilarProducts,
+  getFilteredProducts,
+} from "../core/helper/shopApiCalls";
+import { getProducts, getProduct } from "../core/helper/coreapicalls";
+import { getDesigns, getAllDesignTags } from "../admin/helper/designapicall";
+import { getCategories } from "../admin/helper/adminapicall";
+import { API } from "../backend";
+import { queryPersistence } from "../utils/queryPersistence";
 
 // Interface for filtered products parameters
 interface FilteredProductsParams {
@@ -12,6 +15,7 @@ interface FilteredProductsParams {
   category?: string;
   subcategory?: string;
   productType?: string;
+  gender?: string;
   minPrice?: number;
   maxPrice?: number;
   sizes?: string[];
@@ -27,10 +31,10 @@ interface FilteredProductsParams {
 // Hook for fetching similar products with caching
 export const useSimilarProducts = (productId: string, limit: number = 4) => {
   return useQuery({
-    queryKey: ['similarProducts', productId, limit],
+    queryKey: ["similarProducts", productId, limit],
     queryFn: () => getSimilarProducts(productId, limit),
     enabled: !!productId, // Only run if productId exists
-    staleTime: 1 * 60 * 1000, // 1 minute (short TTL for fresh recommendations) 
+    staleTime: 1 * 60 * 1000, // 1 minute (short TTL for fresh recommendations)
     gcTime: 5 * 60 * 1000, // 5 minutes max cache as requested
     retry: 2,
     refetchOnWindowFocus: false,
@@ -40,9 +44,8 @@ export const useSimilarProducts = (productId: string, limit: number = 4) => {
 // Hook for fetching all products with caching (optimized for home page)
 export const useProducts = () => {
   return useQuery({
-    queryKey: ['products'],
+    queryKey: ["products"],
     queryFn: async () => {
-      
       try {
         const data = await getProducts();
         return data;
@@ -66,29 +69,28 @@ export const useProducts = () => {
     structuralSharing: true,
     // Add meta for debugging
     meta: {
-      hookType: 'useProducts',
-      purpose: 'homePage'
-    }
+      hookType: "useProducts",
+      purpose: "homePage",
+    },
   });
 };
 
 // Hook for fetching single product with caching
 export const useProduct = (productId: string) => {
-  const queryKey = ['product', productId];
-  
+  const queryKey = ["product", productId];
+
   return useQuery({
     queryKey,
     queryFn: async () => {
-      
       try {
         const data = await getProduct(productId);
         // Check if product is newly launched (within last 7 days)
         const createdAt = new Date(data.createdAt);
         const now = new Date();
-        const daysSinceCreation = (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+        const daysSinceCreation =
+          (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
         const isNewlyLaunched = daysSinceCreation <= 7;
-        
-        
+
         return data;
       } catch (error) {
         throw error;
@@ -112,18 +114,22 @@ export const useProduct = (productId: string) => {
     // Use initial data from persistence if available
     initialData: () => {
       // Check if we have persisted data
-      const persistedCache = localStorage.getItem('react-query-cache');
+      const persistedCache = localStorage.getItem("react-query-cache");
       if (persistedCache) {
         try {
           const cache = JSON.parse(persistedCache);
           const queryHash = JSON.stringify(queryKey);
-          
+
           // Look for our specific query in the persisted cache
           if (cache.clientState && cache.clientState.queries) {
             for (const query of cache.clientState.queries) {
-              if (JSON.stringify(query.queryKey) === queryHash && query.state.data) {
+              if (
+                JSON.stringify(query.queryKey) === queryHash &&
+                query.state.data
+              ) {
                 const cacheAge = Date.now() - query.state.dataUpdatedAt;
-                if (cacheAge < 30 * 60 * 1000) { // Within 30 minutes
+                if (cacheAge < 30 * 60 * 1000) {
+                  // Within 30 minutes
                   return query.state.data;
                 }
               }
@@ -137,14 +143,14 @@ export const useProduct = (productId: string) => {
       return undefined;
     },
     // Prevent network requests if data is fresh
-    networkMode: 'online',
+    networkMode: "online",
     // Better structural sharing
     structuralSharing: true,
     // Add meta for debugging
     meta: {
       productId,
-      hookType: 'useProduct'
-    }
+      hookType: "useProduct",
+    },
   });
 };
 
@@ -155,31 +161,37 @@ export const useFilteredProducts = (params: FilteredProductsParams) => {
     // Sort arrays for consistent cache keys
     const sortedSizes = params.sizes ? [...params.sizes].sort() : undefined;
     const sortedTags = params.tags ? [...params.tags].sort() : undefined;
-    
+
     // Clean up undefined/null values and create normalized params
     const normalizedParams = {
       search: params.search || undefined,
-      category: params.category === 'all' ? undefined : params.category,
-      subcategory: params.subcategory === 'all' ? undefined : params.subcategory,
-      productType: params.productType === 'all' ? undefined : params.productType,
+      category: params.category === "all" ? undefined : params.category,
+      subcategory:
+        params.subcategory === "all" ? undefined : params.subcategory,
+      productType:
+        params.productType === "all" ? undefined : params.productType,
+      gender: params.gender === "all" ? undefined : params.gender,
       minPrice: params.minPrice || 0,
       maxPrice: params.maxPrice || 5000,
       sizes: sortedSizes?.length ? sortedSizes : undefined,
-      availability: params.availability === 'all' ? undefined : params.availability,
+      availability:
+        params.availability === "all" ? undefined : params.availability,
       tags: sortedTags?.length ? sortedTags : undefined,
-      sortBy: params.sortBy || 'newest',
-      sortOrder: params.sortOrder || 'desc',
+      sortBy: params.sortBy || "newest",
+      sortOrder: params.sortOrder || "desc",
       page: params.page || 1,
       limit: params.limit || 12,
-      excludeFeatured: params.excludeFeatured || undefined
+      excludeFeatured: params.excludeFeatured || undefined,
     };
 
     // Remove undefined values for cleaner cache key
     const cleanParams = Object.fromEntries(
-      Object.entries(normalizedParams).filter(([_, value]) => value !== undefined)
+      Object.entries(normalizedParams).filter(
+        ([_, value]) => value !== undefined,
+      ),
     );
 
-    return ['filteredProducts', cleanParams];
+    return ["filteredProducts", cleanParams];
   };
 
   return useQuery({
@@ -197,10 +209,10 @@ export const useFilteredProducts = (params: FilteredProductsParams) => {
 // Hook for prefetching similar products (preload before user needs them)
 export const usePrefetchSimilarProducts = () => {
   const queryClient = useQueryClient();
-  
+
   const prefetchSimilarProducts = (productId: string, limit: number = 4) => {
     queryClient.prefetchQuery({
-      queryKey: ['similarProducts', productId, limit],
+      queryKey: ["similarProducts", productId, limit],
       queryFn: () => getSimilarProducts(productId, limit),
       staleTime: 10 * 60 * 1000,
     });
@@ -212,34 +224,39 @@ export const usePrefetchSimilarProducts = () => {
 // Hook for prefetching filtered products (useful for predicted user navigation)
 export const usePrefetchFilteredProducts = () => {
   const queryClient = useQueryClient();
-  
+
   const prefetchFilteredProducts = (params: FilteredProductsParams) => {
     const createCacheKey = (params: FilteredProductsParams) => {
       const sortedSizes = params.sizes ? [...params.sizes].sort() : undefined;
       const sortedTags = params.tags ? [...params.tags].sort() : undefined;
-      
+
       const normalizedParams = {
         search: params.search || undefined,
-        category: params.category === 'all' ? undefined : params.category,
-        subcategory: params.subcategory === 'all' ? undefined : params.subcategory,
-        productType: params.productType === 'all' ? undefined : params.productType,
+        category: params.category === "all" ? undefined : params.category,
+        subcategory:
+          params.subcategory === "all" ? undefined : params.subcategory,
+        productType:
+          params.productType === "all" ? undefined : params.productType,
         minPrice: params.minPrice || 0,
         maxPrice: params.maxPrice || 5000,
         sizes: sortedSizes?.length ? sortedSizes : undefined,
-        availability: params.availability === 'all' ? undefined : params.availability,
+        availability:
+          params.availability === "all" ? undefined : params.availability,
         tags: sortedTags?.length ? sortedTags : undefined,
-        sortBy: params.sortBy || 'newest',
-        sortOrder: params.sortOrder || 'desc',
+        sortBy: params.sortBy || "newest",
+        sortOrder: params.sortOrder || "desc",
         page: params.page || 1,
         limit: params.limit || 12,
-        excludeFeatured: params.excludeFeatured || undefined
+        excludeFeatured: params.excludeFeatured || undefined,
       };
 
       const cleanParams = Object.fromEntries(
-        Object.entries(normalizedParams).filter(([_, value]) => value !== undefined)
+        Object.entries(normalizedParams).filter(
+          ([_, value]) => value !== undefined,
+        ),
       );
 
-      return ['filteredProducts', cleanParams];
+      return ["filteredProducts", cleanParams];
     };
 
     queryClient.prefetchQuery({
@@ -267,18 +284,20 @@ export const useDesigns = (params: DesignFilterParams) => {
   const createCacheKey = (params: DesignFilterParams) => {
     const normalizedParams = {
       search: params.search || undefined,
-      category: params.category === 'all' ? undefined : params.category,
+      category: params.category === "all" ? undefined : params.category,
       tag: params.tag || undefined,
       page: params.page || 1,
-      limit: params.limit || 50
+      limit: params.limit || 50,
     };
 
     // Remove undefined values for cleaner cache key
     const cleanParams = Object.fromEntries(
-      Object.entries(normalizedParams).filter(([_, value]) => value !== undefined)
+      Object.entries(normalizedParams).filter(
+        ([_, value]) => value !== undefined,
+      ),
     );
 
-    return ['designs', cleanParams];
+    return ["designs", cleanParams];
   };
 
   return useQuery({
@@ -286,7 +305,8 @@ export const useDesigns = (params: DesignFilterParams) => {
     queryFn: () => {
       const filters: any = {};
       if (params.search) filters.search = params.search;
-      if (params.category && params.category !== 'all') filters.category = params.category;
+      if (params.category && params.category !== "all")
+        filters.category = params.category;
       if (params.tag) filters.tag = params.tag;
       return getDesigns(params.page || 1, params.limit || 50, filters);
     },
@@ -301,7 +321,7 @@ export const useDesigns = (params: DesignFilterParams) => {
 // Hook for fetching design categories with caching
 export const useDesignCategories = () => {
   return useQuery({
-    queryKey: ['designCategories'],
+    queryKey: ["designCategories"],
     queryFn: getCategories,
     staleTime: 15 * 60 * 1000, // 15 minutes (categories change rarely)
     gcTime: 60 * 60 * 1000, // 1 hour in cache
@@ -313,7 +333,7 @@ export const useDesignCategories = () => {
 // Hook for fetching design tags with caching
 export const useDesignTags = () => {
   return useQuery({
-    queryKey: ['designTags'],
+    queryKey: ["designTags"],
     queryFn: getAllDesignTags,
     staleTime: 15 * 60 * 1000, // 15 minutes (tags change rarely)
     gcTime: 60 * 60 * 1000, // 1 hour in cache
@@ -325,11 +345,11 @@ export const useDesignTags = () => {
 // Hook for fetching product reviews with caching (longer TTL since reviews don't change frequently)
 export const useProductReviews = (productId: string) => {
   return useQuery({
-    queryKey: ['productReviews', productId],
+    queryKey: ["productReviews", productId],
     queryFn: async () => {
       const response = await fetch(`${API}/reviews/product/${productId}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch reviews');
+        throw new Error("Failed to fetch reviews");
       }
       return response.json();
     },
@@ -342,26 +362,33 @@ export const useProductReviews = (productId: string) => {
 };
 
 // Hook for fetching user's review for a specific product
-export const useUserReview = (productId: string, userId: string, token: string) => {
+export const useUserReview = (
+  productId: string,
+  userId: string,
+  token: string,
+) => {
   return useQuery({
-    queryKey: ['userReview', productId, userId],
+    queryKey: ["userReview", productId, userId],
     queryFn: async () => {
       if (!userId || !token) return null;
-      
-      const response = await fetch(`${API}/reviews/product/${productId}/user/${userId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
+
+      const response = await fetch(
+        `${API}/reviews/product/${productId}/user/${userId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
       if (response.status === 404) {
         return null; // User hasn't reviewed this product
       }
-      
+
       if (!response.ok) {
-        throw new Error('Failed to fetch user review');
+        throw new Error("Failed to fetch user review");
       }
-      
+
       return response.json();
     },
     enabled: !!productId && !!userId && !!token,
@@ -375,11 +402,11 @@ export const useUserReview = (productId: string, userId: string, token: string) 
 // Hook for fetching reviews settings (whether reviews are enabled)
 export const useReviewsSettings = () => {
   return useQuery({
-    queryKey: ['reviewsSettings'],
+    queryKey: ["reviewsSettings"],
     queryFn: async () => {
       const response = await fetch(`${API}/settings/reviews-status`);
       if (!response.ok) {
-        throw new Error('Failed to fetch reviews settings');
+        throw new Error("Failed to fetch reviews settings");
       }
       return response.json();
     },
@@ -393,20 +420,20 @@ export const useReviewsSettings = () => {
 // Hook for caching product images with React Query (NON-BLOCKING)
 export const useProductImages = (productId: string) => {
   return useQuery({
-    queryKey: ['productImages', productId],
+    queryKey: ["productImages", productId],
     queryFn: async () => {
-      if (!productId) throw new Error('Product ID required');
-      
+      if (!productId) throw new Error("Product ID required");
+
       // Fetch product data first to get image info
       const productResponse = await fetch(`${API}/product/${productId}`);
       if (!productResponse.ok) {
-        throw new Error('Failed to fetch product');
+        throw new Error("Failed to fetch product");
       }
       const product = await productResponse.json();
-      
+
       // Build image array
       const images = [];
-      
+
       if (product.images && product.images.length > 0) {
         // Process multiple images
         product.images.forEach((img: any, index: number) => {
@@ -415,15 +442,15 @@ export const useProductImages = (productId: string) => {
             url: img.url || `${API}/product/image/${productId}/${index}`,
             caption: img.caption || `Image ${index + 1}`,
             isPrimary: img.isPrimary || false,
-            order: img.order || index
+            order: img.order || index,
           });
         });
-        
+
         // Sort by order
         images.sort((a, b) => a.order - b.order);
-        
+
         // Ensure at least one image is primary
-        if (!images.some(img => img.isPrimary) && images.length > 0) {
+        if (!images.some((img) => img.isPrimary) && images.length > 0) {
           images[0].isPrimary = true;
         }
       } else {
@@ -431,20 +458,20 @@ export const useProductImages = (productId: string) => {
         images.push({
           id: `${productId}-0`,
           url: `${API}/product/image/${productId}`,
-          caption: 'Main Image',
+          caption: "Main Image",
           isPrimary: true,
-          order: 0
+          order: 0,
         });
       }
-      
+
       // Return images immediately - preload in background after return
       setTimeout(() => {
-        images.forEach(image => {
+        images.forEach((image) => {
           const img = new Image();
           img.src = image.url; // Preload in background without blocking
         });
       }, 0);
-      
+
       return images;
     },
     enabled: !!productId,
@@ -459,21 +486,21 @@ export const useProductImages = (productId: string) => {
 // Hook for prefetching product images (use when hovering over product cards)
 export const usePrefetchProductImages = () => {
   const queryClient = useQueryClient();
-  
+
   const prefetchProductImages = (productId: string) => {
     queryClient.prefetchQuery({
-      queryKey: ['productImages', productId],
+      queryKey: ["productImages", productId],
       queryFn: async () => {
-        if (!productId) throw new Error('Product ID required');
-        
+        if (!productId) throw new Error("Product ID required");
+
         const productResponse = await fetch(`${API}/product/${productId}`);
         if (!productResponse.ok) {
-          throw new Error('Failed to fetch product');
+          throw new Error("Failed to fetch product");
         }
         const product = await productResponse.json();
-        
+
         const images = [];
-        
+
         if (product.images && product.images.length > 0) {
           product.images.forEach((img: any, index: number) => {
             images.push({
@@ -481,37 +508,38 @@ export const usePrefetchProductImages = () => {
               url: img.url || `${API}/product/image/${productId}/${index}`,
               caption: img.caption || `Image ${index + 1}`,
               isPrimary: img.isPrimary || false,
-              order: img.order || index
+              order: img.order || index,
             });
           });
-          
+
           images.sort((a, b) => a.order - b.order);
-          
-          if (!images.some(img => img.isPrimary) && images.length > 0) {
+
+          if (!images.some((img) => img.isPrimary) && images.length > 0) {
             images[0].isPrimary = true;
           }
         } else {
           images.push({
             id: `${productId}-0`,
             url: `${API}/product/image/${productId}`,
-            caption: 'Main Image',
+            caption: "Main Image",
             isPrimary: true,
-            order: 0
+            order: 0,
           });
         }
-        
+
         // Preload images
         await Promise.all(
-          images.map(image => 
-            new Promise((resolve) => {
-              const img = new Image();
-              img.onload = () => resolve(image);
-              img.onerror = () => resolve(image);
-              img.src = image.url;
-            })
-          )
+          images.map(
+            (image) =>
+              new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(image);
+                img.onerror = () => resolve(image);
+                img.src = image.url;
+              }),
+          ),
         );
-        
+
         return images;
       },
       staleTime: 10 * 60 * 1000,
@@ -524,23 +552,23 @@ export const usePrefetchProductImages = () => {
 // Hook for fetching featured products with React Query caching
 export const useFeaturedProducts = (limit: number = 8) => {
   return useQuery({
-    queryKey: ['featuredProducts', limit],
+    queryKey: ["featuredProducts", limit],
     queryFn: async () => {
       if (import.meta.env.DEV) {
       }
       const startTime = Date.now();
-      
+
       try {
         const response = await fetch(`${API}/products/featured?limit=${limit}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch featured products');
+          throw new Error("Failed to fetch featured products");
         }
         const data = await response.json();
         const endTime = Date.now();
-        
+
         if (import.meta.env.DEV) {
         }
-        
+
         return data.products || [];
       } catch (error) {
         const endTime = Date.now();
@@ -566,33 +594,33 @@ export const useFeaturedProducts = (limit: number = 8) => {
     structuralSharing: true,
     // Add meta for debugging
     meta: {
-      hookType: 'useFeaturedProducts',
-      purpose: 'homePageFeatured',
-      limit
-    }
+      hookType: "useFeaturedProducts",
+      purpose: "homePageFeatured",
+      limit,
+    },
   });
 };
 
 // Hook for fetching trending products with React Query caching
 export const useTrendingProducts = (limit: number = 8) => {
   return useQuery({
-    queryKey: ['trendingProducts', limit],
+    queryKey: ["trendingProducts", limit],
     queryFn: async () => {
       if (import.meta.env.DEV) {
       }
       const startTime = Date.now();
-      
+
       try {
         const response = await fetch(`${API}/products/trending?limit=${limit}`);
         if (!response.ok) {
-          throw new Error('Failed to fetch trending products');
+          throw new Error("Failed to fetch trending products");
         }
         const data = await response.json();
         const endTime = Date.now();
-        
+
         if (import.meta.env.DEV) {
         }
-        
+
         return data.products || [];
       } catch (error) {
         const endTime = Date.now();
@@ -618,9 +646,9 @@ export const useTrendingProducts = (limit: number = 8) => {
     structuralSharing: true,
     // Add meta for debugging
     meta: {
-      hookType: 'useTrendingProducts',
-      purpose: 'homePageTrending',
-      limit
-    }
+      hookType: "useTrendingProducts",
+      purpose: "homePageTrending",
+      limit,
+    },
   });
 };

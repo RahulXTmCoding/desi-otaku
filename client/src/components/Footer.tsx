@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/adaptive-logo.css';
+import { brandConfig } from '../config/brandConfig';
 
 const Footer: React.FC = () => {
   return (
@@ -10,7 +11,7 @@ const Footer: React.FC = () => {
         <div className="mb-8 lg:mb-0">
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-32 flex items-center justify-center overflow-hidden">
-              <img src="/brand.png" alt="Attars Club Logo" className="w-32 object-contain logo-adaptive" />
+              <img src={brandConfig.logoPath} alt={brandConfig.logoAlt} className="w-32 object-contain logo-adaptive" />
             </div>
           </div>
           
@@ -99,48 +100,49 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="font-semibold mb-4 text-white">Connect</h4>
             <ul className="space-y-2 text-gray-400 text-sm">
-              <li>
-                <a
-                  href="instagram.com/attars.club/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-yellow-400 transition-colors"
-                >
-                  Instagram
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://x.com/Attars_club"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-yellow-400 transition-colors"
-                >
-                  Twitter
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://discord.gg/aVq4WaRF"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:text-yellow-400 transition-colors"
-                >
-                  Discord
-                </a>
-              </li>
-              {/* <li>
-                <Link to="/newsletter" className="hover:text-yellow-400 transition-colors">
-                  Newsletter
-                </Link>
-              </li> */}
+              {brandConfig.socialLinks.instagram && (
+                <li>
+                  <a
+                    href={brandConfig.socialLinks.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-yellow-400 transition-colors"
+                  >
+                    Instagram
+                  </a>
+                </li>
+              )}
+              {brandConfig.socialLinks.twitter && (
+                <li>
+                  <a
+                    href={brandConfig.socialLinks.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-yellow-400 transition-colors"
+                  >
+                    Twitter
+                  </a>
+                </li>
+              )}
+              {brandConfig.socialLinks.discord && (
+                <li>
+                  <a
+                    href={brandConfig.socialLinks.discord}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:text-yellow-400 transition-colors"
+                  >
+                    Discord
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-        <p>&copy; 2025 Attars Club. All rights reserved. Made with ❤️ for fashion enthusiasts.</p>
+        <p>&copy; {brandConfig.copyright.year} {brandConfig.copyright.text}</p>
       </div>
     </footer>
   );

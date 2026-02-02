@@ -10,7 +10,14 @@ exports.getProductById = (req, res, next, id) => {
   Product.findById(id)
     .populate("category")
     .populate("subcategory")
-    .populate("productType")
+    .populate({
+      path: "productType",
+      populate: {
+        path: "defaultSizeChart",
+        model: "SizeChartTemplate"
+      }
+    })
+    .populate("sizeChart") // Populate product's direct size chart override
     .exec((err, product) => {
       if (err) {
         return res.status(400).json({
@@ -142,21 +149,26 @@ exports.createProduct = (req, res) => {
 exports.getProduct = async (req, res) => {
   try {
     const productId = req.params.productId; // Get productId directly from params
+    const skipCache = req.query.skipCache === 'true'; // Admin requests can skip cache
     const cacheKey = `product:${productId}`;
     
     // Initialize Redis connection if not already connected
     await redisService.connect();
     
-    // Try to get from Redis cache first
-    const cachedProduct = await redisService.get(cacheKey);
-    
-    if (cachedProduct) {
-      console.log(`🔥 REDIS CACHE HIT for product: ${productId}`);
-      return res.json({
-        ...cachedProduct,
-        _cached: true,
-        _cacheAge: Date.now() - cachedProduct._cachedAt
-      });
+    // Try to get from Redis cache first (unless skipCache is true)
+    if (!skipCache) {
+      const cachedProduct = await redisService.get(cacheKey);
+      
+      if (cachedProduct) {
+        console.log(`🔥 REDIS CACHE HIT for product: ${productId}`);
+        return res.json({
+          ...cachedProduct,
+          _cached: true,
+          _cacheAge: Date.now() - cachedProduct._cachedAt
+        });
+      }
+    } else {
+      console.log(`⏭️ SKIPPING CACHE for product: ${productId} (admin request)`);
     }
     
     console.log(`💾 REDIS CACHE MISS for product: ${productId} - fetching from DB`);
@@ -164,8 +176,15 @@ exports.getProduct = async (req, res) => {
     // Cache miss - fetch from database
     const product = await Product.findById(productId)
       .populate("category")
-      // .populate("subcategory")
-      // .populate("productType")
+      .populate("subcategory")
+      .populate({
+        path: "productType",
+        populate: {
+          path: "defaultSizeChart",
+          model: "SizeChartTemplate"
+        }
+      })
+      .populate("sizeChart") // Populate product's direct size chart
       .lean(); // Use lean for better performance
       
     if (!product) {
@@ -218,7 +237,14 @@ exports.getProduct = async (req, res) => {
       const product = await Product.findById(productId)
         .populate("category")
         .populate("subcategory")
-        .populate("productType")
+        .populate({
+          path: "productType",
+          populate: {
+            path: "defaultSizeChart",
+            model: "SizeChartTemplate"
+          }
+        })
+        .populate("sizeChart")
         .lean();
 
       if (!product) {
@@ -537,7 +563,14 @@ exports.getAllProducts = async (req, res) => {
     const products = await Product.find(filter)
       .select("-photo -images.data") // Exclude heavy binary data
       .populate("category")
-      .populate("productType")
+      .populate({
+        path: "productType",
+        populate: {
+          path: "defaultSizeChart",
+          model: "SizeChartTemplate"
+        }
+      })
+      .populate("sizeChart") // Populate product's direct size chart
       .sort([[sortBy, "asc"]])
       .limit(limit)
       .lean(); // Use lean for better performance
@@ -590,7 +623,14 @@ exports.getAllProducts = async (req, res) => {
     Product.find(filter)
       .select("-photo")
       .populate("category")
-      .populate("productType")
+      .populate({
+        path: "productType",
+        populate: {
+          path: "defaultSizeChart",
+          model: "SizeChartTemplate"
+        }
+      })
+      .populate("sizeChart")
       .sort([[sortBy, "asc"]])
       .limit(limit)
       .exec((err, products) => {
@@ -614,7 +654,14 @@ exports.getDeletedProducts = async (req, res) => {
       Product.find({ isDeleted: true })
         .select("-photo")
         .populate("category")
-        .populate("productType")
+        .populate({
+          path: "productType",
+          populate: {
+            path: "defaultSizeChart",
+            model: "SizeChartTemplate"
+          }
+        })
+        .populate("sizeChart")
         .populate("deletedBy", "name email")
         .sort({ deletedAt: -1 })
         .limit(parseInt(limit))
@@ -649,6 +696,7 @@ exports.getFilteredProducts = async (req, res) => {
       category,
       subcategory,
       productType,
+      gender, // Add gender filter
       minPrice,
       maxPrice,
       tags,
@@ -663,7 +711,7 @@ exports.getFilteredProducts = async (req, res) => {
 
     // Create cache key for Redis caching
     const cacheKey = `search:${JSON.stringify({
-      search, category, subcategory, productType, minPrice, maxPrice, 
+      search, category, subcategory, productType, gender, minPrice, maxPrice, 
       tags, sizes, availability, sortBy, sortOrder, page, limit
     })}`;
 
@@ -840,6 +888,64 @@ exports.getFilteredProducts = async (req, res) => {
       }
     }
 
+    // === STEP 2.5: Apply Gender Filter ===
+    if (gender && gender !== 'all') {
+      // Filter by gender: men, women, or unisex
+      // Men: men + unisex + legacy (no gender field)
+      // Men: men only + legacy (no gender field or null for backward compatibility)
+      // Women: women only (strict, no legacy products)
+      // Unisex: unisex + legacy only
+      
+      let genderCondition;
+      
+      if (gender === 'men') {
+        // Men: show men only + legacy products (no gender field or null)
+        genderCondition = { 
+          $or: [
+            { gender: 'men' }, 
+            { gender: { $exists: false } },
+            { gender: null }
+          ] 
+        };
+      } else if (gender === 'women') {
+        // Women: show women only (NO legacy, NO unisex)
+        genderCondition = { 
+          gender: 'women'
+        };
+      } else if (gender === 'unisex') {
+        // Unisex: show unisex + legacy only
+        genderCondition = { 
+          $or: [
+            { gender: 'unisex' },
+            { gender: { $exists: false } },
+            { gender: null }
+          ] 
+        };
+      }
+      
+      if (genderCondition) {
+        if (baseConditions.$and) {
+          baseConditions.$and.push(genderCondition);
+        } else if (baseConditions.$or) {
+          // Convert existing $or to $and structure
+          const existingOr = baseConditions.$or;
+          delete baseConditions.$or;
+          baseConditions.$and = [
+            { $or: existingOr },
+            genderCondition
+          ];
+        } else {
+          // Apply gender condition directly
+          if (genderCondition.$or) {
+            baseConditions.$or = genderCondition.$or;
+          } else {
+            // For simple conditions like { gender: 'women' }
+            Object.assign(baseConditions, genderCondition);
+          }
+        }
+      }
+    }
+
     // === STEP 3: Apply Price Range Filter ===
     if (minPrice || maxPrice) {
       baseConditions.price = {};
@@ -973,7 +1079,7 @@ exports.getFilteredProducts = async (req, res) => {
 
     pipeline.push({ $match: finalMatchConditions });
 
-    // Stage 2: Lookup category and productType
+    // Stage 2: Lookup category, productType, and sizeChart
     pipeline.push(
       {
         $lookup: {
@@ -989,6 +1095,14 @@ exports.getFilteredProducts = async (req, res) => {
           localField: "productType", 
           foreignField: "_id",
           as: "productType"
+        }
+      },
+      {
+        $lookup: {
+          from: "sizecharttemplates",
+          localField: "sizeChart",
+          foreignField: "_id",
+          as: "sizeChart"
         }
       }
     );
@@ -1067,6 +1181,9 @@ exports.getFilteredProducts = async (req, res) => {
       if (Array.isArray(product.productType)) {
         product.productType = product.productType[0] || null;
       }
+      if (Array.isArray(product.sizeChart)) {
+        product.sizeChart = product.sizeChart[0] || null;
+      }
 
       // Clean up images
       if (product.images && product.images.length > 0) {
@@ -1079,10 +1196,11 @@ exports.getFilteredProducts = async (req, res) => {
         }));
       }
       
-      // Add size availability
+      // Add size availability - support extended sizes
+      const ALL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '2XL', '3XL', '4XL', '5XL', 'Free'];
       product.sizeAvailability = {};
       if (product.sizeStock) {
-        ['S', 'M', 'L', 'XL', 'XXL'].forEach(size => {
+        ALL_SIZES.forEach(size => {
           product.sizeAvailability[size] = (product.sizeStock[size] || 0) > 0;
         });
       }

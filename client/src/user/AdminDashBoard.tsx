@@ -18,7 +18,8 @@ import {
   List,
   Loader,
   MessageSquare,
-  Tag
+  Tag,
+  Ruler
 } from 'lucide-react';
 import { isAutheticated, signout } from "../auth/helper";
 import { getProducts, getCategories, getAllOrders, mockGetAllOrders } from "../admin/helper/adminapicall";
@@ -215,6 +216,24 @@ const AdminDashBoard = () => {
       label: 'Create Category', 
       icon: FolderPlus,
       link: '/admin/create/category'
+    },
+    { 
+      id: 'manage-categories', 
+      label: 'Manage Categories', 
+      icon: List,
+      link: '/admin/categories'
+    },
+    { 
+      id: 'manage-product-types', 
+      label: 'Product Types', 
+      icon: Package,
+      link: '/admin/product-types'
+    },
+    { 
+      id: 'size-charts', 
+      label: '📏 Size Charts', 
+      icon: Ruler,
+      link: '/admin/size-charts'
     },
     { 
       id: 'create-product', 

@@ -118,6 +118,41 @@ export const getCategoryTree = () => {
     });
 };
 
+// Get a single category by ID
+export const getCategory = (categoryId: string) => {
+  return fetch(`${API}/category/${categoryId}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json"
+    }
+  })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => {
+      return { error: "Failed to connect to server" };
+    });
+};
+
+// Update a category
+export const updateCategory = (categoryId: string, userId: string, token: string, category: any) => {
+  return fetch(`${API}/category/${categoryId}/${userId}`, {
+    method: "PUT",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify(category)
+  })
+    .then(response => {
+      return response.json();
+    })
+    .catch(err => {
+      return { error: "Failed to connect to server" };
+    });
+};
+
 // Delete a category
 export const deleteCategory = (categoryId: string, userId: string, token: string) => {
   return fetch(`${API}/category/${categoryId}/${userId}`, {
@@ -194,9 +229,9 @@ export const deleteProduct = (productId: string, userId: string, token: string) 
     });
 };
 
-// Get a product
+// Get a product (with cache bypass for admin)
 export const getProduct = (productId: string) => {
-  return fetch(`${API}/product/${productId}`, {
+  return fetch(`${API}/product/${productId}?skipCache=true`, {
     method: "GET"
   })
     .then(response => {

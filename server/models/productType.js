@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
+const { ObjectId } = mongoose.Schema;
 
 const productTypeSchema = new Schema(
   {
@@ -29,6 +30,17 @@ const productTypeSchema = new Schema(
     icon: {
       type: String, // Icon class or emoji
       default: "📦"
+    },
+    // Genders this product type is available for
+    genders: [{
+      type: String,
+      enum: ['men', 'women', 'unisex']
+    }],
+    // Default size chart for this product type
+    defaultSizeChart: {
+      type: ObjectId,
+      ref: "SizeChartTemplate",
+      default: null
     },
     // Display order
     order: {

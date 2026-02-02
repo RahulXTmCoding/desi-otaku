@@ -12,6 +12,8 @@ interface MobileFilterModalProps {
   setSelectedSubcategory: (value: string) => void;
   selectedProductType: string;
   setSelectedProductType: (value: string) => void;
+  selectedGender: string;
+  setSelectedGender: (value: string) => void;
   selectedSizes: string[];
   toggleSize: (size: string) => void;
   selectedAvailability: string;
@@ -39,6 +41,8 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
   setSelectedSubcategory,
   selectedProductType,
   setSelectedProductType,
+  selectedGender,
+  setSelectedGender,
   selectedSizes,
   toggleSize,
   selectedAvailability,
@@ -57,17 +61,33 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
   const [activeTab, setActiveTab] = useState<'filters' | 'sort'>('filters');
   const availableSizes = ['S', 'M', 'L', 'XL', 'XXL'];
 
+  // Filter categories by selected gender
+  const filteredCategories = categories.filter(cat => {
+    // If no genders defined, show for all (backward compatibility)
+    if (!cat.genders || cat.genders.length === 0) return true;
+    // Only show if category explicitly includes the selected gender
+    return cat.genders.includes(selectedGender);
+  });
+
   const categoryOptions = [
     { id: 'all', name: 'All Products' },
-    ...categories.map(cat => ({
+    ...filteredCategories.map(cat => ({
       id: cat._id,
       name: cat.name
     }))
   ];
 
+  // Filter product types by selected gender
+  const filteredProductTypes = productTypes?.filter(type => {
+    // If no genders defined, show for all (backward compatibility)
+    if (!type.genders || type.genders.length === 0) return true;
+    // Only show if type explicitly includes the selected gender
+    return type.genders.includes(selectedGender);
+  }) || [];
+
   const productTypesOptions = [
     { id: 'all', name: 'All Types', icon: '📦' },
-    ...productTypes?.map(type => ({
+    ...filteredProductTypes.map(type => ({
       id: type._id,
       name: type.displayName,
       icon: type.icon || '📦'
@@ -163,52 +183,85 @@ const MobileFilterModal: React.FC<MobileFilterModalProps> = ({
                 </div>
               </div>
 
-            
-              {/* Product Types */}
+              {/* Gender Filter */}
               <div>
-                <h3 className="font-semibold mb-3 text-yellow-400">Product Type</h3>
+                <h3 className="font-semibold mb-3 text-yellow-400">Gender</h3>
                 <div className="grid grid-cols-3 gap-2">
-                  {productTypesOptions.map(type => (
+                  {[
+                    { id: 'unisex', name: 'Unisex', icon: '👕' },
+                    { id: 'men', name: 'Men', icon: '👔' },
+                    { id: 'women', name: 'Women', icon: '👗' }
+                  ].map(option => (
                     <button
-                      key={type.id}
-                      onClick={() => setSelectedProductType(type.id)}
+                      key={option.id}
+                      onClick={() => setSelectedGender(option.id)}
                       className={`p-3 rounded-lg transition-colors flex flex-col items-center gap-1 text-xs ${
-                        selectedProductType === type.id
+                        selectedGender === option.id
                           ? 'bg-yellow-400 text-gray-900'
                           : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
                       }`}
                     >
-                      <span className="text-lg">{type.icon}</span>
-                      <span className="font-medium">{type.name}</span>
+                      <span className="text-lg">{option.icon}</span>
+                      <span className="font-medium">{option.name}</span>
                     </button>
                   ))}
                 </div>
+              </div>
+
+            
+              {/* Product Types */}
+              <div>
+                <h3 className="font-semibold mb-3 text-yellow-400">Product Type</h3>
+                {filteredProductTypes.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic p-3">No product types available for {selectedGender === 'women' ? 'Women' : selectedGender === 'men' ? 'Men' : 'Unisex'}</p>
+                ) : (
+                  <div className="grid grid-cols-3 gap-2">
+                    {productTypesOptions.map(type => (
+                      <button
+                        key={type.id}
+                        onClick={() => setSelectedProductType(type.id)}
+                        className={`p-3 rounded-lg transition-colors flex flex-col items-center gap-1 text-xs ${
+                          selectedProductType === type.id
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        <span className="text-lg">{type.icon}</span>
+                        <span className="font-medium">{type.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
               
               {/* Categories */}
               <div>
                 <h3 className="font-semibold mb-3 text-yellow-400">Categories</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  {categoryOptions.map(category => (
-                    <button
-                      key={category.id}
-                      onClick={() => {
-                        setSelectedCategory(category.id);
-                        setSelectedSubcategory('all');
-                        if (category.id !== 'all') {
-                          loadSubcategories(category.id);
-                        }
-                      }}
-                      className={`p-3 rounded-lg text-sm font-medium transition-colors ${
-                        selectedCategory === category.id
-                          ? 'bg-yellow-400 text-gray-900'
-                          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-                      }`}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
-                </div>
+                {filteredCategories.length === 0 ? (
+                  <p className="text-sm text-gray-400 italic p-3">No categories available for {selectedGender === 'women' ? 'Women' : selectedGender === 'men' ? 'Men' : 'Unisex'}</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-2">
+                    {categoryOptions.map(category => (
+                      <button
+                        key={category.id}
+                        onClick={() => {
+                          setSelectedCategory(category.id);
+                          setSelectedSubcategory('all');
+                          if (category.id !== 'all') {
+                            loadSubcategories(category.id);
+                          }
+                        }}
+                        className={`p-3 rounded-lg text-sm font-medium transition-colors ${
+                          selectedCategory === category.id
+                            ? 'bg-yellow-400 text-gray-900'
+                            : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                        }`}
+                      >
+                        {category.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Subcategories */}

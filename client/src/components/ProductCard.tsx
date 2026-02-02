@@ -116,14 +116,37 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
     return product.images && product.images.length > 1;
   };
 
+  // Get sizes from size chart if available
+  const getSizeChartSizes = (): string[] => {
+    // Check product's direct size chart first
+    if (product.sizeChart?.measurements && product.sizeChart.measurements.length > 0) {
+      return product.sizeChart.measurements.map((m: any) => m.size).filter(Boolean);
+    }
+    // Then check productType's default size chart
+    if (product.productType?.defaultSizeChart?.measurements && 
+        product.productType.defaultSizeChart.measurements.length > 0) {
+      return product.productType.defaultSizeChart.measurements.map((m: any) => m.size).filter(Boolean);
+    }
+    // Fallback to default sizes
+    return ['S', 'M', 'L', 'XL', 'XXL'];
+  };
+
   const getAvailableSizes = () => {
+    // Handle free size products
+    if (product.isFreeSize) {
+      const freeStock = product.sizeStock?.Free || product.stock || 0;
+      return freeStock > 0 ? ['Free'] : [];
+    }
+    
+    const chartSizes = getSizeChartSizes();
+    
     if (product.inventory) {
-      return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
+      return chartSizes.filter(size => 
         product.inventory[size] && product.inventory[size].stock > 0
       );
     }
     if (product.sizeStock) {
-      return ['S', 'M', 'L', 'XL', 'XXL'].filter(size => 
+      return chartSizes.filter(size => 
         product.sizeStock[size] > 0
       );
     }
@@ -131,6 +154,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
   };
 
   const isOutOfStock = () => {
+    if (product.isFreeSize) {
+      return (product.sizeStock?.Free || product.stock || 0) === 0;
+    }
     return product.stock === 0 || getAvailableSizes().length === 0;
   };
 
