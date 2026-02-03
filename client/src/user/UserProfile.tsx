@@ -336,12 +336,35 @@ const UserProfile = () => {
                   <Phone className="w-4 h-4" />
                   Phone Number
                 </label>
-                <input
-                  type="tel"
-                  value={profileData.phone}
-                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-yellow-400"
-                />
+                <div className="relative">
+                  <input
+                    type="tel"
+                    value={profileData.phone}
+                    onChange={(e) => {
+                      let value = e.target.value.replace(/\D/g, '');
+                      if (value.startsWith('91') && value.length > 10) {
+                        value = value.substring(2);
+                      }
+                      value = value.slice(0, 10);
+                      setProfileData({ ...profileData, phone: value });
+                    }}
+                    className={`w-full px-4 py-3 pr-16 bg-gray-700 border rounded-lg focus:outline-none ${
+                      profileData.phone.length === 10 && /^[6-9]/.test(profileData.phone)
+                        ? 'border-green-500 focus:border-green-500'
+                        : 'border-gray-600 focus:border-yellow-400'
+                    }`}
+                    placeholder="9876543210"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    maxLength={10}
+                  />
+                  <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                    profileData.phone.length === 10 ? 'text-green-400' : 
+                    profileData.phone.length > 0 ? 'text-yellow-400' : 'text-gray-500'
+                  }`}>
+                    {profileData.phone.length}/10
+                  </span>
+                </div>
               </div>
             </div>
 

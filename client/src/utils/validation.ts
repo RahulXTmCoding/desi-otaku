@@ -17,23 +17,75 @@ export const validateEmail = (
 // Phone validation (Indian phone numbers)
 export const validatePhone = (
   phone: string
-): { isValid: boolean; error?: string } => {
+): { isValid: boolean; error?: string; cleanPhone?: string } => {
   if (!phone) {
     return { isValid: false, error: "Phone number is required" };
   }
 
-  // Remove any spaces, dashes, or country code
-  const cleanPhone = phone.replace(/[\s-+]/g, "").replace(/^91/, "");
+  // Remove spaces, dashes, parentheses, and plus sign
+  let cleanPhone = phone.replace(/[\s\-\(\)\+]/g, "");
+  
+  // Remove country code prefix (91 or 0)
+  if (cleanPhone.startsWith('91') && cleanPhone.length > 10) {
+    cleanPhone = cleanPhone.substring(2);
+  } else if (cleanPhone.startsWith('0') && cleanPhone.length > 10) {
+    cleanPhone = cleanPhone.substring(1);
+  }
 
-  // Indian phone number should be 10 digits
-  if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+  // Check length
+  if (cleanPhone.length < 10) {
+    const remaining = 10 - cleanPhone.length;
     return {
       isValid: false,
-      error: "Please enter a valid 10-digit Indian phone number",
+      error: `Phone number too short. Need ${remaining} more digit${remaining > 1 ? 's' : ''} (${cleanPhone.length}/10)`,
+      cleanPhone
+    };
+  }
+  
+  if (cleanPhone.length > 10) {
+    return {
+      isValid: false,
+      error: `Phone number too long. Enter only 10 digits without country code`,
+      cleanPhone
     };
   }
 
-  return { isValid: true };
+  // Indian phone numbers must start with 6-9
+  if (!/^[6-9]/.test(cleanPhone)) {
+    return {
+      isValid: false,
+      error: "Indian phone numbers must start with 6, 7, 8, or 9",
+      cleanPhone
+    };
+  }
+  
+  // Must be all digits
+  if (!/^\d{10}$/.test(cleanPhone)) {
+    return {
+      isValid: false,
+      error: "Phone number should contain only digits",
+      cleanPhone
+    };
+  }
+
+  return { isValid: true, cleanPhone };
+};
+
+// Utility to clean phone number (strips country code and formatting)
+export const cleanPhoneNumber = (phone: string): string => {
+  if (!phone) return '';
+  
+  // Remove all non-digit characters
+  let cleaned = phone.replace(/\D/g, '');
+  
+  // Remove country code prefix
+  if (cleaned.startsWith('91') && cleaned.length > 10) {
+    cleaned = cleaned.substring(2);
+  } else if (cleaned.startsWith('0') && cleaned.length > 10) {
+    cleaned = cleaned.substring(1);
+  }
+  
+  return cleaned;
 };
 
 // Name validation
@@ -241,9 +293,4 @@ export const formatPhoneNumber = (phone: string): string => {
     return `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`;
   }
   return phone;
-};
-
-// Clean phone number for storage
-export const cleanPhoneNumber = (phone: string): string => {
-  return phone.replace(/[\s-+]/g, "").replace(/^91/, "");
 };

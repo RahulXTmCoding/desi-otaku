@@ -670,14 +670,36 @@ const UserDashBoardEnhanced = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Phone Number</label>
-            <input
-              type="tel"
-              value={addressForm.phone}
-              onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-              placeholder="+91 98765 43210"
-            />
+            <label className="block text-sm font-medium mb-2">Phone Number <span className="text-xs text-gray-400">(10-digit)</span></label>
+            <div className="relative">
+              <input
+                type="tel"
+                value={addressForm.phone}
+                onChange={(e) => {
+                  let value = e.target.value.replace(/\D/g, '');
+                  if (value.startsWith('91') && value.length > 10) {
+                    value = value.substring(2);
+                  }
+                  value = value.slice(0, 10);
+                  setAddressForm({ ...addressForm, phone: value });
+                }}
+                className={`w-full px-4 py-3 pr-16 bg-gray-700 border rounded-lg focus:ring-1 text-white ${
+                  addressForm.phone.length === 10 && /^[6-9]/.test(addressForm.phone)
+                    ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                    : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                }`}
+                placeholder="9876543210"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={10}
+              />
+              <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                addressForm.phone.length === 10 ? 'text-green-400' : 
+                addressForm.phone.length > 0 ? 'text-yellow-400' : 'text-gray-500'
+              }`}>
+                {addressForm.phone.length}/10
+              </span>
+            </div>
           </div>
 
           <div>
@@ -1393,15 +1415,37 @@ const UserDashBoardEnhanced = () => {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Phone Number
+                        Phone Number <span className="text-xs text-gray-400">(10-digit)</span>
                       </label>
-                      <input
-                        type="tel"
-                        value={profileForm.phone}
-                        onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
-                        placeholder="+91 98765 43210"
-                        className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-                      />
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          value={profileForm.phone}
+                          onChange={(e) => {
+                            let value = e.target.value.replace(/\D/g, '');
+                            if (value.startsWith('91') && value.length > 10) {
+                              value = value.substring(2);
+                            }
+                            value = value.slice(0, 10);
+                            setProfileForm({ ...profileForm, phone: value });
+                          }}
+                          placeholder="9876543210"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={10}
+                          className={`w-full px-4 py-3 pr-16 bg-gray-700 border rounded-lg focus:ring-1 text-white ${
+                            profileForm.phone.length === 10 && /^[6-9]/.test(profileForm.phone)
+                              ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                              : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                          }`}
+                        />
+                        <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
+                          profileForm.phone.length === 10 ? 'text-green-400' : 
+                          profileForm.phone.length > 0 ? 'text-yellow-400' : 'text-gray-500'
+                        }`}>
+                          {profileForm.phone.length}/10
+                        </span>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-2">

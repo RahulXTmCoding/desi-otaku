@@ -33,12 +33,26 @@ exports.submitReturnExchangeRequest = async (req, res) => {
       });
     }
 
-    // Validate phone format (basic)
-    const phoneRegex = /^[0-9]{10}$/;
-    if (!phoneRegex.test(phone.replace(/[\s-+()]/g, ''))) {
+    // Validate phone format (Indian mobile numbers)
+    let cleanPhone = phone.replace(/[\s\-\+\(\)]/g, '');
+    // Strip country code if present
+    if (cleanPhone.startsWith('91') && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(2);
+    } else if (cleanPhone.startsWith('0') && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(1);
+    }
+    
+    if (cleanPhone.length !== 10) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid phone number. Please provide a 10-digit phone number'
+        message: `Invalid phone number. Please provide exactly 10 digits (you entered ${cleanPhone.length})`
+      });
+    }
+    
+    if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Indian phone number. Must start with 6, 7, 8, or 9'
       });
     }
 

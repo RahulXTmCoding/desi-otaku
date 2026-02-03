@@ -253,16 +253,30 @@ const ReturnExchangeForm: React.FC<ReturnExchangeFormProps> = ({ onClose }) => {
           <label htmlFor="phone" className="block text-sm font-semibold text-gray-300 mb-2">
             Contact Number *
           </label>
-          <input
-            type="tel"
-            id="phone"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            placeholder="10-digit mobile number"
-            className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-yellow-400 transition-colors"
-            required
-          />
+            <input
+              type="tel"
+              id="phone"
+              name="phone"
+              value={formData.phone}
+              onChange={(e) => {
+                let value = e.target.value.replace(/\D/g, '');
+                if (value.startsWith('91') && value.length > 10) {
+                  value = value.substring(2);
+                }
+                value = value.slice(0, 10);
+                setFormData(prev => ({ ...prev, phone: value }));
+              }}
+              placeholder="10-digit mobile number without country code"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={10}
+              className={`w-full px-4 py-3 pr-16 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none transition-colors ${
+                formData.phone.length === 10 && /^[6-9]/.test(formData.phone)
+                  ? 'border-green-500 focus:border-green-500'
+                  : 'border-gray-600 focus:border-yellow-400'
+              }`}
+              required
+            />
         </div>
 
         {/* Reason */}

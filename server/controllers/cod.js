@@ -63,24 +63,51 @@ exports.sendCodOtp = async (req, res) => {
 
     // Validate phone number format
     try {
-      // Use SMS service to validate phone number format
-      const normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
+      // Remove all non-digit characters except + for country code detection
+      let normalizedPhone = phone.replace(/[\s\-\(\)]/g, '');
+      let cleanPhone;
+      
+      // Strip country code prefix
       if (normalizedPhone.startsWith('+91')) {
-        var cleanPhone = normalizedPhone.substring(3);
-      } else if (normalizedPhone.startsWith('91') && normalizedPhone.length === 12) {
-        var cleanPhone = normalizedPhone.substring(2);
+        cleanPhone = normalizedPhone.substring(3);
+      } else if (normalizedPhone.startsWith('91') && normalizedPhone.length > 10) {
+        cleanPhone = normalizedPhone.substring(2);
+      } else if (normalizedPhone.startsWith('0') && normalizedPhone.length > 10) {
+        cleanPhone = normalizedPhone.substring(1);
       } else {
-        var cleanPhone = normalizedPhone;
+        cleanPhone = normalizedPhone.replace(/\D/g, ''); // Remove any remaining non-digits
       }
       
+      // Check length first with specific error
+      if (cleanPhone.length < 10) {
+        const remaining = 10 - cleanPhone.length;
+        return res.status(400).json({
+          error: `Phone number too short. Need ${remaining} more digit${remaining > 1 ? 's' : ''} (${cleanPhone.length}/10 digits entered)`
+        });
+      }
+      
+      if (cleanPhone.length > 10) {
+        return res.status(400).json({
+          error: "Phone number too long. Enter only 10 digits without country code (+91)"
+        });
+      }
+      
+      // Check if starts with valid digit (6-9)
+      if (!/^[6-9]/.test(cleanPhone)) {
+        return res.status(400).json({
+          error: "Invalid phone number. Indian mobile numbers must start with 6, 7, 8, or 9"
+        });
+      }
+      
+      // Final validation
       if (!/^[6-9]\d{9}$/.test(cleanPhone)) {
         return res.status(400).json({
-          error: "Please enter a valid Indian mobile number"
+          error: "Please enter a valid 10-digit Indian mobile number"
         });
       }
     } catch (phoneError) {
       return res.status(400).json({
-        error: "Invalid phone number format"
+        error: "Invalid phone number format. Please enter a 10-digit number"
       });
     }
 

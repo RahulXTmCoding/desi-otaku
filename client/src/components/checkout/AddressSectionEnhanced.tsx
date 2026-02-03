@@ -361,26 +361,48 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
             <div>
               <label className="block text-xs lg:text-sm font-medium text-gray-300 mb-1 lg:mb-2">
                 <Phone className="inline w-3 h-3 lg:w-4 lg:h-4 mr-1" />
-                Phone <span className="text-xs text-gray-400">(10-digit)</span>
+                Phone
               </label>
-              <input
-                type="tel"
-                value={shippingInfo.phone}
-                onChange={(e) => handleInputChange('phone', e.target.value)}
-                onBlur={() => handleInputBlur('phone')}
-                className={`w-full px-3 py-2 lg:px-4 lg:py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all text-sm lg:text-base ${
-                  errors.phone && touched.phone
-                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
-                }`}
-                placeholder="e.g. 9876543210"
-                maxLength={10}
-                required
-              />
+                <input
+                  type="tel"
+                  value={shippingInfo.phone}
+                  onChange={(e) => {
+                    // Only allow digits - strip any non-numeric characters
+                    let value = e.target.value.replace(/\D/g, '');
+                    
+                    // Auto-strip country code if user pastes with +91 or 91
+                    if (value.startsWith('91') && value.length > 10) {
+                      value = value.substring(2);
+                    }
+                    
+                    // Limit to 10 digits
+                    value = value.slice(0, 10);
+                    
+                    handleInputChange('phone', value);
+                  }}
+                  onBlur={() => handleInputBlur('phone')}
+                  className={`w-full px-3 py-2 lg:px-4 lg:py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all text-sm lg:text-base pr-16 ${
+                    errors.phone && touched.phone
+                      ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                      : shippingInfo.phone.length === 10 && /^[6-9]/.test(shippingInfo.phone)
+                        ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
+                        : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
+                  }`}
+                  placeholder="9876543210"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={10}
+                  required
+                />
               {errors.phone && touched.phone && (
                 <p className="mt-1 text-xs text-red-400 flex items-center">
                   <AlertCircle className="w-3 h-3 mr-1" />
                   {errors.phone}
+                </p>
+              )}
+              {shippingInfo.phone.length > 0 && shippingInfo.phone.length < 10 && !touched.phone && (
+                <p className="mt-1 text-xs text-yellow-400">
+                  {10 - shippingInfo.phone.length} more digit{10 - shippingInfo.phone.length > 1 ? 's' : ''} needed
                 </p>
               )}
             </div>
