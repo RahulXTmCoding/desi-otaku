@@ -370,9 +370,11 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
                     // Only allow digits - strip any non-numeric characters
                     let value = e.target.value.replace(/\D/g, '');
                     
-                    // Auto-strip country code if user pastes with +91 or 91
+                    // Auto-strip country code if user pastes with +91 or 91 or leading 0
                     if (value.startsWith('91') && value.length > 10) {
                       value = value.substring(2);
+                    } else if (value.startsWith('0') && value.length > 10) {
+                      value = value.substring(1);
                     }
                     
                     // Limit to 10 digits
@@ -391,7 +393,7 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
                   placeholder="9876543210"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  maxLength={10}
+                  maxLength={13}
                   required
                 />
               {errors.phone && touched.phone && (

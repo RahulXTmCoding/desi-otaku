@@ -344,6 +344,8 @@ const UserProfile = () => {
                       let value = e.target.value.replace(/\D/g, '');
                       if (value.startsWith('91') && value.length > 10) {
                         value = value.substring(2);
+                      } else if (value.startsWith('0') && value.length > 10) {
+                        value = value.substring(1);
                       }
                       value = value.slice(0, 10);
                       setProfileData({ ...profileData, phone: value });
@@ -356,7 +358,7 @@ const UserProfile = () => {
                     placeholder="9876543210"
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    maxLength={10}
+                    maxLength={13}
                   />
                   <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
                     profileData.phone.length === 10 ? 'text-green-400' : 

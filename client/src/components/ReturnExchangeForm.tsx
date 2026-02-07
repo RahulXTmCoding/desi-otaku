@@ -262,6 +262,8 @@ const ReturnExchangeForm: React.FC<ReturnExchangeFormProps> = ({ onClose }) => {
                 let value = e.target.value.replace(/\D/g, '');
                 if (value.startsWith('91') && value.length > 10) {
                   value = value.substring(2);
+                } else if (value.startsWith('0') && value.length > 10) {
+                  value = value.substring(1);
                 }
                 value = value.slice(0, 10);
                 setFormData(prev => ({ ...prev, phone: value }));
@@ -269,7 +271,7 @@ const ReturnExchangeForm: React.FC<ReturnExchangeFormProps> = ({ onClose }) => {
               placeholder="10-digit mobile number without country code"
               inputMode="numeric"
               pattern="[0-9]*"
-              maxLength={10}
+              maxLength={13}
               className={`w-full px-4 py-3 pr-16 bg-gray-700 border rounded-lg text-white placeholder-gray-400 focus:outline-none transition-colors ${
                 formData.phone.length === 10 && /^[6-9]/.test(formData.phone)
                   ? 'border-green-500 focus:border-green-500'

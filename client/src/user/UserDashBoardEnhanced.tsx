@@ -679,6 +679,8 @@ const UserDashBoardEnhanced = () => {
                   let value = e.target.value.replace(/\D/g, '');
                   if (value.startsWith('91') && value.length > 10) {
                     value = value.substring(2);
+                  } else if (value.startsWith('0') && value.length > 10) {
+                    value = value.substring(1);
                   }
                   value = value.slice(0, 10);
                   setAddressForm({ ...addressForm, phone: value });
@@ -691,7 +693,7 @@ const UserDashBoardEnhanced = () => {
                 placeholder="9876543210"
                 inputMode="numeric"
                 pattern="[0-9]*"
-                maxLength={10}
+                maxLength={13}
               />
               <span className={`absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium ${
                 addressForm.phone.length === 10 ? 'text-green-400' : 
@@ -1425,6 +1427,8 @@ const UserDashBoardEnhanced = () => {
                             let value = e.target.value.replace(/\D/g, '');
                             if (value.startsWith('91') && value.length > 10) {
                               value = value.substring(2);
+                            } else if (value.startsWith('0') && value.length > 10) {
+                              value = value.substring(1);
                             }
                             value = value.slice(0, 10);
                             setProfileForm({ ...profileForm, phone: value });
@@ -1432,7 +1436,7 @@ const UserDashBoardEnhanced = () => {
                           placeholder="9876543210"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          maxLength={10}
+                          maxLength={13}
                           className={`w-full px-4 py-3 pr-16 bg-gray-700 border rounded-lg focus:ring-1 text-white ${
                             profileForm.phone.length === 10 && /^[6-9]/.test(profileForm.phone)
                               ? 'border-green-500 focus:border-green-500 focus:ring-green-500'
