@@ -39,6 +39,7 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
 
   // Check if this is a COD order
   const isCODOrder = order.paymentMethod?.toLowerCase() === 'cod';
+  const isPartialCODOrder = order.paymentMethod?.toLowerCase() === 'partial-cod';
 
   // Copy to clipboard function
   const handleCopy = async (text: string, field: string) => {
@@ -58,14 +59,18 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
 
   return (
     <div className={`rounded-xl border overflow-hidden ${
-      isCODOrder 
+      isPartialCODOrder
+        ? 'bg-amber-900/30 border-amber-500/50'
+        : isCODOrder 
         ? 'bg-red-900/30 border-red-500/50' 
         : 'bg-gray-800 border-gray-700'
     }`}>
       {/* Order Header */}
       <div 
         className={`p-6 cursor-pointer transition-colors ${
-          isCODOrder
+          isPartialCODOrder
+            ? 'hover:bg-amber-800/40'
+            : isCODOrder
             ? 'hover:bg-red-800/40'
             : 'hover:bg-gray-750'
         }`}
@@ -93,6 +98,11 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
                     COD
                   </span>
                 )}
+                {isPartialCODOrder && (
+                  <span className="px-2 py-1 bg-amber-500 text-white text-xs font-medium rounded-full">
+                    Partial COD
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-400 mt-1">
                 {format(new Date(order.createdAt), 'PPpp')}
@@ -110,13 +120,16 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
             <OrderStatusBadge status={order.status} />
             <div className="text-right">
               <p className={`text-2xl font-bold ${
-                isCODOrder ? 'text-red-400' : 'text-white'
+                isPartialCODOrder ? 'text-amber-400' : isCODOrder ? 'text-red-400' : 'text-white'
               }`}>
                 ₹{order.amount}
               </p>
               <p className="text-sm text-gray-400">{order.products.length} items</p>
               {isCODOrder && (
                 <p className="text-xs text-red-400 mt-1">Payment Pending</p>
+              )}
+              {isPartialCODOrder && (
+                <p className="text-xs text-amber-400 mt-1">Advance Paid • Rest at Delivery</p>
               )}
             </div>
             <ChevronDown 
@@ -131,16 +144,23 @@ const OrderListItem: React.FC<OrderListItemProps> = ({
       {/* Expanded Order Details */}
       {isExpanded && (
         <div className={`border-t p-6 ${
-          isCODOrder ? 'border-red-500/30' : 'border-gray-700'
+          isPartialCODOrder ? 'border-amber-500/30' : isCODOrder ? 'border-red-500/30' : 'border-gray-700'
         }`}>
           {/* Shipping Information Section - All Orders */}
           <div className={`mb-6 rounded-xl p-4 ${
-            isCODOrder 
+            isPartialCODOrder
+              ? 'bg-gradient-to-r from-amber-900/40 to-amber-800/30 border-2 border-amber-500/50'
+              : isCODOrder 
               ? 'bg-gradient-to-r from-red-900/40 to-red-800/30 border-2 border-red-500/50' 
               : 'bg-gradient-to-r from-gray-800/40 to-gray-700/30 border-2 border-gray-600/50'
           }`}>
             <div className="flex items-center gap-3 mb-3">
-              {isCODOrder ? (
+              {isPartialCODOrder ? (
+                <>
+                  <PhoneCall className="w-6 h-6 text-amber-400" />
+                  <h3 className="text-lg font-bold text-amber-300">💳 Partial COD — Collect ₹{order.partialCod?.remainingAmount ?? '?'} at Delivery</h3>
+                </>
+              ) : isCODOrder ? (
                 <>
                   <PhoneCall className="w-6 h-6 text-red-400 animate-pulse" />
                   <h3 className="text-lg font-bold text-red-300">📞 COD Order - Call Customer to Confirm</h3>

@@ -25,6 +25,7 @@ import { getMockProductImage } from '../data/mockData';
 import CartTShirtPreview from '../components/CartTShirtPreview';
 import { API } from '../backend';
 import { getColorName } from '../utils/colorUtils';
+import { checkPincodeCod } from '../core/helper/codPincodeHelper';
 
 // Import all existing components
 import AddressSectionEnhanced from '../components/checkout/AddressSectionEnhanced';
@@ -97,6 +98,9 @@ const CheckoutSinglePage: React.FC = () => {
     loading: false,
     bypassed: false
   });
+
+  // Partial COD / pincode check state
+  const [codBlockedInfo, setCodBlockedInfo] = useState<{ blocked: boolean; advanceAmount: number } | null>(null);
   
   const [paymentData, setPaymentData] = useState<{
     loading: boolean;
@@ -356,6 +360,40 @@ const CheckoutSinglePage: React.FC = () => {
       });
     }
   }, [shippingInfo.pinCode, getTotalAmount, selectedShipping]);
+
+  // Check if pincode is blocked for full COD (partial COD check)
+  useEffect(() => {
+    const pincode = shippingInfo.pinCode;
+    if (!pincode || pincode.length !== 6) {
+      setCodBlockedInfo(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await checkPincodeCod(pincode);
+        if (!cancelled) {
+          if (result.codBlocked) {
+            setCodBlockedInfo({ blocked: true, advanceAmount: result.advanceAmount ?? 100 });
+            // If currently on COD, switch to partial-cod
+            setPaymentMethod(prev => prev === 'cod' ? 'partial-cod' : prev);
+          } else {
+            setCodBlockedInfo({ blocked: false, advanceAmount: 0 });
+            // If currently on partial-cod, revert to cod
+            setPaymentMethod(prev => prev === 'partial-cod' ? 'cod' : prev);
+          }
+        }
+      } catch {
+        if (!cancelled) setCodBlockedInfo(null);
+      }
+    }, 600);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [shippingInfo.pinCode]);
 
   const getFinalAmount = useCallback(() => {
     const subtotal = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
@@ -721,7 +759,8 @@ const CheckoutSinglePage: React.FC = () => {
     razorpayReady,
     clearCart: buyNowItem ? async () => {} : clearCart,
     isBuyNow: !!buyNowItem,
-    codVerification
+    codVerification,
+    partialCodAdvanceAmount: codBlockedInfo?.advanceAmount ?? 100
   });
 
   const handlePlaceOrderWithValidation = useCallback(async () => {
@@ -736,7 +775,7 @@ const CheckoutSinglePage: React.FC = () => {
     }
 
     // COD specific validation - skip if bypass is enabled
-    if (paymentMethod === 'cod') {
+    if (paymentMethod === 'cod' || paymentMethod === 'partial-cod') {
       // Only require OTP verification if not bypassed
       if (!codVerification.otpVerified && !codVerification.bypassed) {
         alert('Please verify your phone number for COD orders');
@@ -817,7 +856,9 @@ const CheckoutSinglePage: React.FC = () => {
                 totalAmount={getFinalAmount()}
                 onPaymentMethodChange={setPaymentMethod}
                 onPlaceOrder={handlePlaceOrderWithValidation}
-                showCOD={true}
+                showCOD={!codBlockedInfo?.blocked}
+                showPartialCOD={!!codBlockedInfo?.blocked}
+                partialCodAdvanceAmount={codBlockedInfo?.advanceAmount ?? 100}
                 codVerification={codVerification}
                 setCodVerification={setCodVerification}
                 customerPhone={shippingInfo.phone}

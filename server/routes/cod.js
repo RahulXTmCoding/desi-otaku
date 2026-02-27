@@ -69,4 +69,48 @@ router.post("/order/create", async (req, res, next) => {
 router.get("/stats", requireAdmin, codController.getCodStats);
 router.put("/order/:orderId/status", requireAdmin, codController.updateCodOrderStatus);
 
+// ─────────────────────────────────────────────────────────────
+//  PARTIAL COD ROUTES
+// ─────────────────────────────────────────────────────────────
+
+// Public: check if pincode is blocked for full COD
+router.post("/check-pincode", codController.checkPincodeCod);
+
+// Public: create Razorpay order for ₹X advance payment
+router.post("/partial-advance/create", codController.createPartialCodAdvanceOrder);
+
+// Guest: create partial COD order (no auth required)
+router.post("/order/partial/guest/create", codController.createGuestPartialCodOrder);
+
+// Authenticated: create partial COD order (inline JWT — same pattern as /order/create)
+router.post("/order/partial/create", async (req, res, next) => {
+  if (req.headers.authorization) {
+    try {
+      const token = req.headers.authorization.replace('Bearer ', '');
+      const jwt = require('jsonwebtoken');
+
+      try {
+        const decoded = jwt.verify(token, process.env.SECRET);
+        req.auth = decoded;
+
+        const User = require('../models/user');
+        const user = await User.findById(decoded._id);
+        if (user) {
+          req.user = user;
+          console.log('✅ Partial COD Order: User authenticated via JWT:', user._id);
+        } else {
+          return res.status(401).json({ error: 'User not found - invalid token' });
+        }
+      } catch (jwtError) {
+        return res.status(401).json({ error: 'Invalid authentication token' });
+      }
+    } catch (authError) {
+      return res.status(401).json({ error: 'Authentication failed' });
+    }
+  } else {
+    return res.status(401).json({ error: 'Authentication token required' });
+  }
+  next();
+}, codController.createPartialCodOrder);
+
 module.exports = router;

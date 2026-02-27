@@ -93,8 +93,9 @@ class TelegramService {
     const orderDate = new Date(order.createdAt).toLocaleString('en-IN');
     const itemCount = order.products?.length || 0;
 
-    // Check if it's a COD order
+    // Check if it's a COD order or partial-COD order
     const isCODOrder = order.paymentMethod?.toLowerCase() === 'cod';
+    const isPartialCODOrder = order.paymentMethod?.toLowerCase() === 'partial-cod';
     
     // Get comprehensive phone number info for COD orders
     const customerPhone = order.shipping?.phone || customer?.phone || 
@@ -106,7 +107,13 @@ class TelegramService {
 
     // Enhanced priority indicators for COD orders
     let priorityEmoji, priorityText;
-    if (isCODOrder && orderTotal > 2000) {
+    if (isPartialCODOrder && orderTotal > 2000) {
+      priorityEmoji = '🔥💳💰';
+      priorityText = 'HIGH VALUE PARTIAL COD ORDER';
+    } else if (isPartialCODOrder) {
+      priorityEmoji = '💳💰📦';
+      priorityText = 'PARTIAL COD ORDER - COLLECT REMAINING AT DELIVERY';
+    } else if (isCODOrder && orderTotal > 2000) {
       priorityEmoji = '🔥💰';
       priorityText = 'HIGH VALUE COD ORDER';
     } else if (isCODOrder) {
@@ -144,6 +151,12 @@ ${isCODOrder ? `
 📱 <b>Customer Phone: ${customerPhone}</b>
 💵 <b>Amount to Collect: ₹${orderTotal.toLocaleString('en-IN')}</b>
 
+` : ''}${isPartialCODOrder ? `
+💳💰 <b>⚠️ PARTIAL COD ORDER ⚠️</b>
+✅ <b>Advance Paid Online: ₹${order.partialCod?.advanceAmount?.toLocaleString('en-IN') || '?'}</b>
+📞 <b>COLLECT AT DELIVERY: ₹${order.partialCod?.remainingAmount?.toLocaleString('en-IN') || '?'}</b>
+📱 <b>Customer Phone: ${customerPhone}</b>
+
 ` : ''}👤 <b>Customer Info:</b>
 • Name: ${customerName}${isGuest ? ' (Guest)' : ''}
 • Email: ${customerEmail}
@@ -154,7 +167,7 @@ ${itemsList}
 
 ${shippingInfo}
 
-💳 <b>Payment:</b> ${isCODOrder ? 'Cash on Delivery 💰' : (order.paymentStatus || 'Pending')}
+💳 <b>Payment:</b> ${isPartialCODOrder ? `Partial COD — ₹${order.partialCod?.advanceAmount || '?'} paid online, ₹${order.partialCod?.remainingAmount || '?'} at delivery 💰` : isCODOrder ? 'Cash on Delivery 💰' : (order.paymentStatus || 'Pending')}
 ${order.shipping?.shippingCost ? `📦 <b>Shipping:</b> ₹${order.shipping.shippingCost}` : '📦 <b>Shipping:</b> FREE'}
 `.trim();
   }
