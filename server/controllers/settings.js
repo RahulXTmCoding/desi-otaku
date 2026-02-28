@@ -169,6 +169,17 @@ exports.initializeSettings = async () => {
         "Enable or disable reward points system-wide"
       );
     }
+
+    // Check if partial_cod_advance_amount setting exists
+    const partialCodSetting = await Settings.findOne({ key: "partial_cod_advance_amount" });
+
+    if (!partialCodSetting) {
+      await Settings.setSetting(
+        "partial_cod_advance_amount",
+        100,
+        "Advance amount (₹) customers pay online for Partial COD orders. Rest is paid at delivery."
+      );
+    }
     
     console.log("Initialized default settings");
   } catch (error) {

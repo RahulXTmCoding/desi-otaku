@@ -57,6 +57,7 @@ const ReviewSettings = lazy(() => import('../admin/ReviewSettings'));
 const RewardSettings = lazy(() => import('../admin/RewardSettings'));
 const Analytics = lazy(() => import('../admin/Analytics'));
 const ManageCoupons = lazy(() => import('../admin/ManageCoupons'));
+const ManageCodPincodes = lazy(() => import('../admin/ManageCodPincodes'));
 const AddCoupon = lazy(() => import('../admin/AddCoupon'));
 const UpdateCoupon = lazy(() => import('../admin/UpdateCoupon'));
 const ProductVariantsPage = lazy(() => import('../admin/ProductVariantsPage'));
@@ -219,6 +220,11 @@ export default function App() {
             <Route path="/admin/coupons" element={
               <AdminRoute>
                 <ManageCoupons />
+              </AdminRoute>
+            } />
+            <Route path="/admin/cod-pincodes" element={
+              <AdminRoute>
+                <ManageCodPincodes />
               </AdminRoute>
             } />
             <Route path="/admin/coupon/create" element={

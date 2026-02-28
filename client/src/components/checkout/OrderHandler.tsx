@@ -37,6 +37,7 @@ interface OrderHandlerProps {
     verificationToken?: string;
     verifiedPhone?: string;
   };
+  partialCodAdvanceAmount?: number;
 }
 
 export const useOrderHandler = ({
@@ -52,7 +53,8 @@ export const useOrderHandler = ({
   razorpayReady,
   clearCart,
   isBuyNow = false,
-  codVerification
+  codVerification,
+  partialCodAdvanceAmount = 100
 }: OrderHandlerProps) => {
   const navigate = useNavigate();
   const { theme } = useTheme(); // ✅ NEW: Get current user theme
@@ -277,6 +279,162 @@ export const useOrderHandler = ({
         throw error;
       }
       
+    } else if (paymentMethod === 'partial-cod') {
+      // ─── PARTIAL COD FLOW ───────────────────────────────────────────────
+      // Step 1: Verify OTP (reuse COD verification)
+      if (!codVerification?.otpVerified) {
+        throw new Error('Phone verification required for Partial COD orders');
+      }
+
+      setShowProcessingModal(true);
+
+      try {
+        // Step 2: Create Razorpay advance order
+        const advanceRes = await fetch(`${API}/cod/partial-advance/create`, {
+          method: 'POST',
+          headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            pincode: shippingInfo.pinCode,
+            totalAmount
+          })
+        });
+        const advanceData = await advanceRes.json();
+        if (!advanceRes.ok) throw new Error(advanceData.error || 'Failed to create advance payment');
+
+        const razorpayOrder = advanceData.order;
+        const advance = advanceData.advanceAmount;
+
+        // Step 3: Open Razorpay for advance payment only
+        await new Promise<void>((resolve, reject) => {
+          initializeRazorpayCheckout(
+            {
+              order_id: razorpayOrder.id,
+              amount: razorpayOrder.amount,
+              currency: razorpayOrder.currency,
+              key_id: advanceData.key || advanceData.key_id,
+              name: 'Attars',
+              description: `Advance Payment (₹${advance}) — Rest at delivery`,
+              prefill: {
+                name: shippingInfo.fullName,
+                email: shippingInfo.email,
+                phone: shippingInfo.phone
+              },
+              theme: { color: theme.colors.primary }
+            },
+            async (paymentData: any) => {
+              try {
+                // Step 4: Build order payload
+                const orderData = {
+                  products: cart.map(item => ({
+                    product: item.product || item._id?.split('-')[0] || '',
+                    name: item.name,
+                    price: item.price,
+                    count: item.quantity,
+                    size: item.size,
+                    isCustom: item.isCustom,
+                    color: item.color,
+                    customization: item.customization
+                  })),
+                  amount: totalAmount,
+                  coupon: appliedDiscount.coupon,
+                  rewardPointsRedeemed: isGuest ? 0 : (appliedDiscount.rewardPoints?.points || 0),
+                  address: `${shippingInfo.address}, ${shippingInfo.city}, ${shippingInfo.state} - ${shippingInfo.pinCode}, ${shippingInfo.country}`,
+                  shipping: {
+                    name: shippingInfo.fullName,
+                    phone: shippingInfo.phone,
+                    pincode: shippingInfo.pinCode,
+                    city: shippingInfo.city,
+                    state: shippingInfo.state,
+                    country: shippingInfo.country,
+                    weight: 0.3 * cart.length,
+                    shippingCost: selectedShipping?.rate || 0,
+                    courier: selectedShipping?.courier_name || ''
+                  },
+                  verificationToken: codVerification?.verificationToken,
+                  phone: codVerification?.verifiedPhone || shippingInfo.phone,
+                  razorpayPaymentId: paymentData.razorpay_payment_id,
+                  razorpayOrderId: paymentData.razorpay_order_id
+                };
+
+                // Step 5: Create order
+                const endpoint = isGuest
+                  ? `${API}/cod/order/partial/guest/create`
+                  : `${API}/cod/order/partial/create`;
+
+                const headers: Record<string, string> = {
+                  Accept: 'application/json',
+                  'Content-Type': 'application/json'
+                };
+                if (!isGuest && (auth as any).token) {
+                  headers.Authorization = `Bearer ${(auth as any).token}`;
+                }
+
+                const body = isGuest
+                  ? JSON.stringify({ ...orderData, guestInfo: { name: shippingInfo.fullName, email: shippingInfo.email, phone: shippingInfo.phone } })
+                  : JSON.stringify(orderData);
+
+                const createRes = await fetch(endpoint, { method: 'POST', headers, body });
+                const createData = await createRes.json();
+                if (!createRes.ok) throw new Error(createData.error || 'Failed to create partial COD order');
+
+                const orderResult = createData.order;
+
+                const navigationState = {
+                  orderId: orderResult._id,
+                  orderDetails: orderResult,
+                  shippingInfo,
+                  paymentMethod: 'partial-cod',
+                  finalAmount: totalAmount,
+                  originalAmount: getTotalAmount() + (selectedShipping?.rate || 0),
+                  subtotal: getTotalAmount(),
+                  couponDiscount: appliedDiscount.coupon?.discount || 0,
+                  rewardPointsUsed: isGuest ? 0 : (appliedDiscount.rewardPoints?.points || 0),
+                  rewardDiscount: isGuest ? 0 : (appliedDiscount.rewardPoints?.discount || 0),
+                  onlinePaymentDiscount: 0,
+                  shippingCost: selectedShipping?.rate || 0,
+                  appliedCoupon: appliedDiscount.coupon,
+                  appliedRewardPoints: isGuest ? null : appliedDiscount.rewardPoints,
+                  autoAccountCreated: createData.autoAccountCreated || false,
+                  existingAccountLinked: createData.existingAccountLinked || false,
+                  isGuest,
+                  isBuyNow,
+                  partialCodDetails: {
+                    advancePaid: advance,
+                    remainingAtDelivery: Math.max(0, totalAmount - advance)
+                  },
+                  createdAt: new Date().toISOString(),
+                  paymentSuccess: true,
+                  orderCreated: true,
+                  codOrder: true
+                };
+
+                setPendingNavigation({ path: '/order-confirmation-enhanced', state: navigationState });
+                setIsProcessingComplete(true);
+
+                if (!isBuyNow) {
+                  clearCart().catch(e => console.error('Cart clear error:', e));
+                }
+
+                resolve();
+              } catch (err: any) {
+                reject(err);
+              }
+            },
+            (error: any) => {
+              if (error.error !== 'Payment cancelled by user') {
+                reject(new Error(error.error || 'Payment failed'));
+              } else {
+                reject(new Error('Payment cancelled by user'));
+              }
+            }
+          );
+        });
+      } catch (error: any) {
+        setShowProcessingModal(false);
+        setIsProcessingComplete(false);
+        throw error;
+      }
+
     } else if (paymentMethod === 'razorpay') {
       // Razorpay implementation for both authenticated and guest users
       let orderResponse;

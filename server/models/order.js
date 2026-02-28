@@ -160,13 +160,42 @@ const OrderSchema = new Schema(
     paymentStatus: {
       type: String,
       default: "Pending",
-      enum: ["Pending", "Paid", "Failed", "Refunded"]
+      enum: ["Pending", "Paid", "Failed", "Refunded", "PartiallyPaid"]
     },
     // Payment method tracking
     paymentMethod: {
       type: String,
       default: "razorpay",
-      enum: ["razorpay", "cod", "card", "upi", "wallet"]
+      enum: ["razorpay", "cod", "partial-cod", "card", "upi", "wallet"]
+    },
+    // Partial COD specific fields
+    partialCod: {
+      isPartialCod: {
+        type: Boolean,
+        default: false
+      },
+      advanceAmount: {
+        type: Number,
+        default: 0  // Amount paid online (e.g. ₹100)
+      },
+      advancePaid: {
+        type: Boolean,
+        default: false
+      },
+      advanceTransactionId: {
+        type: String  // Razorpay payment ID for the advance
+      },
+      advanceOrderId: {
+        type: String  // Razorpay order ID for the advance
+      },
+      remainingAmount: {
+        type: Number,
+        default: 0  // Amount to collect at delivery
+      },
+      remainingCollected: {
+        type: Boolean,
+        default: false
+      }
     },
     // COD specific fields
     codVerification: {
