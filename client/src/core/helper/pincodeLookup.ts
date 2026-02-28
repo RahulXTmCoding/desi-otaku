@@ -79,10 +79,7 @@ const loadData = (): Promise<PincodeLookupData> => {
 };
 
 /** Resolve a single 6-digit pincode string against a loaded dataset. */
-const resolve = (
-  pin: string,
-  data: PincodeLookupData,
-): PincodeInfo | null => {
+const resolve = (pin: string, data: PincodeLookupData): PincodeInfo | null => {
   const entry = data.p[pin];
   if (!entry) return null;
 
@@ -92,9 +89,9 @@ const resolve = (
   return {
     // Leave city blank when the source data has no real taluk (e.g. "NA")
     // so the user fills it in themselves rather than seeing "Na" pre-filled.
-    city:     isNaTaluk(rawTaluk) ? '' : toTitleCase(rawTaluk),
+    city: isNaTaluk(rawTaluk) ? "" : toTitleCase(rawTaluk),
     district: toTitleCase(data.d[dIdx]),
-    state:    toTitleCase(data.s[sIdx]),
+    state: toTitleCase(data.s[sIdx]),
   };
 };
 
