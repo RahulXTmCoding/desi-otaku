@@ -26,6 +26,7 @@ import ProductTabs from '../components/product/ProductTabs';
 // Lazy load heavy components to improve initial page load
 const ProductReviews = lazy(() => import('../components/ProductReviews'));
 const LazyRelatedProducts = lazy(() => import('../components/LazyRelatedProducts').then(module => ({ default: module.default })));
+const RecentPurchases = lazy(() => import('../components/product/RecentPurchases'));
 
 interface Product {
   _id: string;
@@ -706,6 +707,13 @@ const ProductDetail: React.FC = () => {
             </div>
           </div>
 
+          {/* Recent Purchases Social Proof */}
+          {product && (
+            <Suspense fallback={null}>
+              <RecentPurchases />
+            </Suspense>
+          )}
+
           {/* Product Details Tabs */}
           <ProductTabs
             product={product}
@@ -718,6 +726,7 @@ const ProductDetail: React.FC = () => {
           {/* {product && (
             <ProductBundles currentProduct={product} />
           )} */}
+
 
           {/* Reviews Section */}
           {product && (
