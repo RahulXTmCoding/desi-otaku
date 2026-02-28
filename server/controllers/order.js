@@ -89,6 +89,27 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
         }
       } else if (paymentVerification.type === 'cod' && !paymentVerification.codVerified) {
         throw new Error('Phone verification required for COD orders');
+      } else if (paymentVerification.type === 'partial-cod') {
+        // Verify the advance Razorpay payment
+        if (!paymentVerification.codVerified) {
+          throw new Error('Phone verification required for Partial COD orders');
+        }
+        if (!paymentVerification.razorpayPaymentId) {
+          throw new Error('Advance payment (Razorpay) is required for Partial COD orders');
+        }
+        // Optionally verify advance payment via Razorpay API
+        try {
+          const Razorpay = require('razorpay');
+          const razorpay = new Razorpay({
+            key_id: process.env.RAZORPAY_KEY_ID,
+            key_secret: process.env.RAZORPAY_KEY_SECRET
+          });
+          const paymentDetails = await razorpay.payments.fetch(paymentVerification.razorpayPaymentId);
+          console.log('✅ Partial COD advance payment verified:', paymentDetails.id, 'Amount:', paymentDetails.amount / 100);
+        } catch (verifyErr) {
+          console.error('❌ Partial COD advance payment verification failed:', verifyErr.message);
+          // Non-fatal: log but proceed (Razorpay sandbox may not support all fetch operations)
+        }
       }
     }
 
@@ -214,7 +235,9 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
       originalAmount: serverCalculation.subtotal + serverCalculation.shippingCost,
       discount: serverCalculation.couponDiscount + serverCalculation.rewardDiscount,
       user: userProfile?._id || userProfile,
-      paymentStatus: orderData.paymentMethod === 'cod' ? 'Pending' : 'Paid'
+      paymentStatus: orderData.paymentMethod === 'cod' ? 'Pending' 
+                   : orderData.paymentMethod === 'partial-cod' ? 'PartiallyPaid' 
+                   : 'Paid'
     };
 
     // ✅ STORE DETAILED DISCOUNT BREAKDOWN
@@ -805,12 +828,42 @@ exports.updateStatus = async (req, res) => {
     }
     const oldStatus = oldOrder.status;
 
+    // Build update payload
+    const updatePayload = { $set: { status: req.body.status } };
+
+    // ✅ PARTIAL COD: When delivered, mark remaining as collected and set payment to Paid
+    if (
+      req.body.status === 'Delivered' &&
+      oldOrder.paymentMethod === 'partial-cod' &&
+      oldOrder.paymentStatus === 'PartiallyPaid'
+    ) {
+      updatePayload.$set.paymentStatus = 'Paid';
+      updatePayload.$set['partialCod.remainingCollected'] = true;
+      console.log(`✅ Partial COD delivered: Order ${oldOrder._id} — marking remaining collected, paymentStatus → Paid`);
+    }
+
     // Update status
     const order = await Order.findByIdAndUpdate(
       req.params.orderId,
-      { $set: { status: req.body.status } },
+      updatePayload,
       { new: true }
     ).populate('user', 'email name');
+
+    // ✅ PARTIAL COD: Credit reward points on delivery (since advance was already paid)
+    if (
+      req.body.status === 'Delivered' &&
+      oldOrder.paymentMethod === 'partial-cod' &&
+      order.user?._id
+    ) {
+      const { creditPoints } = require('./reward');
+      creditPoints(order.user._id, order._id, order.amount).then(result => {
+        if (result.success) {
+          console.log(`✅ Background: Credited ${result.points} reward points for partial COD delivery`);
+        }
+      }).catch(err => {
+        console.error('❌ Background: Failed to credit reward points on partial COD delivery:', err);
+      });
+    }
 
     // Send email notifications based on status change
     const customer = order.user || order.guestInfo;

@@ -11,7 +11,8 @@ import {
   DollarSign,
   Eye,
   Palette,
-  Megaphone
+  Megaphone,
+  MapPin
 } from 'lucide-react';
 import { isAutheticated } from "../auth/helper";
 
@@ -77,6 +78,14 @@ const AdminDashBoard = () => {
         { name: "Manage Coupons", path: "/admin/coupons", color: "text-red-400" },
         { name: "Review Settings", path: "/admin/review-settings", color: "text-teal-400" },
         { name: "Reward Points Settings", path: "/admin/reward-settings", color: "text-yellow-400" }
+      ]
+    },
+    {
+      title: "Shipping & COD",
+      description: "Manage COD availability by pincode",
+      icon: MapPin,
+      links: [
+        { name: "Manage COD Pincodes", path: "/admin/cod-pincodes", color: "text-amber-400" }
       ]
     }
   ];

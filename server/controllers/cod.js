@@ -4,6 +4,9 @@ const crypto = require('crypto');
 const { calculateOrderAmountSecure } = require('./razorpay');
 const { smsService, checkSMSRateLimit } = require('../services/smsService');
 const { createUnifiedOrder } = require('./order');
+const CodBlockedPincode = require('../models/codBlockedPincode');
+const Settings = require('../models/settings');
+const Razorpay = require('razorpay');
 const isDev = process.env.NODE_ENV !== 'production';
 
 // Generate a simple OTP for COD verification
@@ -398,6 +401,12 @@ exports.createCodOrder = async (req, res) => {
       }
     };
 
+    // Reject if pincode is online-only (no COD of any kind)
+    const pincodeRestriction = await CodBlockedPincode.isCodBlocked(shipping?.pincode);
+    if (pincodeRestriction.blocked && pincodeRestriction.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area.' });
+    }
+
     // ✅ USE UNIFIED ORDER CREATION FUNCTION
     const result = await createUnifiedOrder(
       orderData,
@@ -562,6 +571,12 @@ exports.createGuestCodOrder = async (req, res) => {
         otpSentAt: new Date()
       }
     };
+
+    // Reject if pincode is online-only (no COD of any kind)
+    const pincodeRestriction = await CodBlockedPincode.isCodBlocked(shipping?.pincode);
+    if (pincodeRestriction.blocked && pincodeRestriction.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area.' });
+    }
 
     // ✅ USE UNIFIED ORDER CREATION FUNCTION
     const result = await createUnifiedOrder(
@@ -741,5 +756,390 @@ exports.getCodBypassStatus = async (req, res) => {
     res.status(500).json({
       error: "Failed to get COD bypass status"
     });
+  }
+};
+// ─────────────────────────────────────────────────────────────
+//  PARTIAL COD FUNCTIONS
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Resolve the advance amount for a pincode:
+ *   per-pincode override → global setting → hardcoded ₹100 fallback
+ */
+const resolveAdvanceAmount = async (pincodeAdvanceOverride) => {
+  if (pincodeAdvanceOverride !== null && pincodeAdvanceOverride !== undefined) {
+    return pincodeAdvanceOverride;
+  }
+  try {
+    const globalAmount = await Settings.getSetting('partial_cod_advance_amount', 100);
+    return Number(globalAmount) || 100;
+  } catch (err) {
+    console.error('resolveAdvanceAmount error:', err.message);
+    return 100;
+  }
+};
+
+// Check if a pincode is blocked for full COD (public endpoint)
+exports.checkPincodeCod = async (req, res) => {
+  try {
+    const { pincode } = req.body;
+
+    if (!pincode) {
+      return res.status(400).json({ error: 'Pincode is required' });
+    }
+
+    const result = await CodBlockedPincode.isCodBlocked(pincode);
+
+    let advanceAmount = null;
+    if (result.blocked) {
+      advanceAmount = await resolveAdvanceAmount(result.advanceAmount);
+    }
+
+    const onlineOnly = result.blocked && result.blockLevel === 'online-only';
+
+    res.json({
+      success: true,
+      pincode,
+      codBlocked: result.blocked,
+      onlineOnly,
+      blockLevel: result.blockLevel,
+      reason: result.reason,
+      partialCodAvailable: result.blocked && !onlineOnly,
+      advanceAmount: onlineOnly ? null : advanceAmount
+    });
+  } catch (error) {
+    console.error('checkPincodeCod error:', error);
+    res.status(500).json({ error: 'Failed to check pincode' });
+  }
+};
+
+// Create Razorpay order for advance payment only (public endpoint)
+exports.createPartialCodAdvanceOrder = async (req, res) => {
+  try {
+    const { pincode, totalAmount } = req.body;
+
+    if (!pincode || !totalAmount) {
+      return res.status(400).json({ error: 'pincode and totalAmount are required' });
+    }
+
+    const result = await CodBlockedPincode.isCodBlocked(pincode);
+
+    if (!result.blocked) {
+      return res.status(400).json({ error: 'Full COD is available for this pincode. Partial COD not needed.' });
+    }
+
+    if (result.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area. No COD options permitted.' });
+    }
+
+    const advanceAmount = await resolveAdvanceAmount(result.advanceAmount);
+
+    if (advanceAmount >= totalAmount) {
+      return res.status(400).json({
+        error: `Advance amount (₹${advanceAmount}) cannot be ≥ order total (₹${totalAmount}). Please use full online payment.`
+      });
+    }
+
+    const razorpayInstance = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET
+    });
+
+    const options = {
+      amount: Math.round(advanceAmount * 100), // paise
+      currency: 'INR',
+      receipt: `pcod_adv_${Date.now()}`,
+      notes: {
+        type: 'partial_cod_advance',
+        totalOrderAmount: totalAmount,
+        advanceAmount: advanceAmount,
+        remainingCod: totalAmount - advanceAmount,
+        pincode
+      }
+    };
+
+    const razorpayOrder = await razorpayInstance.orders.create(options);
+
+    res.json({
+      success: true,
+      order: razorpayOrder,
+      advanceAmount,
+      remainingAmount: totalAmount - advanceAmount,
+      key: process.env.RAZORPAY_KEY_ID
+    });
+  } catch (error) {
+    console.error('createPartialCodAdvanceOrder error:', error);
+    res.status(500).json({ error: 'Failed to create advance payment order', details: error.message });
+  }
+};
+
+// Create Partial COD order — authenticated user
+exports.createPartialCodOrder = async (req, res) => {
+  try {
+    console.log('🎯 PARTIAL COD ORDER - AUTHENTICATED USER');
+
+    const userId = req.user?._id || req.profile?._id;
+    if (!userId) {
+      return res.status(401).json({ error: 'User authentication required' });
+    }
+
+    const {
+      products,
+      amount,
+      coupon,
+      rewardPointsRedeemed,
+      address,
+      shipping,
+      verificationToken,
+      phone,
+      razorpayPaymentId,
+      razorpayOrderId
+    } = req.body;
+
+    if (!razorpayPaymentId) {
+      return res.status(400).json({ error: 'Advance payment (razorpayPaymentId) is required for Partial COD' });
+    }
+
+    // Verify pincode is actually blocked for full COD
+    const pincodeCheck = await CodBlockedPincode.isCodBlocked(shipping?.pincode);
+    if (!pincodeCheck.blocked) {
+      return res.status(400).json({ error: 'Full COD is available for this pincode. Use regular COD.' });
+    }
+    if (pincodeCheck.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area. Partial COD is not permitted.' });
+    }
+
+    const advanceAmount = await resolveAdvanceAmount(pincodeCheck.advanceAmount);
+    const remainingAmount = amount - advanceAmount;
+
+    // Phone verification (same logic as createCodOrder)
+    const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
+    let phoneVerified = false;
+
+    if (isBypassEnabled && phone) {
+      console.log(`🔓 Partial COD BYPASS ACTIVE for ${phone}`);
+      phoneVerified = true;
+    } else if (verificationToken && phone) {
+      const tokenData = verificationTokenStore.get(verificationToken);
+      if (!tokenData) {
+        return res.status(400).json({ error: 'Invalid verification token. Please verify your phone again.' });
+      }
+      if (Date.now() > tokenData.expiresAt) {
+        verificationTokenStore.delete(verificationToken);
+        return res.status(400).json({ error: 'Phone verification expired. Please verify again.' });
+      }
+      if (tokenData.used) {
+        return res.status(400).json({ error: 'Verification token already used. Please verify again.' });
+      }
+      if (tokenData.phone !== phone) {
+        return res.status(400).json({ error: 'Phone number mismatch.' });
+      }
+      tokenData.used = true;
+      phoneVerified = true;
+    } else {
+      return res.status(400).json({ error: 'Phone verification is required for Partial COD orders.' });
+    }
+
+    const transaction_id = `pcod_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
+    const orderData = {
+      products,
+      transaction_id,
+      amount,
+      paymentMethod: 'partial-cod',
+      // paymentStatus is set to 'PartiallyPaid' inside createUnifiedOrder
+      coupon,
+      rewardPointsRedeemed: rewardPointsRedeemed || 0,
+      address,
+      shipping,
+      status: 'Received',
+      partialCod: {
+        isPartialCod: true,
+        advanceAmount,
+        advancePaid: true,
+        advanceTransactionId: razorpayPaymentId,
+        advanceOrderId: razorpayOrderId || null,
+        remainingAmount,
+        remainingCollected: false
+      },
+      codVerification: {
+        phoneVerified: true,
+        verificationMethod: 'otp',
+        otpSentAt: new Date()
+      }
+    };
+
+    const result = await createUnifiedOrder(
+      orderData,
+      req.user || req.profile,
+      { type: 'partial-cod', codVerified: true, razorpayPaymentId }
+    );
+
+    console.log('✅ PARTIAL COD ORDER CREATED:', result.order._id);
+
+    res.json({
+      success: true,
+      order: result.order,
+      trackingInfo: result.trackingInfo,
+      partialCodDetails: {
+        advancePaid: advanceAmount,
+        remainingAtDelivery: remainingAmount,
+        totalAmount: amount
+      },
+      message: `Partial COD order created. ₹${advanceAmount} paid online, ₹${remainingAmount} at delivery.`
+    });
+  } catch (error) {
+    console.error('❌ createPartialCodOrder error:', error);
+    res.status(500).json({ error: 'Failed to create Partial COD order', details: error.message });
+  }
+};
+
+// Create Partial COD order — guest user
+exports.createGuestPartialCodOrder = async (req, res) => {
+  try {
+    console.log('🎯 PARTIAL COD ORDER - GUEST USER');
+
+    const {
+      products,
+      amount,
+      coupon,
+      address,
+      shipping,
+      guestInfo,
+      verificationToken,
+      razorpayPaymentId,
+      razorpayOrderId
+    } = req.body;
+
+    if (!guestInfo || !guestInfo.name || !guestInfo.email || !guestInfo.phone) {
+      return res.status(400).json({ error: 'Guest information (name, email, phone) is required' });
+    }
+
+    if (!razorpayPaymentId) {
+      return res.status(400).json({ error: 'Advance payment (razorpayPaymentId) is required for Partial COD' });
+    }
+
+    // Verify pincode is actually blocked for full COD
+    const pincodeCheck = await CodBlockedPincode.isCodBlocked(shipping?.pincode);
+    if (!pincodeCheck.blocked) {
+      return res.status(400).json({ error: 'Full COD is available for this pincode. Use regular COD.' });
+    }
+    if (pincodeCheck.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area. Partial COD is not permitted.' });
+    }
+
+    const advanceAmount = await resolveAdvanceAmount(pincodeCheck.advanceAmount);
+    const remainingAmount = amount - advanceAmount;
+
+    // Phone verification (same logic as createGuestCodOrder)
+    const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
+    if (isBypassEnabled) {
+      console.log(`🔓 Partial COD BYPASS ACTIVE - guest ${guestInfo.phone}`);
+    } else {
+      if (!verificationToken) {
+        return res.status(400).json({ error: 'Phone verification token is required for Partial COD orders' });
+      }
+      const tokenData = verificationTokenStore.get(verificationToken);
+      if (!tokenData) {
+        return res.status(400).json({ error: 'Invalid verification token.' });
+      }
+      if (Date.now() > tokenData.expiresAt) {
+        verificationTokenStore.delete(verificationToken);
+        return res.status(400).json({ error: 'Phone verification expired.' });
+      }
+      if (tokenData.used) {
+        return res.status(400).json({ error: 'Verification token already used.' });
+      }
+      if (tokenData.phone !== guestInfo.phone) {
+        return res.status(400).json({ error: 'Phone number mismatch.' });
+      }
+      tokenData.used = true;
+    }
+
+    // Auto-create / link user account (same as createGuestCodOrder)
+    let userId = null;
+    let autoAccountCreated = false;
+    let existingAccountLinked = false;
+    try {
+      let existingUser = await User.findOne({ email: guestInfo.email });
+      if (existingUser) {
+        userId = existingUser._id;
+        existingAccountLinked = true;
+      } else {
+        const tempPassword = crypto.randomBytes(32).toString('hex');
+        const newUser = new User({
+          name: guestInfo.name,
+          email: guestInfo.email,
+          password: tempPassword,
+          role: 0,
+          autoCreated: true
+        });
+        const savedUser = await newUser.save();
+        userId = savedUser._id;
+        autoAccountCreated = true;
+      }
+    } catch (err) {
+      console.log('Error handling user account for guest partial COD:', err.message);
+    }
+
+    const guestId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    const transaction_id = `pcod_guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+
+    const orderData = {
+      products,
+      transaction_id,
+      amount,
+      paymentMethod: 'partial-cod',
+      coupon,
+      address,
+      shipping,
+      status: 'Received',
+      user: userId,
+      guestInfo: {
+        id: guestId,
+        name: guestInfo.name,
+        email: guestInfo.email,
+        phone: guestInfo.phone
+      },
+      partialCod: {
+        isPartialCod: true,
+        advanceAmount,
+        advancePaid: true,
+        advanceTransactionId: razorpayPaymentId,
+        advanceOrderId: razorpayOrderId || null,
+        remainingAmount,
+        remainingCollected: false
+      },
+      codVerification: {
+        phoneVerified: true,
+        verificationMethod: 'otp',
+        otpSentAt: new Date()
+      }
+    };
+
+    const result = await createUnifiedOrder(
+      orderData,
+      null, // guest — no user profile
+      { type: 'partial-cod', codVerified: true, razorpayPaymentId }
+    );
+
+    console.log('✅ GUEST PARTIAL COD ORDER CREATED:', result.order._id);
+
+    res.json({
+      success: true,
+      order: result.order,
+      autoAccountCreated,
+      existingAccountLinked,
+      trackingInfo: result.trackingInfo,
+      partialCodDetails: {
+        advancePaid: advanceAmount,
+        remainingAtDelivery: remainingAmount,
+        totalAmount: amount
+      },
+      message: `Partial COD order created. ₹${advanceAmount} paid online, ₹${remainingAmount} at delivery.`
+    });
+  } catch (error) {
+    console.error('❌ createGuestPartialCodOrder error:', error);
+    res.status(500).json({ error: 'Failed to create guest Partial COD order', details: error.message });
   }
 };

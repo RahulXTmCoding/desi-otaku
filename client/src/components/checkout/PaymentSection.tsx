@@ -1,5 +1,5 @@
 import React, { memo, useMemo, useState } from 'react';
-import { CreditCard, Smartphone, AlertCircle, Shield, Loader, Phone, CheckCircle } from 'lucide-react';
+import { CreditCard, Smartphone, AlertCircle, Shield, Loader, Phone, CheckCircle, MapPin } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { API } from '../../backend';
 
@@ -13,6 +13,9 @@ interface PaymentSectionProps {
   onPaymentMethodChange: (method: string) => void;
   onPlaceOrder: () => void;
   showCOD?: boolean;
+  showPartialCOD?: boolean;
+  onlineOnly?: boolean;
+  partialCodAdvanceAmount?: number;
   codVerification?: {
     otpSent: boolean;
     otpVerified: boolean;
@@ -35,6 +38,9 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
   onPaymentMethodChange,
   onPlaceOrder,
   showCOD = false,
+  showPartialCOD = false,
+  onlineOnly = false,
+  partialCodAdvanceAmount = 100,
   codVerification,
   setCodVerification,
   customerPhone
@@ -82,12 +88,37 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
       });
     }
 
+    if (showPartialCOD) {
+      methods.push({
+        id: 'partial-cod',
+        name: 'Partial COD',
+        description: `Pay ₹${partialCodAdvanceAmount} online now, rest (₹${Math.max(0, totalAmount - partialCodAdvanceAmount)}) at delivery`,
+        icon: <MapPin className="w-5 h-5" />,
+        recommended: false,
+        discount: undefined,
+        savings: undefined,
+        disabled: false,
+        comingSoon: false,
+        badge: 'RESTRICTED AREA'
+      });
+    }
+
     return methods;
-  }, [showCOD, onlineSavings]);
+  }, [showCOD, showPartialCOD, onlineOnly, partialCodAdvanceAmount, totalAmount, onlineSavings]);
 
   return (
     <>
       
+      {/* Online-Only Restriction Banner */}
+      {onlineOnly && (
+        <div className="mb-3 flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/40 rounded-lg">
+          <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-red-300">
+            <span className="font-semibold"></span>Cash on Delivery is not available for your delivery pincode.
+          </p>
+        </div>
+      )}
+
       {/* Payment Method Selection */}
       <div className="mb-4 lg:mb-6">
         <div className="grid gap-2 lg:gap-3">
@@ -111,6 +142,8 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
         codVerification={codVerification}
         setCodVerification={setCodVerification}
         customerPhone={customerPhone}
+        partialCodAdvanceAmount={partialCodAdvanceAmount}
+        totalAmount={totalAmount}
       />
 
       {/* Security Note */}
@@ -159,9 +192,14 @@ const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
         </div>
       </div>
       <div className="ml-auto flex items-center gap-1 lg:gap-2">
-        {method.badge && !method.disabled && (
+        {method.badge && !method.disabled && method.id !== 'partial-cod' && (
           <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded">
             <span className="sm:inline">★</span>
+          </span>
+        )}
+        {method.badge && !method.disabled && method.id === 'partial-cod' && (
+          <span className="text-xs bg-amber-500/20 text-amber-400 px-2 py-1 rounded">
+            {method.badge}
           </span>
         )}
         {method.discount && method.savings && !method.disabled && (
@@ -175,7 +213,7 @@ const PaymentMethodOption = memo(({ method, isSelected, onChange }: any) => {
 });
 
 // Separate component for payment forms
-const PaymentForm = memo(({ paymentMethod, isTestMode, razorpayReady, paymentData, codVerification, setCodVerification, customerPhone }: any) => {
+const PaymentForm = memo(({ paymentMethod, isTestMode, razorpayReady, paymentData, codVerification, setCodVerification, customerPhone, partialCodAdvanceAmount, totalAmount }: any) => {
   if (paymentMethod === 'razorpay') {
     return (
       <div>
@@ -218,6 +256,40 @@ const PaymentForm = memo(({ paymentMethod, isTestMode, razorpayReady, paymentDat
         customerPhone={customerPhone}
         isTestMode={isTestMode}
       />
+    );
+  }
+
+  if (paymentMethod === 'partial-cod') {
+    const advance = partialCodAdvanceAmount ?? 100;
+    const remaining = Math.max(0, (totalAmount ?? 0) - advance);
+    return (
+      <div className="space-y-3">
+        <div className="bg-amber-500/10 border border-amber-500/40 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <MapPin className="w-4 h-4 text-amber-400" />
+            <p className="text-sm font-medium text-amber-300">Partial COD – Restricted Delivery Area</p>
+          </div>
+          <p className="text-xs text-gray-400 mb-3">
+            Full COD is not available for your pincode. Pay a small advance online now and the rest in cash at delivery.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-800 rounded-lg p-3 text-center">
+              <p className="text-xs text-gray-400 mb-1">Pay Online Now</p>
+              <p className="text-lg font-bold text-yellow-400">₹{advance}</p>
+            </div>
+            <div className="bg-gray-800 rounded-lg p-3 text-center">
+              <p className="text-xs text-gray-400 mb-1">Cash at Delivery</p>
+              <p className="text-lg font-bold text-green-400">₹{remaining}</p>
+            </div>
+          </div>
+        </div>
+        <CodVerificationForm 
+          codVerification={codVerification}
+          setCodVerification={setCodVerification}
+          customerPhone={customerPhone}
+          isTestMode={isTestMode}
+        />
+      </div>
     );
   }
 

@@ -82,6 +82,15 @@ export interface Order {
   timeline?: OrderTimeline[];
   discount?: number;
   couponCode?: string;
+  paymentStatus?: 'Pending' | 'Paid' | 'Failed' | 'Refunded' | 'PartiallyPaid';
+  partialCod?: {
+    isPartialCod?: boolean;
+    advanceAmount?: number;
+    advancePaid?: boolean;
+    advanceTransactionId?: string;
+    remainingAmount?: number;
+    remainingCollected?: boolean;
+  };
   aovDiscount?: {
     amount: number;
     percentage: number;
