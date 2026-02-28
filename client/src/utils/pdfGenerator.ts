@@ -271,6 +271,14 @@ class PDFGenerator {
         throw new Error(`Server error: ${response.status} - ${response.statusText}`);
       }
 
+      // Validate Content-Type is HTML before proceeding
+      const contentType = response.headers.get('Content-Type') || '';
+      if (!contentType.includes('text/html')) {
+        const errorBody = await response.text();
+        console.error('Unexpected Content-Type from invoice endpoint:', contentType, errorBody);
+        throw new Error('Server returned an unexpected response. Please try again.');
+      }
+
       // Get filename from headers if not provided
       const headerFilename = response.headers.get('X-Invoice-Filename');
       const invoiceNumber = response.headers.get('X-Invoice-Number');
@@ -282,8 +290,8 @@ class PDFGenerator {
       // Get HTML content
       const htmlContent = await response.text();
 
-      // Validate that we received HTML content
-      if (!htmlContent || !htmlContent.includes('invoice')) {
+      // Validate that we received actual HTML content
+      if (!htmlContent || !htmlContent.includes('<!DOCTYPE html>')) {
         throw new Error('Invalid invoice content received from server');
       }
 

@@ -154,10 +154,15 @@ const invoiceSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate invoice number
+// Generate invoice number (Indian Financial Year: April to March)
 invoiceSchema.statics.generateInvoiceNumber = async function() {
-  const currentYear = new Date().getFullYear();
-  const financialYear = `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+  const now = new Date();
+  const month = now.getMonth(); // 0-indexed: 0=Jan, 3=Apr
+  const year = now.getFullYear();
+  
+  // Indian FY runs April–March: Apr 2025 to Mar 2026 = FY 2025-26
+  const fyStartYear = month >= 3 ? year : year - 1; // >= April means current year, else previous
+  const financialYear = `${fyStartYear}-${(fyStartYear + 1).toString().slice(-2)}`;
   
   // Find the latest invoice for current financial year
   const latestInvoice = await this.findOne({
@@ -166,16 +171,39 @@ invoiceSchema.statics.generateInvoiceNumber = async function() {
   
   let sequenceNumber = 1;
   if (latestInvoice) {
-    // Extract sequence number from invoice number (format: INV-2024-25-0001)
+    // Extract sequence number from invoice number (format: INV-2025-26-0001)
     const matches = latestInvoice.invoiceNumber.match(/INV-\d{4}-\d{2}-(\d+)/);
     if (matches) {
       sequenceNumber = parseInt(matches[1]) + 1;
     }
   }
   
-  // Format: INV-2024-25-0001
+  // Format: INV-2025-26-0001
   const invoiceNumber = `INV-${financialYear}-${sequenceNumber.toString().padStart(4, '0')}`;
   
+  return { invoiceNumber, financialYear };
+};
+
+// Safe invoice number generation with retry on duplicate key (race condition guard)
+invoiceSchema.statics.generateInvoiceNumberSafe = async function(maxRetries = 5) {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    const { invoiceNumber, financialYear } = await this.generateInvoiceNumber();
+    
+    // Check if this invoice number already exists
+    const existing = await this.findOne({ invoiceNumber });
+    if (!existing) {
+      return { invoiceNumber, financialYear };
+    }
+    
+    console.warn(`⚠️ Invoice number ${invoiceNumber} already exists, retrying (attempt ${attempt}/${maxRetries})...`);
+    // Small delay to reduce collision chance
+    await new Promise(resolve => setTimeout(resolve, 50 * attempt));
+  }
+  
+  // Final fallback: append timestamp to guarantee uniqueness
+  const { financialYear } = await this.generateInvoiceNumber();
+  const timestamp = Date.now().toString().slice(-6);
+  const invoiceNumber = `INV-${financialYear}-${timestamp}`;
   return { invoiceNumber, financialYear };
 };
 
