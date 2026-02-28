@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const {
   getProductById,
+  getProductByIdLight,
   createProduct,
   getProduct,
   getProductImage,
@@ -61,7 +62,7 @@ router.get("/product/:productId", getProduct); // This route is optimized to pri
 
 router.delete(
   "/product/:productId/:userId",
-  (req, res, next) => getProductById(req, res, next, req.params.productId),
+  (req, res, next) => getProductByIdLight(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -70,7 +71,7 @@ router.delete(
 
 router.delete(
   "/product/permanent/:productId/:userId",
-  (req, res, next) => getProductById(req, res, next, req.params.productId),
+  (req, res, next) => getProductByIdLight(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,
@@ -79,7 +80,7 @@ router.delete(
 
 router.put(
   "/product/restore/:productId/:userId",
-  (req, res, next) => getProductById(req, res, next, req.params.productId),
+  (req, res, next) => getProductByIdLight(req, res, next, req.params.productId),
   isSignedIn,
   isAuthenticated,
   isAdmin,

@@ -2,6 +2,9 @@ const { Order } = require("../models/order");
 const { User } = require("../models/user");
 const crypto = require('crypto');
 const { calculateOrderAmountSecure } = require('./razorpay');
+const { smsService, checkSMSRateLimit } = require('../services/smsService');
+const { createUnifiedOrder } = require('./order');
+const isDev = process.env.NODE_ENV !== 'production';
 
 // Generate a simple OTP for COD verification
 const generateOTP = () => {
@@ -29,7 +32,7 @@ exports.sendCodOtp = async (req, res) => {
     const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
     
     if (isBypassEnabled) {
-      console.log(`🔓 COD OTP BYPASS ACTIVE - Skipping OTP send for ${phone}`);
+      isDev && console.log(`🔓 COD OTP BYPASS ACTIVE - Skipping OTP send for ${phone}`);
       
       // Return success response without actually sending OTP
       const response = {
@@ -51,7 +54,6 @@ exports.sendCodOtp = async (req, res) => {
     }
 
     // 🔒 SECURITY: Check SMS rate limiting to prevent abuse (only when not bypassed)
-    const { smsService, checkSMSRateLimit } = require('../services/smsService');
     const rateLimit = checkSMSRateLimit(phone);
     
     if (!rateLimit.allowed) {
@@ -124,7 +126,7 @@ exports.sendCodOtp = async (req, res) => {
       createdAt: new Date()
     });
 
-    console.log(`📱 Sending COD OTP to ${phone}...`);
+    isDev && console.log(`📱 Sending COD OTP to ${phone}...`);
 
     // 📱 Send OTP via MSG91 SMS service
     let smsResult;
@@ -132,7 +134,7 @@ exports.sendCodOtp = async (req, res) => {
       smsResult = await smsService.sendOTP(phone, otp);
       
       if (smsResult.success) {
-        console.log(`✅ OTP sent successfully to ${phone} via MSG91`);
+        isDev && console.log(`✅ OTP sent successfully to ${phone} via MSG91`);
       } else {
         console.warn(`⚠️ SMS delivery may have failed for ${phone}:`, smsResult.error);
       }
@@ -190,7 +192,7 @@ exports.verifyCodOtp = async (req, res) => {
     const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
     
     if (isBypassEnabled) {
-      console.log(`🔓 COD OTP BYPASS ACTIVE - Auto-verifying for ${phone}`);
+      isDev && console.log(`🔓 COD OTP BYPASS ACTIVE - Auto-verifying for ${phone}`);
       
       // 🔒 SECURITY: Generate verification token to maintain security architecture
       const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -205,7 +207,7 @@ exports.verifyCodOtp = async (req, res) => {
       
       verificationTokenStore.set(verificationToken, tokenData);
       
-      console.log(`✅ Phone ${phone} auto-verified (bypassed), token generated: ${verificationToken.substring(0, 8)}...`);
+      isDev && console.log(`✅ Phone ${phone} auto-verified (bypassed), token generated: ${verificationToken.substring(0, 8)}...`);
 
       const response = {
         success: true,
@@ -275,7 +277,7 @@ exports.verifyCodOtp = async (req, res) => {
     
     verificationTokenStore.set(verificationToken, tokenData);
     
-    console.log(`✅ Phone ${phone} verified, token generated: ${verificationToken.substring(0, 8)}...`);
+    isDev && console.log(`✅ Phone ${phone} verified, token generated: ${verificationToken.substring(0, 8)}...`);
 
     res.json({
       success: true,
@@ -296,7 +298,7 @@ exports.verifyCodOtp = async (req, res) => {
 // Create COD order for authenticated users
 exports.createCodOrder = async (req, res) => {
   try {
-    console.log('🎯 COD ORDER - AUTHENTICATED USER');
+    isDev && console.log('🎯 COD ORDER - AUTHENTICATED USER');
     
     // ✅ SECURITY FIX: Use req.user (from JWT) instead of req.profile (from URL param)
     const userId = req.user?._id || req.profile?._id;
@@ -327,11 +329,11 @@ exports.createCodOrder = async (req, res) => {
     
     if (isBypassEnabled && phone) {
       // In bypass mode, allow orders with just phone number
-      console.log(`🔓 COD BYPASS ACTIVE - Auto-approving order for ${phone}`);
+      isDev && console.log(`🔓 COD BYPASS ACTIVE - Auto-approving order for ${phone}`);
       phoneVerified = true;
       verifiedPhone = phone;
     } else if (verificationToken && phone) {
-      console.log('📱 STANDARD FORMAT: Validating phone verification token for COD order...');
+      isDev && console.log('📱 STANDARD FORMAT: Validating phone verification token for COD order...');
       
       const tokenData = verificationTokenStore.get(verificationToken);
       if (!tokenData) {
@@ -366,7 +368,7 @@ exports.createCodOrder = async (req, res) => {
       tokenData.used = true;
       phoneVerified = true;
       verifiedPhone = phone;
-      console.log(`✅ STANDARD FORMAT: Phone verification token validated for ${phone}`);
+      isDev && console.log(`✅ STANDARD FORMAT: Phone verification token validated for ${phone}`);
       
     } else {
       return res.status(400).json({
@@ -397,7 +399,6 @@ exports.createCodOrder = async (req, res) => {
     };
 
     // ✅ USE UNIFIED ORDER CREATION FUNCTION
-    const { createUnifiedOrder } = require('./order');
     const result = await createUnifiedOrder(
       orderData,
       req.user || req.profile, // ✅ SECURITY FIX: Use JWT-verified user first, fallback to profile
@@ -407,7 +408,7 @@ exports.createCodOrder = async (req, res) => {
       }
     );
 
-    console.log('✅ COD ORDER CREATED WITH UNIFIED FUNCTION:', result.order._id);
+    isDev && console.log('✅ COD ORDER CREATED WITH UNIFIED FUNCTION:', result.order._id);
 
     res.json({
       success: true,
@@ -428,7 +429,7 @@ exports.createCodOrder = async (req, res) => {
 // Create COD order for guest users
 exports.createGuestCodOrder = async (req, res) => {
   try {
-    console.log('🎯 COD ORDER - GUEST USER');
+    isDev && console.log('🎯 COD ORDER - GUEST USER');
     
     const {
       products,
@@ -451,7 +452,7 @@ exports.createGuestCodOrder = async (req, res) => {
     
     if (isBypassEnabled) {
       // In bypass mode, allow guest orders with just phone validation
-      console.log(`🔓 COD BYPASS ACTIVE - Auto-approving guest order for ${guestInfo.phone}`);
+      isDev && console.log(`🔓 COD BYPASS ACTIVE - Auto-approving guest order for ${guestInfo.phone}`);
     } else {
       // Standard verification token validation
       if (!verificationToken) {
@@ -491,7 +492,7 @@ exports.createGuestCodOrder = async (req, res) => {
 
       // Mark token as used to prevent replay attacks
       tokenData.used = true;
-      console.log(`✅ Guest phone verification token validated for ${guestInfo.phone}`);
+      isDev && console.log(`✅ Guest phone verification token validated for ${guestInfo.phone}`);
     }
 
     // Generate unique transaction ID for COD
@@ -502,15 +503,14 @@ exports.createGuestCodOrder = async (req, res) => {
     let autoAccountCreated = false;
     let existingAccountLinked = false;
     try {
-      const User = require("../models/user");
       let existingUser = await User.findOne({ email: guestInfo.email });
       if (existingUser) {
         userId = existingUser._id;
         existingAccountLinked = true;
-        console.log('Found existing user for guest COD order:', guestInfo.email);
+        isDev && console.log('Found existing user for guest COD order:', guestInfo.email);
       } else {
         // Auto-create account for guest user to enable order tracking
-        console.log('Creating auto-account for guest COD user:', guestInfo.email);
+        isDev && console.log('Creating auto-account for guest COD user:', guestInfo.email);
         
         // Generate a secure random password (user will reset it via email)
         const tempPassword = crypto.randomBytes(32).toString('hex');
@@ -528,10 +528,10 @@ exports.createGuestCodOrder = async (req, res) => {
         userId = savedUser._id;
         autoAccountCreated = true;
         
-        console.log('✅ Auto-account created for guest COD user:', guestInfo.email);
+        isDev && console.log('✅ Auto-account created for guest COD user:', guestInfo.email);
       }
     } catch (error) {
-      console.log('Error handling user account for guest COD order:', error);
+      console.error('Error handling user account for guest COD order:', error);
       // Continue without linking if there's an error
     }
 
@@ -564,7 +564,6 @@ exports.createGuestCodOrder = async (req, res) => {
     };
 
     // ✅ USE UNIFIED ORDER CREATION FUNCTION
-    const { createUnifiedOrder } = require('./order');
     const result = await createUnifiedOrder(
       orderData,
       null, // No user profile for guest orders
@@ -574,7 +573,7 @@ exports.createGuestCodOrder = async (req, res) => {
       }
     );
 
-    console.log('✅ GUEST COD ORDER CREATED WITH UNIFIED FUNCTION:', result.order._id);
+    isDev && console.log('✅ GUEST COD ORDER CREATED WITH UNIFIED FUNCTION:', result.order._id);
 
     res.json({
       success: true,
@@ -720,7 +719,7 @@ exports.getCodBypassStatus = async (req, res) => {
   try {
     const isBypassEnabled = process.env.COD_BYPASS_OTP === 'true';
     
-    console.log(`🔍 COD BYPASS STATUS CHECK - Bypass ${isBypassEnabled ? 'ENABLED' : 'DISABLED'}`);
+    isDev && console.log(`🔍 COD BYPASS STATUS CHECK - Bypass ${isBypassEnabled ? 'ENABLED' : 'DISABLED'}`);
     
     res.json({
       success: true,

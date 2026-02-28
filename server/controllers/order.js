@@ -7,6 +7,20 @@ const { createSecureAccess } = require("./secureOrder");
 const invoiceService = require("../services/invoiceService");
 const telegramService = require("../services/telegramService");
 const AOVService = require("../services/aovService");
+const Razorpay = require('razorpay');
+const { calculateOrderAmountSecure } = require('./razorpay');
+const Product = require("../models/product");
+const Design = require("../models/design");
+const User = require("../models/user");
+const { trackCouponUsage } = require("./coupon");
+const isDev = process.env.NODE_ENV !== 'production';
+const { processInventoryChanges } = require("../utils/inventoryTracker");
+
+// Razorpay singleton — created once at module load, not per-request
+const razorpayInstance = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 exports.getOrderById = (req, res, next, id) => {
   // ✅ SUPER FAST: Ultra-optimized order fetching for maximum speed
@@ -24,20 +38,16 @@ exports.getOrderById = (req, res, next, id) => {
     .populate("user", "email name")
     .select("-__v") // ✅ Exclude version field
     .lean() // ✅ Use lean for maximum performance
-    .exec((err, order) => {
-      if (err) {
-        return res.status(400).json({
-          err: "Order is not found",
-        });
+    .then((order) => {
+      if (!order) {
+        return res.status(400).json({ err: "Order is not found" });
       }
 
       // ✅ CRITICAL FIX: Ensure data consistency with getUserOrders
       if (order && order.products) {
         order.products = order.products.map(item => {
-          // ✅ ENSURE SAME STRUCTURE: Add photoUrl at item level like getUserOrders
           let enhancedItem = { ...item };
-          
-          // Ensure photoUrl is available at item level for consistency with order history
+          // Ensure photoUrl is available at item level
           if (!enhancedItem.photoUrl) {
             if (item.product && typeof item.product === 'object' && item.product._id) {
               enhancedItem.photoUrl = `/api/product/image/${item.product._id}/0`;
@@ -45,29 +55,21 @@ exports.getOrderById = (req, res, next, id) => {
               enhancedItem.photoUrl = `/api/product/image/${item.product}/0`;
             }
           }
-          
-          console.log('🔧 OrderDetail API - Enhanced item:', {
-            name: enhancedItem.name,
-            isCustom: enhancedItem.isCustom,
-            photoUrl: enhancedItem.photoUrl,
-            hasProduct: !!enhancedItem.product,
-            productId: enhancedItem.product?._id || enhancedItem.product
-          });
-          
           return enhancedItem;
         });
       }
 
       req.order = order;
       next();
-    });
+    })
+    .catch(() => res.status(400).json({ err: "Order is not found" }));
 };
 
 // ✅ UNIFIED ORDER CREATION FUNCTION
 // Used by both Razorpay and COD flows to ensure consistency
 exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification = null) => {
   try {
-    console.log('🎯 UNIFIED ORDER CREATION:', {
+    isDev && console.log('🎯 UNIFIED ORDER CREATION:', {
       paymentMethod: orderData.paymentMethod,
       amount: orderData.amount,
       hasUser: !!userProfile,
@@ -78,15 +80,9 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
     // 🔒 SECURITY: Payment verification (method-specific)
     if (paymentVerification) {
       if (paymentVerification.type === 'razorpay' && paymentVerification.payment?.id) {
-        const Razorpay = require('razorpay');
-        const razorpay = new Razorpay({
-          key_id: process.env.RAZORPAY_KEY_ID,
-          key_secret: process.env.RAZORPAY_KEY_SECRET
-        });
-        
         try {
-          const paymentDetails = await razorpay.payments.fetch(paymentVerification.payment.id);
-          console.log('✅ Razorpay payment verified:', paymentDetails.id);
+          const paymentDetails = await razorpayInstance.payments.fetch(paymentVerification.payment.id);
+          isDev && console.log('✅ Razorpay payment verified:', paymentDetails.id);
         } catch (paymentVerifyError) {
           console.error('❌ Razorpay payment verification failed:', paymentVerifyError);
           throw new Error('Payment verification failed');
@@ -97,7 +93,6 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
     }
 
     // ✅ UNIFIED DISCOUNT CALCULATION
-    const { calculateOrderAmountSecure } = require('./razorpay');
     const cartItems = orderData.products.map(item => ({
       product: item.product || item.productId,
       name: item.name,
@@ -120,7 +115,7 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
       throw new Error(serverCalculation.error);
     }
 
-    console.log('✅ UNIFIED CALCULATION COMPLETE:', {
+    isDev && console.log('✅ UNIFIED CALCULATION COMPLETE:', {
       subtotal: serverCalculation.subtotal,
       quantityDiscount: serverCalculation.quantityDiscount,
       couponDiscount: serverCalculation.couponDiscount,
@@ -130,8 +125,6 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
     });
 
     // ✅ PROCESS AND VALIDATE PRODUCTS WITH INVENTORY TRACKING
-    const Product = require("../models/product");
-    const Design = require("../models/design");
     const validatedProducts = [];
     const stockChanges = []; // Track inventory changes for low stock alerts
 
@@ -248,52 +241,48 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
     const order = new Order(unifiedOrderData);
     const savedOrder = await order.save();
 
-    console.log('✅ UNIFIED ORDER CREATED:', savedOrder._id);
+    isDev && console.log('✅ UNIFIED ORDER CREATED:', savedOrder._id);
 
     // ✅ POPULATE USER INFO FOR EMAIL
     await savedOrder.populate('user', 'email name');
 
     // ✅ NOW DECREASE INVENTORY AFTER ORDER IS CREATED SUCCESSFULLY
-    for (const item of savedOrder.products) {
-      // Skip custom products (they don't affect inventory)
-      if (!item.product || item.isCustom) {
-        console.log(`⚪ Skipping custom product: ${item.name}`);
-        continue;
-      }
-
+    // Batch fetch all regular products in ONE query instead of N queries
+    const regularItems = savedOrder.products.filter(item => item.product && !item.isCustom);
+    if (regularItems.length > 0) {
       try {
-        // Get the product from database
-        const product = await Product.findById(item.product);
-        if (!product || product.isDeleted) {
-          console.error(`❌ Product not found or deleted during inventory update: ${item.product}`);
-          continue;
-        }
+        const productIds = regularItems.map(item => item.product);
+        const fetchedProducts = await Product.find({ _id: { $in: productIds }, isDeleted: false });
+        const productsMap = {};
+        fetchedProducts.forEach(p => { productsMap[p._id.toString()] = p; });
 
-        // Decrease stock and get change information
-        const result = product.decreaseStock(item.size, item.count);
-        
-        if (result.success) {
-          // Save the product with updated stock
-          await product.save();
-          
-          // Track stock changes for low stock alerts
-          stockChanges.push(result.stockChange);
-          
-          console.log(`📦 Inventory updated: ${product.name} (${item.size}) - ${result.stockChange.previousStock} → ${result.stockChange.currentStock}`);
-        } else {
-          console.error(`❌ Failed to decrease stock for ${product.name} (${item.size}) - this should not happen if validation was correct`);
+        const savePromises = [];
+        for (const item of regularItems) {
+          const product = productsMap[item.product.toString()];
+          if (!product) {
+            console.error(`❌ Product not found during inventory update: ${item.product}`);
+            continue;
+          }
+          const result = product.decreaseStock(item.size, item.count);
+          if (result.success) {
+            stockChanges.push(result.stockChange);
+            savePromises.push(product.save());
+          } else {
+            console.error(`❌ Failed to decrease stock for ${product.name} (${item.size})`);
+          }
         }
+        // Parallel saves — all products update concurrently
+        await Promise.all(savePromises);
       } catch (error) {
-        console.error(`❌ Error updating inventory for product ${item.product}:`, error);
+        console.error(`❌ Error updating inventory for order ${savedOrder._id}:`, error);
       }
     }
 
     // ✅ PROCESS REWARD POINTS (if applicable)
     if (orderData.rewardPointsRedeemed > 0 && userProfile?._id) {
-      const { redeemPoints } = require("./reward");
       try {
         await redeemPoints(userProfile._id, orderData.rewardPointsRedeemed, savedOrder._id);
-        console.log(`✅ Reward points redeemed: ${orderData.rewardPointsRedeemed}`);
+        isDev && console.log(`✅ Reward points redeemed: ${orderData.rewardPointsRedeemed}`);
       } catch (rewardError) {
         console.error('❌ Reward points redemption failed:', rewardError);
       }
@@ -301,10 +290,9 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
 
     // ✅ CREDIT REWARD POINTS (for paid orders)
     if (savedOrder.paymentStatus === 'Paid' && userProfile?._id) {
-      const { creditPoints } = require("./reward");
       creditPoints(userProfile._id, savedOrder._id, savedOrder.amount).then(result => {
         if (result.success) {
-          console.log(`✅ Background: Credited ${result.points} reward points`);
+          isDev && console.log(`✅ Background: Credited ${result.points} reward points`);
         }
       }).catch(err => {
         console.error("❌ Background: Failed to credit reward points:", err);
@@ -321,10 +309,9 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
     // 🚀 BACKGROUND JOBS: Process all notifications and non-critical tasks asynchronously
     setImmediate(async () => {
       try {
-        console.log(`🚀 Processing background tasks for order ${savedOrder._id}`);
+        isDev && console.log(`🚀 Processing background tasks for order ${savedOrder._id}`);
 
         // ✅ GENERATE SECURE ACCESS TOKENS
-        const { createSecureAccess } = require("./secureOrder");
         let magicLink = null;
         let pin = null;
         
@@ -335,7 +322,7 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
             if (secureAccess.success) {
               magicLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/track/${Buffer.from(secureAccess.token).toString('base64url')}`;
               pin = secureAccess.pin;
-              console.log('✅ Secure access tokens generated in background');
+              isDev && console.log('✅ Secure access tokens generated in background');
             }
           } catch (err) {
             console.error('❌ Background: Failed to create secure access tokens:', err);
@@ -343,7 +330,6 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
         }
 
         // ✅ SEND EMAIL CONFIRMATION
-        const emailService = require("../services/emailService");
         const customerInfo = savedOrder.user || savedOrder.guestInfo;
         
         if (customerInfo?.email && magicLink && pin) {
@@ -354,7 +340,6 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
 
         // ✅ TRACK COUPON USAGE
         if (orderData.coupon?.code) {
-          const { trackCouponUsage } = require("./coupon");
           trackCouponUsage(orderData.coupon.code, savedOrder._id, userProfile?._id).catch(err => {
             console.error("❌ Background: Failed to track coupon usage:", err);
           });
@@ -364,19 +349,17 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
 
         // ✅ LOW STOCK ALERTS (process stock changes and send Telegram alerts if needed)
         if (stockChanges.length > 0) {
-          const { processInventoryChanges } = require("../utils/inventoryTracker");
           processInventoryChanges(stockChanges, savedOrder._id).catch(err => {
             console.error("❌ Background: Failed to process inventory changes:", err);
           });
         }
 
         // ✅ TELEGRAM NOTIFICATIONS
-        const telegramService = require("../services/telegramService");
         telegramService.sendNewOrderNotification(savedOrder, customerInfo).catch(err => {
           console.error("❌ Background: Failed to send Telegram notification:", err);
         });
 
-        console.log(`✅ Background tasks completed for order ${savedOrder._id}`);
+        isDev && console.log(`✅ Background tasks completed for order ${savedOrder._id}`);
 
       } catch (backgroundError) {
         console.error(`❌ Background task error for order ${savedOrder._id}:`, backgroundError);
@@ -394,7 +377,7 @@ exports.createUnifiedOrder = async (orderData, userProfile, paymentVerification 
 // ✅ NEW: Unified order creation for logged-in users (uses createUnifiedOrder)
 exports.createOrderUnified = async (req, res) => {
   try {
-    console.log('🔄 Creating unified order for logged-in user:', req.profile._id);
+    isDev && console.log('🔄 Creating unified order for logged-in user:', req.profile._id);
     
     // 🔒 SECURITY: Payment verification using existing middleware data
     let paymentVerification = null;
@@ -413,7 +396,7 @@ exports.createOrderUnified = async (req, res) => {
     );
     
     if (result.success) {
-      console.log('✅ Unified order created successfully:', result.order._id);
+      isDev && console.log('✅ Unified order created successfully:', result.order._id);
       res.json(result.order);
     } else {
       throw new Error('Order creation failed');
@@ -428,604 +411,15 @@ exports.createOrderUnified = async (req, res) => {
   }
 };
 
-// ✅ DEPRECATED: Keep old function for reference but mark as deprecated
+// createOrder: deprecated stub — the active route uses createOrderUnified
 exports.createOrder = async (req, res) => {
-  try {
-    console.log('Creating order with data:', JSON.stringify(req.body.order, null, 2));
-    
-    // 🔒 SECURITY: Critical payment amount verification
-    if (req.payment && req.payment.id) {
-      const Razorpay = require('razorpay');
-      const razorpay = new Razorpay({
-        key_id: process.env.RAZORPAY_KEY_ID,
-        key_secret: process.env.RAZORPAY_KEY_SECRET
-      });
-      
-      try {
-        // Fetch payment details from Razorpay to verify amount
-        const paymentDetails = await razorpay.payments.fetch(req.payment.id);
-        
-        // Get server-calculated amount using the same secure function
-        const { calculateOrderAmountSecure } = require('./razorpay');
-        const cartItems = req.body.order.products.map(item => ({
-          product: item.product,
-          name: item.name,
-          quantity: item.count,
-          size: item.size,
-          customization: item.customization,
-          isCustom: item.isCustom
-        }));
-        
-        const serverAmount = await calculateOrderAmountSecure(
-          cartItems,
-          req.body.order.coupon?.code,
-          req.body.order.rewardPointsRedeemed,
-          req.profile,
-          req.body.order.paymentMethod || 'razorpay' // ✅ Pass payment method for online discount calculation
-        );
-        
-        const expectedAmountPaise = Math.round(serverAmount.total * 100);
-        const paidAmountPaise = paymentDetails.amount;
-        
-        console.log('🔒 Payment amount verification:', {
-          expected: expectedAmountPaise,
-          paid: paidAmountPaise,
-          difference: Math.abs(expectedAmountPaise - paidAmountPaise)
-        });
-        
-        // Allow small rounding differences (max 1 rupee)
-        if (Math.abs(expectedAmountPaise - paidAmountPaise) > 100) {
-          console.error('❌ PAYMENT AMOUNT MISMATCH:', {
-            expectedRupees: expectedAmountPaise / 100,
-            paidRupees: paidAmountPaise / 100,
-            orderId: req.body.order.transaction_id
-          });
-          
-          return res.status(400).json({
-            error: 'Payment amount verification failed. Order cancelled for security reasons.',
-            expected: expectedAmountPaise / 100,
-            paid: paidAmountPaise / 100
-          });
-        }
-        
-        console.log('✅ Payment amount verified successfully');
-        
-      } catch (paymentVerifyError) {
-        console.error('Payment verification error:', paymentVerifyError);
-        // Continue with order creation but log the error
-      }
-    }
-    
-    // Ensure user is set
-    req.body.order.user = req.profile._id || req.profile;
-    
-    // Validate and recalculate prices server-side
-    const Product = require("../models/product");
-    const Design = require("../models/design");
-    let recalculatedTotal = 0;
-    const validatedProducts = [];
-    
-    for (const item of req.body.order.products) {
-      let validatedItem = {
-        name: item.name,
-        count: item.count || 1,
-        size: item.size || 'M'
-      };
-      
-      // Preserve photoUrl if present
-      if (item.photoUrl) {
-        validatedItem.photoUrl = item.photoUrl;
-      }
-      
-      // ✅ CRITICAL FIX: Use same robust custom product detection as createUnifiedOrder
-      const productId = item.product || item.productId;
-      const isTemporaryId = !productId || 
-                           productId === 'custom' || 
-                           typeof productId === 'string' && (
-                             productId.startsWith('temp_') || 
-                             productId.startsWith('custom') ||
-                             productId.length < 12 ||
-                             !/^[0-9a-fA-F]{24}$/.test(productId)
-                           );
-      
-      // Check if it's a custom product using robust detection
-      if (isTemporaryId || item.isCustom) {
-        // Handle custom products
-        validatedItem.isCustom = true;
-        validatedItem.customDesign = item.customDesign || item.name;
-        
-        // Store color and design information
-        validatedItem.color = item.color || item.selectedColor || 'White';
-        validatedItem.colorValue = item.colorValue || item.selectedColorValue || '#FFFFFF';
-        
-        // Base price for custom t-shirt
-        const basePrice = 549; // Base price for custom t-shirt
-        let totalDesignPrice = 0;
-        
-        // Check for new customization structure with front/back designs
-        if (item.customization && (item.customization.frontDesign || item.customization.backDesign)) {
-          // New multi-design structure - only create if there's actual design data
-          validatedItem.customization = {};
-          
-          // Process front design - only if it has actual design data
-          if (item.customization.frontDesign && item.customization.frontDesign.designId && item.customization.frontDesign.designImage) {
-            let frontPrice = item.customization.frontDesign.price || 150;
-            
-            // Validate front design price if designId is provided
-            try {
-              const design = await Design.findById(item.customization.frontDesign.designId);
-              if (design) {
-                frontPrice = design.price || 150;
-              }
-            } catch (err) {
-              console.log('Front design not found, using provided price');
-            }
-            
-            validatedItem.customization.frontDesign = {
-              designId: item.customization.frontDesign.designId,
-              designImage: item.customization.frontDesign.designImage,
-              position: item.customization.frontDesign.position || 'center',
-              price: frontPrice
-            };
-            
-            totalDesignPrice += frontPrice;
-          }
-          
-          // Process back design - only if it has actual design data
-          if (item.customization.backDesign && item.customization.backDesign.designId && item.customization.backDesign.designImage) {
-            let backPrice = item.customization.backDesign.price || 150;
-            
-            // Validate back design price if designId is provided
-            try {
-              const design = await Design.findById(item.customization.backDesign.designId);
-              if (design) {
-                backPrice = design.price || 150;
-              }
-            } catch (err) {
-              console.log('Back design not found, using provided price');
-            }
-            
-            validatedItem.customization.backDesign = {
-              designId: item.customization.backDesign.designId,
-              designImage: item.customization.backDesign.designImage,
-              position: item.customization.backDesign.position || 'center',
-              price: backPrice
-            };
-            
-            totalDesignPrice += backPrice;
-          }
-          
-          // Only keep customization if it has actual design data
-          if (!validatedItem.customization.frontDesign && !validatedItem.customization.backDesign) {
-            delete validatedItem.customization;
-          } else {
-            console.log('Multi-design custom product:', {
-              color: validatedItem.color,
-              frontDesign: validatedItem.customization.frontDesign,
-              backDesign: validatedItem.customization.backDesign
-            });
-          }
-        } else {
-          // Legacy single design structure
-          validatedItem.designId = item.designId;
-          validatedItem.designImage = item.designImage || item.image;
-          
-          // If there's a design, add design price
-          if (item.designId) {
-            try {
-              const design = await Design.findById(item.designId);
-              if (design) {
-                totalDesignPrice = design.price || 110;
-              }
-            } catch (err) {
-              console.log('Design not found, using default price');
-              totalDesignPrice = 110;
-            }
-          } else {
-            totalDesignPrice = 110; // Default custom design fee
-          }
-          
-          console.log('Legacy custom product data:', {
-            color: validatedItem.color,
-            colorValue: validatedItem.colorValue,
-            designId: validatedItem.designId,
-            designImage: validatedItem.designImage,
-            customDesign: validatedItem.customDesign
-          });
-        }
-        
-        validatedItem.price = basePrice + totalDesignPrice;
-        validatedItem.product = null; // Explicitly set product to null for custom items
-      } else {
-        // Handle regular products
-        const product = await Product.findById(item.product);
-        if (!product) {
-          return res.status(400).json({
-            error: `Product not found: ${item.product}`
-          });
-        }
-        
-        // Validate product is not soft deleted
-        if (product.isDeleted) {
-          return res.status(400).json({
-            error: `Product no longer available: ${product.name}`
-          });
-        }
-        
-        validatedItem.product = product._id;
-        validatedItem.price = product.price;
-        validatedItem.name = product.name;
-        // Don't add customization field for regular products
-      }
-      
-      // Calculate item total
-      const itemTotal = validatedItem.price * validatedItem.count;
-      recalculatedTotal += itemTotal;
-      
-      validatedProducts.push(validatedItem);
-    }
-    
-    // Add shipping cost based on order value
-    let shippingCost = 0; // Free shipping for all orders
-    
-    recalculatedTotal += shippingCost;
-    
-    // Store original amount before discounts
-    req.body.order.originalAmount = recalculatedTotal;
-    
-    // 🎯 AOV: Calculate quantity-based discount BEFORE other discounts
-    let quantityDiscount = 0;
-    let quantityDiscountInfo = null;
-    try {
-      const cartItems = validatedProducts.map(item => ({
-        product: item.product,
-        name: item.name,
-        price: item.price,
-        quantity: item.count
-      }));
-      
-      const quantityDiscountResult = await AOVService.calculateQuantityDiscount(cartItems);
-      if (quantityDiscountResult && quantityDiscountResult.discount > 0) {
-        quantityDiscount = quantityDiscountResult.discount;
-        quantityDiscountInfo = quantityDiscountResult;
-        console.log(`✅ AOV Quantity Discount Applied: ₹${quantityDiscount} (${quantityDiscountResult.percentage}% for ${quantityDiscountResult.totalQuantity} items)`);
-        
-        // Store quantity discount info in order
-        req.body.order.quantityDiscount = {
-          amount: quantityDiscount,
-          percentage: quantityDiscountResult.percentage,
-          tier: quantityDiscountResult.tier,
-          totalQuantity: quantityDiscountResult.totalQuantity,
-          message: quantityDiscountResult.message
-        };
-      }
-    } catch (aovError) {
-      console.error('AOV quantity discount calculation error:', aovError);
-      // Continue without quantity discount if calculation fails
-    }
-    
-    // ✅ CRITICAL FIX: Use shared coupon validation function for consistency
-    let couponDiscount = 0;
-    const originalSubtotalForCoupon = recalculatedTotal - shippingCost; // Get subtotal before any discounts
-    
-    if (req.body.order.coupon && req.body.order.coupon.code) {
-      console.log(`Validating coupon: ${req.body.order.coupon.code}`);
-      
-      // Use shared validation function to ensure consistency with checkout
-      const { validateCouponForOrder } = require("./coupon");
-      const validationResult = await validateCouponForOrder(
-        req.body.order.coupon.code,
-        originalSubtotalForCoupon,
-        req.profile?._id
-      );
-      
-      if (!validationResult.valid) {
-        return res.status(400).json({
-          error: validationResult.error
-        });
-      }
-      
-      // Extract validated coupon data
-      const validatedCoupon = validationResult.coupon;
-      couponDiscount = validatedCoupon.discount;
-      
-      // Update coupon info with server-validated data
-      req.body.order.coupon = {
-        code: validatedCoupon.code,
-        discountType: validatedCoupon.discountType,
-        discountValue: couponDiscount
-      };
-      
-      console.log(`✅ Applied coupon discount: ₹${couponDiscount} (validated consistently with checkout)`);
-    } else {
-      // Remove coupon info if no valid coupon
-      delete req.body.order.coupon;
-    }
-    
-    // Apply quantity discount to total AFTER coupon calculation
-    recalculatedTotal = recalculatedTotal - quantityDiscount;
-    
-    // Handle reward points redemption (only for authenticated users)
-    let rewardPointsDiscount = 0;
-    let rewardRedemptionPending = false;
-    
-    if (req.body.order.rewardPointsRedeemed && req.body.order.rewardPointsRedeemed > 0 && req.profile && req.profile._id) {
-      console.log(`Processing reward points redemption: ${req.body.order.rewardPointsRedeemed} points`);
-      
-      // ✅ CRITICAL FIX: Don't create reward transaction yet, just validate and calculate
-      const User = require("../models/user");
-      const user = await User.findById(req.profile._id);
-      
-      if (!user || user.rewardPoints < req.body.order.rewardPointsRedeemed) {
-        return res.status(400).json({
-          error: "Insufficient reward points"
-        });
-      }
-      
-      if (req.body.order.rewardPointsRedeemed > 50) {
-        return res.status(400).json({
-          error: "Maximum 50 points can be redeemed per order"
-        });
-      }
-      
-      // Calculate discount amount (1 point = ₹0.5)
-      rewardPointsDiscount = req.body.order.rewardPointsRedeemed * 0.5;
-      req.body.order.rewardPointsDiscount = rewardPointsDiscount;
-      rewardRedemptionPending = true; // Mark for processing after order creation
-      
-      console.log(`Validated reward points redemption: ${req.body.order.rewardPointsRedeemed} points = ₹${rewardPointsDiscount} discount`);
-    }
-    
-    // Apply total discount
-    const totalDiscount = couponDiscount + rewardPointsDiscount;
-    req.body.order.discount = totalDiscount;
-    
-    // Calculate final amount after all discounts
-    recalculatedTotal = recalculatedTotal - totalDiscount;
-    
-    // Ensure amount doesn't go below 0
-    if (recalculatedTotal < 0) {
-      recalculatedTotal = 0;
-    }
-    
-    // ✅ Use backend calculation instead of manual calculation
-    // Get server-calculated amount using the unified function that includes online payment discount
-    const { calculateOrderAmountSecure } = require('./razorpay');
-    const cartItemsForCalculation = validatedProducts.map(item => ({
-      product: item.product,
-      name: item.name,
-      quantity: item.count,
-      size: item.size,
-      customization: item.customization,
-      isCustom: item.isCustom
-    }));
-    
-    const serverCalculation = await calculateOrderAmountSecure(
-      cartItemsForCalculation,
-      req.body.order.coupon?.code,
-      req.body.order.rewardPointsRedeemed,
-      req.profile,
-      req.body.order.paymentMethod || 'razorpay'
-    );
-    
-    // ✅ Use server calculation results
-    const finalServerAmount = serverCalculation.total;
-    
-    // ✅ Store all discount information from server calculation
-    req.body.order.products = validatedProducts;
-    req.body.order.amount = finalServerAmount;
-    req.body.order.originalAmount = serverCalculation.subtotal + serverCalculation.shippingCost;
-    req.body.order.discount = serverCalculation.couponDiscount + serverCalculation.rewardDiscount;
-    req.body.order.paymentStatus = 'Paid';
-    
-    // ✅ Save quantity discount info
-    if (serverCalculation.quantityDiscount > 0) {
-      req.body.order.quantityDiscount = {
-        amount: serverCalculation.quantityDiscount,
-        percentage: Math.round((serverCalculation.quantityDiscount / (serverCalculation.subtotal + serverCalculation.shippingCost)) * 100),
-        totalQuantity: validatedProducts.reduce((total, item) => total + item.count, 0),
-        message: `Bulk discount applied`
-      };
-    }
-    
-    // ✅ Save online payment discount info
-    if (serverCalculation.onlinePaymentDiscount > 0) {
-      req.body.order.onlinePaymentDiscount = {
-        amount: serverCalculation.onlinePaymentDiscount,
-        percentage: 5,
-        paymentMethod: req.body.order.paymentMethod || 'razorpay'
-      };
-    }
-    
-    // ✅ Save individual discount amounts
-    req.body.order.rewardPointsDiscount = serverCalculation.rewardDiscount;
-    
-    console.log('✅ Using server calculation:', {
-      subtotal: serverCalculation.subtotal,
-      shipping: serverCalculation.shippingCost,
-      couponDiscount: serverCalculation.couponDiscount,
-      quantityDiscount: serverCalculation.quantityDiscount,
-      onlinePaymentDiscount: serverCalculation.onlinePaymentDiscount,
-      rewardDiscount: serverCalculation.rewardDiscount,
-      finalAmount: finalServerAmount
-    });
-    
-    // Log price validation
-    console.log(`Price validation - Client sent: ₹${req.body.order.amount}, Server calculated: ₹${recalculatedTotal}, Discounts: ₹${totalDiscount}`);
-    
-    // Set payment status based on successful verification
-    if (req.payment && req.payment.status === 'captured') {
-      req.body.order.paymentStatus = 'Paid';
-    } else {
-      // This should not be reached if middleware is working, but as a fallback
-      req.body.order.paymentStatus = 'Pending';
-    }
-    
-    const order = new Order(req.body.order);
-    
-    // Save order first
-    const savedOrder = await order.save();
-    
-    // 🔒 SECURITY: Update audit log with order ID
-    if (req.paymentAudit) {
-      try {
-        req.paymentAudit.orderId = savedOrder._id;
-        req.paymentAudit.serverCalculatedAmount = recalculatedTotal;
-        await req.paymentAudit.addEvent('order_created_successfully', {
-          orderId: savedOrder._id,
-          finalAmount: recalculatedTotal,
-          discountsApplied: totalDiscount
-        });
-        await req.paymentAudit.save();
-        console.log('✅ Payment audit updated with order ID:', savedOrder._id);
-      } catch (auditError) {
-        console.error('Failed to update payment audit with order ID:', auditError);
-        // Don't fail the order creation if audit update fails
-      }
-    }
-    
-    // ✅ CRITICAL FIX: Process reward points redemption AFTER order is created
-    if (rewardRedemptionPending && req.body.order.rewardPointsRedeemed > 0 && req.profile && req.profile._id) {
-      try {
-        console.log(`Processing reward points redemption with actual order ID: ${savedOrder._id}`);
-        
-        const redeemResult = await redeemPoints(
-          req.profile._id,
-          req.body.order.rewardPointsRedeemed,
-          savedOrder._id // Use actual order ID
-        );
-        
-        if (redeemResult.success) {
-          console.log(`✅ Successfully redeemed ${req.body.order.rewardPointsRedeemed} points for order ${savedOrder._id}`);
-        } else {
-          console.error(`❌ Failed to redeem points after order creation: ${redeemResult.message}`);
-          // Order is already created, so don't fail - just log the error
-        }
-      } catch (rewardError) {
-        console.error('Failed to process reward points after order creation:', rewardError);
-        // Order is already created, so don't fail - just log the error
-      }
-    }
-    
-    // Populate user info for email and shipment
-    await savedOrder.populate('user', 'email name');
-    
-    // Generate secure access tokens for order tracking
-    const customerEmail = savedOrder.user?.email;
-    let magicLink = null;
-    let pin = null;
-    
-    if (customerEmail) {
-      try {
-        const secureAccess = await createSecureAccess(savedOrder._id, customerEmail);
-        if (secureAccess.success) {
-        magicLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/track/${Buffer.from(secureAccess.token).toString('base64url')}`;
-          pin = secureAccess.pin;
-          console.log(`Generated secure access tokens for order ${savedOrder._id}`);
-        }
-      } catch (err) {
-        console.error('Failed to create secure access tokens:', err);
-        // Don't fail the order creation if secure access creation fails
-      }
-    }
-
-    // Credit reward points for paid orders (only for registered users)
-    if (savedOrder.paymentStatus === 'Paid' && savedOrder.user && savedOrder.user._id) {
-      creditPoints(savedOrder.user._id, savedOrder._id, savedOrder.amount).then(result => {
-        if (result.success) {
-          console.log(`Background: Credited ${result.points} reward points to user ${savedOrder.user._id} for order ${savedOrder._id}`);
-        }
-      }).catch(err => {
-        console.error("Background: Failed to credit reward points:", err);
-      });
-    }
-    
-    
-
-    // 🚀 BACKGROUND JOBS: Process all notifications and non-critical tasks asynchronously
-    setImmediate(async () => {
-      try {
-        console.log(`🚀 Processing legacy background tasks for order ${savedOrder._id}`);
-
-        // Send combined order confirmation + tracking email
-        if (magicLink && pin) {
-          emailService.sendOrderConfirmationWithTracking(savedOrder, savedOrder.user, magicLink, pin).catch(err => {
-            console.error("Background: Failed to send combined confirmation+tracking email:", err);
-            // Fallback to regular confirmation email
-            emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(fallbackErr => {
-              console.error("Background: Failed to send fallback order confirmation email:", fallbackErr);
-            });
-          });
-        } else {
-          // Fallback to regular confirmation if secure access failed
-          emailService.sendOrderConfirmation(savedOrder, savedOrder.user).catch(err => {
-            console.error("Background: Failed to send order confirmation email:", err);
-          });
-        }
-        
-        // Track coupon usage if a coupon was applied
-        if (req.body.order.coupon && req.body.order.coupon.code) {
-          const { trackCouponUsage } = require("./coupon");
-          trackCouponUsage(
-            req.body.order.coupon.code, 
-            savedOrder._id, 
-            savedOrder.user ? savedOrder.user._id : null
-          ).catch(err => {
-            console.error("Background: Failed to track coupon usage:", err);
-          });
-        }
-        
-        
-        
-        // 📱 TELEGRAM: Send instant order notification to admin
-        telegramService.sendNewOrderNotification(savedOrder, savedOrder.user).catch(err => {
-          console.error("Background: Failed to send Telegram notification:", err);
-        });
-        
-        // 🔥 High-value order alert
-        if (savedOrder.amount > 2000) {
-          telegramService.sendHighValueOrderAlert(savedOrder).catch(err => {
-            console.error("Background: Failed to send high-value order alert:", err);
-          });
-        }
-        
-        // If Shiprocket is configured, create shipment
-        if (process.env.SHIPROCKET_EMAIL && process.env.SHIPROCKET_PASSWORD) {
-          try {
-            // Create shipment in Shiprocket
-            const shipmentData = await shiprocketService.createShipment(savedOrder);
-            
-            // Update order with shipment details
-            savedOrder.shipping.shipmentId = shipmentData.shipment_id;
-            savedOrder.shipping.awbCode = shipmentData.awb_code;
-            savedOrder.shipping.courier = shipmentData.courier_name;
-            
-            await savedOrder.save();
-            console.log(`Background: Shiprocket shipment created for order ${savedOrder._id}`);
-          } catch (shipmentError) {
-            console.error('Background: Shiprocket error (order still created):', shipmentError);
-          }
-        }
-        console.log(`✅ Legacy background tasks completed for order ${savedOrder._id}`);
-
-      } catch (backgroundError) {
-        console.error(`❌ Legacy background task error for order ${savedOrder._id}:`, backgroundError);
-      }
-    });
-    res.json(savedOrder);
-  } catch (err) {
-    console.error('Order creation error:', err);
-    return res.status(400).json({
-      err: "Unable to save order in DB",
-      details: err.message
-    });
-  }
+  return res.status(410).json({ message: "Deprecated. Use the unified order endpoint." });
 };
 
 exports.getAllOrders = async (req, res) => {
-  console.log('🚨 getAllOrders function called instead of getUserOrders!');
-  console.log('🚨 User ID:', req.params.userId);
-  console.log('🚨 Query params:', req.query);
+  isDev && console.log('🚨 getAllOrders function called instead of getUserOrders!');
+  isDev && console.log('🚨 User ID:', req.params.userId);
+  isDev && console.log('🚨 Query params:', req.query);
   
   try {
     const userId = req.params.userId;
@@ -1298,7 +692,6 @@ exports.getUserOrders = async (req, res) => {
     }
     
     // Get user details for email-based search
-    const User = require('../models/user');
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -1629,7 +1022,7 @@ exports.updateTrackingLink = async (req, res) => {
     
     await order.save();
     
-    console.log(`✅ Tracking link updated for order ${orderId}:`, {
+    isDev && console.log(`✅ Tracking link updated for order ${orderId}:`, {
       trackingLink: order.shipping.trackingLink,
       trackingId: order.shipping.trackingId,
       courier: order.shipping.courier

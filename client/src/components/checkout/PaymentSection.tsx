@@ -1,6 +1,6 @@
 import React, { memo, useMemo, useState } from 'react';
 import { CreditCard, Smartphone, AlertCircle, Shield, Loader, Phone, CheckCircle } from 'lucide-react';
-import DropIn from 'braintree-web-drop-in-react';
+import { toast } from 'react-hot-toast';
 import { API } from '../../backend';
 
 interface PaymentSectionProps {
@@ -292,21 +292,6 @@ const CardPaymentForm = memo(({ paymentData }: any) => {
           </p>
         </div>
       </div>
-      
-      {/* Original Braintree Drop-in (hidden for now) */}
-      {paymentData.clientToken && (
-        <div style={{ display: 'none' }}>
-          <DropIn
-            options={{
-              authorization: paymentData.clientToken,
-              paypal: {
-                flow: 'vault'
-              }
-            }}
-            onInstance={(instance) => paymentData.instance = instance}
-          />
-        </div>
-      )}
     </>
   );
 });
@@ -372,7 +357,7 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
 
   const handleBypassVerification = async () => {
     if (!customerPhone) {
-      alert('Please enter your phone number in the address section first');
+      toast.error('Please enter your phone number in the address section first');
       return;
     }
 
@@ -410,13 +395,13 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
     } catch (error: any) {
       console.error('Bypass verification failed:', error);
       setCodVerification({ ...codVerification, loading: false });
-      alert(error.message || 'Verification failed. Please try again.');
+      toast.error(error.message || 'Verification failed. Please try again.');
     }
   };
 
   const handleSendOtp = async () => {
     if (!customerPhone) {
-      alert('Please enter your phone number in the address section first');
+      toast.error('Please enter your phone number in the address section first');
       return;
     }
 
@@ -455,9 +440,9 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
             
             // Show OTP in development mode
             if (data.developmentOtp) {
-              alert(`Development OTP sent: ${data.developmentOtp}`);
+              toast(`Development OTP: ${data.developmentOtp}`, { icon: '📱' });
             } else {
-              alert('OTP sent to your phone number');
+              toast.success('OTP sent to your phone number');
             }
           } else {
             throw new Error(data.error || 'Failed to send OTP');
@@ -466,13 +451,13 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
     } catch (error: any) {
       console.error('Failed to send OTP:', error);
       setCodVerification({ ...codVerification, loading: false });
-      alert(error.message || 'Failed to send OTP. Please try again.');
+      toast.error(error.message || 'Failed to send OTP. Please try again.');
     }
   };
 
   const handleVerifyOtp = async () => {
     if (!codVerification.otp) {
-      alert('Please enter the OTP');
+      toast.error('Please enter the OTP');
       return;
     }
 
@@ -514,8 +499,7 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
             verifiedPhone: customerPhone
           });
           
-          
-          alert('Phone number verified successfully!');
+          toast.success('Phone number verified successfully!');
         } else {
           throw new Error(data.error || 'Invalid OTP');
         }
@@ -523,7 +507,7 @@ const CodVerificationForm = memo(({ codVerification, setCodVerification, custome
     } catch (error: any) {
       console.error('OTP verification failed:', error);
       setCodVerification({ ...codVerification, loading: false });
-      alert(error.message || 'Invalid OTP. Please try again.');
+      toast.error(error.message || 'Invalid OTP. Please try again.');
     }
   };
 

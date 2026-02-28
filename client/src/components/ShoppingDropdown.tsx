@@ -1,9 +1,9 @@
  import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronDown, Shirt, Package, Star, Zap, Sparkles, Heart, Shield, Crown, TrendingUp, Flame, Loader2, Tags } from 'lucide-react';
-import { getCategoryTree, getProductTypes } from '../core/helper/coreapicalls';
 import { useDevMode } from '../context/DevModeContext';
 import { mockCategories } from '../data/mockData';
+import { useNavData } from '../hooks/useProducts';
 
 interface ShoppingDropdownProps {
   onLinkClick?: () => void;
@@ -13,47 +13,16 @@ const ShoppingDropdown: React.FC<ShoppingDropdownProps> = ({ onLinkClick }) => {
   const [isProductsDropdownOpen, setIsProductsDropdownOpen] = useState(false);
   const [isCategoriesDropdownOpen, setIsCategoriesDropdownOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<any>(null);
-  const [productTypes, setProductTypes] = useState<any[]>([]);
-  const [categoryTree, setCategoryTree] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const { isTestMode } = useDevMode();
 
-  // Fetch dynamic data on component mount
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        if (isTestMode) {
-          // Use mock data in test mode
-          setTimeout(() => {
-            setProductTypes([
-              { _id: '1', name: 'T-Shirts', category: 'apparel', icon: '👕' },
-              { _id: '2', name: 'Hoodies', category: 'winter', icon: '🔥' }
-            ]);
-            setCategoryTree(mockCategories);
-            setLoading(false);
-          }, 500);
-        } else {
-          // Fetch real data from backend
-          const [typesData, categoryData] = await Promise.all([
-            getProductTypes(),
-            getCategoryTree()
-          ]);
-          
-          setProductTypes(typesData || []);
-          setCategoryTree(categoryData || []);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error fetching dropdown data:', error);
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [isTestMode]);
+  // Shared nav data — cached by React Query; both Header and ShoppingDropdown share one fetch
+  const { data: navData, isLoading: loading } = useNavData();
+  const productTypes = isTestMode
+    ? [{ _id: '1', name: 'T-Shirts', category: 'apparel', icon: '\ud83d\udc55' }, { _id: '2', name: 'Hoodies', category: 'winter', icon: '\ud83d\udd25' }]
+    : (navData?.productTypes || []);
+  const categoryTree = isTestMode ? mockCategories : (navData?.categories || []);
 
   const closeDropdowns = () => {
     setIsProductsDropdownOpen(false);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Zap, Heart, Check, Truck, Shield, RotateCw, Plus, Minus } from 'lucide-react';
+import { ShoppingCart, Zap, Heart, Check, Truck, Shield, RotateCw, Plus, Minus, ArrowRight } from 'lucide-react';
 
 interface Product {
   _id: string;
@@ -56,9 +56,17 @@ const ProductActions: React.FC<ProductActionsProps> = ({
     <div className="space-y-6">
       {/* Success Message - Integrated */}
       {showSuccessMessage && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-lg" style={{ backgroundColor: 'var(--color-success)', color: 'white' }}>
-          <Check className="w-5 h-5" />
-          <span className="text-sm font-medium">Added to cart successfully!</span>
+        <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg" style={{ backgroundColor: 'var(--color-success)', color: 'white' }}>
+          <div className="flex items-center gap-2">
+            <Check className="w-5 h-5" />
+            <span className="text-sm font-medium">Added to cart!</span>
+          </div>
+          <a
+            href="/cart"
+            className="flex items-center gap-1 text-sm font-bold underline hover:no-underline whitespace-nowrap"
+          >
+            View Cart <ArrowRight className="w-3 h-3" />
+          </a>
         </div>
       )}
 

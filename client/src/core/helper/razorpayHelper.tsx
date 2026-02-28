@@ -3,6 +3,20 @@ import { API } from '../../backend';
 // Load Razorpay script dynamically
 export const loadRazorpayScript = () => {
   return new Promise((resolve) => {
+    // Lazily inject preconnect/dns-prefetch only when Razorpay is actually needed.
+    // Doing this here (instead of <head>) avoids an idle TCP+TLS handshake on every page.
+    const injectHint = (rel: string, href: string, crossorigin?: boolean) => {
+      if (document.querySelector(`link[href="${href}"]`)) return; // already added
+      const link = document.createElement('link');
+      link.rel = rel;
+      link.href = href;
+      if (crossorigin) link.crossOrigin = 'anonymous';
+      document.head.appendChild(link);
+    };
+    injectHint('preconnect', 'https://checkout.razorpay.com', true);
+    injectHint('dns-prefetch', 'https://checkout.razorpay.com');
+    injectHint('dns-prefetch', 'https://api.razorpay.com');
+
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.onload = () => {

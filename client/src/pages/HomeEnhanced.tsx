@@ -227,9 +227,8 @@ const HomeEnhanced: React.FC = () => {
           );
           
           if (animeCategory) {
-            // Load subcategories of anime
-            const allCategories = await getCategories();
-            const animeSubcategories = allCategories.filter((cat: Category) => 
+            // Filter subcategories from the SAME response — no second API call needed
+            const animeSubcategories = data.filter((cat: Category) => 
               cat.parentCategory === animeCategory._id
             );
             setAnimeCategories(animeSubcategories.slice(0, 6)); // Take first 6

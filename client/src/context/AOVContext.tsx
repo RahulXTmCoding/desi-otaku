@@ -1,6 +1,39 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { API } from '../backend';
 
+// ─── localStorage cache helpers (30-minute TTL) ─────────────────────────────
+const AOV_CACHE_KEY = 'aov_quantity_tiers_cache';
+const AOV_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+interface CachedTiers {
+  data: QuantityTier[];
+  timestamp: number;
+}
+
+const getCachedTiers = (): QuantityTier[] | null => {
+  try {
+    const raw = localStorage.getItem(AOV_CACHE_KEY);
+    if (!raw) return null;
+    const cached: CachedTiers = JSON.parse(raw);
+    if (Date.now() - cached.timestamp > AOV_CACHE_TTL) {
+      localStorage.removeItem(AOV_CACHE_KEY);
+      return null;
+    }
+    return cached.data;
+  } catch {
+    return null;
+  }
+};
+
+const setCachedTiers = (tiers: QuantityTier[]): void => {
+  try {
+    const payload: CachedTiers = { data: tiers, timestamp: Date.now() };
+    localStorage.setItem(AOV_CACHE_KEY, JSON.stringify(payload));
+  } catch {
+    // Ignore storage quota errors silently
+  }
+};
+
 interface QuantityTier {
   minQuantity: number;
   discount: number;
@@ -34,6 +67,14 @@ export const AOVProvider: React.FC<AOVProviderProps> = ({ children }) => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchQuantityTiers = async () => {
+    // Serve from cache if still fresh
+    const cached = getCachedTiers();
+    if (cached) {
+      setQuantityTiers(cached);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setIsLoading(true);
       setError(null);
@@ -45,7 +86,9 @@ export const AOVProvider: React.FC<AOVProviderProps> = ({ children }) => {
       }
       
       const data = await response.json();
-      setQuantityTiers(data.tiers || []);
+      const tiers = data.tiers || [];
+      setQuantityTiers(tiers);
+      setCachedTiers(tiers); // persist for 30 minutes
       
     } catch (error) {
       console.error('❌ Failed to fetch AOV quantity tiers:', error);

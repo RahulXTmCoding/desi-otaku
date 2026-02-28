@@ -56,6 +56,6 @@ module.exports = {
     },
   },
   plugins: [
-    require('@tailwindcss/line-clamp'),
+    // line-clamp is built into Tailwind v3 — no plugin needed
   ],
 }

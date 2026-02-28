@@ -140,6 +140,16 @@ class RedisService {
     }
   }
 
+  // Lightweight check — only reconnects if truly disconnected.
+  // Use this instead of connect() inside controllers so we don't
+  // re-run connection logic on every request when already connected.
+  async ensureConnected() {
+    if (this.isConnected && this.client) return; // fast path — already up
+    if (!this.isConnecting) {
+      await this.connect(); // only enters full connect() if disconnected
+    }
+  }
+
   // Check if Redis is available
   isAvailable() {
     return this.isConnected && this.client;

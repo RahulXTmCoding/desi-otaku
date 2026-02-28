@@ -1,7 +1,9 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 const express = require("express");
-const bodyParser = require("body-parser");
+const compression = require("compression");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const session = require("express-session");
@@ -54,7 +56,7 @@ mongoose
   .connect(process.env.DATABASE, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    autoIndex: true,
+    autoIndex: process.env.NODE_ENV !== 'production', // Skip index rebuild on prod startup
   })
   .then(() => {
     console.log("DB CONNECTED");
@@ -71,26 +73,61 @@ mongoose
   });
 
 //Middlewares
-app.use(bodyParser.json({ limit: '100mb' }));
-app.use(bodyParser.urlencoded({ limit: '100mb', extended: true, parameterLimit: 50000 }));
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false,        // React app manages its own CSP via meta tags
+  crossOriginEmbedderPolicy: false,    // Required for external images (Cloudflare R2, etc.)
+}));
+
+// Gzip/Brotli compression - reduces payload size by 60-80%
+app.use(compression());
+
+// General API rate limiter: 100 requests per 15 minutes per IP
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+  skip: (req) => req.path === '/health', // never rate-limit health checks
+});
+
+// Stricter limiter for auth endpoints: 20 requests per 15 minutes per IP
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts, please try again later.' },
+});
+
+app.use("/api", apiLimiter);
+app.use("/api/signin", authLimiter);
+app.use("/api/signup", authLimiter);
+
+// Body parsing - 100MB intentional limit for large image uploads
 app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ limit: '100mb', extended: true }));
+app.use(express.urlencoded({ limit: '100mb', extended: true, parameterLimit: 50000 }));
 app.use(cookieParser());
 app.use(cors(corsOptions));
 
-// Session configuration for OAuth
-app.use(session({
-  secret: process.env.SESSION_SECRET || 'your-fallback-secret-key',
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
+// Session + Passport — scoped ONLY to OAuth routes.
+// All other auth uses JWT (req.auth set by express-jwt), not Passport sessions.
+const oauthSessionMiddleware = [
+  session({
+    secret: process.env.SESSION_SECRET || 'your-fallback-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
+  }),
+  passport.initialize(),
+  passport.session()
+];
+app.use("/api/auth/google", oauthSessionMiddleware);
+app.use("/api/auth/facebook", oauthSessionMiddleware);
 
 // Graceful shutdown middleware - reject requests during shutdown
 app.use((req, res, next) => {
