@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { 
   User, 
@@ -32,6 +32,7 @@ import { isAutheticated, signout } from "../auth/helper";
 import { getOrders, mockGetOrders } from "../core/helper/orderHelper";
 import { getWishlist } from "../core/helper/wishlistHelper";
 import { getUserAddresses, addUserAddress, updateUserAddress, deleteUserAddress } from "../core/helper/addressHelper";
+import { lookupPincode, preloadPincodeData } from "../core/helper/pincodeLookup";
 import { updateUserProfile, changePassword, getUserDetails } from "../core/helper/userHelper";
 import { useDevMode } from "../context/DevModeContext";
 import { API } from "../backend";
@@ -153,6 +154,10 @@ const UserDashBoardEnhanced = () => {
   // Form states
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [addr1, setAddr1] = useState('');
+  const [addr2, setAddr2] = useState('');
+  const internalAddrRef = useRef('');
   const [addressForm, setAddressForm] = useState<Address>({
     name: '',
     phone: '',
@@ -185,6 +190,19 @@ const UserDashBoardEnhanced = () => {
   useEffect(() => {
     loadData();
   }, [isTestMode, activeTab, currentPage, statusFilter, wishlistCurrentPage]);
+
+  // Pre-fetch pincode lookup data in the background
+  useEffect(() => { preloadPincodeData(); }, []);
+
+  // Sync split fields when address is populated from outside (e.g. editing a saved address)
+  useEffect(() => {
+    if (addressForm.address !== internalAddrRef.current) {
+      const parts = (addressForm.address || '').split('\n');
+      setAddr1(parts[0] || '');
+      setAddr2(parts[1] || '');
+      internalAddrRef.current = addressForm.address || '';
+    }
+  }, [addressForm.address]);
 
   const loadData = async () => {
     setLoading(true);
@@ -704,14 +722,39 @@ const UserDashBoardEnhanced = () => {
             </div>
           </div>
 
+          {/* Address Line 1 */}
           <div>
-            <label className="block text-sm font-medium mb-2">Address</label>
-            <textarea
-              value={addressForm.address}
-              onChange={(e) => setAddressForm({ ...addressForm, address: e.target.value })}
-              rows={3}
+            <label className="block text-sm font-medium mb-2">Flat, House no., Building, Company, Apartment</label>
+            <input
+              type="text"
+              value={addr1}
+              onChange={(e) => {
+                const val = e.target.value;
+                setAddr1(val);
+                const combined = [val, addr2].filter(Boolean).join('\n');
+                internalAddrRef.current = combined;
+                setAddressForm(prev => ({ ...prev, address: combined }));
+              }}
               className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
-              placeholder="Street address, apartment, etc."
+              placeholder="Flat / House no. / Building / Apartment"
+            />
+          </div>
+
+          {/* Address Line 2 */}
+          <div>
+            <label className="block text-sm font-medium mb-2">Area, Street, Sector, Village</label>
+            <input
+              type="text"
+              value={addr2}
+              onChange={(e) => {
+                const val = e.target.value;
+                setAddr2(val);
+                const combined = [addr1, val].filter(Boolean).join('\n');
+                internalAddrRef.current = combined;
+                setAddressForm(prev => ({ ...prev, address: combined }));
+              }}
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
+              placeholder="Area / Street / Sector / Village"
             />
           </div>
 
@@ -740,13 +783,34 @@ const UserDashBoardEnhanced = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">PIN Code</label>
+            <label className="block text-sm font-medium mb-2">
+              PIN Code
+              {pincodeLoading && <Loader className="inline w-3 h-3 ml-2 animate-spin text-yellow-400" />}
+            </label>
             <input
               type="text"
+              inputMode="numeric"
               value={addressForm.pincode}
-              onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
+              onChange={async (e) => {
+                const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                setAddressForm(prev => ({ ...prev, pincode: val }));
+                if (val.length === 6 && val[0] !== '0') {
+                  setPincodeLoading(true);
+                  try {
+                    const info = await lookupPincode(val);
+                    if (info) {
+                      setAddressForm(prev => ({ ...prev, pincode: val, city: info.city, state: info.state }));
+                    }
+                  } catch {
+                    // ignore — user can still fill city/state manually
+                  } finally {
+                    setPincodeLoading(false);
+                  }
+                }
+              }}
               className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:border-yellow-400 focus:ring-1 focus:ring-yellow-400 text-white"
               placeholder="400001"
+              maxLength={6}
             />
           </div>
 

@@ -1,9 +1,9 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useRef } from 'react';
 import {
   Plus, Edit2, Trash2, Star, X, Check, Home, User, Mail, Phone, MapPin, Loader, CheckCircle, AlertCircle
 } from 'lucide-react';
 import { Address } from '../../core/helper/addressHelper';
-import { getLocationFromPincode, guessStateFromPincode } from '../../data/pincodeData';
+import { lookupPincode, preloadPincodeData } from '../../core/helper/pincodeLookup';
 import { 
   validateEmail, 
   validatePhone, 
@@ -63,38 +63,47 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
   const [pincodeLoading, setPincodeLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [addr1, setAddr1] = useState('');
+  const [addr2, setAddr2] = useState('');
+  const internalAddressRef = useRef('');
+
+  // Kick off background data download as soon as the form mounts
+  useEffect(() => { preloadPincodeData(); }, []);
+
+  // Sync split fields when address is changed from outside (e.g. selecting a saved address)
+  useEffect(() => {
+    if (shippingInfo.address !== internalAddressRef.current) {
+      const parts = shippingInfo.address.split('\n');
+      setAddr1(parts[0] || '');
+      setAddr2(parts[1] || '');
+      internalAddressRef.current = shippingInfo.address;
+    }
+  }, [shippingInfo.address]);
 
   // Auto-fill city and state based on pincode
   const handlePincodeChange = async (value: string) => {
     // Format pincode - only allow numbers, max 6 digits
     const formatted = formatPinCode(value);
     onInputChange('pinCode', formatted);
-    
-    // Auto-validate on change if field is touched
+
+    // Auto-validate on change if field was already touched
     if (touched.pinCode && formatted) {
       const error = validateField('pinCode', formatted);
       setErrors(prev => ({ ...prev, pinCode: error }));
     }
-    
-    // Auto-fill location when pincode is complete and valid
+
+    // Auto-fill city / state when pincode is complete
     if (formatted.length === 6 && formatted[0] !== '0') {
       setPincodeLoading(true);
-      
-      // Try to get location from local data first
-      const localData = getLocationFromPincode(formatted);
-      if (localData) {
-        onInputChange('city', localData.city);
-        onInputChange('state', localData.state);
-        setPincodeLoading(false);
-      } else {
-        // Try to guess state from pincode pattern
-        const guessedState = guessStateFromPincode(formatted);
-        if (guessedState) {
-          onInputChange('state', guessedState);
+      try {
+        const info = await lookupPincode(formatted);
+        if (info) {
+          onInputChange('city', info.city);
+          onInputChange('state', info.state);
         }
-        
-        // In production, you would call a pincode API here
-        // For now, we'll just use the guessed state
+      } catch {
+        // silently ignore — user can still type city/state manually
+      } finally {
         setPincodeLoading(false);
       }
     }
@@ -409,22 +418,32 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
               )}
             </div>
             
+            {/* Address Line 1 */}
             <div>
               <label className="block text-xs lg:text-sm font-medium text-gray-300 mb-1 lg:mb-2">
                 <Home className="inline w-3 h-3 lg:w-4 lg:h-4 mr-1" />
-                Address
+                Flat, House no., Building, Company, Apartment
               </label>
               <input
                 type="text"
-                value={shippingInfo.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
+                value={addr1}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAddr1(val);
+                  const combined = [val, addr2].filter(Boolean).join('\n');
+                  internalAddressRef.current = combined;
+                  onInputChange('address', combined);
+                  if (touched.address) {
+                    setErrors(prev => ({ ...prev, address: validateField('address', combined) }));
+                  }
+                }}
                 onBlur={() => handleInputBlur('address')}
                 className={`w-full px-3 py-2 lg:px-4 lg:py-3 bg-gray-700 border rounded-lg text-white focus:ring-1 transition-all text-sm lg:text-base ${
                   errors.address && touched.address
                     ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
                     : 'border-gray-600 focus:border-yellow-400 focus:ring-yellow-400'
                 }`}
-                placeholder="Enter street address"
+                placeholder="Flat / House no. / Building / Apartment"
                 required
               />
               {errors.address && touched.address && (
@@ -433,6 +452,26 @@ const AddressSectionEnhanced: React.FC<AddressSectionProps> = ({
                   {errors.address}
                 </p>
               )}
+            </div>
+
+            {/* Address Line 2 */}
+            <div>
+              <label className="block text-xs lg:text-sm font-medium text-gray-300 mb-1 lg:mb-2">
+                Area, Street, Sector, Village
+              </label>
+              <input
+                type="text"
+                value={addr2}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setAddr2(val);
+                  const combined = [addr1, val].filter(Boolean).join('\n');
+                  internalAddressRef.current = combined;
+                  onInputChange('address', combined);
+                }}
+                className="w-full px-3 py-2 lg:px-4 lg:py-3 bg-gray-700 border border-gray-600 rounded-lg text-white focus:ring-1 focus:border-yellow-400 focus:ring-yellow-400 transition-all text-sm lg:text-base"
+                placeholder="Area / Street / Sector / Village"
+              />
             </div>
             
             {/* PIN Code with Auto-fill */}

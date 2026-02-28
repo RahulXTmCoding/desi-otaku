@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { User, Mail, Phone, MapPin, Lock, Save, Trash2, Package, Heart, Star } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { User, Mail, Phone, MapPin, Lock, Save, Trash2, Package, Heart, Star, Loader } from 'lucide-react';
 import Base from '../core/Base';
 import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
+import { lookupPincode, preloadPincodeData } from '../core/helper/pincodeLookup';
 
 const UserProfile = () => {
   const [profileData, setProfileData] = useState({
@@ -34,6 +35,10 @@ const UserProfile = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [addr1, setAddr1] = useState('');
+  const [addr2, setAddr2] = useState('');
+  const internalAddrRef = useRef('');
   
   const auth = isAutheticated();
   const userId = auth && auth.user ? auth.user._id : null;
@@ -41,7 +46,18 @@ const UserProfile = () => {
 
   useEffect(() => {
     loadUserProfile();
+    preloadPincodeData();
   }, []);
+
+  // Sync split fields when profile address loads from API
+  useEffect(() => {
+    if (profileData.address !== internalAddrRef.current) {
+      const parts = (profileData.address || '').split('\n');
+      setAddr1(parts[0] || '');
+      setAddr2(parts[1] || '');
+      internalAddrRef.current = profileData.address || '';
+    }
+  }, [profileData.address]);
 
   const loadUserProfile = async () => {
     try {
@@ -376,13 +392,39 @@ const UserProfile = () => {
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Address Line 1 */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium mb-2">Street Address</label>
+                <label className="block text-sm font-medium mb-2">Flat, House no., Building, Company, Apartment</label>
                 <input
                   type="text"
-                  value={profileData.address}
-                  onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                  value={addr1}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAddr1(val);
+                    const combined = [val, addr2].filter(Boolean).join('\n');
+                    internalAddrRef.current = combined;
+                    setProfileData(prev => ({ ...prev, address: combined }));
+                  }}
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-yellow-400"
+                  placeholder="Flat / House no. / Building / Apartment"
+                />
+              </div>
+
+              {/* Address Line 2 */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium mb-2">Area, Street, Sector, Village</label>
+                <input
+                  type="text"
+                  value={addr2}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setAddr2(val);
+                    const combined = [addr1, val].filter(Boolean).join('\n');
+                    internalAddrRef.current = combined;
+                    setProfileData(prev => ({ ...prev, address: combined }));
+                  }}
+                  className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-yellow-400"
+                  placeholder="Area / Street / Sector / Village"
                 />
               </div>
 
@@ -417,12 +459,34 @@ const UserProfile = () => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">PIN Code</label>
+                <label className="block text-sm font-medium mb-2">
+                  PIN Code
+                  {pincodeLoading && <Loader className="inline w-3 h-3 ml-2 animate-spin text-yellow-400" />}
+                </label>
                 <input
                   type="text"
+                  inputMode="numeric"
                   value={profileData.pincode}
-                  onChange={(e) => setProfileData({ ...profileData, pincode: e.target.value })}
+                  onChange={async (e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 6);
+                    setProfileData(prev => ({ ...prev, pincode: val }));
+                    if (val.length === 6 && val[0] !== '0') {
+                      setPincodeLoading(true);
+                      try {
+                        const info = await lookupPincode(val);
+                        if (info) {
+                          setProfileData(prev => ({ ...prev, pincode: val, city: info.city, state: info.state }));
+                        }
+                      } catch {
+                        // ignore — user can still fill city/state manually
+                      } finally {
+                        setPincodeLoading(false);
+                      }
+                    }
+                  }}
                   className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-yellow-400"
+                  placeholder="e.g. 400001"
+                  maxLength={6}
                 />
               </div>
             </div>
