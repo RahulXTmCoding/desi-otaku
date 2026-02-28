@@ -49,8 +49,8 @@ const brandConfig = {
     postalCode: process.env.COMPANY_POSTAL_CODE || '',
   },
   
-  // Email settings
-  email: {
+  // Email settings (for transactional emails)
+  emailSettings: {
     senderName: 'Attars Club',
     from: process.env.EMAIL_FROM || 'Attars <noreply@attars.club>',
     brevoSenderEmail: process.env.BREVO_SENDER_EMAIL || 'noreply@attars.club',

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Loader, Heart } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { useProduct } from '../hooks/useProducts';
 const API = import.meta.env.VITE_API_URL;
@@ -25,6 +26,7 @@ import ProductTabs from '../components/product/ProductTabs';
 // Lazy load heavy components to improve initial page load
 const ProductReviews = lazy(() => import('../components/ProductReviews'));
 const LazyRelatedProducts = lazy(() => import('../components/LazyRelatedProducts').then(module => ({ default: module.default })));
+const RecentPurchases = lazy(() => import('../components/product/RecentPurchases'));
 
 interface Product {
   _id: string;
@@ -134,7 +136,6 @@ const ProductDetail: React.FC = () => {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [wishlistLoading, setWishlistLoading] = useState(false);
-  const [viewersCount, setViewersCount] = useState(Math.floor(Math.random() * 15) + 8);
   const [isMobile, setIsMobile] = useState(() => {
       // Check if window is available (client-side)
       if (typeof window !== 'undefined') {
@@ -354,19 +355,6 @@ const ProductDetail: React.FC = () => {
       return () => window.removeEventListener('resize', checkIsMobile);
     }, []);
 
-  // Simulate live viewers with slight fluctuation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setViewersCount(prev => {
-        const change = Math.random() > 0.5 ? 1 : -1;
-        const newCount = prev + change;
-        return Math.max(5, Math.min(25, newCount));
-      });
-    }, 8000 + Math.random() * 4000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   // Size preference management
   const getSizePreferenceKey = (categoryName: string) => {
     return `size_preference_${categoryName.toLowerCase().replace(/\s+/g, '_')}`;
@@ -389,63 +377,35 @@ const ProductDetail: React.FC = () => {
     }
   };
 
-  // Initialize defaults when product loads
+  // ── Single consolidated effect: defaults + images + analytics + wishlist ──
   useEffect(() => {
-    if (product && id) {
-      setSelectedColor(defaultColors[0]);
-      
-      // Handle free size products
-      if (product.isFreeSize) {
-        setSelectedSize('Free');
-        return;
-      }
-      
-      if (product.sizeStock) {
-        const categoryName = product.category?.name || '';
-        
-        // First, try to use saved size preference for this category
-        const savedSize = getSavedSizePreference(categoryName);
-        
-        // Get available sizes from size chart or use defaults
-        const availableSizes = getAvailableSizes();
-        
-        // Check if saved size is available in stock AND in the size chart
-        if (savedSize && availableSizes.includes(savedSize) && product.sizeStock[savedSize] > 0) {
-          setSelectedSize(savedSize);
-        } else {
-          // Fallback to first available size from size chart
-          const firstAvailableSize = availableSizes.find(size => 
-            product.sizeStock && product.sizeStock[size] > 0
-          );
-          if (firstAvailableSize) {
-            setSelectedSize(firstAvailableSize);
-          }
-        }
+    if (!product || !id) return;
+
+    // 1. Set colour / size defaults
+    setSelectedColor(defaultColors[0]);
+
+    if (product.isFreeSize) {
+      setSelectedSize('Free');
+    } else if (product.sizeStock) {
+      const categoryName = product.category?.name || '';
+      const savedSize = getSavedSizePreference(categoryName);
+      const availableSizes = getAvailableSizes();
+
+      if (savedSize && availableSizes.includes(savedSize) && product.sizeStock[savedSize] > 0) {
+        setSelectedSize(savedSize);
+      } else {
+        const firstAvailableSize = availableSizes.find(size =>
+          product.sizeStock && product.sizeStock[size] > 0
+        );
+        if (firstAvailableSize) setSelectedSize(firstAvailableSize);
       }
     }
-  }, [product, id]);
-  
-  // Save size preference when user changes selection
-  const handleSizeChange = (size: string) => {
-    setSelectedSize(size);
-    
-    // Save the size preference for this category
-    if (product?.category?.name) {
-      saveSizePreference(product.category.name, size);
-    }
-  };
 
-  // Build images from product data
-  useEffect(() => {
-    if (product && !isTestMode) {
-      loadProductImages();
-    }
-  }, [product, isTestMode]);
+    // 2. Build product images array
+    if (!isTestMode) loadProductImages();
 
-  // Track product view when product loads
-  useEffect(() => {
-    if (product && product._id) {
-      // Track product view for analytics
+    // 3. Track product view (analytics)
+    if (product._id) {
       trackProductView({
         _id: product._id,
         name: product.name,
@@ -453,17 +413,18 @@ const ProductDetail: React.FC = () => {
         category: product.category?.name || 'T-Shirt'
       });
     }
-  }, [product, trackProductView]);
 
-  // Load wishlist status
-  useEffect(() => {
-    if (id && userId && token) {
-      const timer = setTimeout(() => {
-        checkWishlistStatus();
-      }, 100);
-      return () => clearTimeout(timer);
+    // 4. Load wishlist status (no artificial delay)
+    if (userId && token) checkWishlistStatus();
+  }, [product, id]);
+
+  // Save size preference when user changes selection
+  const handleSizeChange = (size: string) => {
+    setSelectedSize(size);
+    if (product?.category?.name) {
+      saveSizePreference(product.category.name, size);
     }
-  }, [id, userId, token]);
+  };
 
   const checkWishlistStatus = async () => {
     if (!userId || !token || !id) return;
@@ -478,7 +439,7 @@ const ProductDetail: React.FC = () => {
 
   const handleWishlistToggle = async () => {
     if (!userId || !token) {
-      alert('Please login to add items to wishlist');
+      toast.error('Please login to add items to wishlist');
       return;
     }
 
@@ -551,7 +512,7 @@ const ProductDetail: React.FC = () => {
 
   const handleAddToCart = async () => {
     if (!product || !selectedSize) {
-      alert('Please select a size');
+      toast.error('Please select a size');
       return;
     }
 
@@ -581,13 +542,13 @@ const ProductDetail: React.FC = () => {
       setTimeout(() => setShowSuccessMessage(false), 3000);
     } catch (error) {
       console.error('Failed to add to cart:', error);
-      alert('Failed to add to cart. Please try again.');
+      toast.error(error.message || 'Failed to add to cart. Please try again.');
     }
   };
 
   const handleBuyNow = () => {
     if (!product || !selectedSize) {
-      alert('Please select a size');
+      toast.error('Please select a size');
       return;
     }
     
@@ -695,7 +656,6 @@ const ProductDetail: React.FC = () => {
                 productImages={productImages}
                 getProductImage={getProductImage}
                 selectedSize={selectedSize}
-                viewersCount={viewersCount}
               />
             </div>
 
@@ -747,6 +707,13 @@ const ProductDetail: React.FC = () => {
             </div>
           </div>
 
+          {/* Recent Purchases Social Proof */}
+          {product && (
+            <Suspense fallback={null}>
+              <RecentPurchases />
+            </Suspense>
+          )}
+
           {/* Product Details Tabs */}
           <ProductTabs
             product={product}
@@ -759,6 +726,7 @@ const ProductDetail: React.FC = () => {
           {/* {product && (
             <ProductBundles currentProduct={product} />
           )} */}
+
 
           {/* Reviews Section */}
           {product && (

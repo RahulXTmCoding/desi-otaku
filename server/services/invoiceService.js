@@ -1,4 +1,3 @@
-const puppeteer = require('puppeteer');
 const fs = require('fs').promises;
 const path = require('path');
 const Invoice = require('../models/invoice');
@@ -10,7 +9,7 @@ const COMPANY_CONFIG = {
   name: process.env.COMPANY_NAME || brandConfig.shortName,
   address: process.env.COMPANY_ADDRESS || brandConfig.business.address || 'India',
   gstNumber: process.env.COMPANY_GST || brandConfig.business.gstNumber || null,
-  email: process.env.COMPANY_EMAIL || brandConfig.email,
+  email: process.env.COMPANY_EMAIL || (typeof brandConfig.email === 'string' ? brandConfig.email : brandConfig.supportEmail || 'hello@attars.club'),
   phone: process.env.COMPANY_PHONE || null
 };
 
@@ -403,8 +402,8 @@ class InvoiceService {
   // Create invoice from order (GST-inclusive pricing with product MRP)
   async createInvoiceFromOrder(order) {
     try {
-      // Generate unique invoice number
-      const { invoiceNumber, financialYear } = await Invoice.generateInvoiceNumber();
+      // Generate unique invoice number (with race-condition retry)
+      const { invoiceNumber, financialYear } = await Invoice.generateInvoiceNumberSafe();
 
       // Extract customer information
       const customer = {

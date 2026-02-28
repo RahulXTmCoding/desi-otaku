@@ -10,9 +10,8 @@ import ShoppingDropdown from './ShoppingDropdown';
 import SearchInput from './SearchInput';
 import { useDevMode } from '../context/DevModeContext';
 import { mockProducts, getMockProductImage, mockCategories } from '../data/mockData';
-import { useFilteredProducts } from '../hooks/useProducts';
+import { useFilteredProducts, useNavData } from '../hooks/useProducts';
 import { getRandomDesign } from '../admin/helper/designapicall';
-import { getCategoryTree, getProductTypes } from '../core/helper/coreapicalls';
 import { API } from '../backend';
 import RealTShirtPreview from './RealTShirtPreview';
 import { toast } from 'react-hot-toast';
@@ -34,10 +33,12 @@ const Header: React.FC = () => {
   const [isMobileUserDropdownOpen, setIsMobileUserDropdownOpen] = useState(false);
   const [prevCartCount, setPrevCartCount] = useState(0);
 
-  // Mobile menu dynamic data state
-  const [mobileProductTypes, setMobileProductTypes] = useState<any[]>([]);
-  const [mobileCategoryTree, setMobileCategoryTree] = useState<any[]>([]);
-  const [mobileDataLoading, setMobileDataLoading] = useState(false);
+  // Mobile menu dynamic data — shared React Query cache with ShoppingDropdown
+  const { data: navData, isLoading: mobileDataLoading } = useNavData();
+  const mobileProductTypes = isTestMode
+    ? [{ _id: '1', name: 'T-Shirts', displayName: 'T-Shirts', category: 'apparel', icon: '👕' }, { _id: '2', name: 'Hoodies', displayName: 'Hoodies', category: 'winter', icon: '🔥' }]
+    : (navData?.productTypes || []);
+  const mobileCategoryTree = isTestMode ? mockCategories : (navData?.categories || []);
   const [expandedMobileSection, setExpandedMobileSection] = useState<string | null>('categories');
   const [expandedMobileCategory, setExpandedMobileCategory] = useState<string | null>(null);
 
@@ -59,43 +60,6 @@ const Header: React.FC = () => {
     }
     setPrevCartCount(cartCount);
   }, [cartCount, prevCartCount]);
-
-  // Fetch data when mobile menu opens
-  useEffect(() => {
-    const fetchMobileMenuData = async () => {
-      if (isMobileMenuOpen && (!mobileProductTypes.length || !mobileCategoryTree.length)) {
-        setMobileDataLoading(true);
-        try {
-          if (isTestMode) {
-            // Use mock data in test mode
-            setTimeout(() => {
-              setMobileProductTypes([
-                { _id: '1', name: 'T-Shirts', displayName: 'T-Shirts', category: 'apparel', icon: '👕' },
-                { _id: '2', name: 'Hoodies', displayName: 'Hoodies', category: 'winter', icon: '🔥' }
-              ]);
-              setMobileCategoryTree(mockCategories);
-              setMobileDataLoading(false);
-            }, 500);
-          } else {
-            // Fetch real data from backend
-            const [typesData, categoryData] = await Promise.all([
-              getProductTypes(),
-              getCategoryTree()
-            ]);
-            
-            setMobileProductTypes(typesData || []);
-            setMobileCategoryTree(categoryData || []);
-            setMobileDataLoading(false);
-          }
-        } catch (error) {
-          console.error('Error fetching mobile menu data:', error);
-          setMobileDataLoading(false);
-        }
-      }
-    };
-
-    fetchMobileMenuData();
-  }, [isMobileMenuOpen, isTestMode, mobileProductTypes.length, mobileCategoryTree.length]);
 
   const handleRandomSurprise = async () => {
     // Always generate random custom design modal

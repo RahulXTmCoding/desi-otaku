@@ -4,6 +4,10 @@ const _ = require("lodash");
 const { sortBy } = require("lodash");
 const emailService = require("../services/emailService");
 const redisService = require("../services/redisService");
+const mongoose = require("mongoose");
+const Category = require("../models/category");
+const User = require("../models/user");
+const isDev = process.env.NODE_ENV !== 'production';
 
 //get the product by its id
 exports.getProductById = (req, res, next, id) => {
@@ -18,15 +22,30 @@ exports.getProductById = (req, res, next, id) => {
       }
     })
     .populate("sizeChart") // Populate product's direct size chart override
-    .exec((err, product) => {
-      if (err) {
+    .then(product => {
+      if (!product) {
         return res.status(400).json({
           err: "Product not found",
         });
       }
       req.product = product;
       next();
-    });
+    })
+    .catch(() => res.status(400).json({ err: "Product not found" }));
+};
+
+// Lightweight version for delete/restore routes — no deep populates needed.
+// delete/restore only needs the raw document to set flags and call .save()/.remove()
+exports.getProductByIdLight = (req, res, next, id) => {
+  Product.findById(id)
+    .then(product => {
+      if (!product) {
+        return res.status(404).json({ err: 'Product not found' });
+      }
+      req.product = product;
+      next();
+    })
+    .catch(() => res.status(404).json({ err: 'Product not found' }));
 };
 
 //create the new product and save it to the database
@@ -103,7 +122,6 @@ exports.createProduct = (req, res) => {
     // Now handle primary image index across all images
     if (fields.primaryImageIndex !== undefined) {
       const primaryIndex = parseInt(fields.primaryImageIndex);
-      console.log("Setting primary image index:", primaryIndex);
       // Reset all images to not primary
       product.images.forEach((img, idx) => {
         img.isPrimary = idx === primaryIndex;
@@ -114,12 +132,6 @@ exports.createProduct = (req, res) => {
         product.images[0].isPrimary = true;
       }
     }
-    
-    console.log("\n=== Create Product Debug ===");
-    console.log("Total images to save:", product.images.length);
-    product.images.forEach((img, idx) => {
-      console.log(`  [${idx}] ${img.url || 'File upload'} - Primary: ${img.isPrimary}`);
-    });
 
     //save to DB
     product.save(async (err, product) => {
@@ -132,10 +144,10 @@ exports.createProduct = (req, res) => {
 
       // Clear any potential cache entries for this product (though unlikely to exist)
       try {
-        await redisService.connect();
+        await redisService.ensureConnected();
         const cacheKey = `product:${product._id}`;
         await redisService.del(cacheKey);
-        console.log(`🔄 REDIS CACHE CLEARED for new product: ${product._id}`);
+        isDev && console.log(`🔄 REDIS CACHE CLEARED for new product: ${product._id}`);
       } catch (redisError) {
         console.error('Redis cache clear failed for new product:', redisError);
         // Continue without failing the creation
@@ -152,15 +164,15 @@ exports.getProduct = async (req, res) => {
     const skipCache = req.query.skipCache === 'true'; // Admin requests can skip cache
     const cacheKey = `product:${productId}`;
     
-    // Initialize Redis connection if not already connected
-    await redisService.connect();
+    // Ensure Redis is connected (fast no-op if already up)
+    await redisService.ensureConnected();
     
     // Try to get from Redis cache first (unless skipCache is true)
     if (!skipCache) {
       const cachedProduct = await redisService.get(cacheKey);
       
       if (cachedProduct) {
-        console.log(`🔥 REDIS CACHE HIT for product: ${productId}`);
+        isDev && console.log(`🔥 REDIS CACHE HIT for product: ${productId}`);
         return res.json({
           ...cachedProduct,
           _cached: true,
@@ -168,10 +180,10 @@ exports.getProduct = async (req, res) => {
         });
       }
     } else {
-      console.log(`⏭️ SKIPPING CACHE for product: ${productId} (admin request)`);
+      isDev && console.log(`⏭️ SKIPPING CACHE for product: ${productId} (admin request)`);
     }
     
-    console.log(`💾 REDIS CACHE MISS for product: ${productId} - fetching from DB`);
+    isDev && console.log(`💾 REDIS CACHE MISS for product: ${productId} - fetching from DB`);
     
     // Cache miss - fetch from database
     const product = await Product.findById(productId)
@@ -217,9 +229,9 @@ exports.getProduct = async (req, res) => {
     const cacheSuccess = await redisService.set(cacheKey, cacheableProduct, 120);
     
     if (cacheSuccess) {
-      console.log(`✅ REDIS CACHED product: ${productId} for 2 minutes`);
+      isDev && console.log(`✅ REDIS CACHED product: ${productId} for 2 minutes`);
     } else {
-      console.log(`⚠️ REDIS CACHE FAILED for product: ${productId}`);
+      isDev && console.log(`⚠️ REDIS CACHE FAILED for product: ${productId}`);
     }
     
     return res.json({
@@ -414,30 +426,16 @@ exports.updateProduct = (req, res) => {
     const originalImages = [...product.images];
     let newImagesArray = [];
 
-    console.log("\n=== Product Update Debug ===");
-    console.log("Product ID:", product._id);
-    console.log("Original images count:", originalImages.length);
-    originalImages.forEach((img, idx) => {
-      console.log(`  [${idx}] ${img.url || 'File upload'} - Primary: ${img.isPrimary}`);
-    });
-    console.log("\nReceived fields:");
-    console.log("  keepExistingImages:", fields.keepExistingImages);
-    console.log("  imageUrls:", fields.imageUrls);
-    console.log("  primaryImageIndex:", fields.primaryImageIndex);
-    console.log("  Has new file uploads:", files.images ? 'Yes' : 'No');
-
     // Handle keeping existing images
     if (fields.keepExistingImages) {
       try {
         const keepIndices = JSON.parse(fields.keepExistingImages);
-        console.log("Indices to keep:", keepIndices);
         // Add the existing images we want to keep
         keepIndices.forEach(index => {
           if (originalImages[index]) {
             newImagesArray.push(originalImages[index]);
           }
         });
-        console.log("Images kept:", newImagesArray.length);
       } catch (e) {
         console.error("Error parsing keepExistingImages:", e);
         // If error, keep all existing images
@@ -481,13 +479,6 @@ exports.updateProduct = (req, res) => {
     // Update the product images array
     product.images = newImagesArray;
 
-    console.log("\nFinal state before save:");
-    console.log("Total images:", product.images.length);
-    product.images.forEach((img, idx) => {
-      console.log(`  [${idx}] ${img.url || 'File upload'} - Primary: ${img.isPrimary}`);
-    });
-    console.log("=== End Debug ===\n");
-
     // Handle setting primary image
     if (fields.primaryImageIndex !== undefined) {
       const primaryIndex = parseInt(fields.primaryImageIndex);
@@ -512,10 +503,10 @@ exports.updateProduct = (req, res) => {
 
       // Invalidate Redis cache for this product
       try {
-        await redisService.connect();
+        await redisService.ensureConnected();
         const cacheKey = `product:${product._id}`;
         await redisService.del(cacheKey);
-        console.log(`🔄 REDIS CACHE INVALIDATED for updated product: ${product._id}`);
+        isDev && console.log(`🔄 REDIS CACHE INVALIDATED for updated product: ${product._id}`);
       } catch (redisError) {
         console.error('Redis cache invalidation failed:', redisError);
         // Continue without failing the update
@@ -539,22 +530,19 @@ exports.getAllProducts = async (req, res) => {
     // Create cache key based on query parameters
     const cacheKey = `products:list:${limit}:${sortBy}:${includeDeleted}`;
     
-    // Initialize Redis connection
-    await redisService.connect();
+    // Ensure Redis is connected (fast no-op if already up)
+    await redisService.ensureConnected();
     
     // Try to get from Redis cache first
     const cachedProducts = await redisService.get(cacheKey);
     
     if (cachedProducts) {
-      console.log(`🔥 REDIS CACHE HIT for products list: ${limit} items, sortBy: ${sortBy}`);
-      return res.json({
-        ...cachedProducts,
-        _cached: true,
-        _cacheAge: Date.now() - cachedProducts._cachedAt
-      });
+      isDev && console.log(`🔥 REDIS CACHE HIT for products list: ${limit} items, sortBy: ${sortBy}`);
+      // Unwrap the products array — cache stores {products:[...],count,_cachedAt} wrapper
+      return res.json(cachedProducts.products || cachedProducts);
     }
     
-    console.log(`💾 REDIS CACHE MISS for products list - fetching from DB`);
+    isDev && console.log(`💾 REDIS CACHE MISS for products list - fetching from DB`);
     
     // Build filter - exclude soft deleted products by default
     const filter = includeDeleted ? {} : { isDeleted: { $ne: true } };
@@ -602,9 +590,9 @@ exports.getAllProducts = async (req, res) => {
     const cacheSuccess = await redisService.set(cacheKey, cacheableResponse, 480);
     
     if (cacheSuccess) {
-      console.log(`✅ REDIS CACHED products list: ${cleanedProducts.length} items for 8 minutes`);
+      isDev && console.log(`✅ REDIS CACHED products list: ${cleanedProducts.length} items for 8 minutes`);
     } else {
-      console.log(`⚠️ REDIS CACHE FAILED for products list`);
+      isDev && console.log(`⚠️ REDIS CACHE FAILED for products list`);
     }
     
     // Return the products directly (not wrapped in cacheableResponse)
@@ -709,19 +697,16 @@ exports.getFilteredProducts = async (req, res) => {
       excludeFeatured
     } = req.query;
 
-    // Create cache key for Redis caching
-    const cacheKey = `search:${JSON.stringify({
-      search, category, subcategory, productType, gender, minPrice, maxPrice, 
-      tags, sizes, availability, sortBy, sortOrder, page, limit
-    })}`;
+    // Create cache key for Redis caching (string concat is faster than JSON.stringify)
+    const cacheKey = `search:${search||''}:${category||''}:${subcategory||''}:${productType||''}:${gender||''}:${minPrice||''}:${maxPrice||''}:${tags||''}:${sizes||''}:${availability||''}:${sortBy||''}:${sortOrder||''}:${page}:${limit}`;
 
     // Try Redis cache first
     try {
-      await redisService.connect();
+      await redisService.ensureConnected();
       const cachedResult = await redisService.get(cacheKey);
       
       if (cachedResult) {
-        console.log(`🔥 SEARCH CACHE HIT: ${search || 'filters'} (${Date.now() - startTime}ms)`);
+        isDev && console.log(`🔥 SEARCH CACHE HIT: ${search || 'filters'} (${Date.now() - startTime}ms)`);
         return res.json({
           ...cachedResult,
           _cached: true,
@@ -729,10 +714,10 @@ exports.getFilteredProducts = async (req, res) => {
         });
       }
     } catch (redisError) {
-      console.log('Redis cache miss or error:', redisError.message);
+      isDev && console.log('Redis cache miss or error:', redisError.message);
     }
 
-    console.log(`💾 SEARCH CACHE MISS: ${search || 'filters'} - executing optimized query`);
+    isDev && console.log(`💾 SEARCH CACHE MISS: ${search || 'filters'} - executing optimized query`);
 
     // Use aggregation pipeline for optimal performance
     const pipeline = [];
@@ -746,12 +731,10 @@ exports.getFilteredProducts = async (req, res) => {
     // Exclude featured products if requested (prevents duplication with featured section)
     if (excludeFeatured === 'true') {
       baseConditions.isFeatured = { $ne: true };
-      console.log('🆕 NEWLY LAUNCHED: Excluding featured products to prevent duplication');
+      isDev && console.log('🆕 NEWLY LAUNCHED: Excluding featured products to prevent duplication');
     }
 
     // === STEP 1: Apply Category Filters (Base Constraint) ===
-    const mongoose = require("mongoose");
-    const Category = require("../models/category");
     
     // Handle combined category + subcategory filtering
     if (subcategory && subcategory !== 'all') {
@@ -807,7 +790,7 @@ exports.getFilteredProducts = async (req, res) => {
         
         // Verify subcategory belongs to the specified category
         if (categoryId && parentCategoryId && !parentCategoryId.equals(categoryId)) {
-          console.log('Subcategory does not belong to specified category');
+          isDev && console.log('Subcategory does not belong to specified category');
           return res.json({
             products: [],
             pagination: { currentPage: parseInt(page), totalPages: 0, totalProducts: 0, hasMore: false }
@@ -880,7 +863,6 @@ exports.getFilteredProducts = async (req, res) => {
 
     // === STEP 2: Apply Product Type Filter ===
     if (productType && productType !== 'all') {
-      const mongoose = require("mongoose");
       if (mongoose.Types.ObjectId.isValid(productType)) {
         baseConditions.productType = mongoose.Types.ObjectId(productType);
       } else {
@@ -1000,7 +982,6 @@ exports.getFilteredProducts = async (req, res) => {
       const searchWords = searchTerm.split(/\s+/).filter(word => word.length > 0);
       
       // Check if search matches any category names (for intelligent category search)
-      const Category = require("../models/category");
       let matchingCategories = [];
       try {
         matchingCategories = await Category.find({
@@ -1056,7 +1037,7 @@ exports.getFilteredProducts = async (req, res) => {
         if (hasExistingCategoryFilter && searchMatchesExistingCategory) {
           // User selected "Anime" category and searched "anime" - show all Anime products
           finalMatchConditions = baseConditions;
-          console.log('🎯 Smart match: Search term matches selected category, showing all category products');
+          isDev && console.log('🎯 Smart match: Search term matches selected category, showing all category products');
         } else {
           // Normal case: apply search within existing filters
           finalMatchConditions = {
@@ -1074,8 +1055,6 @@ exports.getFilteredProducts = async (req, res) => {
         };
       }
     }
-
-    console.log('🔍 Final MongoDB Query:', JSON.stringify(finalMatchConditions, null, 2));
 
     pipeline.push({ $match: finalMatchConditions });
 
@@ -1223,9 +1202,9 @@ exports.getFilteredProducts = async (req, res) => {
     // Cache successful results
     try {
       await redisService.set(cacheKey, result, 180); // 3 minutes cache
-      console.log(`✅ SEARCH CACHED: ${search || 'filters'} (${result._queryTime}ms)`);
+      isDev && console.log(`✅ SEARCH CACHED: ${search || 'filters'} (${result._queryTime}ms)`);
     } catch (cacheError) {
-      console.log('Cache save failed:', cacheError.message);
+      isDev && console.log('Cache save failed:', cacheError.message);
     }
 
     res.json({
@@ -1247,48 +1226,43 @@ exports.getFilteredProducts = async (req, res) => {
 exports.updateStock = async (req, res, next) => {
   try {
     const orderItems = req.body.order.products;
-    
-    // Process each item
-    for (const item of orderItems) {
-      // Skip custom designs - they don't have product IDs in database
-      if (item.name && item.name.includes('Custom Design')) {
-        console.log(`Skipping stock update for custom design: ${item.name}`);
-        continue;
-      }
-      
+
+    // Separate out real product items (skip custom designs and items without valid IDs)
+    const regularItems = orderItems.filter(item => {
+      if (item.name && item.name.includes('Custom Design')) return false;
       const productId = item.product || item._id;
-      
-      // Skip if no valid product ID
-      if (!productId || productId === 'custom') {
-        console.log('Skipping item without valid product ID');
-        continue;
-      }
-      
-      try {
-        const product = await Product.findById(productId);
-        
-        if (product) {
-          const size = item.size || 'M'; // Default to M if no size specified
-          const quantity = item.count || item.quantity || 1;
-          
-          // Use the simplified stock methods
-          if (product.decreaseStock(size, quantity)) {
-            await product.save();
-            
-            // Check for low stock alerts
-            checkAndSendInventoryAlerts(product);
-          } else {
-            console.error(`Failed to update stock for product ${product._id}, size ${size}`);
-          }
-        } else {
-          console.log(`Product not found for ID: ${productId}`);
-        }
-      } catch (productError) {
-        console.error(`Error processing product ${productId}:`, productError);
-        // Continue with other products
+      if (!productId || productId === 'custom') return false;
+      return /^[0-9a-fA-F]{24}$/.test(String(productId));
+    });
+
+    if (regularItems.length === 0) {
+      return next();
+    }
+
+    // Batch fetch all products in one query instead of N individual findById calls
+    const productIds = regularItems.map(item => item.product || item._id);
+    const products = await Product.find({ _id: { $in: productIds } });
+    const productsMap = {};
+    products.forEach(p => { productsMap[p._id.toString()] = p; });
+
+    // Decrease stock and collect saves; run all saves in parallel
+    const saves = [];
+    for (const item of regularItems) {
+      const product = productsMap[String(item.product || item._id)];
+      if (!product) continue;
+
+      const size = item.size || 'M';
+      const quantity = item.count || item.quantity || 1;
+      if (product.decreaseStock(size, quantity)) {
+        saves.push(
+          product.save().then(() => checkAndSendInventoryAlerts(product))
+        );
+      } else {
+        console.error(`Failed to update stock for product ${product._id}, size ${size}`);
       }
     }
-    
+
+    await Promise.all(saves);
     next();
   } catch (err) {
     console.error("Stock update error:", err);
@@ -1449,7 +1423,6 @@ exports.getInventoryReport = async (req, res) => {
 async function checkAndSendInventoryAlerts(product) {
   try {
     // Get admin users (assuming role = 1 is admin)
-    const User = require("../models/user");
     const admins = await User.find({ role: 1 });
     
     // Check for out of stock
@@ -1613,7 +1586,6 @@ exports.getSearchSuggestions = async (req, res) => {
     });
 
     // Also search in categories directly
-    const Category = require("../models/category");
     const categories = await Category.find({
       name: { $regex: query, $options: 'i' }
     }).limit(5);
@@ -1649,7 +1621,6 @@ exports.getPopularSearches = async (req, res) => {
       .sort({ sold: -1 })
       .limit(5);
 
-    const Category = require("../models/category");
     const popularCategories = await Category.find()
       .select('name')
       .limit(5);
@@ -1877,7 +1848,7 @@ exports.toggleFeatured = async (req, res) => {
 
     // Clear featured products cache
     try {
-      await redisService.connect();
+      await redisService.ensureConnected();
       const cacheKeys = [
         'products:featured',
         'products:trending',
@@ -1887,7 +1858,7 @@ exports.toggleFeatured = async (req, res) => {
       for (const key of cacheKeys) {
         await redisService.del(key);
       }
-      console.log('🔄 Featured products cache cleared');
+      isDev && console.log('🔄 Featured products cache cleared');
     } catch (redisError) {
       console.error('Redis cache clear failed:', redisError);
     }
@@ -1920,11 +1891,11 @@ exports.getFeaturedProducts = async (req, res) => {
 
     // Try Redis cache first
     try {
-      await redisService.connect();
+      await redisService.ensureConnected();
       const cachedFeatured = await redisService.get(cacheKey);
       
       if (cachedFeatured) {
-        console.log(`🔥 FEATURED CACHE HIT: ${limit} products`);
+        isDev && console.log(`🔥 FEATURED CACHE HIT: ${limit} products`);
         return res.json({
           ...cachedFeatured,
           _cached: true,
@@ -1932,10 +1903,10 @@ exports.getFeaturedProducts = async (req, res) => {
         });
       }
     } catch (redisError) {
-      console.log('Featured cache miss:', redisError.message);
+      isDev && console.log('Featured cache miss:', redisError.message);
     }
 
-    console.log(`💾 Featured products cache miss - fetching from DB`);
+    isDev && console.log(`💾 Featured products cache miss - fetching from DB`);
 
     // Get featured products from database
     const featuredProducts = await Product.find({
@@ -1982,9 +1953,9 @@ exports.getFeaturedProducts = async (req, res) => {
     // Cache the results
     try {
       await redisService.set(cacheKey, response, 300); // 5 minutes cache
-      console.log(`✅ Featured products cached: ${cleanedProducts.length} items`);
+      isDev && console.log(`✅ Featured products cached: ${cleanedProducts.length} items`);
     } catch (cacheError) {
-      console.log('Featured cache save failed:', cacheError.message);
+      isDev && console.log('Featured cache save failed:', cacheError.message);
     }
 
     res.json({
@@ -2009,11 +1980,11 @@ exports.getTrendingProducts = async (req, res) => {
 
     // Try Redis cache first
     try {
-      await redisService.connect();
+      await redisService.ensureConnected();
       const cachedTrending = await redisService.get(cacheKey);
       
       if (cachedTrending) {
-        console.log(`🔥 TRENDING CACHE HIT: ${limit} products`);
+        isDev && console.log(`🔥 TRENDING CACHE HIT: ${limit} products`);
         return res.json({
           ...cachedTrending,
           _cached: true,
@@ -2021,10 +1992,10 @@ exports.getTrendingProducts = async (req, res) => {
         });
       }
     } catch (redisError) {
-      console.log('Trending cache miss:', redisError.message);
+      isDev && console.log('Trending cache miss:', redisError.message);
     }
 
-    console.log(`💾 Trending products cache miss - calculating trends`);
+    isDev && console.log(`💾 Trending products cache miss - calculating trends`);
 
     // Step 1: Get manually featured products first (highest priority)
     const featuredProducts = await Product.find({
@@ -2106,9 +2077,9 @@ exports.getTrendingProducts = async (req, res) => {
     // Cache the results
     try {
       await redisService.set(cacheKey, response, 180); // 3 minutes cache
-      console.log(`✅ Trending products cached: ${cleanedProducts.length} items`);
+      isDev && console.log(`✅ Trending products cached: ${cleanedProducts.length} items`);
     } catch (cacheError) {
-      console.log('Trending cache save failed:', cacheError.message);
+      isDev && console.log('Trending cache save failed:', cacheError.message);
     }
 
     res.json({

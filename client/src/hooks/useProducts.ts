@@ -3,7 +3,12 @@ import {
   getSimilarProducts,
   getFilteredProducts,
 } from "../core/helper/shopApiCalls";
-import { getProducts, getProduct } from "../core/helper/coreapicalls";
+import {
+  getProducts,
+  getProduct,
+  getCategoryTree,
+  getProductTypes,
+} from "../core/helper/coreapicalls";
 import { getDesigns, getAllDesignTags } from "../admin/helper/designapicall";
 import { getCategories } from "../admin/helper/adminapicall";
 import { API } from "../backend";
@@ -110,37 +115,6 @@ export const useProduct = (productId: string) => {
       if (previousData && import.meta.env.DEV) {
       }
       return previousData;
-    },
-    // Use initial data from persistence if available
-    initialData: () => {
-      // Check if we have persisted data
-      const persistedCache = localStorage.getItem("react-query-cache");
-      if (persistedCache) {
-        try {
-          const cache = JSON.parse(persistedCache);
-          const queryHash = JSON.stringify(queryKey);
-
-          // Look for our specific query in the persisted cache
-          if (cache.clientState && cache.clientState.queries) {
-            for (const query of cache.clientState.queries) {
-              if (
-                JSON.stringify(query.queryKey) === queryHash &&
-                query.state.data
-              ) {
-                const cacheAge = Date.now() - query.state.dataUpdatedAt;
-                if (cacheAge < 30 * 60 * 1000) {
-                  // Within 30 minutes
-                  return query.state.data;
-                }
-              }
-            }
-          }
-        } catch (e) {
-          if (import.meta.env.DEV) {
-          }
-        }
-      }
-      return undefined;
     },
     // Prevent network requests if data is fresh
     networkMode: "online",
@@ -650,5 +624,30 @@ export const useTrendingProducts = (limit: number = 8) => {
       purpose: "homePageTrending",
       limit,
     },
+  });
+};
+
+// Shared navigation data hook — deduplicates the getCategoryTree + getProductTypes calls
+// made by both Header (mobile menu) and ShoppingDropdown (desktop nav).
+// React Query caches the result for 10 minutes so both components share one fetch.
+export const useNavData = () => {
+  return useQuery({
+    queryKey: ["navData"],
+    queryFn: async () => {
+      const [categories, productTypes] = await Promise.all([
+        getCategoryTree(),
+        getProductTypes(),
+      ]);
+      return {
+        categories: (categories as any[]) || [],
+        productTypes: (productTypes as any[]) || [],
+      };
+    },
+    staleTime: 10 * 60 * 1000, // 10 minutes — nav data rarely changes
+    gcTime: 30 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false, // Use cache if available — prevents duplicate fetches on remount
+    refetchOnReconnect: false,
+    retry: 2,
   });
 };

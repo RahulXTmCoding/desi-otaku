@@ -1,84 +1,48 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ShoppingBag, Trash2, Plus, Minus, ArrowRight, Loader2, Tag, ExternalLink } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useCart } from '../context/CartContext';
 import { useDevMode } from '../context/DevModeContext';
 import { useAnalytics } from '../context/AnalyticsContext';
-import { getMockProductImage } from '../data/mockData';
-const API = import.meta.env.VITE_API_URL;
+import { useAOV } from '../context/AOVContext';
 import CartTShirtPreview from '../components/CartTShirtPreview';
 import QuantityDiscountBanner from '../components/QuantityDiscountBanner';
 // import FreeShippingProgress from '../components/FreeShippingProgress';
 import { getColorName } from '../utils/colorUtils';
+import { getCartItemImage } from '../utils/imageUtils';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
   const { isTestMode } = useDevMode();
   const { cart, loading, error, updateQuantity, removeFromCart, clearCart, getTotal, getItemCount } = useCart();
   const { trackViewCart, trackRemoveFromCart } = useAnalytics();
+  const { quantityTiers } = useAOV();
   const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [isRemoving, setIsRemoving] = useState<string | null>(null);
-  const [quantityDiscount, setQuantityDiscount] = useState<{
-    discount: number;
-    percentage: number;
-    tier: any;
-    message: string;
-  } | null>(null);
 
-  const getProductImage = (item: any) => {
-    if (isTestMode) {
-      return getMockProductImage(item._id?.split('-')[0] || '');
-    }
-    
-    // For custom designs, we don't show a product image
-    if (item.isCustom) {
-      return '';
-    }
-    
-    // Check if product has images array (new multi-image system)
-    if (item.images && Array.isArray(item.images) && item.images.length > 0) {
-      // Find the primary image or use the first one
-      const primaryImage = item.images.find((img: any) => img.isPrimary) || item.images[0];
-      if (primaryImage && primaryImage.url) {
-        return primaryImage.url;
-      }
-      // If no URL, try the indexed endpoint
-      return primaryImage.url;
-    }
-    
-    // Check if product object has images array
-    if (item.product && typeof item.product === 'object' && item.product.images && Array.isArray(item.product.images)) {
-      const primaryImage = item.product.images.find((img: any) => img.isPrimary) || item.product.images[0];
-      if (primaryImage && primaryImage.url) {
-        return primaryImage.url;
-      }
-    }
-    
-    // Check if product has photoUrl (URL-based images - legacy)
-    if (item.photoUrl) {
-      if (item.photoUrl.startsWith('http') || item.photoUrl.startsWith('data:')) {
-        return item.photoUrl;
-      }
-      return item.photoUrl;
-    }
-    
-    // Check if we have a direct image URL
-    if (item.image) {
-      if (item.image.startsWith('http') || item.image.startsWith('data:')) {
-        return item.image;
-      }
-      if (item.image.startsWith('/api')) {
-        return item.image;
-      }
-    }
-    
-    return '/api/placeholder/80/80';
-  };
+  // Calculate quantity discount from already-loaded AOV context — no extra API call
+  const quantityDiscount = useMemo(() => {
+    if (!quantityTiers || quantityTiers.length === 0 || cart.length === 0) return null;
+    const totalQty = cart.reduce((sum, item) => sum + item.quantity, 0);
+    const subtotal = getTotal();
+    const tier = [...quantityTiers]
+      .filter(t => totalQty >= t.minQuantity)
+      .sort((a, b) => b.minQuantity - a.minQuantity)[0];
+    if (!tier) return null;
+    const discount = Math.round((subtotal * tier.discount) / 100);
+    return {
+      discount,
+      percentage: tier.discount,
+      tier,
+      message: `${tier.discount}% off for ${totalQty}+ items`
+    };
+  }, [cart, quantityTiers, getTotal]);
 
   const handleQuantityUpdate = async (itemId: string, newQuantity: number) => {
     if (newQuantity < 1) return;
     if (newQuantity > 10) {
-      alert('Maximum quantity per item is 10');
+      toast.error('Maximum quantity per item is 10');
       return;
     }
     
@@ -87,8 +51,7 @@ const Cart: React.FC = () => {
       await updateQuantity(itemId, newQuantity);
     } catch (error: any) {
       console.error('Failed to update quantity:', error);
-      // Show inventory error message to user
-      alert(error.message || 'Unable to update quantity. Please check product availability.');
+      toast.error(error.message || 'Unable to update quantity. Please check product availability.');
     } finally {
       setIsUpdating(null);
     }
@@ -162,47 +125,6 @@ const Cart: React.FC = () => {
       trackViewCart(cart);
     }
   }, [cart, loading, trackViewCart]);
-
-  // Calculate quantity discounts
-  useEffect(() => {
-    const calculateQuantityDiscount = async () => {
-      if (cart.length === 0) {
-        setQuantityDiscount(null);
-        return;
-      }
-
-      try {
-        const cartItems = cart.map(item => ({
-          product: item.product,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity
-        }));
-
-        const response = await fetch(`${API}/aov/quantity-discount`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ cartItems })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.discount > 0) {
-            setQuantityDiscount(data);
-          } else {
-            setQuantityDiscount(null);
-          }
-        }
-      } catch (error) {
-        console.error('Failed to calculate quantity discount:', error);
-        setQuantityDiscount(null);
-      }
-    };
-
-    calculateQuantityDiscount();
-  }, [cart]);
 
   const cartTotal = getTotal();
   const quantityDiscountAmount = quantityDiscount?.discount || 0;
@@ -293,7 +215,7 @@ const Cart: React.FC = () => {
                             />
                           ) : (
                             <img
-                              src={getProductImage(item)}
+                              src={getCartItemImage(item, isTestMode)}
                               alt={item.name}
                               className="w-full h-full object-contain"
                               onError={(e) => {
@@ -326,7 +248,7 @@ const Cart: React.FC = () => {
                             />
                           ) : (
                             <img
-                              src={getProductImage(item)}
+                              src={getCartItemImage(item, isTestMode)}
                               alt={item.name}
                               className="w-full h-full object-contain"
                               onError={(e) => {
@@ -482,12 +404,20 @@ const Cart: React.FC = () => {
               <div className="mt-4 pt-4 border-t border-gray-700">
                 <div className="grid grid-cols-1 gap-1.5 text-xs">
                   <div className="flex items-center gap-2 text-gray-400">
-                    <span className="text-green-400 text-sm">✓</span>
-                    <span>Secure Checkout</span>
+                    <span className="text-green-400 text-sm">🚚</span>
+                    <span>Free Shipping on All Orders</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <span className="text-green-400 text-sm">↩️</span>
+                    <span>Easy Returns &amp; Exchanges</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-400">
+                    <span className="text-green-400 text-sm">💳</span>
+                    <span>Extra 5% Off on Online Payment</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-400">
                     <span className="text-green-400 text-sm">✓</span>
-                    <span>100% Safe Payment</span>
+                    <span>Secure Checkout · 100% Safe Payment</span>
                   </div>
                 </div>
               </div>

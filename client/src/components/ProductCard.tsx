@@ -6,6 +6,7 @@ import { toggleWishlist, isInWishlist } from '../core/helper/wishlistHelper';
 import { isAutheticated } from '../auth/helper';
 import { API } from '../backend';
 import { generateLightColorWithOpacity } from '../utils/colorUtils';
+import { convertImageUrl } from '../utils/imageUtils';
 
 interface ProductCardProps {
   product: any;
@@ -84,11 +85,11 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
   };
 
   const getImageUrl = () => {
-    if (product.photoUrl) return product.photoUrl;
+    if (product.photoUrl) return convertImageUrl(product.photoUrl, 'medium');
     if (product.images && product.images.length > 0) {
       const primaryImage = product.images.find(img => img.isPrimary) || product.images[0];
       if (primaryImage.url) {
-        return primaryImage.url;
+        return convertImageUrl(primaryImage.url, 'medium');
       } else {
         // For file uploads, we need to get the image from the backend
         const imageIndex = product.images.indexOf(primaryImage);
@@ -103,7 +104,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
     if (product.images && product.images.length > 1) {
       const secondImage = product.images.find(img => !img.isPrimary) || product.images[1];
       if (secondImage.url) {
-        return secondImage.url;
+        return convertImageUrl(secondImage.url, 'medium');
       } else {
         const imageIndex = product.images.indexOf(secondImage);
         return `${API}/product/image/${product._id}/${imageIndex}`;
@@ -172,6 +173,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
           <img
             src={getImageUrl()}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
+            width={400}
+            height={400}
             className={`w-full h-full object-cover transition-all duration-500 ${
               hasSecondImage() ? 'group-hover:opacity-0' : 'group-hover:scale-110'
             }`}
@@ -186,6 +191,10 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, showActions = true }
             <img
               src={getSecondImageUrl()!}
               alt={`${product.name} - Alternative view`}
+              loading="lazy"
+              decoding="async"
+              width={400}
+              height={400}
               className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500"
               onError={(e) => {
                 (e.target as HTMLImageElement).style.display = 'none';

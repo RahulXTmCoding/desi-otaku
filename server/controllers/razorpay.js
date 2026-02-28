@@ -1,15 +1,15 @@
 const crypto = require('crypto');
+const Product = require('../models/product');
+const Design = require('../models/design');
+const Coupon = require('../models/coupon');
+const AOVService = require('../services/aovService');
+const User = require('../models/user');
 
 // Lazy load Razorpay to ensure environment variables are loaded
 let razorpay = null;
 
 const getRazorpayInstance = () => {
   if (!razorpay && process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
-    console.log('Initializing Razorpay with:', {
-      key_id: process.env.RAZORPAY_KEY_ID,
-      has_secret: !!process.env.RAZORPAY_KEY_SECRET
-    });
-    
     const Razorpay = require('razorpay');
     razorpay = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
@@ -41,28 +41,15 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
     // ✅ AUTO-DETECT USER TYPE
     const isAuthenticated = !!(req.user || req.headers.authorization);
     const userType = isAuthenticated ? 'authenticated' : 'guest';
-    
-    console.log('🎯 UNIFIED RAZORPAY ORDER:', {
-      userType,
-      cartItems: cartItems.length,
-      couponCode,
-      rewardPoints: isAuthenticated ? rewardPoints : null,
-      frontendAmount,
-      hasUser: !!req.user,
-      hasAuth: !!req.headers.authorization,
-      customerInfo: customerInfo ? 'provided' : 'none'
-    });
 
     // ✅ LOAD USER IF AUTHENTICATED BUT NOT ALREADY LOADED
     if (isAuthenticated && !req.user) {
       try {
-        const User = require('../models/user');
         const userId = req.params.userId;
         if (userId) {
           const user = await User.findById(userId);
           if (user) {
             req.user = user;
-            console.log('✅ User loaded:', user._id, 'Reward Points:', user.rewardPoints);
           }
         }
       } catch (error) {
@@ -88,14 +75,6 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
 
     // ✅ UNIFIED CALCULATION - Same logic for both user types
     // Use the actual payment method from request body
-    console.log('🔍 Calling calculateOrderAmountSecure with:', {
-      cartItemsCount: cartItems.length,
-      couponCode,
-      rewardPoints: isAuthenticated ? rewardPoints : null,
-      hasUser: !!req.user,
-      paymentMethod: req.body.paymentMethod || 'razorpay'
-    });
-    
     const serverAmount = await calculateOrderAmountSecure(
       cartItems, 
       couponCode, 
@@ -103,8 +82,6 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
       req.user || null,
       req.body.paymentMethod || 'razorpay' // ✅ CRITICAL FIX: Use actual payment method from frontend
     );
-    
-    console.log('📊 Server amount calculation result:', serverAmount);
     
     if (serverAmount.error) {
       console.error('❌ Server amount calculation error:', serverAmount.error);
@@ -163,7 +140,6 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
     
     // ✅ UNIFIED MOCK MODE HANDLING
     if (!razorpayInstance) {
-      console.log(`Using mock Razorpay order for ${userType} (no valid credentials)`);
       return res.json({
         success: true,
         order: {
@@ -176,13 +152,6 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
         userType // For debugging
       });
     }
-    
-    console.log(`Creating ${userType} Razorpay order with options:`, {
-      amount: options.amount,
-      currency: options.currency,
-      receipt: options.receipt,
-      user_type: userType
-    });
     
     const order = await razorpayInstance.orders.create(options);
     
@@ -208,8 +177,8 @@ exports.createUnifiedRazorpayOrder = async (req, res) => {
 };
 
 
-// Verify payment signature
-exports.verifyRazorpayPayment = async (req, res) => {
+// Shared payment signature verification helper
+const _verifyPaymentSignature = async (req, res, isGuest = false) => {
   try {
     const { 
       razorpay_order_id, 
@@ -223,14 +192,7 @@ exports.verifyRazorpayPayment = async (req, res) => {
       });
     }
 
-    console.log('Verifying payment:', {
-      order_id: razorpay_order_id,
-      payment_id: razorpay_payment_id,
-      has_signature: !!razorpay_signature,
-      secret_available: !!process.env.RAZORPAY_KEY_SECRET
-    });
-
-    // Create signature hash
+    // Create and verify HMAC sha256 signature
     const body = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSignature = crypto
       .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'dummy_secret')
@@ -238,39 +200,33 @@ exports.verifyRazorpayPayment = async (req, res) => {
       .digest('hex');
 
     const isAuthentic = expectedSignature === razorpay_signature;
-    
-    console.log('Signature verification:', {
-      isAuthentic,
-      expected: expectedSignature.substring(0, 10) + '...',
-      received: razorpay_signature.substring(0, 10) + '...'
-    });
 
     if (isAuthentic) {
-      // Fetch payment details if Razorpay is configured
       let payment = null;
       const razorpayInstance = getRazorpayInstance();
-      
+
       if (razorpayInstance) {
         payment = await razorpayInstance.payments.fetch(razorpay_payment_id);
       } else {
         // Mock payment for test mode
         payment = {
           id: razorpay_payment_id,
-          amount: 100000, // Default test amount
+          amount: 100000,
           currency: 'INR',
           status: 'captured',
           method: 'card',
           order_id: razorpay_order_id,
-          created_at: Date.now()
+          created_at: Date.now(),
+          ...(isGuest && { email: 'guest@example.com' })
         };
       }
-      
+
       res.json({
         success: true,
         verified: true,
         payment: {
           id: payment.id,
-          amount: payment.amount / 100, // Convert back to rupees
+          amount: payment.amount / 100,
           currency: payment.currency,
           status: payment.status,
           method: payment.method,
@@ -279,7 +235,7 @@ exports.verifyRazorpayPayment = async (req, res) => {
           contact: payment.contact,
           bank: payment.bank,
           wallet: payment.wallet,
-          vpa: payment.vpa, // UPI ID if UPI payment
+          vpa: payment.vpa,
           card_id: payment.card_id,
           international: payment.international,
           created_at: payment.created_at
@@ -293,95 +249,19 @@ exports.verifyRazorpayPayment = async (req, res) => {
       });
     }
   } catch (error) {
-    console.error('Payment verification error:', error);
+    console.error(`${isGuest ? 'Guest p' : 'P'}ayment verification error:`, error);
     res.status(500).json({ 
-      error: 'Failed to verify payment',
+      error: `Failed to verify ${isGuest ? 'guest ' : ''}payment`,
       details: error.message 
     });
   }
 };
+
+// Verify payment signature
+exports.verifyRazorpayPayment = (req, res) => _verifyPaymentSignature(req, res, false);
 
 // Verify payment for guest users (no authentication required)
-exports.verifyGuestRazorpayPayment = async (req, res) => {
-  try {
-    const { 
-      razorpay_order_id, 
-      razorpay_payment_id, 
-      razorpay_signature 
-    } = req.body;
-
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return res.status(400).json({ 
-        error: 'Missing payment verification details' 
-      });
-    }
-
-    console.log('Verifying guest payment:', {
-      order_id: razorpay_order_id,
-      payment_id: razorpay_payment_id,
-      has_signature: !!razorpay_signature
-    });
-
-    // Create signature hash
-    const body = razorpay_order_id + '|' + razorpay_payment_id;
-    const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET || 'dummy_secret')
-      .update(body.toString())
-      .digest('hex');
-
-    const isAuthentic = expectedSignature === razorpay_signature;
-    
-    if (isAuthentic) {
-      // Fetch payment details if Razorpay is configured
-      let payment = null;
-      const razorpayInstance = getRazorpayInstance();
-      
-      if (razorpayInstance) {
-        payment = await razorpayInstance.payments.fetch(razorpay_payment_id);
-      } else {
-        // Mock payment for test mode
-        payment = {
-          id: razorpay_payment_id,
-          amount: 100000, // Default test amount
-          currency: 'INR',
-          status: 'captured',
-          method: 'card',
-          order_id: razorpay_order_id,
-          created_at: Date.now(),
-          email: 'guest@example.com'
-        };
-      }
-      
-      res.json({
-        success: true,
-        verified: true,
-        payment: {
-          id: payment.id,
-          amount: payment.amount / 100, // Convert back to rupees
-          currency: payment.currency,
-          status: payment.status,
-          method: payment.method,
-          order_id: payment.order_id,
-          email: payment.email,
-          contact: payment.contact,
-          created_at: payment.created_at
-        }
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        verified: false,
-        error: 'Invalid payment signature'
-      });
-    }
-  } catch (error) {
-    console.error('Guest payment verification error:', error);
-    res.status(500).json({ 
-      error: 'Failed to verify guest payment',
-      details: error.message 
-    });
-  }
-};
+exports.verifyGuestRazorpayPayment = (req, res) => _verifyPaymentSignature(req, res, true);
 
 // ✅ NEW: Create database order after successful payment verification using createUnifiedOrder
 exports.createRazorpayDatabaseOrder = async (req, res) => {
@@ -401,14 +281,6 @@ exports.createRazorpayDatabaseOrder = async (req, res) => {
       });
     }
 
-    console.log('🎯 CREATING RAZORPAY DATABASE ORDER VIA UNIFIED SYSTEM:', {
-      payment_id: razorpay_payment_id,
-      order_id: razorpay_order_id,
-      hasOrderData: !!orderData,
-      hasCustomerInfo: !!customerInfo,
-      isAuthenticated: !!req.user
-    });
-
     // Verify payment signature
     const body = razorpay_order_id + '|' + razorpay_payment_id;
     const expectedSignature = crypto
@@ -424,8 +296,6 @@ exports.createRazorpayDatabaseOrder = async (req, res) => {
       });
     }
 
-    console.log('✅ Payment signature verified successfully');
-
     // ✅ STEP 2: Fetch payment details for verification
     let paymentDetails = null;
     const razorpayInstance = getRazorpayInstance();
@@ -433,11 +303,6 @@ exports.createRazorpayDatabaseOrder = async (req, res) => {
     if (razorpayInstance) {
       try {
         paymentDetails = await razorpayInstance.payments.fetch(razorpay_payment_id);
-        console.log('✅ Payment details fetched:', {
-          amount: paymentDetails.amount,
-          status: paymentDetails.status,
-          method: paymentDetails.method
-        });
       } catch (fetchError) {
         console.error('❌ Failed to fetch payment details:', fetchError);
         // Continue with mock payment for development
@@ -665,25 +530,12 @@ exports.calculateAmount = async (req, res) => {
       return res.status(400).json({ error: 'Cart items are required' });
     }
 
-    console.log(`🔍 CALCULATE AMOUNT ENDPOINT - Payment Method: ${paymentMethod}`);
-
     // ✅ CRITICAL FIX: Pass payment method to include online payment discount
     const result = await calculateOrderAmountSecure(cartItems, couponCode, rewardPoints, req.user, paymentMethod);
     
     if (result.error) {
       return res.status(400).json({ error: result.error });
     }
-
-    console.log(`✅ CALCULATE AMOUNT RESULT:`, {
-      subtotal: result.subtotal,
-      shippingCost: result.shippingCost,
-      quantityDiscount: result.quantityDiscount,
-      couponDiscount: result.couponDiscount,
-      rewardDiscount: result.rewardDiscount,
-      onlinePaymentDiscount: result.onlinePaymentDiscount,
-      total: result.total,
-      paymentMethod
-    });
 
     // Return detailed breakdown for frontend
     res.json({
@@ -744,15 +596,8 @@ exports.createTestOrder = async (req, res) => {
 // Secure server-side amount calculation
 const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, user, paymentMethod = 'cod') => {
   try {
-    const Product = require('../models/product');
-    const Design = require('../models/design');
-    const Coupon = require('../models/coupon');
-    const AOVService = require('../services/aovService');
-    
     let subtotal = 0;
     const validatedItems = [];
-    
-    console.log(`🔍 DETAILED ITEM CALCULATION:`);
     
     // Validate each cart item server-side
     for (const item of cartItems) {
@@ -771,11 +616,6 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
         size: item.size || 'M'
       };
       
-      console.log(`📦 Processing Item: ${item.name}`);
-      console.log(`   Frontend Price: ₹${item.price}, Quantity: ${validatedItem.quantity}`);
-      console.log(`   Product ID: ${productId} (type: ${typeof productId})`);
-      console.log(`   Raw Product Field:`, item.product);
-      
       // ✅ CRITICAL FIX: Use EXACT same logic as working createUnifiedOrder
       const isTemporaryId = !productId || 
                            productId === 'custom' || 
@@ -788,7 +628,6 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
       
       // ✅ MISSING PIECE: Check item.isCustom flag like createUnifiedOrder does!
       if (isTemporaryId || item.isCustom) {
-        console.log(`   🎨 CUSTOM PRODUCT DETECTED - isTemporaryId: ${isTemporaryId}, isCustom: ${item.isCustom}`);
         // Handle custom products - skip database query
       } else {
         // Validate product exists and get current price (only for real products)
@@ -800,85 +639,44 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
           
           // Use server price, not client price
           validatedItem.price = product.price;
-          validatedItem.name = product.name; // Use server name
-          console.log(`   ✅ REGULAR PRODUCT - Server Price: ₹${product.price} (${product.name})`);
+          validatedItem.name = product.name;
         } catch (dbError) {
-          console.error(`❌ Database error for product ${productId}:`, dbError.message);
-          // If database query fails, treat as custom product
-          console.log(`🔄 Treating product ${productId} as custom due to DB error`);
+          console.error(`Database error for product ${productId}:`, dbError.message);
         }
       }
       
       // Handle custom products, temporary products, or DB query failures
       if (isTemporaryId || !validatedItem.price) {
-        // Custom product validation - get actual base t-shirt price from database
-        let basePrice = 499; // Fallback price
-        
-        try {
-          // ✅ CRITICAL FIX: Get actual base t-shirt price from database
-          const baseTShirt = await Product.findOne({ 
-            $or: [
-              { name: /base.*t-?shirt/i },
-              { name: /plain.*t-?shirt/i },
-              { name: /custom.*t-?shirt/i },
-              { category: { $regex: /t-?shirt/i } }
-            ],
-            isDeleted: { $ne: true }
-          }).sort({ createdAt: 1 }); // Get the oldest/first t-shirt as base
-          
-          if (baseTShirt && baseTShirt.price) {
-            basePrice = baseTShirt.price;
-            console.log(`   🎯 Found base t-shirt in DB: ${baseTShirt.name} - ₹${basePrice}`);
-          } else {
-            console.log(`   ⚠️ No base t-shirt found in DB, using fallback: ₹${basePrice}`);
-          }
-        } catch (dbError) {
-          console.error('   ❌ Error fetching base t-shirt price:', dbError.message);
-          console.log(`   ⚠️ Using fallback base price: ₹${basePrice}`);
-        }
-        
+        const basePrice = 499; // Fixed base t-shirt price
         let designPrice = 0;
-        
-        console.log(`   🎨 CUSTOM PRODUCT - Base: ₹${basePrice}`);
         
         if (item.customization) {
           if (item.customization.frontDesign && item.customization.frontDesign.designId) {
             const frontDesign = await Design.findById(item.customization.frontDesign.designId);
             const frontPrice = frontDesign ? frontDesign.price : 150;
             designPrice += frontPrice;
-            console.log(`   🎨 Front Design: +₹${frontPrice}`);
           }
           if (item.customization.backDesign && item.customization.backDesign.designId) {
             const backDesign = await Design.findById(item.customization.backDesign.designId);
             const backPrice = backDesign ? backDesign.price : 150;
             designPrice += backPrice;
-            console.log(`   🎨 Back Design: +₹${backPrice}`);
           }
         } else {
           designPrice = 110; // Default design fee
-          console.log(`   🎨 Default Design Fee: +₹${designPrice}`);
         }
         
         validatedItem.price = basePrice + designPrice;
-        console.log(`   🎨 CUSTOM TOTAL: ₹${validatedItem.price} (${basePrice} + ${designPrice})`);
       }
       
       const itemTotal = validatedItem.price * validatedItem.quantity;
-      console.log(`   💰 Item Total: ₹${itemTotal} (₹${validatedItem.price} × ${validatedItem.quantity})`);
-      console.log(`   🔍 Frontend vs Backend: ₹${item.price} vs ₹${validatedItem.price} (diff: ₹${validatedItem.price - item.price})`);
       
       validatedItems.push(validatedItem);
       subtotal += itemTotal;
     }
     
-    console.log(`💰 TOTAL SUBTOTAL: ₹${subtotal} (Should be ₹1256)`);
-    
     // ✅ INDUSTRY STANDARD DISCOUNT CALCULATION
     // Apply discounts to SUBTOTAL ONLY, then add shipping at the end
     let discountedSubtotal = subtotal;
-    
-    console.log(`🔍 INDUSTRY STANDARD DISCOUNT CALCULATION:`);
-    console.log(`   1️⃣ Base Subtotal: ₹${discountedSubtotal}`);
     
     const totalQuantity = validatedItems.reduce((total, item) => total + item.quantity, 0);
     
@@ -889,10 +687,6 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
     if (aovResult && aovResult.discount > 0) {
       quantityDiscount = Math.round((discountedSubtotal * aovResult.percentage) / 100);
       discountedSubtotal = discountedSubtotal - quantityDiscount;
-      
-      console.log(`   2️⃣ After AOV Discount (${aovResult.percentage}%): ₹${discountedSubtotal} (saved ₹${quantityDiscount})`);
-    } else {
-      console.log(`   2️⃣ No AOV discount applicable for ${totalQuantity} items`);
     }
     
     // 2️⃣ SECOND: Apply coupon discount to discounted subtotal
@@ -918,15 +712,10 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
           
           discountedSubtotal = discountedSubtotal - couponDiscount;
           
-          console.log(`   3️⃣ After Coupon (${couponCode}): ₹${discountedSubtotal} (additional ₹${couponDiscount} off)`);
         } else {
-          console.log(`   3️⃣ Coupon (${couponCode}): Not applicable (original subtotal ₹${subtotal} < minimum ₹${coupon.minimumPurchase})`);
+          // Minimum purchase not met - couponDiscount stays 0
         }
-      } else {
-        console.log(`   3️⃣ Coupon (${couponCode}): Invalid or expired`);
       }
-    } else {
-      console.log(`   3️⃣ No coupon applied`);
     }
     
     // 3️⃣ THIRD: Apply online payment discount to discounted subtotal
@@ -934,36 +723,22 @@ const calculateOrderAmountSecure = async (cartItems, couponCode, rewardPoints, u
     if (paymentMethod === 'razorpay' || paymentMethod === 'card') {
       onlinePaymentDiscount = Math.round(discountedSubtotal * 0.05);
       discountedSubtotal = discountedSubtotal - onlinePaymentDiscount;
-      
-      console.log(`   4️⃣ After Online Payment Discount (5%): ₹${discountedSubtotal} (additional ₹${onlinePaymentDiscount} off)`);
-    } else {
-      console.log(`   4️⃣ No online payment discount (COD selected)`);
     }
     
     // 4️⃣ FOURTH: Apply reward points redemption (like cash payment)
     let rewardDiscount = 0;
     if (rewardPoints && user && user._id) {
-      const User = require('../models/user');
       const userDoc = await User.findById(user._id);
       if (userDoc && userDoc.rewardPoints >= rewardPoints) {
-        rewardDiscount = Math.min(rewardPoints * 0.5, discountedSubtotal); // Don't exceed discounted subtotal
+        rewardDiscount = Math.min(rewardPoints * 0.5, discountedSubtotal);
         discountedSubtotal = discountedSubtotal - rewardDiscount;
-        
-        console.log(`   5️⃣ After Reward Points Redemption: ₹${discountedSubtotal} (redeemed ₹${rewardDiscount} as cash equivalent)`);
       }
-    } else {
-      console.log(`   5️⃣ No reward points redeemed`);
     }
     
     // 5️⃣ FIFTH: Add shipping charges to final discounted subtotal
     let shippingCost = 0; // Free shipping for all orders
     
     const total = Math.round(Math.max(0, discountedSubtotal + shippingCost));
-    
-    console.log(`   6️⃣ Add Shipping: ₹${discountedSubtotal} + ₹${shippingCost} = ₹${total}`);
-    console.log(`🎯 FINAL INDUSTRY STANDARD TOTAL: ₹${total}`);
-    console.log(`💰 TOTAL DISCOUNTS APPLIED: ₹${subtotal - discountedSubtotal} on subtotal`);
-    console.log(`💰 FINAL SAVINGS: ₹${(subtotal + shippingCost) - total} from original ₹${subtotal + shippingCost}`);
     
     // Ensure total is not negative
     if (total < 0) total = 0;

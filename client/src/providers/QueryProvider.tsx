@@ -30,8 +30,8 @@ const createQueryClient = () => {
         // Retry delay increases exponentially
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
         // Optimized cache settings for persistence
-        refetchOnWindowFocus: false,
-        refetchOnReconnect: false,
+        refetchOnWindowFocus: true,
+        refetchOnReconnect: true,
         refetchOnMount: false,
         // Network mode for better cache utilization
         networkMode: 'online',

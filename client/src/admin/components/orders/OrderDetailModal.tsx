@@ -1,8 +1,7 @@
-import React from 'react';
-import { X, User, Package, Truck, Clock, Printer, Copy, Download } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, User, Package, Truck, Clock, Printer, Copy, Download, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-hot-toast';
-import { useReactToPrint } from 'react-to-print';
 import { Order } from './types';
 import CartTShirtPreview from '../../../components/CartTShirtPreview';
 import { getProductImageUrl } from './utils/imageHelper';
@@ -16,11 +15,43 @@ interface OrderDetailModalProps {
 }
 
 const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) => {
-  const invoiceRef = React.useRef<HTMLDivElement>(null);
-  const handlePrint = useReactToPrint({
-    contentRef: invoiceRef,
-    documentTitle: `Invoice-${order._id}`
-  });
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  const handlePrintInvoice = async () => {
+    setIsPrinting(true);
+    try {
+      // Fetch the same server-generated invoice HTML used by Download Invoice
+      const response = await fetch(`${API}/invoice/order/${order._id}/download`);
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+      const htmlContent = await response.text();
+
+      // Open a print window with the server-generated invoice
+      const printWindow = window.open('', '_blank', 'width=900,height=700');
+      if (!printWindow) {
+        throw new Error('Could not open print window. Please allow popups.');
+      }
+      printWindow.document.write(htmlContent);
+      printWindow.document.close();
+      // Wait for content to render, then trigger print
+      printWindow.onload = () => {
+        setTimeout(() => {
+          printWindow.print();
+          setTimeout(() => printWindow.close(), 1000);
+        }, 500);
+      };
+      // Fallback if onload doesn't fire (content already loaded)
+      setTimeout(() => {
+        try { printWindow.print(); } catch (_) { /* already printing */ }
+      }, 2000);
+    } catch (error: any) {
+      console.error('Print error:', error);
+      toast.error(error.message || 'Failed to print invoice');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
 
   const copyOrderId = () => {
     navigator.clipboard.writeText(order._id);
@@ -204,13 +235,12 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
         <div className="p-6 border-t border-gray-700">
           <div className="flex gap-4">
             <button
-              onClick={() => {
-                if (handlePrint) handlePrint();
-              }}
-              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
+              onClick={handlePrintInvoice}
+              disabled={isPrinting}
+              className="px-6 py-3 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 rounded-lg transition-colors flex items-center gap-2"
             >
-              <Printer className="w-5 h-5" />
-              Print Invoice
+              {isPrinting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Printer className="w-5 h-5" />}
+              {isPrinting ? 'Loading...' : 'Print Invoice'}
             </button>
             <button
               onClick={async () => {
@@ -241,28 +271,6 @@ const OrderDetailModal: React.FC<OrderDetailModalProps> = ({ order, onClose }) =
         </div>
       </div>
 
-      {/* Hidden Invoice for Printing */}
-      <div style={{ display: 'none' }}>
-        <div ref={invoiceRef} className="p-8 bg-white text-black">
-          <h1 className="text-2xl font-bold mb-4">Invoice</h1>
-          <p>Order ID: {order._id}</p>
-          <p>Date: {format(new Date(order.createdAt), 'PPP')}</p>
-          <div className="mt-4">
-            <h3 className="font-bold">Customer:</h3>
-            <p>{order.user ? order.user.name : order.guestInfo?.name || 'Guest'}</p>
-            <p>{order.user ? order.user.email : order.guestInfo?.email || 'N/A'}</p>
-          </div>
-          <div className="mt-4">
-            <h3 className="font-bold">Items:</h3>
-            {order.products.map((item, index) => (
-              <p key={index}>{item.name} x {item.count} - ₹{item.price * item.count}</p>
-            ))}
-          </div>
-          <div className="mt-4">
-            <p className="font-bold">Total: ₹{order.amount}</p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

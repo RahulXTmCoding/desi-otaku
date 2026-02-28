@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { ChevronLeft, Package, MapPin, Truck, Percent, ShoppingBag } from 'lucide-react';
 import { CreditCard, Smartphone, AlertCircle, Shield, Loader, Phone, CheckCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
 import { useCart } from '../context/CartContext';
 import { useAnalytics } from '../context/AnalyticsContext';
@@ -120,7 +121,10 @@ const CheckoutSinglePage: React.FC = () => {
   const hasTrackedBeginCheckout = useRef(false);
   useEffect(() => {
     if (!buyNowItem && (!regularCart || regularCart.length === 0)) {
-      navigate('/cart');
+      // Guard: only redirect once cart has actually finished loading
+      if (!loading) {
+        navigate('/cart');
+      }
       return;
     }
 
@@ -130,7 +134,7 @@ const CheckoutSinglePage: React.FC = () => {
       const couponCode = appliedDiscount.coupon?.code;
       trackBeginCheckout(cart, couponCode);
     }
-  }, [buyNowItem, regularCart, navigate]);
+  }, [buyNowItem, regularCart, navigate, loading]);
 
   // Track shipping info only when shipping method actually changes
   const lastShippingRef = useRef<string>('');
@@ -557,7 +561,7 @@ const CheckoutSinglePage: React.FC = () => {
 
   const handleSaveAddress = useCallback(async () => {
     if (!validateShipping()) {
-      alert('Please fill all address fields');
+      toast.error('Please fill all address fields');
       return;
     }
 
@@ -597,7 +601,7 @@ const CheckoutSinglePage: React.FC = () => {
         
       } catch (error: any) {
         console.error('Failed to save guest address:', error);
-        alert('Failed to save address. Please try again.');
+        toast.error('Failed to save address. Please try again.');
       }
       
       setAddressLoading(false);
@@ -651,7 +655,7 @@ const CheckoutSinglePage: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Failed to save address:', error);
-      alert(error.message || 'Failed to save address. Please try again.');
+      toast.error(error.message || 'Failed to save address. Please try again.');
     }
     
     setAddressLoading(false);
@@ -694,7 +698,7 @@ const CheckoutSinglePage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to delete address:', error);
-      alert('Failed to delete address');
+      toast.error('Failed to delete address');
     }
     
     setAddressLoading(false);
@@ -728,7 +732,7 @@ const CheckoutSinglePage: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to set default address:', error);
-      alert('Failed to set default address');
+      toast.error('Failed to set default address');
     }
     
     setAddressLoading(false);
@@ -765,12 +769,12 @@ const CheckoutSinglePage: React.FC = () => {
 
   const handlePlaceOrderWithValidation = useCallback(async () => {
     if (!validateShipping()) {
-      alert('Please fill all shipping details');
+      toast.error('Please fill all shipping details');
       return;
     }
   
     if (!selectedShipping) {
-      alert('Please select a shipping method');
+      toast.error('Please select a shipping method');
       return;
     }
 
@@ -778,13 +782,13 @@ const CheckoutSinglePage: React.FC = () => {
     if (paymentMethod === 'cod' || paymentMethod === 'partial-cod') {
       // Only require OTP verification if not bypassed
       if (!codVerification.otpVerified && !codVerification.bypassed) {
-        alert('Please verify your phone number for COD orders');
+        toast.error('Please verify your phone number for COD orders');
         return;
       }
     }
   
     if (!isTestMode && paymentMethod === 'razorpay' && !razorpayReady) {
-      alert('Payment gateway is loading. Please try again.');
+      toast.error('Payment gateway is loading. Please try again.');
       return;
     }
     
@@ -793,7 +797,7 @@ const CheckoutSinglePage: React.FC = () => {
       await handlePlaceOrder();
     } catch (error: any) {
       console.error('Order placement error:', error);
-      alert(`Failed to place order: ${error.message}`);
+      toast.error(`Failed to place order: ${error.message}`);
     } finally {
       setLoading(false);
     }

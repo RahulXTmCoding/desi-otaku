@@ -1,10 +1,13 @@
 const { Order } = require('../models/order');
 const User = require('../models/user');
 const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
+const emailService = require('../services/emailService');
 const { createSecureAccess } = require('./secureOrder');
 const invoiceService = require('../services/invoiceService');
 const telegramService = require('../services/telegramService');
 const AOVService = require('../services/aovService');
+const isDev = process.env.NODE_ENV !== 'production';
 
 // Create order for guest users
 exports.createGuestOrder = async (req, res) => {
@@ -64,7 +67,7 @@ exports.createGuestOrder = async (req, res) => {
         const paidAmountPaise = paymentDetails.amount;
         const paidAmountRupees = paidAmountPaise / 100;
         
-        console.log('✅ Guest payment verification (backend-controlled pricing):', {
+        isDev && console.log('✅ Guest payment verification (backend-controlled pricing):', {
           paidRupees: paidAmountRupees,
           guestEmail: guestInfo.email,
           transactionId: transaction_id,
@@ -87,7 +90,7 @@ exports.createGuestOrder = async (req, res) => {
         // Use the paid amount (which is now secure since backend controls Razorpay pricing)
         amount = paidAmountRupees;
         
-        console.log('✅ Guest payment verified - using backend-controlled amount');
+        isDev && console.log('✅ Guest payment verified - using backend-controlled amount');
         
       } catch (paymentVerifyError) {
         console.error('Guest payment verification error:', paymentVerifyError);
@@ -104,13 +107,12 @@ exports.createGuestOrder = async (req, res) => {
       if (existingUser) {
         userId = existingUser._id;
         existingAccountLinked = true;
-        console.log('Found existing user for guest order:', guestInfo.email);
+        isDev && console.log('Found existing user for guest order:', guestInfo.email);
       } else {
         // Auto-create account for guest user to enable order tracking
-        console.log('Creating auto-account for guest user:', guestInfo.email);
+        isDev && console.log('Creating auto-account for guest user:', guestInfo.email);
         
         // Generate a secure random password (user will reset it via email)
-        const crypto = require('crypto');
         const tempPassword = crypto.randomBytes(32).toString('hex');
         
         const newUser = new User({
@@ -126,10 +128,10 @@ exports.createGuestOrder = async (req, res) => {
         userId = savedUser._id;
         autoAccountCreated = true;
         
-        console.log('✅ Auto-account created for guest user:', guestInfo.email);
+        isDev && console.log('✅ Auto-account created for guest user:', guestInfo.email);
       }
     } catch (error) {
-      console.log('Error handling user account for guest order:', error);
+      console.error('Error handling user account for guest order:', error);
       // Continue without linking if there's an error
     }
     
@@ -148,7 +150,7 @@ exports.createGuestOrder = async (req, res) => {
       if (quantityDiscountResult && quantityDiscountResult.discount > 0) {
         quantityDiscount = quantityDiscountResult.discount;
         quantityDiscountInfo = quantityDiscountResult;
-        console.log(`✅ AOV Quantity Discount Applied to Guest Order: ₹${quantityDiscount} (${quantityDiscountResult.percentage}% for ${quantityDiscountResult.totalQuantity} items)`);
+        isDev && console.log(`✅ AOV Quantity Discount Applied to Guest Order: ₹${quantityDiscount} (${quantityDiscountResult.percentage}% for ${quantityDiscountResult.totalQuantity} items)`);
       }
     } catch (aovError) {
       console.error('AOV quantity discount calculation error for guest order:', aovError);
@@ -246,7 +248,7 @@ exports.createGuestOrder = async (req, res) => {
           guestEmail: guestInfo.email
         });
         await req.paymentAudit.save();
-        console.log('✅ Guest payment audit updated with order ID:', savedOrder._id);
+        isDev && console.log('✅ Guest payment audit updated with order ID:', savedOrder._id);
       } catch (auditError) {
         console.error('Failed to update guest payment audit with order ID:', auditError);
         // Don't fail the order creation if audit update fails
@@ -262,7 +264,7 @@ exports.createGuestOrder = async (req, res) => {
       if (secureAccess.success) {
         magicLink = `${process.env.CLIENT_URL || 'http://localhost:5173'}/track/${Buffer.from(secureAccess.token).toString('base64url')}`;
         pin = secureAccess.pin;
-        console.log(`Generated secure access tokens for guest order ${savedOrder._id}`);
+        isDev && console.log(`Generated secure access tokens for guest order ${savedOrder._id}`);
       }
     } catch (err) {
       console.error('Failed to create secure access tokens for guest order:', err);
@@ -270,11 +272,9 @@ exports.createGuestOrder = async (req, res) => {
     }
     
     // Send appropriate emails based on account creation status
-    const emailService = require('../services/emailService');
-    
     if (autoAccountCreated) {
       // 🎉 NEW ACCOUNT: Send welcome email with password setup instructions
-      console.log('Sending welcome email with password setup for auto-created account');
+      isDev && console.log('Sending welcome email with password setup for auto-created account');
       
       const userInfo = {
         name: guestInfo.name,
@@ -284,7 +284,7 @@ exports.createGuestOrder = async (req, res) => {
       
       emailService.sendAutoAccountCreationEmail(userInfo, savedOrder)
         .then(() => {
-          console.log('✅ Welcome email with password setup sent successfully');
+          isDev && console.log('✅ Welcome email with password setup sent successfully');
         })
         .catch(err => {
           console.error("❌ Failed to send welcome email with password setup:", err);
@@ -294,7 +294,7 @@ exports.createGuestOrder = async (req, res) => {
       if (magicLink && pin) {
         emailService.sendOrderConfirmationWithTracking(savedOrder, guestInfo, magicLink, pin)
           .then(() => {
-            console.log('✅ Order confirmation+tracking email sent successfully');
+            isDev && console.log('✅ Order confirmation+tracking email sent successfully');
           })
           .catch(err => {
             console.error("❌ Failed to send order confirmation+tracking email:", err);
@@ -307,7 +307,7 @@ exports.createGuestOrder = async (req, res) => {
         // Send combined confirmation + tracking email
         emailService.sendOrderConfirmationWithTracking(savedOrder, guestInfo, magicLink, pin)
           .then(() => {
-            console.log('✅ Combined confirmation+tracking email sent successfully');
+            isDev && console.log('✅ Combined confirmation+tracking email sent successfully');
           })
           .catch(err => {
             console.error("❌ Failed to send combined confirmation+tracking email for guest:", err);
@@ -318,7 +318,7 @@ exports.createGuestOrder = async (req, res) => {
           });
       } else {
         // Fallback to regular confirmation if secure access failed
-        console.log('⚠️ Secure access tokens not generated, sending regular confirmation email');
+        isDev && console.log('⚠️ Secure access tokens not generated, sending regular confirmation email');
         emailService.sendOrderConfirmation(savedOrder, guestInfo).catch(err => {
           console.error("❌ Failed to send guest order confirmation email:", err);
         });
@@ -353,7 +353,7 @@ exports.createGuestOrder = async (req, res) => {
       });
     }
 
-    console.log('Guest order created:', savedOrder._id);
+    isDev && console.log('Guest order created:', savedOrder._id);
 
     res.json({
       success: true,

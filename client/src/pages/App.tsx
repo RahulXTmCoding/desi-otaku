@@ -8,11 +8,9 @@ import PrivateRoute from "../auth/helper/PrivateRoutes";
 import AdminRoute from "../auth/helper/AdminRoutes";
 import GuestRoute from "../auth/helper/GuestRoutes";
 import DevModeToggle from '../components/DevModeToggle';
-import Home from './HomeEnhanced';
 
-// Lazy load all pages
-// const HomeEnhanced = lazy(() => import('./HomeEnhanced'));
-// const Home = lazy(() => import('../core/Home'));
+// Lazy load all pages — including Home to keep initial bundle small
+const Home = lazy(() => import('./HomeEnhanced'));
 const ShopWithBackendFilters = lazy(() => import('../pages/ShopWithBackendFilters'));
 const About = lazy(() => import('./About'));
 const Contact = lazy(() => import('../pages/Contact'));

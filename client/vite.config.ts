@@ -11,20 +11,10 @@ export default defineConfig({
       output: {
         // Manual chunk splitting for better caching
         manualChunks: {
-          // Vendor chunks - rarely change, good for caching
+          // Vendor chunks - rarely change, long-lived browser cache
           "vendor-react": ["react", "react-dom", "react-router-dom"],
           "vendor-ui": ["lucide-react"],
-
-          // Feature-based chunks
-          "feature-auth": [
-            "./src/auth/helper/index.tsx",
-            "./src/auth/helper/PrivateRoutes.tsx",
-            "./src/auth/helper/AdminRoutes.tsx",
-          ],
-          "feature-cart": [
-            "./src/context/CartContext.tsx",
-            "./src/core/helper/cartHelper.tsx",
-          ],
+          // Admin code is never loaded by regular users
           "feature-admin": [
             "./src/admin/helper/adminapicall.tsx",
             "./src/admin/helper/productApiHelper.tsx",
@@ -34,10 +24,10 @@ export default defineConfig({
       },
     },
     // Optimize chunk size
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 500,
 
-    // Enable source maps for production debugging
-    sourcemap: true,
+    // Source maps disabled in production - reduces bundle size and hides source code
+    sourcemap: false,
 
     // Minification options
     minify: "terser",

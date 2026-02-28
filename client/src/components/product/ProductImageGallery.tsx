@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Camera, Award, Clock, Eye, TrendingUp } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Camera, Award, Clock, TrendingUp } from 'lucide-react';
 import { generateLightColorWithOpacity } from '../../utils/colorUtils';
+import { convertImageUrl } from '../../utils/imageUtils';
+import LiveViewersBadge from './LiveViewersBadge';
 
 interface Product {
   _id: string;
@@ -26,17 +28,15 @@ interface ProductImageGalleryProps {
     isPrimary?: boolean;
     order?: number;
   }>;
-  getProductImage: (product: Product) => string;
+  getProductImage: (product: any) => string;
   selectedSize?: string;
-  viewersCount: number;
 }
 
 const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
   product,
   productImages,
   getProductImage,
-  selectedSize,
-  viewersCount
+  selectedSize
 }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageZoomActive, setImageZoomActive] = useState(false);
@@ -68,9 +68,13 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 }}
               >
                 <img 
-                  src={image.url}
+                  src={convertImageUrl(image.url, 'thumb')}
                   alt={image.caption || `${product.name} ${index + 1}`}
-                  className="w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'}"
+                  className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'}`}
+                  loading={index < 2 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  width={128}
+                  height={128}
                 />
               </button>
             ))
@@ -83,9 +87,12 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
               }}
             >
               <img 
-                src={getProductImage(product)}
+                src={convertImageUrl(getProductImage(product), 'thumb')}
                 alt={product.name}
                 className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'}`}
+                decoding="async"
+                width={128}
+                height={128}
               />
             </button>
           )}
@@ -98,16 +105,29 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
               className="aspect-square relative cursor-zoom-in transition-transform duration-500" 
               style={{ backgroundColor: generateLightColorWithOpacity(product._id, 0.2) }}
             >
-              {/* Enhanced Main Image */}
-              <img 
-                src={productImages.length > 0 && productImages[currentImageIndex]?.url 
-                  ? productImages[currentImageIndex].url 
-                  : getProductImage(product)}
-                alt={productImages[currentImageIndex]?.caption || product.name}
-                className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'} transition-transform duration-300 ${
-                  imageZoomActive ? 'scale-150' : 'scale-100'
-                }`}
-              />
+              {/* Enhanced Main Image — medium variant for fast load, original for zoom */}
+              {(() => {
+                const rawUrl = productImages.length > 0 && productImages[currentImageIndex]?.url
+                  ? productImages[currentImageIndex].url
+                  : getProductImage(product);
+                const mediumUrl = convertImageUrl(rawUrl, 'medium');
+                const originalUrl = rawUrl;
+                return (
+                  <img
+                    src={mediumUrl}
+                    srcSet={mediumUrl !== originalUrl ? `${mediumUrl} 500w, ${originalUrl} 1200w` : undefined}
+                    sizes={mediumUrl !== originalUrl ? '(max-width: 768px) 100vw, 60vw' : undefined}
+                    alt={productImages[currentImageIndex]?.caption || product.name}
+                    className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'} transition-transform duration-300 ${
+                      imageZoomActive ? 'scale-150' : 'scale-100'
+                    }`}
+                    fetchPriority="high"
+                    decoding="async"
+                    width={600}
+                    height={600}
+                  />
+                );
+              })()}
               
               {/* Navigation Arrows (if multiple images) */}
               {productImages.length > 1 && (
@@ -153,10 +173,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                   )}
                   <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30 backdrop-blur-sm">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm text-green-400 font-medium">
-                      <Eye className="w-3 h-3 inline mr-1" />
-                      {viewersCount} viewing now
-                    </span>
+                    <LiveViewersBadge className="text-sm text-green-400 font-medium" />
                   </div>
                   {isLowStock && (
                     <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 backdrop-blur-sm">
@@ -185,16 +202,29 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
             className="aspect-square relative cursor-zoom-in transition-transform duration-500" 
             style={{ backgroundColor: generateLightColorWithOpacity(product._id, 0.2) }}
           >
-            {/* Enhanced Main Image */}
-              <img 
-                src={productImages.length > 0 && productImages[currentImageIndex]?.url 
-                  ? productImages[currentImageIndex].url 
-                  : getProductImage(product)}
-                alt={productImages[currentImageIndex]?.caption || product.name}
-                className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'} transition-transform duration-300 ${
-                  imageZoomActive ? 'scale-150' : 'scale-100'
-              }`}
-            />
+            {/* Enhanced Main Image — medium variant for fast load, original for zoom */}
+              {(() => {
+                const rawUrl = productImages.length > 0 && productImages[currentImageIndex]?.url
+                  ? productImages[currentImageIndex].url
+                  : getProductImage(product);
+                const mediumUrl = convertImageUrl(rawUrl, 'medium');
+                const originalUrl = rawUrl;
+                return (
+                  <img
+                    src={mediumUrl}
+                    srcSet={mediumUrl !== originalUrl ? `${mediumUrl} 500w, ${originalUrl} 1200w` : undefined}
+                    sizes={mediumUrl !== originalUrl ? '100vw' : undefined}
+                    alt={productImages[currentImageIndex]?.caption || product.name}
+                    className={`w-full h-full ${product.imageDisplayMode === 'cover' ? 'object-cover' : 'object-contain'} transition-transform duration-300 ${
+                      imageZoomActive ? 'scale-150' : 'scale-100'
+                    }`}
+                    fetchPriority="high"
+                    decoding="async"
+                    width={500}
+                    height={500}
+                  />
+                );
+              })()}
             
             {/* Navigation Arrows (if multiple images) */}
             {productImages.length > 1 && (
@@ -240,10 +270,7 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 )}
                 <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-green-500/20 border border-green-500/30 backdrop-blur-sm">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-green-400 font-medium">
-                    <Eye className="w-2.5 h-2.5 inline mr-0.5" />
-                    {viewersCount} viewing
-                  </span>
+                  <LiveViewersBadge className="text-xs text-green-400 font-medium" />
                 </div>
                 {isLowStock && (
                   <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-orange-500/20 border border-orange-500/30 backdrop-blur-sm">
@@ -276,9 +303,13 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
                 }}
               >
                 <img 
-                  src={image.url}
+                  src={convertImageUrl(image.url, 'thumb')}
                   alt={image.caption || `${product.name} ${index + 1}`}
                   className="w-full h-full object-contain"
+                  loading={index < 2 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  width={100}
+                  height={100}
                 />
               </button>
             ))
@@ -291,9 +322,12 @@ const ProductImageGallery: React.FC<ProductImageGalleryProps> = ({
               }}
             >
               <img 
-                src={getProductImage(product)}
+                src={convertImageUrl(getProductImage(product), 'thumb')}
                 alt={product.name}
                 className="w-full h-full object-contain"
+                decoding="async"
+                width={100}
+                height={100}
               />
             </button>
           )}

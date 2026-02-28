@@ -2,23 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Favicon Configuration - Using logo512.png as primary -->
-    <link rel="icon" type="image/png" href="/logo512.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/logo512.png" />
+    <!-- Favicon -->
     <link rel="icon" type="image/png" sizes="32x32" href="/logo512.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/logo512.png" />
-    <link rel="icon" type="image/png" sizes="512x512" href="/logo512.png" />
-    
-    <!-- Apple Touch Icons -->
+    <link rel="icon" type="image/png" sizes="16x16" href="/logo512.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="/logo512.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/logo512.png" />
-    <link rel="apple-touch-icon" sizes="144x144" href="/logo512.png" />
-    <link rel="apple-touch-icon" sizes="120x120" href="/logo512.png" />
-    <link rel="apple-touch-icon" sizes="114x114" href="/logo512.png" />
-    <link rel="apple-touch-icon" sizes="76x76" href="/logo512.png" />
-    <link rel="apple-touch-icon" sizes="72x72" href="/logo512.png" />
-    <link rel="apple-touch-icon" sizes="60x60" href="/logo512.png" />
-    <link rel="apple-touch-icon" sizes="57x57" href="/logo512.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     
     <!-- Primary Meta Tags -->
@@ -58,24 +45,18 @@
     <!-- Canonical URL - Will be updated dynamically by React -->
     <link rel="canonical" href="https://attars.club/" id="canonical-url" />
     
-    <!-- Preconnect to External Domains -->
+    <!-- Preconnect to Image CDN (every page loads product images) -->
+    <link rel="preconnect" href="https://images.attars.club" crossorigin>
+    <link rel="dns-prefetch" href="https://images.attars.club">
+
+    <!-- Preconnect to Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Critical Font Preload (Prevents blocking) -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    
-    <!-- Fallback for No-JS -->
+    <!-- Inter 400-700 only (300 unused, Playfair Display unused) -->
+    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-      <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-    </noscript>
-    
-    <!-- Additional Font Weights (Non-blocking) -->
-    <link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Playfair+Display:wght@400;500;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;500;700&family=Playfair+Display:wght@400;500;800&display=swap" rel="stylesheet">
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     </noscript>
     
     <!-- Critical CSS (Minimal for LCP) -->
@@ -154,51 +135,9 @@
     }
     </script>
     
-    <!-- Meta Pixel Code (Facebook Pixel) -->
-    <script>
-      !function(f,b,e,v,n,t,s)
-      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-      n.queue=[];t=b.createElement(e);t.async=!0;
-      t.src=v;s=b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t,s)}(window, document,'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-      fbq('init', '1133467228701583');
-      fbq('track', 'PageView');
-      // Mark that HTML analytics are loaded
-      window.htmlAnalyticsLoaded = true;
-    </script>
-    <!-- End Meta Pixel Code -->
-
-    <!-- Google Analytics 4 & Google Ads - Enhanced Implementation -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-59F1CDXX1M"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      
-      // Configure Google Analytics 4
-      gtag('config', 'G-59F1CDXX1M', {
-        page_title: 'Attars Club - Premium Streetwear India',
-        page_location: window.location.href,
-        anonymize_ip: true,
-        allow_google_signals: true,
-        allow_ad_personalization_signals: true
-      });
-      
-      // Configure Google Ads Conversion Tracking
-      gtag('config', 'AW-17539518573', {
-        allow_enhanced_conversions: true
-      });
-      
-      // Mark that HTML analytics are loaded
-      window.htmlAnalyticsLoaded = true;
-    </script>
-    
     <!-- Google Search Console Verification -->
-    <!-- Add your Google Search Console verification meta tag here -->
-    <!-- <meta name="google-site-verification" content="your-verification-code" /> -->
+    <!-- Uncomment and replace with your actual code from Search Console -->
+    <!-- <meta name="google-site-verification" content="YOUR_VERIFICATION_CODE" /> -->
   </head>
   <body class="bg-black text-white">
     <!-- Meta Pixel Noscript (must be in body, not head) -->
@@ -209,5 +148,43 @@
     
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+
+    <!-- Analytics loaded AFTER page renders — never blocks FCP/LCP -->
+    <script>
+      window.addEventListener('load', function () {
+        setTimeout(function () {
+          // ── Meta Pixel (Facebook) ──────────────────────────────────────
+          !function(f,b,e,v,n,t,s)
+          {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+          n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+          if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+          n.queue=[];t=b.createElement(e);t.async=!0;
+          t.src=v;s=b.getElementsByTagName(e)[0];
+          s.parentNode.insertBefore(t,s)}(window,document,'script',
+          'https://connect.facebook.net/en_US/fbevents.js');
+          fbq('init','1133467228701583');
+          fbq('track','PageView');
+
+          // ── Google Analytics 4 + Google Ads ───────────────────────────
+          var gs = document.createElement('script');
+          gs.async = true;
+          gs.src = 'https://www.googletagmanager.com/gtag/js?id=G-59F1CDXX1M';
+          document.head.appendChild(gs);
+          gs.onload = function () {
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
+            gtag('js', new Date());
+            gtag('config', 'G-59F1CDXX1M', {
+              anonymize_ip: true,
+              allow_google_signals: true,
+              allow_ad_personalization_signals: true
+            });
+            gtag('config', 'AW-17539518573', { allow_enhanced_conversions: true });
+            window.htmlAnalyticsLoaded = true;
+          };
+        }, 2000); // 2 s after load — page is fully interactive by then
+      });
+    </script>
   </body>
 </html>
