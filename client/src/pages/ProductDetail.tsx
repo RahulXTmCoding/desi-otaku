@@ -710,7 +710,7 @@ const ProductDetail: React.FC = () => {
           {/* Recent Purchases Social Proof */}
           {product && (
             <Suspense fallback={null}>
-              <RecentPurchases />
+              <RecentPurchases currentProductTypeId={product?.productType?._id} />
             </Suspense>
           )}
 

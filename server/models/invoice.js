@@ -209,7 +209,7 @@ invoiceSchema.statics.generateInvoiceNumberSafe = async function(maxRetries = 5)
 
 // Calculate GST using reverse calculation (GST-inclusive pricing)
 invoiceSchema.methods.calculateGSTInclusive = function() {
-  const gstRate = 12; // 12% for textiles (6% CGST + 6% SGST)
+  const gstRate = 5; // 5% for textiles (2.5% CGST + 2.5% SGST)
   const finalPrice = this.amounts.grandTotal; // This is the hook price (e.g., ₹1199)
   
   if (this.tax.isGstApplicable) {
@@ -218,7 +218,7 @@ invoiceSchema.methods.calculateGSTInclusive = function() {
     const taxableAmount = Math.round(finalPrice / (1 + gstRate / 100));
     
     // Calculate individual GST components
-    const halfGstRate = gstRate / 2; // 6% each for CGST and SGST
+    const halfGstRate = gstRate / 2; // 2.5% each for CGST and SGST
     const cgstAmount = Math.round((taxableAmount * halfGstRate) / 100);
     const sgstAmount = Math.round((taxableAmount * halfGstRate) / 100);
     

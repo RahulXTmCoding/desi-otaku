@@ -520,7 +520,7 @@ class InvoiceService {
         },
         tax: {
           isGstApplicable: true, // Enable GST by default for proper invoice display
-          gstRate: 12, // 12% for textiles (6% CGST + 6% SGST)
+          gstRate: 5, // 5% for textiles (2.5% CGST + 2.5% SGST)
           placeOfSupply: billingAddress.state
         },
         payment: {

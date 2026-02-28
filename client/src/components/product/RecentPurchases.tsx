@@ -1,7 +1,7 @@
-import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useProducts } from '../../hooks/useProducts';
-import { shuffle, generateFakePurchases } from '../../utils/socialProofData';
+import { useFilteredProducts } from '../../hooks/useProducts';
+import { generateFakePurchases } from '../../utils/socialProofData';
 import { convertImageUrl } from '../../utils/imageUtils';
 
 /** Resolve the primary image URL for a product object */
@@ -14,36 +14,102 @@ const getProductImageUrl = (product: any): string => {
 };
 
 /** Card width in pixels (fixed) so we can calculate animation distance */
-const CARD_WIDTH = 370; // px including gap
-const CARD_GAP = 16;    // px gap between cards
-const SCROLL_SPEED = 70; // pixels per second — faster scroll
+const CARD_WIDTH = 370;
+const CARD_GAP = 16;
+const SCROLL_SPEED = 70; // px per second
 
-const RecentPurchases: React.FC = () => {
-  const { data: productsData } = useProducts();
+/** Total cards per batch — with-replacement so repeats are natural */
+const POOL_SIZE = 18;
+
+/** Re-randomize every 40 s so the carousel feels like a live feed */
+const REFRESH_MS = 40_000;
+
+/**
+ * Build a weighted pool where newer products appear more often,
+ * and products matching the current product type get a 50% boost.
+ *
+ * Recency tiers (by createdAt rank, newest first):
+ *   Top 25%  → weight 4  (very likely)
+ *   Next 25% → weight 2  (somewhat likely)
+ *   Bottom 50% → weight 1 (baseline)
+ *
+ * Product-type affinity:
+ *   Same productType as the one being viewed → 1.5× multiplier
+ *
+ * Then pick POOL_SIZE items with replacement from the weighted pool.
+ */
+const buildEntries = (products: any[], currentProductTypeId?: string) => {
+  if (products.length === 0) return [];
+
+  // Sort newest first; fall back to _id order if no createdAt
+  const sorted = [...products].sort((a, b) => {
+    const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    return tb - ta;
+  });
+
+  // Build weighted pool
+  const n = sorted.length;
+  const weightedPool: any[] = [];
+  sorted.forEach((p, i) => {
+    const ratio = i / n;
+    let weight = ratio < 0.25 ? 4 : ratio < 0.5 ? 2 : 1;
+
+    // 50% boost for products sharing the same product type
+    if (currentProductTypeId && p.productType) {
+      const pTypeId = typeof p.productType === 'string' ? p.productType : p.productType._id;
+      if (pTypeId === currentProductTypeId) {
+        weight = Math.ceil(weight * 1.5);
+      }
+    }
+
+    for (let w = 0; w < weight; w++) weightedPool.push(p);
+  });
+
+  const fakeBuyers = generateFakePurchases(POOL_SIZE);
+  return fakeBuyers.map((buyer) => ({
+    product: weightedPool[Math.floor(Math.random() * weightedPool.length)],
+    ...buyer,
+  }));
+};
+
+/** Fetch the 50 newest products so the carousel has fresh items to pick from */
+const CAROUSEL_FILTERS = { sortBy: 'newest' as const, sortOrder: 'desc' as const, limit: 50 };
+
+interface RecentPurchasesProps {
+  currentProductTypeId?: string;
+}
+
+const RecentPurchases: React.FC<RecentPurchasesProps> = ({ currentProductTypeId }) => {
+  const { data: rawResponse } = useFilteredProducts(CAROUSEL_FILTERS);
+  // useFilteredProducts may return { products: [...] } or a plain array
+  const productsData = Array.isArray(rawResponse)
+    ? rawResponse
+    : (rawResponse as any)?.products ?? rawResponse;
   const [isPaused, setIsPaused] = useState(false);
   const trackRef = useRef<HTMLDivElement>(null);
 
-  // Build entries once per product-list change
-  const entries = useMemo(() => {
+  const [entries, setEntries] = useState<ReturnType<typeof buildEntries>>([]);
+
+  useEffect(() => {
     const products: any[] = productsData ?? [];
-    if (products.length === 0) return [];
+    if (products.length === 0) return;
 
-    const pool = shuffle(products);
-    const count = Math.min(pool.length, 12);
-    const fakeBuyers = generateFakePurchases(count);
+    setEntries(buildEntries(products, currentProductTypeId));
 
-    return pool.slice(0, count).map((product: any, i: number) => ({
-      product,
-      ...fakeBuyers[i],
-    }));
-  }, [productsData]);
+    const timer = setInterval(() => {
+      setEntries(buildEntries(products, currentProductTypeId));
+    }, REFRESH_MS);
+
+    return () => clearInterval(timer);
+  }, [productsData, currentProductTypeId]);
 
   // Duplicate entries for seamless infinite loop
-  const loopedEntries = useMemo(() => [...entries, ...entries], [entries]);
+  const loopedEntries = [...entries, ...entries];
 
   // Calculate animation duration based on content width
   const totalWidth = entries.length * (CARD_WIDTH + CARD_GAP);
-  const duration = totalWidth / SCROLL_SPEED; // seconds
+  const duration = totalWidth / SCROLL_SPEED;
 
   if (entries.length === 0) return null;
 
