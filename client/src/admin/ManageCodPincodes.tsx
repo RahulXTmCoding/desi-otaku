@@ -15,6 +15,7 @@ interface BlockedPincode {
   _id: string;
   pincode: string;
   type: "exact" | "prefix";
+  blockLevel: "partial-cod" | "online-only";
   advanceAmount: number | null;
   reason: string;
   isActive: boolean;
@@ -41,6 +42,7 @@ const ManageCodPincodes = () => {
   // Single add form
   const [singlePin, setSinglePin] = useState("");
   const [singleType, setSingleType] = useState<"exact" | "prefix">("exact");
+  const [singleBlockLevel, setSingleBlockLevel] = useState<"partial-cod" | "online-only">("partial-cod");
   const [singleAdvance, setSingleAdvance] = useState("");
   const [singleReason, setSingleReason] = useState("");
   const [singleLoading, setSingleLoading] = useState(false);
@@ -51,6 +53,7 @@ const ManageCodPincodes = () => {
   const [showBulk, setShowBulk] = useState(false);
   const [bulkInput, setBulkInput] = useState("");
   const [bulkType, setBulkType] = useState<"exact" | "prefix">("exact");
+  const [bulkBlockLevel, setBulkBlockLevel] = useState<"partial-cod" | "online-only">("partial-cod");
   const [bulkAdvance, setBulkAdvance] = useState("");
   const [bulkReason, setBulkReason] = useState("");
   const [bulkLoading, setBulkLoading] = useState(false);
@@ -60,7 +63,11 @@ const ManageCodPincodes = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editReason, setEditReason] = useState("");
   const [editAdvance, setEditAdvance] = useState("");
+  const [editBlockLevel, setEditBlockLevel] = useState<"partial-cod" | "online-only">("partial-cod");
   const [editSaving, setEditSaving] = useState(false);
+
+  // List filter
+  const [blockLevelFilter, setBlockLevelFilter] = useState("");
 
   if (!auth || !auth.user || auth.user.role !== 1) {
     return (
@@ -77,7 +84,7 @@ const ManageCodPincodes = () => {
   const loadPincodes = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await listBlockedPincodes(userId, token, { search, limit: 100 });
+      const data = await listBlockedPincodes(userId, token, { search, limit: 100, blockLevel: blockLevelFilter || undefined });
       if (data.success) {
         setPincodes(data.pincodes || []);
         setGlobalAdvanceAmount(data.globalAdvanceAmount ?? 100);
@@ -88,7 +95,7 @@ const ManageCodPincodes = () => {
     } finally {
       setLoading(false);
     }
-  }, [userId, token, search]);
+  }, [userId, token, search, blockLevelFilter]);
 
   useEffect(() => {
     loadPincodes();
@@ -134,6 +141,7 @@ const ManageCodPincodes = () => {
       const data = await addBlockedPincode(userId, token, {
         pincode: singlePin.trim(),
         type: singleType,
+        blockLevel: singleBlockLevel,
         advanceAmount: singleAdvance ? Number(singleAdvance) : null,
         reason: singleReason || "High RTO area"
       });
@@ -167,6 +175,7 @@ const ManageCodPincodes = () => {
       const data = await bulkAddBlockedPincodes(userId, token, {
         pincodes: bulkInput,
         type: bulkType,
+        blockLevel: bulkBlockLevel,
         advanceAmount: bulkAdvance ? Number(bulkAdvance) : null,
         reason: bulkReason || "High RTO area"
       });
@@ -205,6 +214,7 @@ const ManageCodPincodes = () => {
     setEditingId(p._id);
     setEditReason(p.reason);
     setEditAdvance(p.advanceAmount !== null ? String(p.advanceAmount) : "");
+    setEditBlockLevel(p.blockLevel || "partial-cod");
   };
 
   const handleSaveEdit = async (id: string) => {
@@ -212,6 +222,7 @@ const ManageCodPincodes = () => {
     try {
       const data = await updateBlockedPincode(id, userId, token, {
         reason: editReason,
+        blockLevel: editBlockLevel,
         advanceAmount: editAdvance === "" ? null : Number(editAdvance)
       });
       if (data.success) {
@@ -260,8 +271,9 @@ const ManageCodPincodes = () => {
         </div>
 
         <p className="text-gray-400 mb-6">
-          Pincodes added here will block full Cash on Delivery. Customers in these areas will see
-          a <span className="text-amber-400 font-medium">Partial COD</span> option — pay a small advance online, rest at delivery.
+          Manage payment restrictions by pincode.
+          <span className="text-amber-400 font-medium"> Partial COD</span> — full COD blocked, advance online + rest at delivery.
+          <span className="text-red-400 font-medium"> Online Only</span> — all COD blocked, online payment required.
         </p>
 
         {/* ── Global Advance Amount ─────────────────────────── */}
@@ -354,6 +366,17 @@ const ManageCodPincodes = () => {
                   </select>
                 </div>
                 <div>
+                  <label className="block text-xs text-gray-400 mb-1">Restriction Level</label>
+                  <select
+                    value={singleBlockLevel}
+                    onChange={(e) => setSingleBlockLevel(e.target.value as "partial-cod" | "online-only")}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                  >
+                    <option value="partial-cod">Partial COD (advance online, rest at delivery)</option>
+                    <option value="online-only">Online Only (no COD at all)</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block text-xs text-gray-400 mb-1">
                     Advance Amount Override (₹) <span className="text-gray-500">— leave blank to use global ₹{globalAdvanceAmount}</span>
                   </label>
@@ -408,7 +431,7 @@ const ManageCodPincodes = () => {
                 />
                 <p className="text-xs text-gray-500 mt-1">Separate pincodes with commas. Duplicates are automatically skipped.</p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
                 <div>
                   <label className="block text-xs text-gray-400 mb-1">Type</label>
                   <select
@@ -418,6 +441,17 @@ const ManageCodPincodes = () => {
                   >
                     <option value="exact">Exact</option>
                     <option value="prefix">Prefix</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-400 mb-1">Restriction Level</label>
+                  <select
+                    value={bulkBlockLevel}
+                    onChange={(e) => setBulkBlockLevel(e.target.value as "partial-cod" | "online-only")}
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:border-amber-400 focus:outline-none"
+                  >
+                    <option value="partial-cod">Partial COD</option>
+                    <option value="online-only">Online Only</option>
                   </select>
                 </div>
                 <div>
@@ -467,15 +501,26 @@ const ManageCodPincodes = () => {
 
         {/* ── Pincode List ─────────────────────────────────── */}
         <div className="bg-gray-800 rounded-2xl p-5 border border-gray-700">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center flex-wrap gap-2 justify-between mb-4">
             <h2 className="text-lg font-bold">Blocked Pincodes ({pincodes.length})</h2>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search pincode..."
-              className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:border-amber-400 focus:outline-none w-40"
-            />
+            <div className="flex items-center gap-2 flex-wrap">
+              <select
+                value={blockLevelFilter}
+                onChange={(e) => setBlockLevelFilter(e.target.value)}
+                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:border-amber-400 focus:outline-none"
+              >
+                <option value="">All Levels</option>
+                <option value="partial-cod">Partial COD</option>
+                <option value="online-only">Online Only</option>
+              </select>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search pincode..."
+                className="px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white text-sm focus:border-amber-400 focus:outline-none w-40"
+              />
+            </div>
           </div>
 
           {loading ? (
@@ -528,6 +573,17 @@ const ManageCodPincodes = () => {
                             className="w-full px-3 py-1.5 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm focus:border-amber-400 focus:outline-none"
                           />
                         </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs text-gray-400 mb-1">Restriction Level</label>
+                          <select
+                            value={editBlockLevel}
+                            onChange={(e) => setEditBlockLevel(e.target.value as "partial-cod" | "online-only")}
+                            className="w-full px-3 py-1.5 bg-gray-600 border border-gray-500 rounded-lg text-white text-sm focus:border-amber-400 focus:outline-none"
+                          >
+                            <option value="partial-cod">Partial COD (advance online, rest at delivery)</option>
+                            <option value="online-only">Online Only (no COD at all)</option>
+                          </select>
+                        </div>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -556,6 +612,15 @@ const ManageCodPincodes = () => {
                           <span className={`text-xs px-2 py-0.5 rounded-full ${p.type === "prefix" ? "bg-purple-500/20 text-purple-400" : "bg-blue-500/20 text-blue-400"}`}>
                             {p.type === "prefix" ? `Prefix (${p.pincode}xxx)` : "Exact"}
                           </span>
+                          {(p.blockLevel === "online-only") ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 font-medium">
+                              Online Only
+                            </span>
+                          ) : (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 font-medium">
+                              Partial COD
+                            </span>
+                          )}
                           <span className={`text-xs px-2 py-0.5 rounded-full ${p.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-500"}`}>
                             {p.isActive ? "Active" : "Inactive"}
                           </span>

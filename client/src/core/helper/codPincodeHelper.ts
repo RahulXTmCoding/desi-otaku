@@ -34,13 +34,14 @@ export const createPartialCodAdvanceOrder = (pincode: string, totalAmount: numbe
 export const listBlockedPincodes = (
   userId: string,
   token: string,
-  params: { page?: number; limit?: number; search?: string; type?: string; activeOnly?: boolean } = {}
+  params: { page?: number; limit?: number; search?: string; type?: string; activeOnly?: boolean; blockLevel?: string } = {}
 ) => {
   const qs = new URLSearchParams();
   if (params.page) qs.set("page", String(params.page));
   if (params.limit) qs.set("limit", String(params.limit));
   if (params.search) qs.set("search", params.search);
   if (params.type) qs.set("type", params.type);
+  if (params.blockLevel) qs.set("blockLevel", params.blockLevel);
   if (params.activeOnly !== undefined) qs.set("activeOnly", String(params.activeOnly));
   const query = qs.toString() ? `?${qs.toString()}` : "";
 
@@ -54,7 +55,7 @@ export const listBlockedPincodes = (
 export const addBlockedPincode = (
   userId: string,
   token: string,
-  data: { pincode: string; type?: string; advanceAmount?: number | null; reason?: string }
+  data: { pincode: string; type?: string; advanceAmount?: number | null; reason?: string; blockLevel?: string }
 ) =>
   fetch(`${API}/cod-pincodes/${userId}`, {
     method: "POST",
@@ -70,7 +71,7 @@ export const addBlockedPincode = (
 export const bulkAddBlockedPincodes = (
   userId: string,
   token: string,
-  data: { pincodes: string; type?: string; advanceAmount?: number | null; reason?: string }
+  data: { pincodes: string; type?: string; advanceAmount?: number | null; reason?: string; blockLevel?: string }
 ) =>
   fetch(`${API}/cod-pincodes/bulk/${userId}`, {
     method: "POST",
@@ -87,7 +88,7 @@ export const updateBlockedPincode = (
   id: string,
   userId: string,
   token: string,
-  data: { reason?: string; isActive?: boolean; advanceAmount?: number | null }
+  data: { reason?: string; isActive?: boolean; advanceAmount?: number | null; blockLevel?: string }
 ) =>
   fetch(`${API}/cod-pincodes/${id}/${userId}`, {
     method: "PUT",

@@ -10,12 +10,17 @@ exports.listBlockedPincodes = async (req, res) => {
     const type = req.query.type || ""; // "exact" | "prefix" | ""
     const activeOnly = req.query.activeOnly === "true";
 
+    const blockLevel = req.query.blockLevel || ""; // "online-only" | "partial-cod" | ""
+
     const filter = {};
     if (search) {
       filter.pincode = { $regex: search, $options: "i" };
     }
     if (type) {
       filter.type = type;
+    }
+    if (blockLevel) {
+      filter.blockLevel = blockLevel;
     }
     if (activeOnly) {
       filter.isActive = true;
@@ -51,11 +56,15 @@ exports.listBlockedPincodes = async (req, res) => {
 // Add a single blocked pincode
 exports.addBlockedPincode = async (req, res) => {
   try {
-    const { pincode, type = "exact", advanceAmount, reason } = req.body;
+    const { pincode, type = "exact", advanceAmount, reason, blockLevel = "partial-cod" } = req.body;
     const userId = req.profile._id;
 
     if (!pincode) {
       return res.status(400).json({ error: "Pincode is required" });
+    }
+
+    if (![ "partial-cod", "online-only" ].includes(blockLevel)) {
+      return res.status(400).json({ error: "blockLevel must be 'partial-cod' or 'online-only'" });
     }
 
     // Validate length: exact = 6 digits, prefix = 3–5 digits
@@ -75,6 +84,7 @@ exports.addBlockedPincode = async (req, res) => {
     const newPincode = new CodBlockedPincode({
       pincode: pin,
       type,
+      blockLevel,
       advanceAmount: advanceAmount || null,
       reason: reason || "High RTO area",
       isActive: true,
@@ -93,11 +103,15 @@ exports.addBlockedPincode = async (req, res) => {
 // Bulk add pincodes — comma-separated string
 exports.bulkAddBlockedPincodes = async (req, res) => {
   try {
-    const { pincodes: rawInput, type = "exact", advanceAmount, reason } = req.body;
+    const { pincodes: rawInput, type = "exact", advanceAmount, reason, blockLevel = "partial-cod" } = req.body;
     const userId = req.profile._id;
 
     if (!rawInput) {
       return res.status(400).json({ error: "pincodes field is required (comma-separated)" });
+    }
+
+    if (![ "partial-cod", "online-only" ].includes(blockLevel)) {
+      return res.status(400).json({ error: "blockLevel must be 'partial-cod' or 'online-only'" });
     }
 
     // Parse comma-separated input, trim whitespace, deduplicate
@@ -134,6 +148,7 @@ exports.bulkAddBlockedPincodes = async (req, res) => {
         const newDoc = new CodBlockedPincode({
           pincode: pin,
           type,
+          blockLevel,
           advanceAmount: advanceAmount || null,
           reason: reason || "High RTO area",
           isActive: true,
@@ -161,12 +176,17 @@ exports.bulkAddBlockedPincodes = async (req, res) => {
 exports.updateBlockedPincode = async (req, res) => {
   try {
     const { id } = req.params;
-    const { reason, isActive, advanceAmount } = req.body;
+    const { reason, isActive, advanceAmount, blockLevel } = req.body;
     const userId = req.profile._id;
+
+    if (blockLevel !== undefined && ![ "partial-cod", "online-only" ].includes(blockLevel)) {
+      return res.status(400).json({ error: "blockLevel must be 'partial-cod' or 'online-only'" });
+    }
 
     const updateData = { updatedAt: new Date() };
     if (reason !== undefined) updateData.reason = reason;
     if (isActive !== undefined) updateData.isActive = isActive;
+    if (blockLevel !== undefined) updateData.blockLevel = blockLevel;
     if (advanceAmount !== undefined) {
       updateData.advanceAmount = advanceAmount === "" || advanceAmount === null ? null : Number(advanceAmount);
     }

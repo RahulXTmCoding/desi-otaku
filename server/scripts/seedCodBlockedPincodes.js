@@ -506,34 +506,32 @@ async function seed() {
   await mongoose.connect(process.env.DATABASE);
   console.log('✅ Connected to MongoDB');
 
-  let added = 0, skipped = 0, errors = 0;
+  let upserted = 0, errors = 0;
 
   for (const entry of PINCODES) {
     try {
-      const exists = await CodBlockedPincode.findOne({ pincode: entry.pincode });
-      if (exists) {
-        console.log(`⏭  Skipped (already exists): ${entry.pincode}`);
-        skipped++;
-        continue;
-      }
-
-      await CodBlockedPincode.create({
-        pincode: entry.pincode,
-        type: 'exact',
-        advanceAmount: null, // uses global setting
-        reason: entry.reason,
-        isActive: true
-      });
-
-      console.log(`✅ Added: ${entry.pincode} — ${entry.reason}`);
-      added++;
+      await CodBlockedPincode.updateOne(
+        { pincode: entry.pincode },
+        {
+          $set: { reason: entry.reason },
+          $setOnInsert: {
+            type: 'exact',
+            blockLevel: 'partial-cod',
+            advanceAmount: null,
+            isActive: true
+          }
+        },
+        { upsert: true }
+      );
+      upserted++;
     } catch (err) {
       console.error(`❌ Error for ${entry.pincode}:`, err.message);
       errors++;
     }
   }
 
-  console.log(`\n📊 Done — Added: ${added} | Skipped: ${skipped} | Errors: ${errors}`);
+  const total = await CodBlockedPincode.countDocuments({ blockLevel: 'partial-cod' });
+  console.log(`\n📊 Done — Upserted: ${upserted} | Errors: ${errors} | Total partial-cod in DB: ${total}`);
   await mongoose.disconnect();
 }
 

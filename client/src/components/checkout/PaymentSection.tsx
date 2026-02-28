@@ -14,6 +14,7 @@ interface PaymentSectionProps {
   onPlaceOrder: () => void;
   showCOD?: boolean;
   showPartialCOD?: boolean;
+  onlineOnly?: boolean;
   partialCodAdvanceAmount?: number;
   codVerification?: {
     otpSent: boolean;
@@ -38,6 +39,7 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
   onPlaceOrder,
   showCOD = false,
   showPartialCOD = false,
+  onlineOnly = false,
   partialCodAdvanceAmount = 100,
   codVerification,
   setCodVerification,
@@ -102,11 +104,21 @@ const PaymentSection: React.FC<PaymentSectionProps> = memo(({
     }
 
     return methods;
-  }, [showCOD, showPartialCOD, partialCodAdvanceAmount, totalAmount, onlineSavings]);
+  }, [showCOD, showPartialCOD, onlineOnly, partialCodAdvanceAmount, totalAmount, onlineSavings]);
 
   return (
     <>
       
+      {/* Online-Only Restriction Banner */}
+      {onlineOnly && (
+        <div className="mb-3 flex items-start gap-2 p-3 bg-red-500/10 border border-red-500/40 rounded-lg">
+          <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+          <p className="text-sm text-red-300">
+            <span className="font-semibold"></span>Cash on Delivery is not available for your delivery pincode.
+          </p>
+        </div>
+      )}
+
       {/* Payment Method Selection */}
       <div className="mb-4 lg:mb-6">
         <div className="grid gap-2 lg:gap-3">

@@ -311,7 +311,7 @@ export const useOrderHandler = ({
               order_id: razorpayOrder.id,
               amount: razorpayOrder.amount,
               currency: razorpayOrder.currency,
-              key_id: advanceData.key_id,
+              key_id: advanceData.key || advanceData.key_id,
               name: 'Attars',
               description: `Advance Payment (₹${advance}) — Rest at delivery`,
               prefill: {

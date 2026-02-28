@@ -101,7 +101,7 @@ const CheckoutSinglePage: React.FC = () => {
   });
 
   // Partial COD / pincode check state
-  const [codBlockedInfo, setCodBlockedInfo] = useState<{ blocked: boolean; advanceAmount: number } | null>(null);
+  const [codBlockedInfo, setCodBlockedInfo] = useState<{ blocked: boolean; advanceAmount: number; onlineOnly: boolean } | null>(null);
   
   const [paymentData, setPaymentData] = useState<{
     loading: boolean;
@@ -378,14 +378,18 @@ const CheckoutSinglePage: React.FC = () => {
       try {
         const result = await checkPincodeCod(pincode);
         if (!cancelled) {
-          if (result.codBlocked) {
-            setCodBlockedInfo({ blocked: true, advanceAmount: result.advanceAmount ?? 100 });
+          if (result.onlineOnly) {
+            setCodBlockedInfo({ blocked: true, advanceAmount: 0, onlineOnly: true });
+            // Force online payment only
+            setPaymentMethod('razorpay');
+          } else if (result.codBlocked) {
+            setCodBlockedInfo({ blocked: true, advanceAmount: result.advanceAmount ?? 100, onlineOnly: false });
             // If currently on COD, switch to partial-cod
             setPaymentMethod(prev => prev === 'cod' ? 'partial-cod' : prev);
           } else {
-            setCodBlockedInfo({ blocked: false, advanceAmount: 0 });
-            // If currently on partial-cod, revert to cod
-            setPaymentMethod(prev => prev === 'partial-cod' ? 'cod' : prev);
+            setCodBlockedInfo({ blocked: false, advanceAmount: 0, onlineOnly: false });
+            // If currently on partial-cod or was forced to razorpay, revert to cod
+            setPaymentMethod(prev => (prev === 'partial-cod') ? 'cod' : prev);
           }
         }
       } catch {
@@ -861,7 +865,8 @@ const CheckoutSinglePage: React.FC = () => {
                 onPaymentMethodChange={setPaymentMethod}
                 onPlaceOrder={handlePlaceOrderWithValidation}
                 showCOD={!codBlockedInfo?.blocked}
-                showPartialCOD={!!codBlockedInfo?.blocked}
+                showPartialCOD={!!(codBlockedInfo?.blocked && !codBlockedInfo?.onlineOnly)}
+                onlineOnly={!!codBlockedInfo?.onlineOnly}
                 partialCodAdvanceAmount={codBlockedInfo?.advanceAmount ?? 100}
                 codVerification={codVerification}
                 setCodVerification={setCodVerification}
@@ -1068,7 +1073,10 @@ const CheckoutSinglePage: React.FC = () => {
                 ) : (
                   <>
                     <CreditCard className="w-5 h-5" />
-                    Place Order • ₹{getFinalAmount()}
+                    {paymentMethod === 'partial-cod'
+                      ? `Pay ₹${codBlockedInfo?.advanceAmount ?? 100} Now • Rest at Delivery`
+                      : `Place Order • ₹${getFinalAmount()}`
+                    }
                   </>
                 )}
               </button>

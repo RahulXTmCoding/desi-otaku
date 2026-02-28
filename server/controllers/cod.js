@@ -4,6 +4,9 @@ const crypto = require('crypto');
 const { calculateOrderAmountSecure } = require('./razorpay');
 const { smsService, checkSMSRateLimit } = require('../services/smsService');
 const { createUnifiedOrder } = require('./order');
+const CodBlockedPincode = require('../models/codBlockedPincode');
+const Settings = require('../models/settings');
+const Razorpay = require('razorpay');
 const isDev = process.env.NODE_ENV !== 'production';
 
 // Generate a simple OTP for COD verification
@@ -398,6 +401,12 @@ exports.createCodOrder = async (req, res) => {
       }
     };
 
+    // Reject if pincode is online-only (no COD of any kind)
+    const pincodeRestriction = await CodBlockedPincode.isCodBlocked(shipping?.pincode);
+    if (pincodeRestriction.blocked && pincodeRestriction.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area.' });
+    }
+
     // ✅ USE UNIFIED ORDER CREATION FUNCTION
     const result = await createUnifiedOrder(
       orderData,
@@ -562,6 +571,12 @@ exports.createGuestCodOrder = async (req, res) => {
         otpSentAt: new Date()
       }
     };
+
+    // Reject if pincode is online-only (no COD of any kind)
+    const pincodeRestriction = await CodBlockedPincode.isCodBlocked(shipping?.pincode);
+    if (pincodeRestriction.blocked && pincodeRestriction.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area.' });
+    }
 
     // ✅ USE UNIFIED ORDER CREATION FUNCTION
     const result = await createUnifiedOrder(
@@ -756,7 +771,6 @@ const resolveAdvanceAmount = async (pincodeAdvanceOverride) => {
     return pincodeAdvanceOverride;
   }
   try {
-    const Settings = require('../models/settings');
     const globalAmount = await Settings.getSetting('partial_cod_advance_amount', 100);
     return Number(globalAmount) || 100;
   } catch (err) {
@@ -774,7 +788,6 @@ exports.checkPincodeCod = async (req, res) => {
       return res.status(400).json({ error: 'Pincode is required' });
     }
 
-    const CodBlockedPincode = require('../models/codBlockedPincode');
     const result = await CodBlockedPincode.isCodBlocked(pincode);
 
     let advanceAmount = null;
@@ -782,13 +795,17 @@ exports.checkPincodeCod = async (req, res) => {
       advanceAmount = await resolveAdvanceAmount(result.advanceAmount);
     }
 
+    const onlineOnly = result.blocked && result.blockLevel === 'online-only';
+
     res.json({
       success: true,
       pincode,
       codBlocked: result.blocked,
+      onlineOnly,
+      blockLevel: result.blockLevel,
       reason: result.reason,
-      partialCodAvailable: result.blocked,
-      advanceAmount: advanceAmount
+      partialCodAvailable: result.blocked && !onlineOnly,
+      advanceAmount: onlineOnly ? null : advanceAmount
     });
   } catch (error) {
     console.error('checkPincodeCod error:', error);
@@ -805,11 +822,14 @@ exports.createPartialCodAdvanceOrder = async (req, res) => {
       return res.status(400).json({ error: 'pincode and totalAmount are required' });
     }
 
-    const CodBlockedPincode = require('../models/codBlockedPincode');
     const result = await CodBlockedPincode.isCodBlocked(pincode);
 
     if (!result.blocked) {
       return res.status(400).json({ error: 'Full COD is available for this pincode. Partial COD not needed.' });
+    }
+
+    if (result.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area. No COD options permitted.' });
     }
 
     const advanceAmount = await resolveAdvanceAmount(result.advanceAmount);
@@ -820,7 +840,6 @@ exports.createPartialCodAdvanceOrder = async (req, res) => {
       });
     }
 
-    const Razorpay = require('razorpay');
     const razorpayInstance = new Razorpay({
       key_id: process.env.RAZORPAY_KEY_ID,
       key_secret: process.env.RAZORPAY_KEY_SECRET
@@ -881,11 +900,13 @@ exports.createPartialCodOrder = async (req, res) => {
       return res.status(400).json({ error: 'Advance payment (razorpayPaymentId) is required for Partial COD' });
     }
 
-    // Verify pincode is actually blocked
-    const CodBlockedPincode = require('../models/codBlockedPincode');
+    // Verify pincode is actually blocked for full COD
     const pincodeCheck = await CodBlockedPincode.isCodBlocked(shipping?.pincode);
     if (!pincodeCheck.blocked) {
       return res.status(400).json({ error: 'Full COD is available for this pincode. Use regular COD.' });
+    }
+    if (pincodeCheck.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area. Partial COD is not permitted.' });
     }
 
     const advanceAmount = await resolveAdvanceAmount(pincodeCheck.advanceAmount);
@@ -948,7 +969,6 @@ exports.createPartialCodOrder = async (req, res) => {
       }
     };
 
-    const { createUnifiedOrder } = require('./order');
     const result = await createUnifiedOrder(
       orderData,
       req.user || req.profile,
@@ -999,11 +1019,13 @@ exports.createGuestPartialCodOrder = async (req, res) => {
       return res.status(400).json({ error: 'Advance payment (razorpayPaymentId) is required for Partial COD' });
     }
 
-    // Verify pincode is actually blocked
-    const CodBlockedPincode = require('../models/codBlockedPincode');
+    // Verify pincode is actually blocked for full COD
     const pincodeCheck = await CodBlockedPincode.isCodBlocked(shipping?.pincode);
     if (!pincodeCheck.blocked) {
       return res.status(400).json({ error: 'Full COD is available for this pincode. Use regular COD.' });
+    }
+    if (pincodeCheck.blockLevel === 'online-only') {
+      return res.status(400).json({ error: 'Only online payment is available for your delivery area. Partial COD is not permitted.' });
     }
 
     const advanceAmount = await resolveAdvanceAmount(pincodeCheck.advanceAmount);
@@ -1039,7 +1061,6 @@ exports.createGuestPartialCodOrder = async (req, res) => {
     let autoAccountCreated = false;
     let existingAccountLinked = false;
     try {
-      const User = require('../models/user');
       let existingUser = await User.findOne({ email: guestInfo.email });
       if (existingUser) {
         userId = existingUser._id;
@@ -1096,7 +1117,6 @@ exports.createGuestPartialCodOrder = async (req, res) => {
       }
     };
 
-    const { createUnifiedOrder } = require('./order');
     const result = await createUnifiedOrder(
       orderData,
       null, // guest — no user profile

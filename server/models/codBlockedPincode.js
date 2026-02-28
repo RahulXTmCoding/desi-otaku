@@ -24,6 +24,14 @@ const CodBlockedPincodeSchema = new mongoose.Schema(
       default: null,
       min: 1
     },
+    // Payment restriction level:
+    //   'partial-cod'  → full COD blocked, partial COD allowed (default)
+    //   'online-only'  → all COD blocked, online payment only
+    blockLevel: {
+      type: String,
+      enum: ["partial-cod", "online-only"],
+      default: "partial-cod"
+    },
     reason: {
       type: String,
       default: "High RTO area",
@@ -46,14 +54,16 @@ CodBlockedPincodeSchema.index({ pincode: 1, isActive: 1 });
 CodBlockedPincodeSchema.index({ type: 1, isActive: 1 });
 
 /**
- * Check if a pincode is blocked for full COD.
+ * Check if a pincode has payment restrictions.
  * Queries the DB for exact match first, then prefix match.
- * Returns { blocked, reason, advanceAmount } where advanceAmount is the
- * per-pincode override (null = caller should use global setting).
+ * Returns { blocked, reason, advanceAmount, blockLevel } where:
+ *   blocked      – true if any restriction applies
+ *   blockLevel   – 'partial-cod' | 'online-only' | null (when not blocked)
+ *   advanceAmount – per-pincode override (null = caller should use global setting)
  */
 CodBlockedPincodeSchema.statics.isCodBlocked = async function (pincode) {
   if (!pincode || !/^\d{6}$/.test(pincode.trim())) {
-    return { blocked: false, reason: "", advanceAmount: null };
+    return { blocked: false, reason: "", advanceAmount: null, blockLevel: null };
   }
 
   const pin = pincode.trim();
@@ -64,7 +74,8 @@ CodBlockedPincodeSchema.statics.isCodBlocked = async function (pincode) {
     return {
       blocked: true,
       reason: exactMatch.reason,
-      advanceAmount: exactMatch.advanceAmount // may be null
+      advanceAmount: exactMatch.advanceAmount, // may be null
+      blockLevel: exactMatch.blockLevel
     };
   }
 
@@ -75,11 +86,12 @@ CodBlockedPincodeSchema.statics.isCodBlocked = async function (pincode) {
     return {
       blocked: true,
       reason: prefixMatch.reason,
-      advanceAmount: prefixMatch.advanceAmount // may be null
+      advanceAmount: prefixMatch.advanceAmount, // may be null
+      blockLevel: prefixMatch.blockLevel
     };
   }
 
-  return { blocked: false, reason: "", advanceAmount: null };
+  return { blocked: false, reason: "", advanceAmount: null, blockLevel: null };
 };
 
 module.exports = mongoose.model("CodBlockedPincode", CodBlockedPincodeSchema);
