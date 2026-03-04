@@ -72,7 +72,7 @@ const ShopWithBackendFilters: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get('category') || 'all');
   const [selectedSubcategory, setSelectedSubcategory] = useState(searchParams.get('subcategory') || 'all');
   const [selectedProductType, setSelectedProductType] = useState(searchParams.get('type') || 'all');
-  const [selectedGender, setSelectedGender] = useState(searchParams.get('gender') || 'unisex');
+  const [selectedGender, setSelectedGender] = useState(searchParams.get('gender') || 'all');
   const [selectedPriceRange, setSelectedPriceRange] = useState(searchParams.get('price') || 'all');
   const [selectedSizes, setSelectedSizes] = useState<string[]>((searchParams.get('sizes')?.split(',').filter(Boolean)) || []);
   const [selectedAvailability, setSelectedAvailability] = useState(searchParams.get('availability') || 'all');
@@ -96,7 +96,7 @@ const ShopWithBackendFilters: React.FC = () => {
     const category = searchParams.get('category') || 'all';
     const subcategory = searchParams.get('subcategory') || 'all';
     const type = searchParams.get('type') || 'all';
-    const gender = searchParams.get('gender') || 'unisex';
+    const gender = searchParams.get('gender') || 'all';
     const price = searchParams.get('price') || 'all';
     const sizes = searchParams.get('sizes')?.split(',').filter(Boolean) || [];
     const availability = searchParams.get('availability') || 'all';
@@ -448,7 +448,7 @@ const ShopWithBackendFilters: React.FC = () => {
     setSearchQuery('');
     setSelectedCategory('all');
     setSelectedProductType('all');
-    setSelectedGender('unisex');
+    setSelectedGender('all');
     setSelectedSizes([]);
     setSelectedAvailability('all');
     setPriceRange([0, 5000]);
@@ -486,6 +486,8 @@ const ShopWithBackendFilters: React.FC = () => {
 
   // Filter product types by selected gender
   const filteredProductTypes = productTypes?.filter(type => {
+    // Show all types when gender is 'all'
+    if (selectedGender === 'all') return true;
     // If no genders defined, show for all (backward compatibility)
     if (!type.genders || type.genders.length === 0) return true;
     // Only show if type explicitly includes the selected gender
@@ -503,6 +505,8 @@ const ShopWithBackendFilters: React.FC = () => {
 
   // Filter categories by selected gender
   const filteredCategories = categories.filter(cat => {
+    // Show all categories when gender is 'all'
+    if (selectedGender === 'all') return true;
     // If no genders defined, show for all (backward compatibility)
     if (!cat.genders || cat.genders.length === 0) return true;
     // Only show if category explicitly includes the selected gender
@@ -610,6 +614,7 @@ const ShopWithBackendFilters: React.FC = () => {
                 <h3 className="font-semibold mb-3">Gender</h3>
                 <div className="flex gap-2">
                   {[
+                    { id: 'all', name: 'All', icon: '🛍️' },
                     { id: 'unisex', name: 'Unisex', icon: '👕' },
                     { id: 'men', name: 'Men', icon: '👔' },
                     { id: 'women', name: 'Women', icon: '👗' }
@@ -638,7 +643,7 @@ const ShopWithBackendFilters: React.FC = () => {
               <div className="mb-6">
                 <h3 className="font-semibold mb-3">Product Type</h3>
                 {filteredProductTypes.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic px-3 py-2">No product types available for {selectedGender === 'women' ? 'Women' : selectedGender === 'men' ? 'Men' : 'Unisex'}</p>
+                  <p className="text-sm text-gray-400 italic px-3 py-2">No product types available{selectedGender !== 'all' ? ` for ${selectedGender === 'women' ? 'Women' : selectedGender === 'men' ? 'Men' : 'Unisex'}` : ''}</p>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
                     {productTypesOptions.map(type => (
@@ -663,7 +668,7 @@ const ShopWithBackendFilters: React.FC = () => {
               <div className="mb-6">
                 <h3 className="font-semibold mb-3">Categories</h3>
                 {filteredCategories.length === 0 ? (
-                  <p className="text-sm text-gray-400 italic px-3 py-2">No categories available for {selectedGender === 'women' ? 'Women' : selectedGender === 'men' ? 'Men' : 'Unisex'}</p>
+                  <p className="text-sm text-gray-400 italic px-3 py-2">No categories available{selectedGender !== 'all' ? ` for ${selectedGender === 'women' ? 'Women' : selectedGender === 'men' ? 'Men' : 'Unisex'}` : ''}</p>
                 ) : (
                   <div className="space-y-2">
                     {categoryOptions.map(category => (
