@@ -79,15 +79,14 @@ const MobileBottomBar: React.FC<MobileBottomBarProps> = ({
       style={{
         backgroundColor: 'var(--color-background)',
         borderTop: '1px solid var(--color-border)',
+        boxShadow: '0 -4px 16px rgba(0,0,0,0.18)',
         zIndex: 200,
+        paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
-      {/* Size Pills + Quantity — combined row */}
-      <div
-        className="flex items-center gap-2 px-3 pt-2 pb-1"
-      >
-        {/* Size pills — scrollable, hidden for free-size */}
-        {showSizes && (
+      {/* Row 1: Size pills + Qty stepper */}
+      {showSizes && (
+        <div className="flex items-center gap-2 px-3 pt-2.5 pb-2">
           <div className="flex-1 flex gap-1.5 overflow-x-auto no-scrollbar min-w-0">
             {displaySizes.map((size) => {
               const available = isSizeAvailable(size);
@@ -97,16 +96,12 @@ const MobileBottomBar: React.FC<MobileBottomBarProps> = ({
                   key={size}
                   onClick={() => available && setSelectedSize(size)}
                   disabled={!available}
-                  className="flex-shrink-0 px-3 py-1 text-xs font-medium rounded-full border transition-colors"
+                  className="flex-shrink-0 px-2.5 py-1 text-xs font-semibold rounded-lg border transition-all active:scale-95"
                   style={{
                     backgroundColor: selected ? 'var(--color-primary)' : 'transparent',
                     borderColor: selected ? 'var(--color-primary)' : 'var(--color-border)',
-                    color: selected
-                      ? 'var(--color-primaryText)'
-                      : available
-                      ? 'var(--color-text)'
-                      : 'var(--color-textMuted)',
-                    opacity: available ? 1 : 0.4,
+                    color: selected ? 'var(--color-primaryText)' : available ? 'var(--color-text)' : 'var(--color-textMuted)',
+                    opacity: available ? 1 : 0.35,
                   }}
                 >
                   {size}
@@ -114,54 +109,73 @@ const MobileBottomBar: React.FC<MobileBottomBarProps> = ({
               );
             })}
           </div>
-        )}
 
-        {/* Qty label + stepper — pinned right */}
-        <div className="flex-shrink-0 flex items-center gap-1.5">
-          {!showSizes && (
-            <span className="text-xs font-medium mr-1" style={{ color: 'var(--color-textMuted)' }}>Qty</span>
-          )}
-          <button
-            onClick={() => setQuantity(Math.max(1, quantity - 1))}
-            disabled={quantity <= 1}
-            className="w-6 h-6 flex items-center justify-center rounded-full border transition-colors"
-            style={{
-              borderColor: 'var(--color-border)',
-              color: quantity <= 1 ? 'var(--color-textMuted)' : 'var(--color-text)',
-              opacity: quantity <= 1 ? 0.4 : 1,
-            }}
-          >
-            <Minus className="w-3 h-3" />
-          </button>
-          <span className="text-xs font-semibold w-4 text-center" style={{ color: 'var(--color-text)' }}>
-            {quantity}
-          </span>
-          <button
-            onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
-            disabled={!canAct || quantity >= maxQty}
-            className="w-6 h-6 flex items-center justify-center rounded-full border transition-colors"
-            style={{
-              borderColor: !canAct || quantity >= maxQty ? 'var(--color-border)' : 'var(--color-primary)',
-              color: !canAct || quantity >= maxQty ? 'var(--color-textMuted)' : 'var(--color-primary)',
-              opacity: !canAct || quantity >= maxQty ? 0.4 : 1,
-            }}
-          >
-            <Plus className="w-3 h-3" />
-          </button>
+          {/* Divider */}
+          <div className="flex-shrink-0 h-6 w-px" style={{ backgroundColor: 'var(--color-border)' }} />
+
+          {/* Qty stepper */}
+          <div className="flex-shrink-0 flex items-center gap-1 rounded-lg px-1" style={{ border: '1px solid var(--color-border)' }}>
+            <button
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              disabled={quantity <= 1}
+              className="w-7 h-7 flex items-center justify-center transition-all active:scale-90"
+              style={{ color: quantity <= 1 ? 'var(--color-textMuted)' : 'var(--color-text)', opacity: quantity <= 1 ? 0.35 : 1 }}
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <span className="text-xs font-bold w-4 text-center select-none" style={{ color: 'var(--color-text)' }}>
+              {quantity}
+            </span>
+            <button
+              onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+              disabled={!canAct || quantity >= maxQty}
+              className="w-7 h-7 flex items-center justify-center transition-all active:scale-90"
+              style={{ color: !canAct || quantity >= maxQty ? 'var(--color-textMuted)' : 'var(--color-primary)', opacity: !canAct || quantity >= maxQty ? 0.35 : 1 }}
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Action Buttons Row */}
+      {/* Free-size: qty only row */}
+      {!showSizes && (
+        <div className="flex items-center justify-end px-3 pt-2.5 pb-2 gap-2">
+          <span className="text-xs" style={{ color: 'var(--color-textMuted)' }}>Qty</span>
+          <div className="flex items-center gap-1 rounded-lg px-1" style={{ border: '1px solid var(--color-border)' }}>
+            <button
+              onClick={() => setQuantity(Math.max(1, quantity - 1))}
+              disabled={quantity <= 1}
+              className="w-7 h-7 flex items-center justify-center transition-all active:scale-90"
+              style={{ color: quantity <= 1 ? 'var(--color-textMuted)' : 'var(--color-text)', opacity: quantity <= 1 ? 0.35 : 1 }}
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <span className="text-xs font-bold w-4 text-center select-none" style={{ color: 'var(--color-text)' }}>
+              {quantity}
+            </span>
+            <button
+              onClick={() => setQuantity(Math.min(maxQty, quantity + 1))}
+              disabled={!canAct || quantity >= maxQty}
+              className="w-7 h-7 flex items-center justify-center transition-all active:scale-90"
+              style={{ color: !canAct || quantity >= maxQty ? 'var(--color-textMuted)' : 'var(--color-primary)', opacity: !canAct || quantity >= maxQty ? 0.35 : 1 }}
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Row 2: Action Buttons */}
       <div
-        className="px-3 pb-3 pt-1.5 flex gap-2"
+        className="px-3 pb-3 pt-2 flex gap-2"
         style={{ borderTop: '1px solid var(--color-border)' }}
       >
-        {/* Add to Cart */}
         <button
           onClick={onAddToCart}
           disabled={!canAct}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-s font-semibold transition-all ${
-            canAct ? 'hover:opacity-90' : 'cursor-not-allowed opacity-50'
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-s font-semibold transition-all active:scale-[0.97] ${
+            canAct ? '' : 'cursor-not-allowed opacity-50'
           }`}
           style={{
             backgroundColor: canAct ? 'var(--color-primary)' : 'var(--color-surface)',
@@ -169,33 +183,26 @@ const MobileBottomBar: React.FC<MobileBottomBarProps> = ({
             border: `1px solid ${canAct ? 'var(--color-primary)' : 'var(--color-border)'}`,
           }}
         >
-          <ShoppingCart className="w-3.5 h-3.5 flex-shrink-0" />
+          <ShoppingCart className="w-4 h-4 flex-shrink-0" />
           <span className="truncate">
-            {!selectedSize && showSizes
-              ? 'Select Size'
-              : !isStockAvailable && showSizes
-              ? 'Out of Stock'
-              : `Add to Cart · ₹${totalPrice}`}
+            {!selectedSize && showSizes ? 'Select Size' : !isStockAvailable ? 'Out of Stock' : `Add to Cart · ₹${totalPrice}`}
           </span>
         </button>
 
-        {/* Buy Now */}
         <button
           onClick={onBuyNow}
           disabled={!canAct}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-s font-semibold transition-all ${
-            canAct ? 'hover:opacity-90' : 'cursor-not-allowed opacity-50'
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-s  font-semibold transition-all active:scale-[0.97] ${
+            canAct ? '' : 'cursor-not-allowed opacity-50'
           }`}
           style={{
             backgroundColor: canAct ? 'var(--color-success)' : 'var(--color-surface)',
-            color: canAct ? 'white' : 'var(--color-textMuted)',
+            color: canAct ? '#fff' : 'var(--color-textMuted)',
             border: `1px solid ${canAct ? 'var(--color-success)' : 'var(--color-border)'}`,
           }}
         >
-          <Zap className="w-3.5 h-3.5 flex-shrink-0" />
-          <span>
-            {!selectedSize && showSizes ? 'Select Size' : 'Buy Now'}
-          </span>
+          <Zap className="w-4 h-4 flex-shrink-0" />
+          <span>{!selectedSize && showSizes ? 'Select Size' : 'Buy Now'}</span>
         </button>
       </div>
     </div>
