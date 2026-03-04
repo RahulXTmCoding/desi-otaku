@@ -36,7 +36,7 @@ const MobileCartBar: React.FC<MobileCartBarProps> = ({ itemCount, totalPrice }) 
         {/* Continue Shopping */}
         <button
           onClick={() => navigate('/shop')}
-          className="flex items-center justify-center px-3 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] whitespace-nowrap"
+          className="flex-1 flex items-center justify-center px-3 py-2.5 rounded-xl text-xs font-semibold transition-all active:scale-[0.97] whitespace-nowrap"
           style={{
             backgroundColor: 'transparent',
             color: 'var(--color-text)',
@@ -49,7 +49,7 @@ const MobileCartBar: React.FC<MobileCartBarProps> = ({ itemCount, totalPrice }) 
         {/* Checkout button */}
         <button
           onClick={() => navigate('/checkout')}
-          className="flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] whitespace-nowrap"
+          className="flex-1 flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all active:scale-[0.97] whitespace-nowrap"
           style={{
             backgroundColor: 'var(--color-primary)',
             color: 'var(--color-primaryText)',
