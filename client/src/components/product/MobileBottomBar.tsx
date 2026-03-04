@@ -160,7 +160,7 @@ const MobileBottomBar: React.FC<MobileBottomBarProps> = ({
         <button
           onClick={onAddToCart}
           disabled={!canAct}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-s font-semibold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-s font-semibold transition-all ${
             canAct ? 'hover:opacity-90' : 'cursor-not-allowed opacity-50'
           }`}
           style={{
@@ -183,7 +183,7 @@ const MobileBottomBar: React.FC<MobileBottomBarProps> = ({
         <button
           onClick={onBuyNow}
           disabled={!canAct}
-          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-s font-semibold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-s font-semibold transition-all ${
             canAct ? 'hover:opacity-90' : 'cursor-not-allowed opacity-50'
           }`}
           style={{
