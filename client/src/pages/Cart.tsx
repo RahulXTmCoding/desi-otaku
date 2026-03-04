@@ -11,6 +11,7 @@ import QuantityDiscountBanner from '../components/QuantityDiscountBanner';
 // import FreeShippingProgress from '../components/FreeShippingProgress';
 import { getColorName } from '../utils/colorUtils';
 import { getCartItemImage } from '../utils/imageUtils';
+import MobileCartBar from '../components/cart/MobileCartBar';
 
 const Cart: React.FC = () => {
   const navigate = useNavigate();
@@ -162,7 +163,7 @@ const Cart: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-900 text-white">
+    <div className="bg-gray-900 text-white pb-20 lg:pb-0">
       <div className="max-w-7xl mx-auto px-4 md:py-8 py-4">
         {/* Page Header */}
         <div className="mb-4">
@@ -387,7 +388,7 @@ const Cart: React.FC = () => {
 
               <button
                 onClick={() => navigate('/checkout')}
-                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-3.5 rounded-lg transition-all flex items-center justify-center gap-2 shadow-lg text-base"
+                className="hidden lg:flex w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-3.5 rounded-lg transition-all items-center justify-center gap-2 shadow-lg text-base"
               >
                 Proceed to Checkout
                 <ArrowRight className="w-5 h-5" />
@@ -395,7 +396,7 @@ const Cart: React.FC = () => {
 
               <Link
                 to="/shop"
-                className="block text-center text-gray-400 hover:text-yellow-400 mt-3 text-sm transition-colors"
+                className="hidden lg:block text-center text-gray-400 hover:text-yellow-400 mt-3 text-sm transition-colors"
               >
                 Continue Shopping
               </Link>
@@ -406,10 +407,6 @@ const Cart: React.FC = () => {
                   <div className="flex items-center gap-2 text-gray-400">
                     <span className="text-green-400 text-sm">🚚</span>
                     <span>Free Shipping on All Orders</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-400">
-                    <span className="text-green-400 text-sm">↩️</span>
-                    <span>Easy Returns &amp; Exchanges</span>
                   </div>
                   <div className="flex items-center gap-2 text-gray-400">
                     <span className="text-green-400 text-sm">💳</span>
@@ -425,6 +422,9 @@ const Cart: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Floating bottom bar — mobile/tablet only */}
+      <MobileCartBar itemCount={getItemCount()} totalPrice={finalTotal} />
     </div>
   );
 };
