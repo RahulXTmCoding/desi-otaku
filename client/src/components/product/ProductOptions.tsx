@@ -73,13 +73,15 @@ const ProductOptions: React.FC<ProductOptionsProps> = ({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="text-sm font-medium">Size</label>
-          {/* Hide size chart for free size products */}
+          {/* Hide size chart for free size products; also hidden on mobile (inline chart shown instead) */}
           {!isFreeSize && !product.isFreeSize && (
-            <SizeChart 
-              productType={productType} 
-              customTags={product.customTags} 
-              sizeChartData={sizeChartData}
-            />
+            <span className="hidden md:inline-flex">
+              <SizeChart 
+                productType={productType} 
+                customTags={product.customTags} 
+                sizeChartData={sizeChartData}
+              />
+            </span>
           )}
         </div>
         <div className={`grid gap-2 ${displaySizes.length === 1 ? 'grid-cols-1 max-w-[150px]' : 'grid-cols-5'}`}>

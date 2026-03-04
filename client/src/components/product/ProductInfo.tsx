@@ -96,7 +96,7 @@ const ProductInfo: React.FC<ProductInfoProps> = ({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="flex items-center justify-between text-3xl font-bold display-inline" style={{ color: 'var(--color-text)' }}>
+        <h1 className="flex items-center justify-between text-2xl md:text-3xl font-bold display-inline" style={{ color: 'var(--color-text)' }}>
           {product.name}
         </h1>
 

@@ -114,10 +114,10 @@ const RecentPurchases: React.FC<RecentPurchasesProps> = ({ currentProductTypeId 
   if (entries.length === 0) return null;
 
   return (
-    <section className="mt-14 mb-6">
+    <section className="mt-8 mb-4">
       {/* Heading */}
       <h2
-        className="text-2xl md:text-3xl font-semibold text-center mb-8 tracking-wide uppercase"
+        className="text-2xl md:text-3xl font-semibold text-center mb-6 tracking-wide uppercase"
         style={{ color: 'var(--color-text)', fontFamily: 'var(--font-heading, inherit)' }}
       >
         Recent Purchases

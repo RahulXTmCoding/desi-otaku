@@ -22,6 +22,8 @@ import ProductInfo from '../components/product/ProductInfo';
 import ProductOptions from '../components/product/ProductOptions';
 import ProductActions from '../components/product/ProductActions';
 import ProductTabs from '../components/product/ProductTabs';
+import InlineSizeChart from '../components/product/InlineSizeChart';
+import MobileBottomBar from '../components/product/MobileBottomBar';
 
 // Lazy load heavy components to improve initial page load
 const ProductReviews = lazy(() => import('../components/ProductReviews'));
@@ -221,12 +223,10 @@ const ProductDetail: React.FC = () => {
           material: "100% Cotton 220 GSM Premium Tees",
           features: [
             "100% Cotton 220 GSM premium fabric",
-            "Pre-shrunk for perfect fit",
-            "Bio-washed for extra softness",
+            "Pre-shrunk and Bio-washed for premium feel",
             "High-quality digital print",
             "Double-stitched seams for durability",
-            "Comfortable regular fit",
-            "Fade-resistant colors"
+            "Comfortable regular fit"
           ],
           careInstructions: [
             "Machine wash cold with similar colors",
@@ -242,12 +242,10 @@ const ProductDetail: React.FC = () => {
           material: "240 GSM French Terry",
           features: [
             "240 GSM French Terry fabric",
-            "Pre-shrunk for perfect fit", 
-            "Bio-washed for premium feel",
+            "Pre-shrunk and Bio-washed for premium feel",
             "Relaxed oversized fit",
             "Super soft and comfortable",
-            "High-quality digital print",
-            "Reinforced shoulder seams"
+            "High-quality digital print"
           ],
           careInstructions: [
             "Machine wash cold with similar colors",
@@ -629,25 +627,10 @@ const ProductDetail: React.FC = () => {
         </>
       )}
       
-      <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
+      <div className="min-h-screen pb-20 md:pb-0" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
         {/* Breadcrumb */}
-        <div className="product-detail-container py-4">
-          <div className="flex items-center gap-2 md:mt-5 text-sm animate-fade-in" style={{ color: 'var(--color-textMuted)' }}>
-            <button onClick={() => navigate('/')} className="transition-colors hover:scale-105 transform" 
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
-            >Home</button>
-            <span>/</span>
-            <button onClick={() => navigate('/shop')} className="transition-colors hover:scale-105 transform"
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--color-primary)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--color-textMuted)'}
-            >Shop</button>
-            <span>/</span>
-            <span style={{ color: 'var(--color-text)' }}>{product.name}</span>
-          </div>
-        </div>
 
-        <div className="product-detail-container md:py-8" id="details">
+        <div className="product-detail-container py-2 md:py-4" id="details">
           <div className="grid md:grid-cols-5 md:gap-8  gap-6">
             {/* Product Images Section - Takes 3/5 of the width (60%) */}
             <div className="md:col-span-3">
@@ -660,7 +643,7 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Product Info Section - Takes 2/5 of the width (40%) */}
-            <div className="md:col-span-2 md:space-y-8 space-y-4">
+            <div className="md:col-span-2 md:space-y-8 space-y-4 min-w-0">
               <ProductInfo
                 product={product}
                 isFetching={isFetching}
@@ -670,32 +653,48 @@ const ProductDetail: React.FC = () => {
                 defaultFeatures={defaultFeatures}
               />
 
-              <ProductOptions
-                product={product}
-                selectedSize={selectedSize}
-                setSelectedSize={handleSizeChange}
-                quantity={quantity}
-                setQuantity={setQuantity}
-                productType={productType}
-                sizeChartData={sizeChartData}
-                isFreeSize={isFreeSize}
-              />
+              <div className="hidden md:block">
+                <ProductOptions
+                  product={product}
+                  selectedSize={selectedSize}
+                  setSelectedSize={handleSizeChange}
+                  quantity={quantity}
+                  setQuantity={setQuantity}
+                  productType={productType}
+                  sizeChartData={sizeChartData}
+                  isFreeSize={isFreeSize}
+                />
+              </div>
 
-              <ProductActions
-                product={product}
-                selectedSize={selectedSize}
-                quantity={quantity}
-                setQuantity={setQuantity}
-                selectedColor={selectedColor}
-                onAddToCart={handleAddToCart}
-                onBuyNow={handleBuyNow}
-                onWishlistToggle={handleWishlistToggle}
-                isWishlisted={isWishlisted}
-                wishlistLoading={wishlistLoading}
-                showSuccessMessage={showSuccessMessage}
-                userId={userId}
-                token={token}
-              />
+              {/* Inline size chart — mobile only, replaces modal-based chart */}
+              {!isFreeSize && (
+                <div className="md:hidden w-full overflow-hidden">
+                  <InlineSizeChart
+                    productType={productType}
+                    customTags={product.customTags}
+                    sizeChartData={sizeChartData}
+                  />
+                </div>
+              )}
+
+              {/* Action buttons — desktop only; mobile uses floating MobileBottomBar */}
+              <div className="hidden md:block">
+                <ProductActions
+                  product={product}
+                  selectedSize={selectedSize}
+                  quantity={quantity}
+                  setQuantity={setQuantity}
+                  selectedColor={selectedColor}
+                  onAddToCart={handleAddToCart}
+                  onBuyNow={handleBuyNow}
+                  onWishlistToggle={handleWishlistToggle}
+                  isWishlisted={isWishlisted}
+                  wishlistLoading={wishlistLoading}
+                  showSuccessMessage={showSuccessMessage}
+                  userId={userId}
+                  token={token}
+                />
+              </div>
 
               {/* Premium AOV Enhancement Components - Only show when cart has items */}
               {getItemCount() > 0 && (
@@ -760,35 +759,18 @@ const ProductDetail: React.FC = () => {
           )}
         </div>
 
-        {/* Premium Mobile Sticky Footer */}
-        {/* <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-sm border-t border-gray-800 p-4 z-50">
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <div className="text-sm text-gray-400">Total</div>
-              <div className="font-semibold">₹{(product.price * quantity).toLocaleString('en-IN')}</div>
-            </div>
-            <button 
-              onClick={handleAddToCart}
-              disabled={!selectedSize}
-              className={`flex-1 py-3 rounded-lg font-medium transition-colors ${
-                selectedSize 
-                  ? 'bg-white text-black hover:bg-gray-100' 
-                  : 'bg-gray-700 text-gray-400 cursor-not-allowed'
-              }`}
-            >
-              {!selectedSize ? 'Select Size' : 'Add to Cart'}
-            </button>
-            {userId && token && (
-              <button 
-                onClick={handleWishlistToggle}
-                disabled={wishlistLoading}
-                className="px-4 py-3 border border-gray-600 rounded-lg"
-              >
-                <Heart className={`w-5 h-5 ${isWishlisted ? 'fill-red-500 text-red-500' : 'text-white'}`} />
-              </button>
-            )}
-          </div>
-        </div> */}
+        {/* Floating bottom bar — mobile only */}
+        <MobileBottomBar
+          product={product}
+          selectedSize={selectedSize}
+          setSelectedSize={handleSizeChange}
+          quantity={quantity}
+          setQuantity={setQuantity}
+          onAddToCart={handleAddToCart}
+          onBuyNow={handleBuyNow}
+          isFreeSize={isFreeSize}
+          sizeChartData={sizeChartData}
+        />
       </div>
     </>
   );

@@ -4,6 +4,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Hide scrollbar but keep scroll functionality */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 /* Additional theme overrides for common patterns */
 .bg-gray-900, 
 .dark\:bg-gray-900 {
@@ -66,7 +75,7 @@
 
 /* Product Detail Page Consistent Container */
 .product-detail-container {
-  width: 95%;
+  width: 96%;
   max-width: 1500px;
   margin: 0 auto;
   /* padding: 0 1rem; */
@@ -74,7 +83,7 @@
 
 @media (min-width: 768px) {
   .product-detail-container {
-    width: 92%;
+    width: 90%;
     padding: 0 1.5rem;
   }
 }
