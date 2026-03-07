@@ -52,6 +52,10 @@ const corsOptions = {
 
 const app = express();
 
+// Trust proxy - REQUIRED when behind a reverse proxy (AWS ALB, Nginx, Cloudflare)
+// Without this, all users share the same IP (the proxy's IP) for rate limiting
+app.set('trust proxy', 1);
+
 //DB Connections
 mongoose
   .connect(process.env.DATABASE, {
@@ -86,7 +90,7 @@ app.use(compression());
 // General API rate limiter: 100 requests per 15 minutes per IP
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: { error: 'Too many requests, please try again later.' },
