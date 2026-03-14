@@ -9,6 +9,7 @@ import {
   Image,
   Upload
 } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useDesigns, useDesignCategories, useDesignTags, useProducts } from '../hooks/useProducts';
@@ -284,6 +285,8 @@ const Customize: React.FC = () => {
   };
 
   return (
+    <>
+    <SEOHead pageName="customize" />
     <div className="min-h-screen bg-gray-900 text-white">
         <div className="w-[96%] md:w-[90%] mx-auto px-4 py-4 md:py-8">
           {/* Page Header */}
@@ -721,6 +724,7 @@ const Customize: React.FC = () => {
           </div>
         )}
     </div>
+    </>
   );
 };
 

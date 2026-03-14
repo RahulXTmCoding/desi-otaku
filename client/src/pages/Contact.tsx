@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAnalytics } from '../context/AnalyticsContext';
+import SEOHead from '../components/SEOHead';
 import { 
   Mail, 
   Phone, 
@@ -58,6 +59,8 @@ const Contact: React.FC = () => {
   };
 
   return (
+    <>
+    <SEOHead pageName="contact" />
     <div className="min-h-screen bg-gray-900 text-white py-8 md:py-12">
       <div className="w-[96%] md:w-[90%] mx-auto px-4">
         {/* Header */}
@@ -310,6 +313,7 @@ const Contact: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

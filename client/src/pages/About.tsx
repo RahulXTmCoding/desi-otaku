@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Award, Palette, Users, Sparkles, Star, CheckCircle, ArrowRight, Zap, Target, Eye } from 'lucide-react';
 import Base from '../core/Base';
+import SEOHead from '../components/SEOHead';
 
 const About: React.FC = () => {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ const About: React.FC = () => {
 
   return (
     <Base title="About Us - Attars Clothing" description="Learn about our passion for delivering high-quality fashion and exceptional designs">
+      <SEOHead pageName="about" />
       <div className="min-h-screen">
         
         {/* Hero Section - Always dark background with white text */}

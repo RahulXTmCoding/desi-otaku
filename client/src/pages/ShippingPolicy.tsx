@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Truck, Clock, MapPin, Package, Shield } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const ShippingPolicy: React.FC = () => {
   return (
+    <>
+    <SEOHead pageName="shipping-policy" />
     <div className="min-h-screen bg-gray-900 text-white py-8">
       <div className="w-[96%] md:w-[90%] mx-auto px-4">
         {/* Breadcrumb */}
@@ -216,6 +219,7 @@ const ShippingPolicy: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

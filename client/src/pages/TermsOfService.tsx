@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Scale, AlertTriangle, Shield } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const TermsOfService: React.FC = () => {
   return (
+    <>
+    <SEOHead pageName="terms-of-service" />
     <div className="min-h-screen bg-gray-900 text-white py-8">
       <div className="w-[96%] md:w-[90%] mx-auto px-4">
         {/* Breadcrumb */}
@@ -267,6 +270,7 @@ const TermsOfService: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

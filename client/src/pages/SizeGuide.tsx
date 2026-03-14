@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft, Ruler, User, Shirt } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const SizeGuide: React.FC = () => {
   return (
+    <>
+    <SEOHead pageName="size-guide" />
     <div className="min-h-screen bg-gray-900 text-white py-8">
       <div className="w-[96%] md:w-[90%] mx-auto px-4">
         {/* Breadcrumb */}
@@ -379,6 +382,7 @@ const SizeGuide: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

@@ -25,6 +25,22 @@
   ],
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://backend.attars.club/api/sitemap/sitemap.xml"
+    },
+    {
+      "source": "/sitemap-index.xml",
+      "destination": "https://backend.attars.club/api/sitemap/sitemap-index.xml"
+    },
+    {
+      "source": "/sitemap-static.xml",
+      "destination": "https://backend.attars.club/api/sitemap/sitemap-static.xml"
+    },
+    {
+      "source": "/sitemap-products-:page.xml",
+      "destination": "https://backend.attars.club/api/sitemap/sitemap-products-:page.xml"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

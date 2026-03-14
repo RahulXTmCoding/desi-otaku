@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Shield, Eye, Lock, Database, Globe } from 'lucide-react';
+import SEOHead from '../components/SEOHead';
 
 const PrivacyPolicy: React.FC = () => {
   return (
+    <>
+    <SEOHead pageName="privacy-policy" />
     <div className="min-h-screen bg-gray-900 text-white py-8">
       <div className="w-[96%] md:w-[90%] mx-auto px-4">
         {/* Breadcrumb */}
@@ -273,6 +276,7 @@ const PrivacyPolicy: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

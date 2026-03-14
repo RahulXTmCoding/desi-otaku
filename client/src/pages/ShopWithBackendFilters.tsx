@@ -21,6 +21,7 @@ import ProductGridItem from '../components/ProductGridItem';
 import QuickViewModal from '../components/QuickViewModal';
 import MobileFilterModal from '../components/MobileFilterModal';
 import { useDebounce } from '../hooks/useDebounce';
+import SEOHead from '../components/SEOHead';
 
 interface Product {
   _id: string;
@@ -571,6 +572,8 @@ const ShopWithBackendFilters: React.FC = () => {
   };
 
   return (
+    <>
+    <SEOHead pageName="shop" />
     <div className="min-h-screen bg-gray-900 text-white">
       <div className="w-[96%] md:w-[90%] mx-auto md:px-4 md:py-8">
         <div className="flex flex-col lg:flex-row gap-8">
@@ -1141,6 +1144,7 @@ const ShopWithBackendFilters: React.FC = () => {
         onClose={handleCloseQuickView}
       />
     </div>
+    </>
   );
 };
 

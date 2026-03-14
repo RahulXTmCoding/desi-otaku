@@ -1,10 +1,24 @@
 User-agent: *
 Allow: /
 
-# Dynamic sitemap served from backend
-Sitemap: https://backend.attars.club/api/sitemap/sitemap-index.xml
-
 # Block admin and private areas
 Disallow: /admin
 Disallow: /user/
-Disallow: /api/auth/
+Disallow: /api/
+Disallow: /checkout
+Disallow: /order/
+
+# Block AI training crawlers (optional — uncomment to prevent AI training)
+# Google Search indexing still works; only AI training is blocked
+# User-agent: GPTBot
+# Disallow: /
+# User-agent: Google-Extended
+# Disallow: /
+# User-agent: ClaudeBot
+# Disallow: /
+# User-agent: CCBot
+# Disallow: /
+
+# Sitemap (proxied to backend via Vercel rewrites)
+Sitemap: https://attars.club/sitemap.xml
+Sitemap: https://attars.club/sitemap-index.xml

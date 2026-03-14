@@ -2,9 +2,12 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { RotateCcw, Clock, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
 import ReturnExchangeForm from '../components/ReturnExchangeForm';
+import SEOHead from '../components/SEOHead';
 
 const ReturnPolicy: React.FC = () => {
   return (
+    <>
+    <SEOHead pageName="return-policy" />
     <div className="min-h-screen bg-gray-900 text-white py-8">
       <div className="w-[96%] md:w-[90%] mx-auto px-4">
         {/* Breadcrumb */}
@@ -315,6 +318,7 @@ const ReturnPolicy: React.FC = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
