@@ -631,9 +631,9 @@ const ProductDetail: React.FC = () => {
         {/* Breadcrumb */}
 
         <div className="product-detail-container py-2 md:py-6" id="details">
-          <div className="grid md:grid-cols-5 md:gap-8  gap-6">
+          <div className="grid md:grid-cols-5 md:gap-8 md:items-start gap-6">
             {/* Product Images Section - Takes 3/5 of the width (60%) */}
-            <div className="md:col-span-3">
+            <div className="md:col-span-3 md:sticky md:top-24 md:self-start">
               <ProductImageGallery
                 product={product}
                 productImages={productImages}
@@ -643,7 +643,7 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Product Info Section - Takes 2/5 of the width (40%) */}
-            <div className="md:col-span-2 md:space-y-4 space-y-4 min-w-0">
+            <div className="md:col-span-2 md:sticky md:top-24 md:self-start md:space-y-4 space-y-4 min-w-0">
               <ProductInfo
                 product={product}
                 isFetching={isFetching}
