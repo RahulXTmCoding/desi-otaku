@@ -630,7 +630,7 @@ const ProductDetail: React.FC = () => {
       <div className="min-h-screen pb-20 md:pb-0" style={{ backgroundColor: 'var(--color-background)', color: 'var(--color-text)' }}>
         {/* Breadcrumb */}
 
-        <div className="product-detail-container py-2 md:py-4" id="details">
+        <div className="product-detail-container py-2 md:py-6" id="details">
           <div className="grid md:grid-cols-5 md:gap-8  gap-6">
             {/* Product Images Section - Takes 3/5 of the width (60%) */}
             <div className="md:col-span-3">
@@ -643,7 +643,7 @@ const ProductDetail: React.FC = () => {
             </div>
 
             {/* Product Info Section - Takes 2/5 of the width (40%) */}
-            <div className="md:col-span-2 md:space-y-8 space-y-4 min-w-0">
+            <div className="md:col-span-2 md:space-y-4 space-y-4 min-w-0">
               <ProductInfo
                 product={product}
                 isFetching={isFetching}
